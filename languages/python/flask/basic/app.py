@@ -70,5 +70,23 @@ def show_user_with_params():
     user_type = request.args.get('type')
     return f'User ID: {user_id}, User Type: {user_type}, Route: {request.path}'
 
+# POST /sign-in
+#   data in the body: {'username': 'irina', 'password': 'secret'}
+
+@app.route('/sign-in', methods=['GET', 'POST'])
+def sign_in():
+    password_db = {
+        'irina': 'secret',
+        'david': 'p=np'
+    }
+
+    user = request.values.get('username', None)
+    if user and (password_db[user] == request.values.get('password', None)):
+        # User successfully authenticated!
+        return f"Here you go, get the sign-in token for: {request.form['username']}\n"
+    else:
+        # Fail!
+        return f"Wrong password or username!\n"
+
 if __name__ == "__main__":
     app.run(debug=True)
