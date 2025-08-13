@@ -1,0 +1,14 @@
+name: python-flask-basic
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Publish host PORT to container's fixed 8000
+    ports:
+      - "${PORT:-8000}:8000"
+    networks: [lab]
+
+networks:
+  lab: {}

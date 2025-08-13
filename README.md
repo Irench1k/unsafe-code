@@ -36,23 +36,50 @@ Our first public release covers ten modern frameworks across Python and JavaScri
 
 _...and more coming soon!_
 
-## Getting Started
+## Prerequisites and Clone
 
-Using the lab is simple:
+- Install Docker (Docker Desktop or Docker Engine with Compose v2)
+- Clone this repository:
 
-1.  **Clone the repository:**
+```bash
+git clone https://github.com/Irench1k/unsafe-code
+cd unsafe-code
+```
 
-    ```bash
-    git clone https://github.com/your-username/unsafe-code-lab.git
-    cd unsafe-code
-    ```
+## Quick run without Docker Compose
 
-2.  **Navigate to a scenario:**
-    Each framework has its own directory. Choose one you're interested in.
+For simple examples, you can use Docker directly (example: FastAPI basic):
 
-    ```bash
-    cd languages/python/fastapi/basic
-    ```
+```bash
+cd languages/python/fastapi/basic
+docker build -t unsafe-fastapi-basic .
+docker run --rm -p 8000:8000 --name fastapi-basic unsafe-fastapi-basic
+```
 
-3.  **Follow the local README:**
-    Each scenario has its own `README.md` with instructions on how to install dependencies, run the application, and exploit the vulnerability.
+## Run with Docker Compose
+
+Docker Compose is the recommended way of running the examples in this lab:
+
+- Run a specific example (two equivalent ways):
+
+```bash
+# From repo root
+docker compose -f languages/python/fastapi/basic/compose.yml up -d
+
+# Or from the example directory
+cd languages/python/fastapi/basic && docker compose up -d
+```
+
+- Manage from anywhere using the project name defined in the example compose file:
+
+```bash
+docker compose -p python-fastapi-basic ps
+docker compose -p python-fastapi-basic logs -f
+docker compose -p python-fastapi-basic down -v
+```
+
+- Override the host port without a .env file:
+
+```bash
+PORT=8005 docker compose -f languages/python/fastapi/basic/compose.yml up -d
+```

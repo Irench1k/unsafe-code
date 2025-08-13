@@ -209,3 +209,55 @@ __marimo__/
 # Private stuff
 src/
 notes/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors/IDE
+.idea/
+.vscode/
+.history/
+.fleet/
+
+# Node/JS
+node_modules/
+.pnpm-store/
+.turbo/
+.next/
+.nuxt/
+coverage/
+dist/
+build/
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Java
+.gradle/
+target/
+out/
+
+# Go
+bin/
+*.test
+coverage.out
+
+# Ruby
+.bundle/
+vendor/bundle/
+log/
+tmp/
+
+# PHP
+vendor/
+composer.lock
+
+# Docker
+.docker/
+docker-compose.override.yml
+*.env.local
+*.env.*.local
+
+# Logs
+*.log

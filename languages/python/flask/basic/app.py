@@ -1,5 +1,6 @@
 from flask import Flask, render_template_string, request, redirect, url_for
 from markupsafe import escape
+import os
 
 app = Flask(__name__)
 
@@ -89,4 +90,7 @@ def sign_in():
         return f"Wrong password or username!\n"
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    host = os.getenv("APP_HOST", "0.0.0.0")
+    port = int(os.getenv("APP_PORT", "8000"))
+    debug = os.getenv("FLASK_DEBUG", "1") == "1"
+    app.run(host=host, port=port, debug=debug)

@@ -1,5 +1,6 @@
 import random
 import string
+import os
 
 import cherrypy
 
@@ -32,4 +33,10 @@ if __name__ == '__main__':
             'tools.response_headers.headers': [('Content-Type', 'text/plain')],
         }
     }
+    host = os.getenv('APP_HOST', '0.0.0.0')
+    port = int(os.getenv('APP_PORT', '8000'))
+    cherrypy.config.update({
+        'server.socket_host': host,
+        'server.socket_port': port,
+    })
     cherrypy.quickstart(StringGeneratorWebService(), '/', conf)

@@ -1,7 +1,12 @@
-### How to run:
+### Run this example
 
 ```bash
-$ cd /unsafe-code/languages/python/flask/basic
-$ source venv/bin/activate
-$ python -m flask run
+cd languages/python/flask/basic
+docker compose up -d
+
+# override host port if needed
+PORT=8005 docker compose up -d
+
+# stop and remove
+docker compose down -v
 ```

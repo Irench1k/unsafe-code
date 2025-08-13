@@ -2,6 +2,7 @@ from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from enum import Enum
+import os
 
 class ModelName(str, Enum):
     alexnet = "alexnet"
@@ -110,3 +111,14 @@ async def process_submit(request: Request, name: str = Form(...)):
 @app.get("/hello/{name}", response_class=HTMLResponse)
 async def hello(request: Request, name: str):
     return HTMLResponse(f"Hello {name}")
+
+
+def main():
+    import uvicorn
+    host = os.getenv("APP_HOST", "0.0.0.0")
+    port = int(os.getenv("APP_PORT", "8000"))
+    uvicorn.run(app, host=host, port=port)
+
+
+if __name__ == "__main__":
+    main()
