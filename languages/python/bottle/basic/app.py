@@ -16,7 +16,7 @@ def get_user():
     return "Try to write a name, like this: `/user/my-name"
 
 
-# To access urls with `/` at the end, you need to declare your route like this:
+# Example: /user/irina
 @route("/user/<username>")
 @route("/user/<username>/")
 def get_username(username="String"):
@@ -24,15 +24,16 @@ def get_username(username="String"):
 
 
 # Parameters with types
+# Example: /user/irina/123
 @route("/user/<username>/<user_id:int>")
 @route("/user/<username>/<user_id:int>/")
 def get_userid(username="String", user_id=int):
     return template("Hello, {{name}}! Your ID is: {{id}}", name=username, id=user_id)
 
 
-# Use case 1: /user/irina/action/login -> User: irina, Action: login
-# Use case 2: /user/irina/action/view/profile -> User: irina, Action: view/profile
-# Use case 3: /user/bob/action/edit/post/123 -> User: bob, Action: edit/post/123
+# Example 1: /user/irina/action/login -> User: irina, Action: login
+# Example 2: /user/irina/action/view/profile -> User: irina, Action: view/profile
+# Example 3: /user/bob/action/edit/post/123 -> User: bob, Action: edit/post/123
 @route("/user/<username>/action/<action_path:path>")
 @route("/user/<username>/action/<action_path:path>/")
 def user_action(username, action_path):
@@ -42,6 +43,8 @@ def user_action(username, action_path):
 
 
 # Predefined values using REGEX FILTER
+# Example 1: /models/alexnet -> works
+# Example 2: /models/whatever -> code 404
 @route("/models/<model_name:re:alexnet|resnet|lenet>")
 @route("/models/<model_name:re:alexnet|resnet|lenet>/")
 def get_model(model_name):
@@ -61,6 +64,8 @@ def get_model(model_name):
 
 # Enforce a strict format using regular expression
 # Below example would allow a username with letters, numbers, and underscores, but nothing else.
+# Example 1: /special-user/irina_123 -> works
+# Example 2: /special-user/irina^123 -> code 404
 @route("/special-user/<username:re:[a-zA-Z0-9_]+>")
 @route("/special-user/<username:re:[a-zA-Z0-9_]+>/")
 def show_name(username):
@@ -68,6 +73,9 @@ def show_name(username):
 
 
 # Optional Query Parameter
+# Example of how you can differentiate between items/<item_id> and items/<status>:
+# Example 1: /items/123 will return "Your item ID is: 123"
+# Example 2: /items/active will return "Showing items with status: active"
 @route("/items/<item_id:int>")
 def read_item_optional(item_id):
     q = request.query.get("q")
@@ -102,6 +110,29 @@ def read_user_item2(item_id):
         "Here is your item ID: {{item_id}}, and needy is: {{needy}}",
         item_id=item_id,
         needy=needy,
+    )
+
+
+# Query Parameters
+# Example: /products?id=123&name=coca-cola
+@route("/products")
+def find_product():
+    id_str = request.query.get("id")
+    name = request.query.get("name")
+
+    if not name:
+        abort(400, "Required query parameter 'name' is missing.")
+
+    if not id_str:
+        abort(400, "Required query parameter 'item_id' is missing.")
+
+    try:
+        id = int(id_str)
+    except ValueError:
+        abort(400, "Invalid value for 'item_id'. It must be an integer.")
+
+    return template(
+        "Product ID is: {{id}}, and product Name is: {{name}}", id=id, name=name
     )
 
 
