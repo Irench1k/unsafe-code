@@ -1,0 +1,9 @@
+services:
+  app:
+    extends:
+      file: compose.yml
+      service: app
+    volumes:
+      - .:/app:cached
+    environment:
+      DEV_RELOAD: "1"

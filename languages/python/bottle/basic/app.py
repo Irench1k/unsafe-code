@@ -1,9 +1,6 @@
 import os
 from bottle import route, run, template, get, post, request, redirect, abort
 
-host = os.environ.get("APP_HOST", "localhost")
-port = int(os.environ.get("APP_PORT", 8080))
-
 
 @route("/")
 def root():
@@ -159,4 +156,10 @@ def do_submit():
 
 
 if __name__ == "__main__":
-    run(host=host, port=port, debug=True, reloader=True)
+    # Get configuration from environment variables with sensible defaults
+    host = os.environ.get("APP_HOST", "0.0.0.0")
+    port = int(os.environ.get("APP_PORT", 8000))
+    # Enable Bottle's built-in auto-reloader in development when requested
+    debug = os.environ.get("DEV_RELOAD", "0") == "1"
+
+    run(host=host, port=port, debug=debug, reloader=debug)

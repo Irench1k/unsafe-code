@@ -36,7 +36,7 @@ Our first public release covers ten modern frameworks across Python and JavaScri
 
 _...and more coming soon!_
 
-## Prerequisites and Clone
+## Prerequisites and Setup
 
 - Install Docker (Docker Desktop or Docker Engine with Compose v2)
 - Clone this repository:
@@ -46,31 +46,92 @@ git clone https://github.com/Irench1k/unsafe-code
 cd unsafe-code
 ```
 
-## Quick run without Docker Compose
+## Development Setup (Recommended)
 
-For simple examples, you can use Docker directly (example: FastAPI basic):
+For the best development experience with instant code reload and debug-level logs, set up your environment to use the development Docker Compose configuration:
+
+### Option 1: Environment Variable
+
+Set this in your shell before running any examples:
+
+```bash
+export COMPOSE_FILE=compose.yml:compose.dev.yml
+```
+
+### Option 2: .envrc with direnv (Recommended)
+
+If you use [direnv](https://direnv.net/) (requires additional setup but provides automatic environment configuration):
+
+```bash
+echo "export COMPOSE_FILE=compose.yml:compose.dev.yml" > .envrc
+direnv allow
+```
+
+**Note:** The development configuration (`compose.dev.yml`) is only meant for development and provides instant code reload and debug-level logs.
+
+## Quick Start
+
+The most convenient way to run examples is using Docker Compose:
+
+### 1. Navigate to an example directory
 
 ```bash
 cd languages/python/fastapi/basic
-docker build -t unsafe-fastapi-basic .
-docker run --rm -p 8000:8000 --name fastapi-basic unsafe-fastapi-basic
 ```
 
-## Run with Docker Compose
+### 2. Start the application
 
-Docker Compose is the recommended way of running the examples in this lab:
+```bash
+# Run in background
+docker compose up -d
 
-- Run a specific example (two equivalent ways):
+# Or run in foreground to see logs directly
+docker compose up
+```
+
+### 3. Monitor and manage
+
+```bash
+# View logs (lists past logs and exits)
+docker compose logs
+
+# Follow logs in real-time (keeps monitoring until Ctrl+C)
+docker compose logs -f
+
+# Check status of the running containers
+docker compose ps
+
+# Stop and clean up
+docker compose down
+```
+
+### 4. Rebuilding
+
+```bash
+# Rebuild after dependency changes
+docker compose build
+
+# Force rebuild (no cache)
+docker compose build --no-cache
+```
+
+## Alternative Ways to Run
+
+### From Repository Root
+
+You can run examples from anywhere using the full path:
 
 ```bash
 # From repo root
 docker compose -f languages/python/fastapi/basic/compose.yml up -d
 
-# Or from the example directory
-cd languages/python/fastapi/basic && docker compose up -d
+# Override host port (by default every container will bind to port 8000)
+PORT=8005 docker compose -f languages/python/fastapi/basic/compose.yml up -d
 ```
 
-- Manage from anywhere using the project name defined in the example compose file:
+### Using Project Names
+
+Manage containers from anywhere using the project name:
 
 ```bash
 docker compose -p python-fastapi-basic ps
@@ -78,8 +139,14 @@ docker compose -p python-fastapi-basic logs -f
 docker compose -p python-fastapi-basic down -v
 ```
 
-- Override the host port without a .env file:
+## Legacy Docker Commands
+
+For simple examples without Docker Compose, you can use Docker directly:
 
 ```bash
-PORT=8005 docker compose -f languages/python/fastapi/basic/compose.yml up -d
+cd languages/python/fastapi/basic
+docker build -t unsafe-fastapi-basic .
+docker run --rm -p 8000:8000 --name fastapi-basic unsafe-fastapi-basic
 ```
+
+**Note:** This approach doesn't provide the development benefits (code reload, debug logs) and requires manual container management.

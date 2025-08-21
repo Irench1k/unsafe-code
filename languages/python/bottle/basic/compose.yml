@@ -7,9 +7,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "${PORT:-8000}:8000"
-    volumes:
-      - .:/app
-    command: watchfiles --filter python 'python app.py' /app
     networks: [lab]
 
 networks:

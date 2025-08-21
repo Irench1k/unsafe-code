@@ -1,4 +1,4 @@
-name: python-django-basic
+name: python-django-rest-framework-basic
 
 services:
   app:

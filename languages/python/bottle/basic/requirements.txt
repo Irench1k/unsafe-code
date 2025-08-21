@@ -1,2 +1,1 @@
-bottle>=0.13,<1
-watchfiles
+bottle>=0.13,<0.14
