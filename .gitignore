@@ -207,7 +207,6 @@ marimo/_lsp/
 __marimo__/
 
 # Private stuff
-src/
 notes/
 
 # OS

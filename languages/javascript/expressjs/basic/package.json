@@ -8,7 +8,7 @@
     "dev": "nodemon src/app.js"
   },
   "dependencies": {
-    "express": "^4.17.1"
+    "express": "^5.x"
   },
   "devDependencies": {
     "nodemon": "^2.0.15",
