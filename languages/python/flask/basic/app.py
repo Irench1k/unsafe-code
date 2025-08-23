@@ -4,6 +4,27 @@ import os
 
 app = Flask(__name__)
 
+# Plan for the controller layout:
+#
+# /... - legacy stuff in this file
+# /demo/ - demonstration of regular usage
+# /demo/routing/
+
+# /demo/routing/basic-routes/
+# /demo/routing/parametric-routes/
+# /demo/routing/route-constraints/
+# /demo/routing/.../
+
+# /demo/request-handling/
+# /demo/response-handling/
+# /demo/...
+
+
+# /vuln/ - demonstration of vulnerabilities
+# /vuln/confusion/
+# /vuln/type-issues/
+# /vuln/state-management/
+# /vuln/.../
 
 # Basic example, minimal page from tutorial
 @app.route("/")
