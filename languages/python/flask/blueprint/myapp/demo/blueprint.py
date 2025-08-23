@@ -8,4 +8,4 @@ bp.register_blueprint(blueprint.bp, url_prefix="/routing")
 
 @bp.route("/")
 def index():
-    return "1️⃣ Blueprint at /demo directory \n"
+    return "Blueprint at /demo directory \n"
