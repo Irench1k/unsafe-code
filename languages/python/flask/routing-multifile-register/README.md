@@ -11,6 +11,12 @@ docker compose up -d
 # View logs
 docker compose logs -f
 
+# Test endpoints
+curl http://localhost:8000/users/
+curl http://localhost:8000/users/123
+curl http://localhost:8000/posts/
+curl http://localhost:8000/posts/123
+
 # Stop and clean up
 docker compose down
 ```
