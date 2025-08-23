@@ -26,7 +26,7 @@ myproject/          # Django project settings
 ├── wsgi.py         # WSGI application
 └── asgi.py         # ASGI application
 
-myapp/              # Django application
+webapp/             # Django application
 ├── models.py       # Data models
 ├── views.py        # API views
 ├── urls.py         # App URL configuration

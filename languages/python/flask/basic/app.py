@@ -4,37 +4,6 @@ import os
 
 app = Flask(__name__)
 
-# Plan for the controller layout:
-#
-# /... - legacy stuff in this file
-# /demo/ - demonstration of regular usage
-# /demo/routing/
-
-# /demo/routing/basic-routes/
-# /demo/routing/parametric-routes/
-# /demo/routing/route-constraints/
-# /demo/routing/.../
-
-# /demo/request-handling/
-# /demo/response-handling/
-# /demo/...
-
-
-# /vuln/ - demonstration of vulnerabilities
-# /vuln/confusion/
-# /vuln/type-issues/
-# /vuln/state-management/
-# /vuln/.../
-
-
-# ./vuln/confusion.py
-# ./vuln/confusion/app.py
-
-# @...('/test')
-# def example.py(...):
-# curl .../vuln/confusion/test
-
-
 # Basic example, minimal page from tutorial
 @app.route("/")
 def index():
@@ -242,11 +211,4 @@ def querystring():
     return f"Hello, {urllib.parse.parse_qsl(qs)}"
 
 
-if __name__ == "__main__":
-    # Get configuration from environment variables with sensible defaults
-    host = os.environ.get("APP_HOST", "0.0.0.0")
-    port = int(os.environ.get("APP_PORT", 8000))
-    # Enable Flask's built-in auto-reloader in development when requested
-    debug = os.environ.get("DEV_RELOAD", "0") == "1"
 
-    app.run(host=host, port=port, debug=debug)

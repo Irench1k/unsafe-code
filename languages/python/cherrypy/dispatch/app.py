@@ -1,7 +1,7 @@
 import cherrypy
 import random
 import string
-import os
+
 
 class UserController(object):
     @cherrypy.expose
@@ -58,7 +58,7 @@ class UserController(object):
         return f"User: {username}, Route: /user/{username}"
 
 
-class MyApp(object):
+class WebApp(object):
     def __init__(self):
         self.user = UserController()
 
@@ -111,11 +111,5 @@ class MyApp(object):
             return f"Wrong password or username!\n"
 
 
-if __name__ == '__main__':
-    host = os.getenv('APP_HOST', '0.0.0.0')
-    port = int(os.getenv('APP_PORT', '8000'))
-    cherrypy.config.update({
-        'server.socket_host': host,
-        'server.socket_port': port,
-    })
-    cherrypy.quickstart(MyApp())
+# Export the app for use by run.py
+app = WebApp()

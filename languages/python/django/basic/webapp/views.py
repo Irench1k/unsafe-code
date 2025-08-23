@@ -41,4 +41,4 @@ def submit(request):
         name = request.POST.get("name", "No Name")
         return redirect(reverse("show_user", kwargs={"username": name}))
     else:
-        return render(request, "myapp/submit.html")
+        return render(request, "webapp/submit.html")

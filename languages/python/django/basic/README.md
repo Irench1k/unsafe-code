@@ -14,7 +14,7 @@ myproject/          # Django project settings
 ├── wsgi.py         # WSGI application
 └── asgi.py         # ASGI application
 
-myapp/              # Django application
+webapp/             # Django application
 ├── __init__.py
 ├── admin.py        # Admin interface configuration
 ├── apps.py         # App configuration
