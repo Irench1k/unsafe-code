@@ -1,16 +1,20 @@
 from flask import Flask
-from .blueprint import bp
+from .demo.blueprint import bp
 
 
 def create_app():
     # Create flask app
-    application = Flask(__name__)
+    app = Flask(__name__)
+
+    @app.route("/")
+    def index():
+        return "Index Page: go check out /demo and other pages \n"
 
     # Mount routes from subdirectories via flask blueprints
-    application.register_blueprint(bp)
+    app.register_blueprint(bp, url_prefix="/demo")
 
     # Make the app listen
 
     # Return the app, to be used with:
     #   $ flask --app app run
-    return application
+    return app
