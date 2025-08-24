@@ -321,11 +321,73 @@ def example8():
     return messages
 
 
-# 1.2.4 req.values.get used as sanitizer in a middleware
-
-
 # 1.3 wrong item checked
 # 1.3.x first arg vs last
+
+# Flask stores the parameters in a MultiDict by default, which preserves all values for each parameter.
+# Changing the storage class to dict merges all values, only preserving the last value!
+def prevent_parameter_pollution(request):
+    """Prevent parameter pollution by only preserving one value for each parameter."""
+    request.parameter_storage_class = dict
+
+# Regular python dict:
+# args = { "user": "alice" }
+#
+# MultiDict used by Flask and Werkzeug:
+# args = { "user": ["alice", "bob"]}
+#   args.get("user") -> "alice"
+#   args["user"] -> "alice"
+#   args.getlist("user") -> ["alice", "bob"]
+
+
+def get_user_securely(request):
+    """Identifies the user from the query string, by securely parsing the query string."""
+    from urllib.parse import parse_qs
+
+    users = parse_qs(request.query_string).get(b"user", None)
+    if users is None:
+        raise ValueError("User missing or invalid!")
+    
+    # Beware that hackers can try to trick us by providing multiple `user` parameters,
+    # but we are very smart and very secure, so they won't succeed!
+    for user in users:
+        # Hackers might try to break our code by providing unexpected values,
+        # so we need to check for that – even before decoding!
+        if not user.isascii():
+            raise ValueError("User contains non-ASCII characters!")
+        if not user.isalnum():
+            raise ValueError("User contains non-alphanumeric characters!")
+        return user.decode("utf-8")
+
+    # Shouldn't get here, but just in case
+    raise ValueError("User missing or invalid!")
+
+def authentication_required_example9(f):
+    @wraps(f)
+    def decorated_example9(*args, **kwargs):
+        # Even better example would be doing this in the middleware!
+        prevent_parameter_pollution(request)
+
+        user = get_user_securely(request) # "alice"
+        password = request.args.get("password", None)
+
+        if not authenticate(user, password):
+            return "Invalid user or password", 401
+        return f(*args, **kwargs)
+
+    return decorated_example9
+
+@bp.route("/example9", methods=["GET", "POST"])
+@authentication_required_example9
+def example9():
+    # The last value from the query string is used here (due to the override of the storage class)
+    user = request.args.get("user", None) # "bob"
+
+    messages = get_messages(user)
+    if messages is None:
+        return "No messages found", 404
+    return messages
+
 # 1.3.x first item checked, all items used (build upon correct example with single item)
 # 1.3.x any passing check vs all passing check (fail open / fail close)
 # 1.3.x indirect access, passing to another function as json, etc
