@@ -10,7 +10,7 @@ The annotation system enables:
 - **Automated index generation**: Generate markdown docs and JSON indices
 - **GitHub line linking**: Direct links to relevant code sections
 - **Multi-scope flexibility**: Annotate functions, code blocks, files, or multi-file patterns
-- **Language independence**: Works across Python, JavaScript, Java, and beyond
+- **Language independence**: Works across Python, JavaScript, Java, and more
 - **Future web app support**: Structured data for interactive experiences
 
 ## Core Annotation Syntax
