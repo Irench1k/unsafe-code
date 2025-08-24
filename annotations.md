@@ -696,13 +696,13 @@ The `generate_index.py` script must:
 
 This annotation system provides:
 
-✅ **Language-agnostic** format that works across all target languages  
-✅ **Flexible scope** handling (function/block/file/multi-file)  
-✅ **GitHub line linking** with automatic highlighting  
-✅ **Hierarchical metadata** to eliminate repetition  
-✅ **Minimal boilerplate** for contributors  
-✅ **Rich generated documentation** for markdown and JSON  
-✅ **Future web app compatibility** through structured data  
-✅ **Developer-friendly** tooling and validation
+- **Language-agnostic** format that works across all target languages
+- **Flexible scope** handling (function/block/file/multi-file)
+- **GitHub line linking** with automatic highlighting
+- **Hierarchical metadata** to eliminate repetition
+- **Minimal boilerplate** for contributors
+- **Rich generated documentation** for markdown and JSON
+- **Future web app compatibility** through structured data
+- **Developer-friendly** tooling and validation
 
 The system balances contributor ease-of-use with the rich metadata needed for high-quality educational content, ensuring Unsafe Code Lab can scale across multiple languages and frameworks while maintaining consistency and educational value.
