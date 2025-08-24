@@ -1,40 +1,38 @@
 from webbrowser import get
 from flask import Blueprint, request
+from functools import wraps
 
 # Confusion-based vulnerability examples
 bp = Blueprint("parameter_source", __name__)
+
 
 @bp.route("/")
 def index():
     return "Parameter source confusion vulnerability examples\n"
 
+
 db = {
-    "passwords": {
-        "alice": "123456",
-        "bob":   "mypassword"
-    },
+    "passwords": {"alice": "123456", "bob": "mypassword"},
     "messages": {
         "alice": [
-            {
-                "from": "kevin",
-                "message": "Hi Alice, you're fired!"
-            },
+            {"from": "kevin", "message": "Hi Alice, you're fired!"},
         ],
         "bob": [
             {
                 "from": "kevin",
-                "message": "Hi Bob, here is the password you asked for: P@ssw0rd!"
+                "message": "Hi Bob, here is the password you asked for: P@ssw0rd!",
             },
             {
                 "from": "michael",
-                "message": "Hi Bob, come to my party on Friday! The secret passphrase is 'no-one-knows-it'!"
-            }
-        ]
-    }
+                "message": "Hi Bob, come to my party on Friday! The secret passphrase is 'no-one-knows-it'!",
+            },
+        ],
+    },
 }
 
 # 1. confusion between form and args:
 # 1.1. the most obvious: req.form.get("a") vs req.args.get("a")
+
 
 # No vulnerabilities here, we take the username and password from the query string arguments
 # (not the best practice, but bear with me), and use the same values during the validation and
@@ -59,6 +57,7 @@ def example0():
 
     # return the messages
     return messages
+
 
 # A vulnerable example, we take the user name from the query string during the validation,
 # but during the data retrieval another value is used, taken from the request body (form).
@@ -87,6 +86,7 @@ def example1():
 
     return messages
 
+
 # A more realistic example, functionally equivalent to example1, but is easier to overlook
 # because the validation and data retrieval happen in different places.
 def authenticate(user, password):
@@ -94,18 +94,19 @@ def authenticate(user, password):
         return False
     return True
 
+
 def get_messages(user):
     messages = db["messages"].get(user, None)
     if messages is None:
         return None
-    return {
-        "owner": user,
-        "messages": messages
-    }
+    return {"owner": user, "messages": messages}
+
 
 @bp.route("/example2", methods=["GET", "POST"])
 def example2():
-    if not authenticate(request.args.get("user", None), request.args.get("password", None)):
+    if not authenticate(
+        request.args.get("user", None), request.args.get("password", None)
+    ):
         return "Invalid user or password", 401
 
     messages = get_messages(request.form.get("user", None))
@@ -122,7 +123,10 @@ def example2():
 # is defined in an another file altogether):
 def authenticate_user():
     """Authenticate the user, based solely on the request query string."""
-    return authenticate(request.args.get("user", None), request.args.get("password", None))
+    return authenticate(
+        request.args.get("user", None), request.args.get("password", None)
+    )
+
 
 @bp.route("/example3", methods=["GET", "POST"])
 def example3():
@@ -135,6 +139,7 @@ def example3():
 
     return messages
 
+
 # The example above is realistic and hard to detect, but there are still two issues with it:
 # 1. the situation is unlikely to occur in exactly this way, because here
 #    the request doesn't work at all if the `user` gets passed only via the query string
@@ -145,6 +150,7 @@ def example3():
 
 # 1.2. req.form.get("a") vs req.values.get("a") [values merges args and form, with args having priority]
 
+
 # Here we introduce a source confusion vulnerability, the `get_user` takes the value from
 # the form if it exists, and falls back to the value from the query string.
 def get_user():
@@ -152,6 +158,7 @@ def get_user():
     user_from_args = request.args.get("user", None)
 
     return user_from_form or user_from_args
+
 
 # The regular requests (what developers expect) would look like this:
 #   GET /vuln/confusion/parameter-source/example4?user=alice&password=123456 HTTP/1.0
@@ -170,12 +177,13 @@ def example4():
         return "No messages found", 404
     return messages
 
+
 # The opposite situation, where the `user` and `password` normally come from the request body:
 #
 #   POST /vuln/confusion/parameter-source/example5 HTTP/1.0
 #   Content-Length: 26
 #   Content-Type: application/x-www-form-urlencoded
-# 
+#
 #   user=alice&password=123456
 #
 # However, the `user` is also read from the query string. Note that although the regular
@@ -186,11 +194,14 @@ def example4():
 #  GET /vuln/confusion/parameter-source/example5?user=bob HTTP/1.0
 #  Content-Length: 26
 #  Content-Type: application/x-www-form-urlencoded
-#  
+#
 #  user=alice&password=123456
 def authenticate_user_example5():
     """Authenticate the user, based solely on the request body."""
-    return authenticate(request.form.get("user", None), request.form.get("password", None))
+    return authenticate(
+        request.form.get("user", None), request.form.get("password", None)
+    )
+
 
 @bp.route("/example5", methods=["GET", "POST"])
 def example5():
@@ -203,6 +214,7 @@ def example5():
         return "No messages found", 404
 
     return messages
+
 
 # This is another way a vulnerability dynamically similar to example4 can occur in code:
 #
@@ -218,7 +230,7 @@ def example5():
 # GET /vuln/confusion/parameter-source/example6?user=bob&password=123456 HTTP/1.0
 # Content-Type: application/x-www-form-urlencoded
 # Content-Length: 8
-# 
+#
 # user=alice
 def authenticate_user_example6():
     """Authenticate the user, based solely on the request query string."""
@@ -226,15 +238,17 @@ def authenticate_user_example6():
     password = request.args.get("password", None)
     return authenticate(user, password)
 
+
 @bp.route("/example6", methods=["GET", "POST"])
 def example6():
     if not authenticate_user_example6():
         return "Invalid user or password", 401
-    
+
     messages = get_messages(request.args.get("user", None))
     if messages is None:
         return "No messages found", 404
     return messages
+
 
 # Another example for a variant of example5, where the values are primarily read from the
 # body, but attacker can change the behavior by adding extra `user` query string parameter.
@@ -243,18 +257,21 @@ def example6():
 #   POST /vuln/confusion/parameter-source/example7 HTTP/1.0
 #   Content-Length: 26
 #   Content-Type: application/x-www-form-urlencoded
-#   
+#
 #   user=alice&password=123456
 #
 # Attack:
 #   POST /vuln/confusion/parameter-source/example7?user=alice HTTP/1.0
 #   Content-Length: 24
 #   Content-Type: application/x-www-form-urlencoded
-#   
+#
 #   user=bob&password=123456
 def authenticate_user_example7():
     """Authenticate the user, based solely on the request body."""
-    return authenticate(request.values.get("user", None), request.values.get("password", None))
+    return authenticate(
+        request.values.get("user", None), request.values.get("password", None)
+    )
+
 
 @bp.route("/example7", methods=["GET", "POST"])
 def example7():
@@ -267,7 +284,40 @@ def example7():
 
     return messages
 
+
 # 1.2.3 req.values.get used as sanitizer in a decorator
+
+# This is the same as example 4, but here we are using decorator instead of explicit call
+#
+# The expected usage:
+#   GET /vuln/confusion/parameter-source/example8?user=alice&password=123456 HTTP/1.0
+#
+# Attack:
+#   GET /vuln/confusion/parameter-source/example8?user=alice&password=123456 HTTP/1.0
+#   Content-Type: application/x-www-form-urlencoded
+#   Content-Length: 0
+#
+#   user=bob
+
+
+def authentication_required(f):
+    @wraps(f)
+    def decorated_example8(*args, **kwargs):
+        if not authenticate_user():
+            return "Invalid user or password", 401
+        return f(*args, **kwargs)
+
+    return decorated_example8
+
+
+@bp.route("/example8", methods=["GET", "POST"])
+@authentication_required
+def example8():
+    messages = get_messages(get_user())
+    if messages is None:
+        return "No messages found", 404
+    return messages
+
 
 # 1.2.4 req.values.get used as sanitizer in a middleware
 
@@ -284,4 +334,3 @@ def example7():
 # 1.5.x manual query parsing after urldecode
 # 1.5.x errors during normalization (e.g. lowercase)
 # 1.6 json type confusion
-
