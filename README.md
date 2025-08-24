@@ -20,10 +20,10 @@ This project provides a streamlined way to understand the security landscape of 
 
 You can use Unsafe Code Lab to:
 
-- 🚀 **Onboard Quickly:** Get up to speed on the security nuances of an unfamiliar framework or tech stack.
-- 🔒 **Perform Better Code Reviews:** Run targeted secure code reviews by using these examples as a reference for what to look for.
-- 🔬 **Conduct Security Research:** Analyze how different frameworks handle security-sensitive operations and discover new vulnerabilities.
-- 🎓 **Learn & Teach:** Demonstrate common security pitfalls to your team in a practical, hands-on way.
+- **Onboard Quickly:** Get up to speed on the security nuances of an unfamiliar framework or tech stack.
+- **Perform Better Code Reviews:** Run targeted secure code reviews by using these examples as a reference for what to look for.
+- **Conduct Security Research:** Analyze how different frameworks handle security-sensitive operations and discover new vulnerabilities.
+- **Learn & Teach:** Demonstrate common security pitfalls to your team in a practical, hands-on way.
 
 ## Supported Frameworks
 
