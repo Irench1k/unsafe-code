@@ -1,9 +1,12 @@
 from webbrowser import get
 from flask import Blueprint, request
 from functools import wraps
+from .middleware_example import bp as middleware_bp
 
 # Confusion-based vulnerability examples
 bp = Blueprint("parameter_source", __name__)
+
+bp.register_blueprint(middleware_bp)
 
 
 @bp.route("/")
@@ -287,6 +290,7 @@ def example7():
 
 # 1.2.3 req.values.get used as sanitizer in a decorator
 
+
 # This is the same as example 4, but here we are using decorator instead of explicit call
 #
 # The expected usage:
@@ -298,8 +302,6 @@ def example7():
 #   Content-Length: 0
 #
 #   user=bob
-
-
 def authentication_required(f):
     @wraps(f)
     def decorated_example8(*args, **kwargs):
