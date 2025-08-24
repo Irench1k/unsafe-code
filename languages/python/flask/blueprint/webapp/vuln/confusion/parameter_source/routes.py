@@ -98,7 +98,10 @@ def get_messages(user):
     messages = db["messages"].get(user, None)
     if messages is None:
         return None
-    return messages
+    return {
+        "owner": user,
+        "messages": messages
+    }
 
 @bp.route("/example2", methods=["GET", "POST"])
 def example2():
@@ -118,6 +121,7 @@ def example2():
 # A more subtle example, where this is not immediately obvious (imagine, `authenticat_user`
 # is defined in an another file altogether):
 def authenticate_user():
+    """Authenticate the user, based solely on the request query string."""
     return authenticate(request.args.get("user", None), request.args.get("password", None))
 
 @bp.route("/example3", methods=["GET", "POST"])
@@ -166,10 +170,108 @@ def example4():
         return "No messages found", 404
     return messages
 
-# 1.2.1 straightforward (within the handler)
-# 1.2.2 req.values.get used as sanitizer in a utility function
+# The opposite situation, where the `user` and `password` normally come from the request body:
+#
+#   POST /vuln/confusion/parameter-source/example5 HTTP/1.0
+#   Content-Length: 26
+#   Content-Type: application/x-www-form-urlencoded
+# 
+#   user=alice&password=123456
+#
+# However, the `user` is also read from the query string. Note that although the regular
+# usage would rely on POST request (or PUT, PATCH, etc.), and wouldn't work with GET
+# (because flask's request.values ignores form data in GET requests), the attacker can
+# send both GET and POST requests (if the endpoint is configured to accept both methods):
+#
+#  GET /vuln/confusion/parameter-source/example5?user=bob HTTP/1.0
+#  Content-Length: 26
+#  Content-Type: application/x-www-form-urlencoded
+#  
+#  user=alice&password=123456
+def authenticate_user_example5():
+    """Authenticate the user, based solely on the request body."""
+    return authenticate(request.form.get("user", None), request.form.get("password", None))
+
+@bp.route("/example5", methods=["GET", "POST"])
+def example5():
+    if not authenticate_user_example5():
+        return "Invalid user or password", 401
+
+    # The vulnerability occurs because flask's request.values merges the form and query string
+    messages = get_messages(request.values.get("user", None))
+    if messages is None:
+        return "No messages found", 404
+
+    return messages
+
+# This is another way a vulnerability dynamically similar to example4 can occur in code:
+#
+# The regular usage would only rely on the query string:
+#
+# GET /vuln/confusion/parameter-source/example6?user=alice&password=123456 HTTP/1.0
+#
+# But an attacker can add the `user` value to the request body to change behavior. In this
+# case, contrary to example4, the authentication will be performed based on the `user` value
+# from the request body, while the messages will be retrieved based on the `user` value from
+# the query string.
+#
+# GET /vuln/confusion/parameter-source/example6?user=bob&password=123456 HTTP/1.0
+# Content-Type: application/x-www-form-urlencoded
+# Content-Length: 8
+# 
+# user=alice
+def authenticate_user_example6():
+    """Authenticate the user, based solely on the request query string."""
+    user = get_user()
+    password = request.args.get("password", None)
+    return authenticate(user, password)
+
+@bp.route("/example6", methods=["GET", "POST"])
+def example6():
+    if not authenticate_user_example6():
+        return "Invalid user or password", 401
+    
+    messages = get_messages(request.args.get("user", None))
+    if messages is None:
+        return "No messages found", 404
+    return messages
+
+# Another example for a variant of example5, where the values are primarily read from the
+# body, but attacker can change the behavior by adding extra `user` query string parameter.
+#
+# The expected usage:
+#   POST /vuln/confusion/parameter-source/example7 HTTP/1.0
+#   Content-Length: 26
+#   Content-Type: application/x-www-form-urlencoded
+#   
+#   user=alice&password=123456
+#
+# Attack:
+#   POST /vuln/confusion/parameter-source/example7?user=alice HTTP/1.0
+#   Content-Length: 24
+#   Content-Type: application/x-www-form-urlencoded
+#   
+#   user=bob&password=123456
+def authenticate_user_example7():
+    """Authenticate the user, based solely on the request body."""
+    return authenticate(request.values.get("user", None), request.values.get("password", None))
+
+@bp.route("/example7", methods=["GET", "POST"])
+def example7():
+    if not authenticate_user_example7():
+        return "Invalid user or password", 401
+
+    messages = get_messages(request.form.get("user", None))
+    if messages is None:
+        return "No messages found", 404
+
+    return messages
+
 # 1.2.3 req.values.get used as sanitizer in a decorator
+
 # 1.2.4 req.values.get used as sanitizer in a middleware
+
+
 # 1.3 wrong item checked
 # 1.3.x first arg vs last
 # 1.3.x first item checked, all items used (build upon correct example with single item)
