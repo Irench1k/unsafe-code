@@ -1,14 +1,28 @@
 from flask import Blueprint, request
 
-# @unsafe[file]
-# id: flask-vuln-confusion-parametersource-009
-# title:
-# category:
-# complexity:
-# files:
-# notes:
+# @unsafe[block]
+# id: flask-vuln-confusion-parameter-source-middleware-009
+# title: "Middleware Authentication Bypass via Parameter Source Mismatch"
+# category: confusion.parameter-source
+# complexity: 2-hop
+# impact: ["privilege-escalation"]
+# notes: |
+#   A sophisticated example where authentication is handled by Flask middleware using query
+#   parameters, while data retrieval uses a helper that prioritizes form data. This creates
+#   a parameter source confusion vulnerability that's harder to spot due to the separation
+#   between middleware and route handler.
 # @/unsafe
-
+#
+# Expected :
+#   GET /vuln/confusion/parameter-source/example9?user=alice&password=123456 HTTP/1.0
+#
+# Attack:
+#   GET /vuln/confusion/parameter-source/example9?user=alice&password=123456 HTTP/1.0
+#   Content-Type: application/x-www-form-urlencoded
+#   Content-Length: 10
+#
+#   user=bob
+#
 bp = Blueprint("middleware", __name__)
 
 db = {
@@ -62,17 +76,6 @@ def verify_user():
     # In Flask, if the middleware returns non-None value, the value is handled as if it was
     # the return value from the view, and further request handling is stopped
     return None
-
-
-# The expected usage:
-#   GET /vuln/confusion/parameter-source/example9?user=alice&password=123456 HTTP/1.0
-#
-# Attack:
-#   GET /vuln/confusion/parameter-source/example9?user=alice&password=123456 HTTP/1.0
-#   Content-Type: application/x-www-form-urlencoded
-#   Content-Length: 10
-#
-#   user=bob
 
 
 @bp.route("/example9", methods=["GET", "POST"])

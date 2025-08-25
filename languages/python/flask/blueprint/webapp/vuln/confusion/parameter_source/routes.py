@@ -62,17 +62,28 @@ def example0():
     return messages
 
 
-# A vulnerable example, we take the user name from the query string during the validation,
-# but during the data retrieval another value is used, taken from the request body (form).
+# @unsafe[function]
+# id: flask-vuln-confusion-parameter-source-001
+# title: "Basic Parameter Source Confusion via Mixed Authentication Sources"
+# category: confusion.parameter-source
+# complexity: 1-hop
+# impact: ["privilege-escalation"]
+# notes: |
+#   We take the user name from the query string during the validation,
+#   but during the data retrieval another value is used, taken from the request body (form).
+#   This does not look very realistic, but it demonstrates the core of the vulnerability,
+#   we will build upon this further.
+# @/unsafe
 #
-# GET /vuln/confusion/parameter-source/example1?user=alice&password=123456 HTTP/1.0
-# Content-Length: 8
-# Content-Type: application/x-www-form-urlencoded
+# Expected:
+#   GET /vuln/confusion/parameter-source/example1?user=alice&password=123456 HTTP/1.0
 #
-# user=bob
+# Attack:
+#   GET /vuln/confusion/parameter-source/example1?user=alice&password=123456 HTTP/1.1
+#   Content-Type: application/x-www-form-urlencoded
+#   Content-Length: 10
 #
-# This does not look very realistic, but it demonstrates the core of the vulnerability,
-# we will build upon this further.
+#   user=bob
 @bp.route("/example1", methods=["GET", "POST"])
 def example1():
     user = request.args.get("user", None)
@@ -90,8 +101,15 @@ def example1():
     return messages
 
 
-# A more realistic example, functionally equivalent to example1, but is easier to overlook
-# because the validation and data retrieval happen in different places.
+# @unsafe[block]
+# id: flask-vuln-confusion-parameter-source-002
+# title: "Function-Level Parameter Source Confusion via Separated Validation"
+# category: confusion.parameter-source
+# complexity: 1-hop
+# notes: |
+#   A more realistic example, functionally equivalent to example1, but is easier to overlook
+#   because the validation and data retrieval happen in different places.
+# @/unsafe
 def authenticate(user, password):
     if password is None or password != db["passwords"].get(user, None):
         return False
@@ -119,11 +137,18 @@ def example2():
     return messages
 
 
-# In the previous example, you can still see that the `user` value gets retrieved from the
-# `request.args` during validation but from the `request.form` during data retrieval.
+# @unsafe[block]
+# id: flask-vuln-confusion-parameter-source-003
+# title: "Cross-Module Parameter Source Confusion via Separated Authentication"
+# category: confusion.parameter-source
+# complexity: 2-hop
+# notes: |
+#   In the previous example, you can still see that the `user` value gets retrieved from the
+#   `request.args` during validation but from the `request.form` during data retrieval.
 #
-# A more subtle example, where this is not immediately obvious (imagine, `authenticat_user`
-# is defined in an another file altogether):
+#   A more subtle example, where this is not immediately obvious (imagine, `authenticat_user`
+#   is defined in an another file altogether):
+# @/unsafe
 def authenticate_user():
     """Authenticate the user, based solely on the request query string."""
     return authenticate(
@@ -143,19 +168,28 @@ def example3():
     return messages
 
 
-# The example above is realistic and hard to detect, but there are still two issues with it:
-# 1. the situation is unlikely to occur in exactly this way, because here
-#    the request doesn't work at all if the `user` gets passed only via the query string
-#    (it HAS to pass two `user` values, through query string and the body argument)
-# 2. the second issue is that while calling verification function explicitly is valid,
-#    a more common pattern is either using a decorator or a middleware.
-
-
 # 1.2. req.form.get("a") vs req.values.get("a") [values merges args and form, with args having priority]
 
 
-# Here we introduce a source confusion vulnerability, the `get_user` takes the value from
-# the form if it exists, and falls back to the value from the query string.
+# @unsafe[block]
+# id: flask-vuln-confusion-parameter-source-004
+# title: "Parameter Source Confusion via Multi-Source Priority Helper"
+# category: confusion.parameter-source
+# complexity: 2-hop
+# notes: |
+#   Here we introduce a source confusion vulnerability, the `get_user` takes the value from
+#   the form if it exists, and falls back to the value from the query string.
+# @/unsafe
+#
+# Expected:
+#   GET /vuln/confusion/parameter-source/example4?user=alice&password=123456 HTTP/1.0
+#
+# Attack:
+#   GET /vuln/confusion/parameter-source/example4?user=alice&password=123456 HTTP/1.0
+#   Content-Type: application/x-www-form-urlencoded
+#
+#   user=bob
+#
 def get_user():
     user_from_form = request.form.get("user", None)
     user_from_args = request.args.get("user", None)
@@ -163,13 +197,6 @@ def get_user():
     return user_from_form or user_from_args
 
 
-# The regular requests (what developers expect) would look like this:
-#   GET /vuln/confusion/parameter-source/example4?user=alice&password=123456 HTTP/1.0
-# But an attacker can add another value for the `user`, placing it in the request body:
-#   GET /vuln/confusion/parameter-source/example4?user=alice&password=123456 HTTP/1.0
-#   Content-Type: application/x-www-form-urlencoded
-#
-#   user=bob
 @bp.route("/example4", methods=["GET", "POST"])
 def example4():
     if not authenticate_user():
@@ -181,24 +208,35 @@ def example4():
     return messages
 
 
-# The opposite situation, where the `user` and `password` normally come from the request body:
+# @unsafe[block]
+# id: flask-vuln-confusion-parameter-source-005
+# title: "Form Authentication Bypass via Query Parameter Override"
+# category: confusion.parameter-source
+# complexity: 2-hop
+# notes: |
+#   The endpoint uses form data for authentication, but request.values.get() allows query
+#   parameters to override form values, creating a vulnerability. Although designed for POST
+#   requests, the endpoint accepts both GET and POST methods, enabling the attack.
 #
+#   Note that although the regular usage would rely on POST request (or PUT, PATCH, etc.),
+#   and wouldn't work with GET (because flask's request.values ignores form data in GET
+#   requests), the attacker can send both GET and POST requests (if the endpoint is
+#   configured to accept both methods).
+#
+# Expected:
 #   POST /vuln/confusion/parameter-source/example5 HTTP/1.0
 #   Content-Length: 26
 #   Content-Type: application/x-www-form-urlencoded
 #
 #   user=alice&password=123456
 #
-# However, the `user` is also read from the query string. Note that although the regular
-# usage would rely on POST request (or PUT, PATCH, etc.), and wouldn't work with GET
-# (because flask's request.values ignores form data in GET requests), the attacker can
-# send both GET and POST requests (if the endpoint is configured to accept both methods):
+# Attack:
+#   GET /vuln/confusion/parameter-source/example5?user=bob HTTP/1.0
+#   Content-Length: 26
+#   Content-Type: application/x-www-form-urlencoded
 #
-#  GET /vuln/confusion/parameter-source/example5?user=bob HTTP/1.0
-#  Content-Length: 26
-#  Content-Type: application/x-www-form-urlencoded
+#   user=alice&password=123456
 #
-#  user=alice&password=123456
 def authenticate_user_example5():
     """Authenticate the user, based solely on the request body."""
     return authenticate(
@@ -219,22 +257,29 @@ def example5():
     return messages
 
 
-# This is another way a vulnerability dynamically similar to example4 can occur in code:
+# @unsafe[block]
+# id: flask-vuln-confusion-parameter-source-006
+# title: "Mixed-Source Authentication Bypass via Source-Data Mismatch"
+# category: confusion.parameter-source
+# complexity: 2-hop
+# notes: |
+#   This is another way a vulnerability dynamically similar to example4 can occur in code.
+#   The regular usage would only rely on the query string, while an attacker can add the `user`
+#   value to the request body to change behavior. In this
+#   case, contrary to example4, the authentication will be performed based on the `user` value
+#   from the request body, while the messages will be retrieved based on the `user` value from
+#   the query string.
 #
-# The regular usage would only rely on the query string:
+# Expected:
+#   GET /vuln/confusion/parameter-source/example6?user=alice&password=123456 HTTP/1.0
 #
-# GET /vuln/confusion/parameter-source/example6?user=alice&password=123456 HTTP/1.0
+# Attack:
+#   GET /vuln/confusion/parameter-source/example6?user=bob&password=123456 HTTP/1.0
+#   Content-Type: application/x-www-form-urlencoded
+#   Content-Length: 8
 #
-# But an attacker can add the `user` value to the request body to change behavior. In this
-# case, contrary to example4, the authentication will be performed based on the `user` value
-# from the request body, while the messages will be retrieved based on the `user` value from
-# the query string.
+#   user=alice
 #
-# GET /vuln/confusion/parameter-source/example6?user=bob&password=123456 HTTP/1.0
-# Content-Type: application/x-www-form-urlencoded
-# Content-Length: 8
-#
-# user=alice
 def authenticate_user_example6():
     """Authenticate the user, based solely on the request query string."""
     user = get_user()
@@ -253,10 +298,16 @@ def example6():
     return messages
 
 
-# Another example for a variant of example5, where the values are primarily read from the
-# body, but attacker can change the behavior by adding extra `user` query string parameter.
+# @unsafe[block]
+# id: flask-vuln-confusion-parameter-source-007
+# title: "Form Authentication Bypass via Parameter Source Merging"
+# category: confusion.parameter-source
+# complexity: 2-hop
+# notes: |
+#   Another example for a variant of example5, where the values are primarily read from the
+#   body, but attacker can change the behavior by adding extra `user` query string parameter.
 #
-# The expected usage:
+# Expected:
 #   POST /vuln/confusion/parameter-source/example7 HTTP/1.0
 #   Content-Length: 26
 #   Content-Type: application/x-www-form-urlencoded
@@ -269,6 +320,7 @@ def example6():
 #   Content-Type: application/x-www-form-urlencoded
 #
 #   user=bob&password=123456
+#
 def authenticate_user_example7():
     """Authenticate the user, based solely on the request body."""
     return authenticate(
@@ -291,9 +343,16 @@ def example7():
 # 1.2.3 req.values.get used as sanitizer in a decorator
 
 
-# This is the same as example 4, but here we are using decorator instead of explicit call
+# @unsafe[block]
+# id: flask-vuln-confusion-parameter-source-008
+# title: "Parameter Source Confusion via Multi-Source Priority Helper using Decorator"
+# category: confusion.parameter-source
+# complexity: 2-hop
+# notes: |
+#   This is the same as example 4, but here we are using decorator instead of explicit call
+# @/unsafe
 #
-# The expected usage:
+# Expected:
 #   GET /vuln/confusion/parameter-source/example8?user=alice&password=123456 HTTP/1.0
 #
 # Attack:
@@ -302,6 +361,7 @@ def example7():
 #   Content-Length: 0
 #
 #   user=bob
+#
 def authentication_required(f):
     @wraps(f)
     def decorated_example8(*args, **kwargs):
@@ -323,71 +383,6 @@ def example8():
 
 # 1.3 wrong item checked
 # 1.3.x first arg vs last
-
-# Flask stores the parameters in a MultiDict by default, which preserves all values for each parameter.
-# Changing the storage class to dict merges all values, only preserving the last value!
-def prevent_parameter_pollution(request):
-    """Prevent parameter pollution by only preserving one value for each parameter."""
-    request.parameter_storage_class = dict
-
-# Regular python dict:
-# args = { "user": "alice" }
-#
-# MultiDict used by Flask and Werkzeug:
-# args = { "user": ["alice", "bob"]}
-#   args.get("user") -> "alice"
-#   args["user"] -> "alice"
-#   args.getlist("user") -> ["alice", "bob"]
-
-
-def get_user_securely(request):
-    """Identifies the user from the query string, by securely parsing the query string."""
-    from urllib.parse import parse_qs
-
-    users = parse_qs(request.query_string).get(b"user", None)
-    if users is None:
-        raise ValueError("User missing or invalid!")
-    
-    # Beware that hackers can try to trick us by providing multiple `user` parameters,
-    # but we are very smart and very secure, so they won't succeed!
-    for user in users:
-        # Hackers might try to break our code by providing unexpected values,
-        # so we need to check for that – even before decoding!
-        if not user.isascii():
-            raise ValueError("User contains non-ASCII characters!")
-        if not user.isalnum():
-            raise ValueError("User contains non-alphanumeric characters!")
-        return user.decode("utf-8")
-
-    # Shouldn't get here, but just in case
-    raise ValueError("User missing or invalid!")
-
-def authentication_required_example9(f):
-    @wraps(f)
-    def decorated_example9(*args, **kwargs):
-        # Even better example would be doing this in the middleware!
-        prevent_parameter_pollution(request)
-
-        user = get_user_securely(request) # "alice"
-        password = request.args.get("password", None)
-
-        if not authenticate(user, password):
-            return "Invalid user or password", 401
-        return f(*args, **kwargs)
-
-    return decorated_example9
-
-@bp.route("/example9", methods=["GET", "POST"])
-@authentication_required_example9
-def example9():
-    # The last value from the query string is used here (due to the override of the storage class)
-    user = request.args.get("user", None) # "bob"
-
-    messages = get_messages(user)
-    if messages is None:
-        return "No messages found", 404
-    return messages
-
 # 1.3.x first item checked, all items used (build upon correct example with single item)
 # 1.3.x any passing check vs all passing check (fail open / fail close)
 # 1.3.x indirect access, passing to another function as json, etc
