@@ -389,25 +389,27 @@ Demonstrates how Flask's middleware system can contribute to parameter source co
 Example 9 is functionally equivalent to Example 4, but it may be harder to spot the vulnerability while using middleware.
 
 ```python
-@bp.before_request
-def verify_user():
-    """Authenticate the user, based solely on the request query string."""
-    if not authenticate(
-        request.args.get("user", None), request.args.get("password", None)
-    ):
-        return "Invalid user or password", 401
-
-    # In Flask, if the middleware returns non-None value, the value is handled as if it was
-    # the return value from the view, and further request handling is stopped
-    return None
-
-
 @bp.route("/example9", methods=["GET", "POST"])
 def example9():
     messages = get_messages(get_user())
     if messages is None:
         return "No messages found", 404
     return messages
+
+def register_middleware(app):
+    @app.before_request
+    def verify_user():
+        """Authenticate the user, based solely on the request query string."""
+        if not authenticate(
+            request.args.get("user", None), request.args.get("password", None)
+        ):
+            return "Invalid user or password", 401
+
+        # In Flask, if the middleware returns non-None value, the value is handled as if it was
+        # the return value from the view, and further request handling is stopped
+        return None
+
+    return verify_user
 ```
 
 ```http
