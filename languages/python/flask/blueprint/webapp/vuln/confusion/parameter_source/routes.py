@@ -380,16 +380,29 @@ def example8():
         return "No messages found", 404
     return messages
 
-
-# 1.3 wrong item checked
-# 1.3.x first arg vs last
 # 1.3.x first item checked, all items used (build upon correct example with single item)
+# - an endpoint to grant a user access to multiple groups: ?user=bob&grant_group=group1&grant_group=group2. The authentication check might only verify grant_group=group1, but the logic iterates through request.args.getlist('grant_group') and adds the user to both, potentially granting unauthorized access to group2
+# - an example where the utility function was used for the handler that accessed .get("grant_group"), but another handler got added that accessed .getlist("grant_group") – reusing the same utility incorrectly
 # 1.3.x any passing check vs all passing check (fail open / fail close)
 # 1.3.x indirect access, passing to another function as json, etc
-# 1.4 multidict override
-# 1.5 custom convenience functions for source merging
 # 1.5.x path parameter overriden by query parameter
+# - @bp.route("/users/<username>/messages")
+# - a decorator authenticates the request: @permission_required(user=username) – via path only
+# - the view uses g.user, set by the middleware, which is a merged dict
+# - /users/alice/messages?username=bob
+# - another pattern: reuse utility function that merges path and query params (meant for something else initially)
+# - request.view_args: path parameters
 # 1.5.x json vs others?
-# 1.5.x manual query parsing after urldecode
-# 1.5.x errors during normalization (e.g. lowercase)
-# 1.6 json type confusion
+# - upsert some unexpected data due to partial validation (e.g. only check certain field, but pass the whole object)
+# - a utility function that abstracts multipart and json body access
+# - get a list or dict where a single value was expected
+# 1.5.x manual query parsing before and after urldecode / unquote
+# 1.5.x errors during normalization (e.g. lowercase, strip, unicode)
+# 1.7 HTTP Method Confusion
+# - view is registered with methods=["GET", "POST"]
+# - POST is meant to update the resource, but different code paths don't explicitly check method
+# - instead, the assumption is that the only POST can contain form data
+# - flask lets access form data in GET as well when accessed via req.form, but not through req.values
+# - a weak check only validates data from req.values and fails open on GET with form data
+# 1.8 req.values seems to work with multipart/form-data in addition to application/x-www-form-urlencoded
+# 1.9 g.user set from cookie / jwt
