@@ -95,7 +95,7 @@ for _finder, name, ispkg in pkgutil.iter_modules(webapp.__path__):
     elif hasattr(routes_module, 'register'):
         routes_module.register(app)
         print(f"✓ Registered routes from {name}.routes using register()")
-# @/unsafe
+# @/unsafe[block]
 ```
 
 ### File Scope (`@unsafe[file]`)

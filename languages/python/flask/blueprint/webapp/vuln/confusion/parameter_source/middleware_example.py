@@ -1,28 +1,5 @@
 from flask import Blueprint, request
 
-# @unsafe[block]
-# id: flask-vuln-confusion-parameter-source-middleware-009
-# title: "Middleware Authentication Bypass via Parameter Source Mismatch"
-# category: confusion.parameter-source
-# complexity: 2-hop
-# impact: ["privilege-escalation"]
-# notes: |
-#   A sophisticated example where authentication is handled by Flask middleware using query
-#   parameters, while data retrieval uses a helper that prioritizes form data. This creates
-#   a parameter source confusion vulnerability that's harder to spot due to the separation
-#   between middleware and route handler.
-# @/unsafe
-#
-# Expected :
-#   GET /vuln/confusion/parameter-source/example9?user=alice&password=123456 HTTP/1.0
-#
-# Attack:
-#   GET /vuln/confusion/parameter-source/example9?user=alice&password=123456 HTTP/1.0
-#   Content-Type: application/x-www-form-urlencoded
-#   Content-Length: 10
-#
-#   user=bob
-#
 bp = Blueprint("middleware", __name__)
 
 db = {
@@ -64,7 +41,14 @@ def get_messages(user):
         return None
     return {"owner": user, "messages": messages}
 
-
+# @unsafe[block]
+# id: 9
+# title: Middleware-based Authentication
+# notes: |
+#   Demonstrates how Flask's middleware system can contribute to parameter source confusion.
+#   
+#   Example 9 is functionally equivalent to Example 4, but it may be harder to spot the vulnerability while using middleware.
+# @/unsafe
 @bp.before_request
 def verify_user():
     """Authenticate the user, based solely on the request query string."""
@@ -84,3 +68,4 @@ def example9():
     if messages is None:
         return "No messages found", 404
     return messages
+# @/unsafe[block]
