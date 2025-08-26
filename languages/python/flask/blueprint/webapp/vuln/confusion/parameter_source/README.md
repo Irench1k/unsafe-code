@@ -10,18 +10,18 @@ Here you can find several examples on how Flask framework design allows those vu
 
 ## Table of Contents
 
-| Index | Category                                 | Example                                                          |
-| ----- | ---------------------------------------- | ---------------------------------------------------------------- |
-| 0     | Secure Baseline                          | [Secure Implementation](routes.py#L44-L60)                       |
-| 1     | Simplified Vulnerability Patterns        | [Basic Parameter Source Confusion](routes.py#L78-L92)            |
-| 2     | Simplified Vulnerability Patterns        | [Function-Level Parameter Source Confusion](routes.py#L114-L125) |
-| 3     | Simplified Vulnerability Patterns        | [Cross-Module Parameter Source Confusion](routes.py#L146-L155)   |
-| 4     | Source Merging in Custom Helper Function | [Form-Query Priority Resolution](routes.py#L174-L182)            |
-| 5     | Source Merging in Custom Helper Function | [Mixed-Source Authentication](routes.py#L202-L210)               |
-| 6     | Request.values Confusion                 | [Form Authentication Bypass](routes.py#L245-L255)                |
-| 7     | Request.values Confusion                 | [Request.Values in Authentication](routes.py#L275-L284)          |
-| 8     | Decorator-based Authentication           | [Decorator-based Authentication](routes.py#L306-L312)            |
-| 9     | Middleware-based Authentication          | [Middleware-based Authentication](middleware_example.py#L65-L70) |
+| Index | Category                                 | Example                                                                                |
+| ----- | ---------------------------------------- | -------------------------------------------------------------------------------------- |
+| 0     | Secure Baseline                          | [Secure Implementation](routes.py#L51-L67)                                             |
+| 1     | Simplified Vulnerability Patterns        | [Basic Parameter Source Confusion](r01_simplified_patterns/routes.py#L41-L55)          |
+| 2     | Simplified Vulnerability Patterns        | [Function-Level Parameter Source Confusion](r01_simplified_patterns/routes.py#L77-L88) |
+| 3     | Simplified Vulnerability Patterns        | [Cross-Module Parameter Source Confusion](r01_simplified_patterns/routes.py#L111-L120) |
+| 4     | Source Merging in Custom Helper Function | [Form-Query Priority Resolution](r02_custom_helpers/routes.py#L60-L68)                 |
+| 5     | Source Merging in Custom Helper Function | [Mixed-Source Authentication](r02_custom_helpers/routes.py#L90-L98)                    |
+| 6     | Request.values Confusion                 | [Form Authentication Bypass](r03_request_values/routes.py#L78-L88)                     |
+| 7     | Request.values Confusion                 | [Request.Values in Authentication](r03_request_values/routes.py#L116-L125)             |
+| 8     | Decorator-based Authentication           | [Decorator-based Authentication](r04_decorator/routes.py#L72-L78)                      |
+| 9     | Middleware-based Authentication          | [Middleware-based Authentication](r05_middleware/routes.py#L17-L22)                    |
 
 ## Secure Baseline
 
