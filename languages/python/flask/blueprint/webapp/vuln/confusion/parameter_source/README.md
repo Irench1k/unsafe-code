@@ -49,11 +49,13 @@ def example0():
     return messages
 ```
 
-Request:
+<details>
+  <summary><b>See HTTP Request</b></summary>
 
 ```http
-GET /vuln/confusion/parameter-source/example0?user=alice&password=123456
+GET http://localhost:8000/vuln/confusion/parameter-source/example0?user=alice&password=123456
 ```
+</details>
 
 ![alt text](images/image-0.png)
 
@@ -88,7 +90,8 @@ def example1():
     return messages
 ```
 
-Request:
+<details>
+  <summary><b>See HTTP Request</b></summary>
 
 ```http
 # Expected Usage:
@@ -104,6 +107,7 @@ Content-Type: application/x-www-form-urlencoded
 
 user=bob
 ```
+</details>
 
 ![alt text](images/image-1.png)
 
@@ -139,7 +143,8 @@ def example2():
     return messages
 ```
 
-Request:
+<details>
+  <summary><b>See HTTP Request</b></summary>
 
 ```http
 # Expected Usage:
@@ -178,6 +183,7 @@ user=bob
 #  }
 # ]
 ```
+</details>
 
 ### Example 3: Cross-Module Parameter Source Confusion
 
@@ -207,23 +213,46 @@ def example3():
     return messages
 ```
 
-Requests:
-
 <details>
-  <summary>Click me</summary>
+  <summary><b>See HTTP Request</b></summary>
   
-  ### Heading
-  1. Foo
-  2. Bar
-     * Baz
-     * Qux
+```http
+# Expected Usage:
+GET http://localhost:8000/vuln/confusion/parameter-source/example3?user=alice&password=123456
+Content-Type: application/x-www-form-urlencoded
 
-  ### Some Javascript
-  ```js
-  function logSomething(something) {
-    console.log('Something', something);
-  }
-  ```
+user=alice
+#
+# Normally, Alice would get her *own* messages:
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Alice, you're fired!"
+#  }
+# ]
+#
+###
+
+# Attack
+GET http://localhost:8000/vuln/confusion/parameter-source/example3?user=alice&password=123456 HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+
+user=bob
+#
+# Alice gets Bob's messages, even though she provided her own password!
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Bob, here is the password you asked for: P@ssw0rd!"
+#  },
+#  {
+#    "from": "michael",
+#    "message": "Hi Bob, come to my party on Friday! The secret passphrase is 'no-one-knows-it'!"
+#  }
+# ]
+```
 </details>
 
 ## Source Merging in Custom Helper Function
