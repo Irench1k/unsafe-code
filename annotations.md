@@ -30,10 +30,10 @@ The annotation system enables:
 
 - **`id`**: Globally unique identifier following pattern `{framework}-{type}-{category}-{subcategory}-{number}`
 - **`title`**: Concise, human-readable description
-- **`category`**: References hierarchical taxonomy (e.g., `routing.parametric`, `confusion.parameter-source`)
 
 ### Optional Fields
 
+- **`category`**: References hierarchical taxonomy (e.g., `routing.parametric`, `confusion.parameter-source`)
 - **`lines`**: Number of lines (e.g. `5`) or specific line range for block scope (e.g., `45-67`) - counting from the end of the comment
 - **`files`**: Array of related files for multi-file scope
 - **`tags`**: Flexible tags for searching and filtering
