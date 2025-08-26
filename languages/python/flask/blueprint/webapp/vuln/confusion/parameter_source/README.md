@@ -308,7 +308,7 @@ user=alice&password=123456
 
 Demonstrates how using request.values in authentication while using form data for access creates vulnerabilities.
 
-This is an example of a varient of example 6, as we do the similar thing, but now we can pass Bob's username in the request body with Alice's password, while passing Alice's username in the request query:
+This is an example of a varient of example 6, as we do the similar thing, but now we can pass Bob's username in the request body with Alice's password, while passing Alice's username in the request query. Note that this example does not work with GET request, use POST.
 
 ```python
 def authenticate_user_example7():
@@ -373,7 +373,7 @@ def example8():
 Request:
 
 ```http
-GET /vuln/confusion/parameter-source/example4?user=alice&password=123456 HTTP/1.1
+GET /vuln/confusion/parameter-source/example8?user=alice&password=123456 HTTP/1.1
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 8
 
@@ -411,7 +411,7 @@ def example9():
 ```
 
 ```http
-GET /vuln/confusion/parameter-source/example4?user=alice&password=123456 HTTP/1.1
+GET /vuln/confusion/parameter-source/example9?user=alice&password=123456 HTTP/1.1
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 8
 
