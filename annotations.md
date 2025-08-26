@@ -34,7 +34,6 @@ The annotation system enables:
 
 ### Optional Fields
 
-- **`complexity`**: One of `1-hop`, `2-hop`, `3-hop`, `advanced` (default: `1-hop`)
 - **`lines`**: Number of lines (e.g. `5`) or specific line range for block scope (e.g., `45-67`) - counting from the end of the comment
 - **`files`**: Array of related files for multi-file scope
 - **`tags`**: Flexible tags for searching and filtering
@@ -54,7 +53,6 @@ Annotates a single function or method. Most common for basic examples.
 # id: flask-vuln-confusion-parameter-source-001
 # title: "Parameter Source Confusion with request.values"
 # category: confusion.parameter-source
-# complexity: 1-hop
 # impact: ["privilege-escalation"]
 # notes: |
 #   Query parameters can override POST form data when using request.values.
@@ -75,7 +73,6 @@ Annotates a specific section of code within a larger function or file.
 # id: flask-demo-routing-autodiscovery-001
 # title: "Auto-discovery Route Registration Pattern"
 # category: routing.autodiscovery
-# complexity: 2-hop
 # lines: 31-52
 # notes: |
 #   Demonstrates pkgutil-based route discovery. The key insight is the
@@ -110,7 +107,6 @@ Annotates an entire file or the main concept it demonstrates.
 # id: flask-demo-routing-registration-patterns-001
 # title: "Function-based vs Decorator-based Route Registration"
 # category: routing.registration-patterns
-# complexity: 1-hop
 # files: ["webapp/users/routes.py", "webapp/posts/routes.py"]
 # notes: |
 #   Contrasts two route registration approaches. users/ shows function-based
@@ -127,7 +123,6 @@ Annotates patterns that span multiple files and require understanding their inte
 # id: flask-demo-routing-multifile-autodiscovery-001
 # title: "Complete Auto-discovery Routing Architecture"
 # category: routing.autodiscovery
-# complexity: 3-hop
 # files: ["webapp/__init__.py", "webapp/users/routes.py", "webapp/posts/routes.py"]
 # notes: |
 #   Full pattern showing auto-discovery setup in __init__.py plus
@@ -196,21 +191,6 @@ impacts:
     name: "Business Logic Bypass"
     description: "Circumventing intended application flow or rules"
     severity: "medium"
-
-# Complexity levels
-complexity_levels:
-  1-hop:
-    name: "Single Component"
-    description: "Vulnerability contained within a single function or endpoint"
-  2-hop:
-    name: "Local Interaction"
-    description: "Involves interaction between components in the same file"
-  3-hop:
-    name: "Module Interaction"
-    description: "Requires interaction across multiple files or modules"
-  advanced:
-    name: "System-wide"
-    description: "Complex multi-request or architectural vulnerabilities"
 ```
 
 ### Framework-Specific Extensions (`/languages/python/flask/meta.yml`)
@@ -346,7 +326,6 @@ The `generate_index.py` script creates GitHub links with automatic line highligh
       "title": "Parameter Source Confusion with request.values",
       "type": "vulnerability",
       "category": "confusion.parameter-source",
-      "complexity": "1-hop",
       "scope": "function",
       "files": [
         {
@@ -564,7 +543,6 @@ snippet unsafe-vuln "Unsafe vulnerability annotation"
 # id: ${1:framework}-vuln-${2:category}-${3:subcategory}-${4:001}
 # title: "${5:Vulnerability Title}"
 # category: ${2}.${3}
-# complexity: ${6:1-hop}
 # impact: ["${7:privilege-escalation}"]
 # notes: |
 #   ${8:What makes this example unique?}
@@ -582,7 +560,6 @@ endsnippet
 # id: ${1:framework}-vuln-${2:category}-${3:subcategory}-${4:001}
 # title: "${5:Vulnerability Title}"
 # category: ${2}.${3}
-# complexity: ${6:1-hop}
 # impact: ["${7:privilege-escalation}"]
 # notes: |
 #   ${8:What makes this example unique?}
@@ -653,7 +630,6 @@ def show_user_with_params():
 # id: flask-vuln-injection-xss-001
 # title: "XSS via Unescaped Query Parameters"
 # category: injection.xss
-# complexity: 1-hop
 # impact: ["xss"]
 # notes: |
 #   Direct output of query parameters without escaping allows XSS.

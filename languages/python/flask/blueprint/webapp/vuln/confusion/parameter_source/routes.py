@@ -66,7 +66,6 @@ def example0():
 # id: flask-vuln-confusion-parameter-source-001
 # title: "Basic Parameter Source Confusion via Mixed Authentication Sources"
 # category: confusion.parameter-source
-# complexity: 1-hop
 # impact: ["privilege-escalation"]
 # notes: |
 #   We take the user name from the query string during the validation,
@@ -105,7 +104,6 @@ def example1():
 # id: flask-vuln-confusion-parameter-source-002
 # title: "Function-Level Parameter Source Confusion via Separated Validation"
 # category: confusion.parameter-source
-# complexity: 1-hop
 # notes: |
 #   A more realistic example, functionally equivalent to example1, but is easier to overlook
 #   because the validation and data retrieval happen in different places.
@@ -141,7 +139,6 @@ def example2():
 # id: flask-vuln-confusion-parameter-source-003
 # title: "Cross-Module Parameter Source Confusion via Separated Authentication"
 # category: confusion.parameter-source
-# complexity: 2-hop
 # notes: |
 #   In the previous example, you can still see that the `user` value gets retrieved from the
 #   `request.args` during validation but from the `request.form` during data retrieval.
@@ -175,7 +172,6 @@ def example3():
 # id: flask-vuln-confusion-parameter-source-004
 # title: "Parameter Source Confusion via Multi-Source Priority Helper"
 # category: confusion.parameter-source
-# complexity: 2-hop
 # notes: |
 #   Here we introduce a source confusion vulnerability, the `get_user` takes the value from
 #   the form if it exists, and falls back to the value from the query string.
@@ -212,7 +208,6 @@ def example4():
 # id: flask-vuln-confusion-parameter-source-005
 # title: "Form Authentication Bypass via Query Parameter Override"
 # category: confusion.parameter-source
-# complexity: 2-hop
 # notes: |
 #   The endpoint uses form data for authentication, but request.values.get() allows query
 #   parameters to override form values, creating a vulnerability. Although designed for POST
@@ -261,7 +256,6 @@ def example5():
 # id: flask-vuln-confusion-parameter-source-006
 # title: "Mixed-Source Authentication Bypass via Source-Data Mismatch"
 # category: confusion.parameter-source
-# complexity: 2-hop
 # notes: |
 #   This is another way a vulnerability dynamically similar to example4 can occur in code.
 #   The regular usage would only rely on the query string, while an attacker can add the `user`
@@ -302,7 +296,6 @@ def example6():
 # id: flask-vuln-confusion-parameter-source-007
 # title: "Form Authentication Bypass via Parameter Source Merging"
 # category: confusion.parameter-source
-# complexity: 2-hop
 # notes: |
 #   Another example for a variant of example5, where the values are primarily read from the
 #   body, but attacker can change the behavior by adding extra `user` query string parameter.
@@ -347,7 +340,6 @@ def example7():
 # id: flask-vuln-confusion-parameter-source-008
 # title: "Parameter Source Confusion via Multi-Source Priority Helper using Decorator"
 # category: confusion.parameter-source
-# complexity: 2-hop
 # notes: |
 #   This is the same as example 4, but here we are using decorator instead of explicit call
 # @/unsafe
