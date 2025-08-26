@@ -43,7 +43,7 @@ db = {
 # @unsafe[function]
 # id: 0
 # title: Secure Implementation
-# image: image-0.png
+# request-details: open
 # notes: |
 #   Here you can see a secure implementation that consistently uses query string parameters
 #   for both authentication and data retrieval.

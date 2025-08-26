@@ -75,7 +75,6 @@ def example4():
 # @unsafe[block]
 # id: 5
 # title: Mixed-Source Authentication
-# image: image-5.png
 # notes: |
 #   Shows how authentication and data access can use different combinations of sources.
 #

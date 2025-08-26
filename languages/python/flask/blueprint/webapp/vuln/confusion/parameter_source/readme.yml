@@ -30,7 +30,7 @@ structure:
       1. The situation is unlikely to occur in exactly this way, because here
          the request doesn't work at all if the `user` gets passed only via the query string (it HAS to pass two `user` values, through query string and the body argument).
 
-      ![alt text](image-2.png)
+      ![alt text](image-source-merging.png)
 
       2. The second issue is that while calling verification function explicitly is valid, a more common pattern is either using a decorator or a middleware.
 
@@ -51,28 +51,3 @@ structure:
   - section: "Middleware-based Authentication"
     examples:
       - 9
-
-  - section: "Vulnerability Patterns"
-    description: |
-      1. **Direct Source Confusion**
-
-         - Authentication uses one source
-         - Data retrieval uses another source
-         - Examples: 1, 2, 3
-
-      2. **Helper Function Confusion**
-
-         - Helper functions that mix sources
-         - Priority-based source resolution
-         - Examples: 4
-
-      3. **Request.Values Confusion**
-
-         - Using request.values which merges sources
-         - Query parameters can override form data
-         - Examples: 5, 7
-
-      4. **Framework Feature Confusion**
-         - Decorators and middleware hiding source confusion
-         - Architectural patterns making vulnerabilities harder to spot
-         - Examples: 8, 9

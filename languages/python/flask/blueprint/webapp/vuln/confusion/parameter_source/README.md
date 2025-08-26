@@ -262,7 +262,7 @@ The examples 1-3 are realistic and some are hard to detect, but there are still 
 1. The situation is unlikely to occur in exactly this way, because here
    the request doesn't work at all if the `user` gets passed only via the query string (it HAS to pass two `user` values, through query string and the body argument).
 
-![alt text](images/image-2.png)
+![alt text](images/image-source-merging.png)
 
 2. The second issue is that while calling verification function explicitly is valid, a more common pattern is either using a decorator or a middleware.
 
@@ -482,7 +482,7 @@ user=alice&password=123456
 ```
 </details>
 
-![alt text](images/image-4.png)
+![alt text](images/image-6.png)
 
 ### Example 7: Request.Values in Authentication
 
@@ -541,7 +541,7 @@ user=bob&password=123456
 ```
 </details>
 
-![alt text](images/image-6.png)
+![alt text](images/image-7.png)
 
 ## Decorator-based Authentication
 

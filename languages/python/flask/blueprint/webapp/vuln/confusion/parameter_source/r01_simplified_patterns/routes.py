@@ -26,7 +26,6 @@ db = {
 # @unsafe[function]
 # id: 1
 # title: Basic Parameter Source Confusion
-# image: image-1.png
 # notes: |
 #   Demonstrates the most basic form of parameter source confusion where authentication
 #   uses **query** parameters but data retrieval uses **form** data.
@@ -58,6 +57,7 @@ def example1():
 # @unsafe[block]
 # id: 2
 # title: Function-Level Parameter Source Confusion
+# request-details: open
 # notes: |
 #   Functionally equivalent to example 1, but shows how separating authentication and data retrieval into different functions can make the vulnerability harder to spot.
 # @/unsafe
