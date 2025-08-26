@@ -55,7 +55,7 @@ Request:
 GET /vuln/confusion/parameter-source/example0?user=alice&password=123456
 ```
 
-![alt text](image-0.png)
+![alt text](images/image-0.png)
 
 ## Simplified Vulnerability Patterns
 
@@ -102,7 +102,7 @@ Content-Length: 8
 user=bob
 ```
 
-![alt text](image-1.png)
+![alt text](images/image-1.png)
 
 ### Example 2: Function-Level Parameter Source Confusion
 
@@ -171,7 +171,7 @@ The examples 1-3 are realistic and some are hard to detect, but there are still 
 1. The situation is unlikely to occur in exactly this way, because here
    the request doesn't work at all if the `user` gets passed only via the query string (it HAS to pass two `user` values, through query string and the body argument).
 
-![alt text](image-2.png)
+![alt text](images/image-2.png)
 
 2. The second issue is that while calling verification function explicitly is valid, a more common pattern is either using a decorator or a middleware.
 
@@ -247,7 +247,7 @@ Content-Length: 10
 user=alice
 ```
 
-![alt text](image-5.png)
+![alt text](images/image-5.png)
 
 ## Request.values Confusion
 
@@ -302,7 +302,7 @@ Content-Length: 26
 user=alice&password=123456
 ```
 
-![alt text](image-4.png)
+![alt text](images/image-4.png)
 
 ### Example 7: Request.Values in Authentication
 
@@ -340,7 +340,7 @@ Content-Length: 24
 user=bob&password=123456
 ```
 
-![alt text](image-6.png)
+![alt text](images/image-6.png)
 
 ## Decorator-based Authentication
 
