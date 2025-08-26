@@ -210,44 +210,20 @@ def example3():
 Requests:
 
 <details>
-<summary>See HTTP Requests</summary>
-```http
-# Expected Usage:
-GET http://localhost:8000/vuln/confusion/parameter-source/example3?user=alice&password=123456
-Content-Type: application/x-www-form-urlencoded
+  <summary>Click me</summary>
+  
+  ### Heading
+  1. Foo
+  2. Bar
+     * Baz
+     * Qux
 
-user=alice
-#
-# Normally, Alice would get her *own* messages:
-#
-# [
-#  {
-#    "from": "kevin",
-#    "message": "Hi Alice, you're fired!"
-#  }
-# ]
-#
-###
-
-# Attack
-GET http://localhost:8000/vuln/confusion/parameter-source/example3?user=alice&password=123456 HTTP/1.1
-Content-Type: application/x-www-form-urlencoded
-
-user=bob
-#
-# Alice gets Bob's messages, even though she provided her own password!
-#
-# [
-#  {
-#    "from": "kevin",
-#    "message": "Hi Bob, here is the password you asked for: P@ssw0rd!"
-#  },
-#  {
-#    "from": "michael",
-#    "message": "Hi Bob, come to my party on Friday! The secret passphrase is 'no-one-knows-it'!"
-#  }
-# ]
-```
+  ### Some Javascript
+  ```js
+  function logSomething(something) {
+    console.log('Something', something);
+  }
+  ```
 </details>
 
 ## Source Merging in Custom Helper Function
