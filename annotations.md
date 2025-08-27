@@ -55,10 +55,10 @@ Per directory with `readme.yml` we store an index with:
 ### Generation flow
 1) Parse `readme.yml` into the desired structure
 2) Discover `@unsafe` annotations across `*.py, *.js, *.ts, *.tsx, *.jsx` inside the target directory subtree only
-3) Build `index.yml`: merge block parts by id, validate function ids uniqueness, compute per‑part code spans using the annotation boundaries (no route or pattern sniffing), compute file hashes and signatures, pick anchor path and [start,end] from function span (for blocks, from the first part)
+3) Build `index.yml`: merge block parts by id, validate function ids uniqueness, compute per‑part code spans using the annotation boundaries, compute file hashes and signatures
 4) Render README.md from the index and structure
-   - TOC includes id, section as Category, and a link to the anchored file with `#Lstart-Lend`
-   - Example section prints title, notes, a code snippet composed by concatenating all parts’ spans in order, HTTP request (if exists, inside <details> and opened when `request-details: open`), and image (if exists)
+   - TOC includes id, section as Category, and a link to the first part's file with `#Lstart-Lend`
+   - Example section prints title, notes, a code snippet composed by concatenating all parts' spans in order (with empty lines between parts), HTTP request (if exists, inside <details> and opened when `request-details: open`), and image (if exists)
 
 ### Multi-language support
 - Comments are recognized in Python (`# ...`), JS/TS single-line (`// ...`) and standalone `/* ... */` marker lines
@@ -70,4 +70,5 @@ Per directory with `readme.yml` we store an index with:
 - Use stable numeric ids; avoid reusing ids across unrelated examples
 
 ### Known behavior
-- Exact code spans are best-effort within the language rules; for Python we anchor to the decorators/def and end at the next top‑level definition. For blocks we require `@/unsafe[block]` to delimit the span
+- Exact code spans are best-effort within the language rules; for Python functions we include decorators (if present) and span from the def to the end of the function body. For blocks we require `@/unsafe[block]` to delimit the span
+- TOC links use the first part's file and line range for multi-part examples
