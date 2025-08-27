@@ -98,7 +98,7 @@ def example2():
 #   In the previous example, you can still see that the `user` value gets retrieved from the
 #   `request.args` during validation but from the `request.form` during data retrieval.
 #
-#   A more subtle example, where this is not immediately obvious (imagine, `authenticat_user`
+#   A more subtle example, where this is not immediately obvious (imagine, `authenticate_user`
 #   is defined in an another file altogether):
 # @/unsafe
 def authenticate_user():

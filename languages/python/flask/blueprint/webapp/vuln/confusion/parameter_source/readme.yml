@@ -30,7 +30,7 @@ structure:
       1. The situation is unlikely to occur in exactly this way, because here
          the request doesn't work at all if the `user` gets passed only via the query string (it HAS to pass two `user` values, through query string and the body argument).
 
-      ![alt text](image-source-merging.png)
+      ![alt text](images/image-source-merging.png)
 
       2. The second issue is that while calling verification function explicitly is valid, a more common pattern is either using a decorator or a middleware.
 

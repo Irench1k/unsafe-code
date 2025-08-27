@@ -260,3 +260,7 @@ docker-compose.override.yml
 
 # Logs
 *.log
+
+# Backup files
+*.bak
+*.bak.*

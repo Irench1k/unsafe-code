@@ -12,22 +12,23 @@ Here you can find several examples on how Flask framework design allows those vu
 
 | Index | Category                                 | Example                                                                                |
 | ----- | ---------------------------------------- | -------------------------------------------------------------------------------------- |
-| 0     | Secure Baseline                          | [Secure Implementation](routes.py#L51-L67)                                             |
-| 1     | Simplified Vulnerability Patterns        | [Basic Parameter Source Confusion](r01_simplified_patterns/routes.py#L41-L55)          |
-| 2     | Simplified Vulnerability Patterns        | [Function-Level Parameter Source Confusion](r01_simplified_patterns/routes.py#L77-L88) |
-| 3     | Simplified Vulnerability Patterns        | [Cross-Module Parameter Source Confusion](r01_simplified_patterns/routes.py#L111-L120) |
-| 4     | Source Merging in Custom Helper Function | [Form-Query Priority Resolution](r02_custom_helpers/routes.py#L60-L68)                 |
-| 5     | Source Merging in Custom Helper Function | [Mixed-Source Authentication](r02_custom_helpers/routes.py#L90-L98)                    |
-| 6     | Request.values Confusion                 | [Form Authentication Bypass](r03_request_values/routes.py#L78-L88)                     |
-| 7     | Request.values Confusion                 | [Request.Values in Authentication](r03_request_values/routes.py#L116-L125)             |
-| 8     | Decorator-based Authentication           | [Decorator-based Authentication](r04_decorator/routes.py#L72-L78)                      |
-| 9     | Middleware-based Authentication          | [Middleware-based Authentication](r05_middleware/routes.py#L17-L22)                    |
+| 0 | Secure Baseline | [Secure Implementation](routes.py#L51-L67) |
+| 1 | Simplified Vulnerability Patterns | [Basic Parameter Source Confusion](r01_simplified_patterns/routes.py#L40-L54) |
+| 2 | Simplified Vulnerability Patterns | [Function-Level Parameter Source Confusion](r01_simplified_patterns/routes.py#L64-L88) |
+| 3 | Simplified Vulnerability Patterns | [Cross-Module Parameter Source Confusion](r01_simplified_patterns/routes.py#L104-L120) |
+| 4 | Source Merging in Custom Helper Function | [Form-Query Priority Resolution](r02_custom_helpers/routes.py#L54-L69) |
+| 5 | Source Merging in Custom Helper Function | [Mixed-Source Authentication](r02_custom_helpers/routes.py#L83-L98) |
+| 6 | Request.values Confusion | [Form Authentication Bypass](r03_request_values/routes.py#L70-L87) |
+| 7 | Request.values Confusion | [Request.Values in Authentication](r03_request_values/routes.py#L102-L118) |
+| 8 | Decorator-based Authentication | [Decorator-based Authentication](r04_decorator/routes.py#L18-L24) |
+| 9 | Middleware-based Authentication | [Middleware-based Authentication](r05_middleware/routes.py#L18-L23) |
 
 ## Secure Baseline
 
 ### Example 0: Secure Implementation
 
-Here you can see a secure implementation that consistently uses query string parameters for both authentication and data retrieval.
+Here you can see a secure implementation that consistently uses query string parameters
+for both authentication and data retrieval.
 
 ```python
 @bp.route("/example0", methods=["GET", "POST"])
@@ -63,7 +64,8 @@ GET http://localhost:8000/vuln/confusion/parameter-source/example0?user=alice&pa
 
 ### Example 1: Basic Parameter Source Confusion
 
-Demonstrates the most basic form of parameter source confusion where authentication uses **query** parameters but data retrieval uses **form** data.
+Demonstrates the most basic form of parameter source confusion where authentication
+uses **query** parameters but data retrieval uses **form** data.
 
 We take the user name from the query string during the validation,
 but during the data retrieval another value is used, taken from the request body (form).
@@ -190,7 +192,7 @@ user=bob
 In the previous example, you can still see that the `user` value gets retrieved from the
 `request.args` during validation but from the `request.form` during data retrieval.
 
-A more subtle example, where this is not immediately obvious (imagine, `authenticat_user`
+A more subtle example, where this is not immediately obvious (imagine, `authenticate_user`
 is defined in an another file altogether):
 
 ```python
@@ -215,7 +217,7 @@ def example3():
 
 <details>
   <summary><b>See HTTP Request</b></summary>
-  
+
 ```http
 # Expected Usage:
 GET http://localhost:8000/vuln/confusion/parameter-source/example3?user=alice&password=123456
@@ -254,6 +256,8 @@ user=bob
 # ]
 ```
 </details>
+
+![alt text](images/image-3.png)
 
 ## Source Merging in Custom Helper Function
 
@@ -408,8 +412,24 @@ user=alice
 
 ### Example 6: Form Authentication Bypass
 
-The endpoint uses form data for authentication, but request.values.get() allows query
-parameters to override form values, creating a vulnerability.
+ The endpoint uses form data for authentication, but request.values.get() allows query
+ parameters to override form values, creating a vulnerability. Although designed for POST
+ requests, the endpoint accepts both GET and POST methods, enabling the attack.
+
+ Note that although the regular usage would rely on POST request (or PUT, PATCH, etc.),
+ and wouldn't work with GET (because flask's request.values ignores form data in GET
+ requests), the attacker can send both GET and POST requests (if the endpoint is
+ configured to accept both methods).
+
+```http
+POST /vuln/confusion/parameter-source/example6? HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 26
+
+user=alice&password=123456
+```
+
+However, the attacker can send both GET and POST requests (if the endpoint is configured to accept both methods).
 
 ```python
 def authenticate_user_example6():
@@ -488,7 +508,8 @@ user=alice&password=123456
 
 Demonstrates how using request.values in authentication while using form data for access creates vulnerabilities.
 
-This is an example of a varient of example 6, as we do the similar thing, but now we can pass Bob's username in the request body with Alice's password, while passing Alice's username in the request query. Note that this example does not work with GET request, use POST.
+This is an example of a varient of example 6, as we do the similar thing, but now we can pass Bob's username in the request body with Alice's password, while passing Alice's username in the request query.
+Note that this example does not work with GET request, use POST.
 
 ```python
 def authenticate_user_example7():
@@ -509,7 +530,6 @@ def example7():
 
     return messages
 ```
-
 
 <details>
   <summary><b>See HTTP Request</b></summary>
@@ -552,16 +572,6 @@ Shows how using decorators can obscure parameter source confusion.
 Example 8 is functionally equivalent to Example 4, but it may be harder to spot the vulnerability while using decorators.
 
 ```python
-def authentication_required(f):
-    @wraps(f)
-    def decorated_example8(*args, **kwargs):
-        if not authenticate_user():
-            return "Invalid user or password", 401
-        return f(*args, **kwargs)
-
-    return decorated_example8
-
-
 @bp.route("/example8", methods=["GET", "POST"])
 @authentication_required
 def example8():
@@ -569,15 +579,23 @@ def example8():
     if messages is None:
         return "No messages found", 404
     return messages
+
+def authentication_required(f):
+    @wraps(f)
+    def decorated_example8(*args, **kwargs):
+        if not authenticate():
+            return "Invalid user or password", 401
+        return f(*args, **kwargs)
+
+    return decorated_example8
 ```
 
 <details>
   <summary><b>See HTTP Request</b></summary>
 
-
 ```http
 # Expected Usage:
-GET http://localhost:8000/vuln/confusion/parameter-source/example8?user=alice&password=123456
+GET http://localhost:8000/vuln/confusion/parameter-source/example9?user=alice&password=123456
 #
 # Normally, Alice would get her *own* messages:
 #
@@ -591,7 +609,7 @@ GET http://localhost:8000/vuln/confusion/parameter-source/example8?user=alice&pa
 ###
 
 # Attack
-GET http://localhost:8000/vuln/confusion/parameter-source/example8?user=alice&password=123456
+GET http://localhost:8000/vuln/confusion/parameter-source/example9?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
 
 user=bob
@@ -622,7 +640,7 @@ Example 9 is functionally equivalent to Example 4, but it may be harder to spot 
 ```python
 @bp.route("/example9", methods=["GET", "POST"])
 def example9():
-    messages = get_messages(get_user())
+    messages = get_messages(get_user(request))
     if messages is None:
         return "No messages found", 404
     return messages

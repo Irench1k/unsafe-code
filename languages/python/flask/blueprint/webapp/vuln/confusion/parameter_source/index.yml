@@ -1,0 +1,254 @@
+version: '1'
+root: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source
+category: confusion.parameter-source
+id_prefix: flask-vuln-confusion-parameter-source-
+examples:
+  0:
+    id: 0
+    kind: function
+    title: Secure Implementation
+    notes: 'Here you can see a secure implementation that consistently uses query
+      string parameters
+
+      for both authentication and data retrieval.'
+    request_details: open
+    parts:
+    - part: 1
+      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/routes.py
+      code_start_line: 51
+      code_end_line: 67
+    file_hashes:
+      /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/routes.py: 2ba81bd376e0a74c57f89e3d096285306e2af98a6d7988eede6ebf929b556d2e
+    fingerprint: 8d513368f2daf27e4a2467cfe18420090796dac19b1a842c439e312105b781b6
+  1:
+    id: 1
+    kind: function
+    title: Basic Parameter Source Confusion
+    notes: 'Demonstrates the most basic form of parameter source confusion where authentication
+
+      uses **query** parameters but data retrieval uses **form** data.
+
+
+      We take the user name from the query string during the validation,
+
+      but during the data retrieval another value is used, taken from the request
+      body (form).
+
+      This does not look very realistic, but it demonstrates the core of the vulnerability,
+
+      we will build upon this further.
+
+
+      Here you can see if we provide bob''s name in the request body, we can access
+      his messages without his password.'
+    request_details: null
+    parts:
+    - part: 1
+      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
+      code_start_line: 40
+      code_end_line: 54
+    file_hashes:
+      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
+      : b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
+    fingerprint: bb378b03f668ed27d0ccd3586c80a91ba3e78495857747950b5fd857885e35f7
+  2:
+    id: 2
+    kind: block
+    title: Function-Level Parameter Source Confusion
+    notes: Functionally equivalent to example 1, but shows how separating authentication
+      and data retrieval into different functions can make the vulnerability harder
+      to spot.
+    request_details: open
+    parts:
+    - part: 1
+      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
+      code_start_line: 64
+      code_end_line: 88
+    file_hashes:
+      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
+      : b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
+    fingerprint: 4aecb55058abb5eacd6a2d35df9019af3ef19b641edcc38111bbdeb526fe2153
+  3:
+    id: 3
+    kind: block
+    title: Cross-Module Parameter Source Confusion
+    notes: 'In the previous example, you can still see that the `user` value gets
+      retrieved from the
+
+      `request.args` during validation but from the `request.form` during data retrieval.
+
+
+      A more subtle example, where this is not immediately obvious (imagine, `authenticate_user`
+
+      is defined in an another file altogether):'
+    request_details: null
+    parts:
+    - part: 1
+      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
+      code_start_line: 104
+      code_end_line: 120
+    file_hashes:
+      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
+      : b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
+    fingerprint: de89af27c069787cf0d46217dd28d673a6985bb31b4841db681a344892078de7
+  4:
+    id: 4
+    kind: block
+    title: Form-Query Priority Resolution
+    notes: 'Shows how a helper function that implements source prioritization can
+      create vulnerabilities.
+
+
+      In Example 4 we don''t need to specify body parameters to get a result (which
+      is now more realistic!), but if we want, we can still access bob''s messages
+      by passing his user name in the request body:'
+    request_details: null
+    parts:
+    - part: 1
+      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r02_custom_helpers/routes.py
+      code_start_line: 54
+      code_end_line: 69
+    file_hashes:
+      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r02_custom_helpers/routes.py
+      : 8bb18abd1ea679f7a0f6f209094bdda4759879992d7f60c59c51042182971226
+    fingerprint: 8aa8826cbc5ff5ce4c121a76d403d134f52d9eaedd8d36d69ca952362b8d7d32
+  5:
+    id: 5
+    kind: block
+    title: Mixed-Source Authentication
+    notes: 'Shows how authentication and data access can use different combinations
+      of sources.
+
+
+      This one is interesting, because you can access Bob''s messages by providing
+      his username and Alice''s password in the request query, while providing Alice''s
+      username in the request body:'
+    request_details: null
+    parts:
+    - part: 1
+      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r02_custom_helpers/routes.py
+      code_start_line: 83
+      code_end_line: 98
+    file_hashes:
+      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r02_custom_helpers/routes.py
+      : 8bb18abd1ea679f7a0f6f209094bdda4759879992d7f60c59c51042182971226
+    fingerprint: ab588855e186512a51bbfad6957ad8e1ccf7d2752acede37976b6a0c5050b17a
+  6:
+    id: 6
+    kind: block
+    title: Form Authentication Bypass
+    notes: " The endpoint uses form data for authentication, but request.values.get()\
+      \ allows query\n parameters to override form values, creating a vulnerability.\
+      \ Although designed for POST\n requests, the endpoint accepts both GET and POST\
+      \ methods, enabling the attack.\n\n Note that although the regular usage would\
+      \ rely on POST request (or PUT, PATCH, etc.),\n and wouldn't work with GET (because\
+      \ flask's request.values ignores form data in GET\n requests), the attacker\
+      \ can send both GET and POST requests (if the endpoint is\n configured to accept\
+      \ both methods).\n\n```http\nPOST /vuln/confusion/parameter-source/example6?\
+      \ HTTP/1.1\nContent-Type: application/x-www-form-urlencoded\nContent-Length:\
+      \ 26\n\nuser=alice&password=123456\n```\n\nHowever, the attacker can send both\
+      \ GET and POST requests (if the endpoint is configured to accept both methods)."
+    request_details: open
+    parts:
+    - part: 1
+      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py
+      code_start_line: 70
+      code_end_line: 87
+    file_hashes:
+      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py
+      : d47d826655e01312e695c6777248227076fa66b7d0bdbfd22db3ac2e7a046c0f
+    fingerprint: a906d8c0b2c44be7df31e710730dac766f40eea3cf1e915f8fbaff8427e95107
+  7:
+    id: 7
+    kind: block
+    title: Request.Values in Authentication
+    notes: 'Demonstrates how using request.values in authentication while using form
+      data for access creates vulnerabilities.
+
+
+      This is an example of a varient of example 6, as we do the similar thing, but
+      now we can pass Bob''s username in the request body with Alice''s password,
+      while passing Alice''s username in the request query.
+
+      Note that this example does not work with GET request, use POST.'
+    request_details: null
+    parts:
+    - part: 1
+      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py
+      code_start_line: 102
+      code_end_line: 118
+    file_hashes:
+      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py
+      : d47d826655e01312e695c6777248227076fa66b7d0bdbfd22db3ac2e7a046c0f
+    fingerprint: 7909a30dd0518b7f0fd38ec1bc64656a458b76d8b769d6eaf9df7f6278310044
+  8:
+    id: 8
+    kind: block
+    title: Decorator-based Authentication
+    notes: 'Shows how using decorators can obscure parameter source confusion.
+
+
+      Example 8 is functionally equivalent to Example 4, but it may be harder to spot
+      the vulnerability while using decorators.'
+    request_details: null
+    parts:
+    - part: 1
+      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/routes.py
+      code_start_line: 18
+      code_end_line: 24
+    - part: 2
+      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/decorator.py
+      code_start_line: 9
+      code_end_line: 16
+    file_hashes:
+      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/routes.py
+      : 874362cadbb60eaefbe3932f90b23c7c5013d86d7d92df7167f741003ee79eb4
+      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/decorator.py
+      : 4619e3f8fb6e690326ceb8031b6e7477058159b2ce82632968c0ab22f5be0bf2
+    fingerprint: 0a127d0da2d9e7772256b19759acaea0dad3dd87a962a9f81114fe9c32ff9ad9
+  9:
+    id: 9
+    kind: block
+    title: Middleware-based Authentication
+    notes: 'Demonstrates how Flask''s middleware system can contribute to parameter
+      source confusion.
+
+
+      Example 9 is functionally equivalent to Example 4, but it may be harder to spot
+      the vulnerability while using middleware.'
+    request_details: null
+    parts:
+    - part: 1
+      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r05_middleware/routes.py
+      code_start_line: 18
+      code_end_line: 23
+    - part: 2
+      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r05_middleware/middleware.py
+      code_start_line: 9
+      code_end_line: 22
+    file_hashes:
+      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r05_middleware/routes.py
+      : c1a6fce737d4d19c625ce265aac66435105170dc85611abeacf3bf61948a57cc
+      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r05_middleware/middleware.py
+      : 7be8f54cda7ee73c500580ef9b605340802d6bfcdca640d15a4c00e95ef50c11
+    fingerprint: b13d64acc43a13f80a2039a1ae5bf112e249de8dabc19d49503011fea8d154d2
+attachments:
+  images/image-source-merging.png: 226b0c9334337b8519564db5335dbee60e5b2e4021622fdac601ee0bd09e85b2
+  images/image-0.png: bb70a6dffd6f2d4fced85c5020d2608458849ad86b20ddb54387ae4267f50f3c
+  images/image-1.png: f1ad5afa27e0e8e9c7df1e2b15fcc58aaf02afbf352535d2014bfd8dae2ecae2
+  images/image-3.png: e3d237f1d43aae13b6294025bf92d68347342edb9d9407870b9646d217d0a075
+  images/image-6.png: 596a59ba2f347f1e82b0144531369e174dc5b6782fa8aa5129199344687aaf18
+  images/image-7.png: c6a8e3dbdf09c9a4d810330cabc6638feb8d3f9c874220e7407f917b17d08cf4
+  images/image-5.png: 9d6a637120034fdc72780422ac73eb858c6479f2d36e6980bdf7fd38edbe68dc
+  http/exploit-1.http: db134e194cdb975b2646d9f916473df14f9805b439e1e2f26b13c3277322047e
+  http/exploit-0.http: 0798c02c1757012b268c8a201890fbb4fb53418c868be6897354ce2812fd824d
+  http/exploit-7.http: b6b38780e020c72a15ca9063a6f9f7e0f75bc6eb15115813a1b0fd11478a419b
+  http/exploit-6.http: 988543b43aaf95700e915cd7d69ae2d0c5d617520a10cbe2f6777a9d871bd7cc
+  http/exploit-9.http: 030669f0df5e2c44a0a2bb1a145f0208f3390acf5053cbb1e96d053cb8827eff
+  http/exploit-5.http: ff28093f43df1d503b3853c2777bb74be07be0f832b3022134aa67ce6b362f1c
+  http/exploit-4.http: 289a818dc4a304cb4e9f412af41054a8c839e5ad704a951eaffda1b68254efb1
+  http/exploit-8.http: 030669f0df5e2c44a0a2bb1a145f0208f3390acf5053cbb1e96d053cb8827eff
+  http/exploit-3.http: 910d836ddb592bdffeed7b881180b06f0343a2772570ae4aeca6ef7038de06c9
+  http/exploit-2.http: 9a833a312abbab4518989681ba072b44edf35439601aa0de692267b57419cfe8
+build_signature: 43926f38739a3e144738bdff339fe59ab028470679e2b0bffbac640e830f5d23
+last_readme_fingerprint: 43926f38739a3e144738bdff339fe59ab028470679e2b0bffbac640e830f5d23
