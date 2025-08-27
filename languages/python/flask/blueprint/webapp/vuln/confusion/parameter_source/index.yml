@@ -137,17 +137,43 @@ examples:
     id: 6
     kind: block
     title: Form Authentication Bypass
-    notes: " The endpoint uses form data for authentication, but request.values.get()\
-      \ allows query\n parameters to override form values, creating a vulnerability.\
-      \ Although designed for POST\n requests, the endpoint accepts both GET and POST\
-      \ methods, enabling the attack.\n\n Note that although the regular usage would\
-      \ rely on POST request (or PUT, PATCH, etc.),\n and wouldn't work with GET (because\
-      \ flask's request.values ignores form data in GET\n requests), the attacker\
-      \ can send both GET and POST requests (if the endpoint is\n configured to accept\
-      \ both methods).\n\n```http\nPOST /vuln/confusion/parameter-source/example6?\
-      \ HTTP/1.1\nContent-Type: application/x-www-form-urlencoded\nContent-Length:\
-      \ 26\n\nuser=alice&password=123456\n```\n\nHowever, the attacker can send both\
-      \ GET and POST requests (if the endpoint is configured to accept both methods)."
+    notes: 'The endpoint uses form data for authentication, but request.values.get()
+      allows query
+
+      parameters to override form values, creating a vulnerability. Although designed
+      for POST
+
+      requests, the endpoint accepts both GET and POST methods, enabling the attack.
+
+
+      Note that although the regular usage would rely on POST request (or PUT, PATCH,
+      etc.),
+
+      and wouldn''t work with GET (because flask''s request.values ignores form data
+      in GET
+
+      requests), the attacker can send both GET and POST requests (if the endpoint
+      is
+
+      configured to accept both methods).
+
+
+      ```http
+
+      POST /vuln/confusion/parameter-source/example6? HTTP/1.1
+
+      Content-Type: application/x-www-form-urlencoded
+
+      Content-Length: 26
+
+
+      user=alice&password=123456
+
+      ```
+
+
+      However, the attacker can send both GET and POST requests (if the endpoint is
+      configured to accept both methods).'
     request_details: open
     parts:
     - part: 1
@@ -157,7 +183,7 @@ examples:
     file_hashes:
       ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py
       : d47d826655e01312e695c6777248227076fa66b7d0bdbfd22db3ac2e7a046c0f
-    fingerprint: a906d8c0b2c44be7df31e710730dac766f40eea3cf1e915f8fbaff8427e95107
+    fingerprint: f744a4d417f41a019cee8fe6264abff39328922b46337b55f9a5b8aa432c6c37
   7:
     id: 7
     kind: block
@@ -201,10 +227,10 @@ examples:
       code_start_line: 9
       code_end_line: 16
     file_hashes:
-      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/routes.py
-      : 874362cadbb60eaefbe3932f90b23c7c5013d86d7d92df7167f741003ee79eb4
       ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/decorator.py
       : 4619e3f8fb6e690326ceb8031b6e7477058159b2ce82632968c0ab22f5be0bf2
+      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/routes.py
+      : 874362cadbb60eaefbe3932f90b23c7c5013d86d7d92df7167f741003ee79eb4
     fingerprint: 0a127d0da2d9e7772256b19759acaea0dad3dd87a962a9f81114fe9c32ff9ad9
   9:
     id: 9
@@ -250,5 +276,5 @@ attachments:
   http/exploit-8.http: 030669f0df5e2c44a0a2bb1a145f0208f3390acf5053cbb1e96d053cb8827eff
   http/exploit-3.http: 910d836ddb592bdffeed7b881180b06f0343a2772570ae4aeca6ef7038de06c9
   http/exploit-2.http: 9a833a312abbab4518989681ba072b44edf35439601aa0de692267b57419cfe8
-build_signature: 43926f38739a3e144738bdff339fe59ab028470679e2b0bffbac640e830f5d23
-last_readme_fingerprint: 43926f38739a3e144738bdff339fe59ab028470679e2b0bffbac640e830f5d23
+build_signature: 689f65dd22279a7646e411929df217ed55c21e2aaacc889ef8f1eb6cde2ea751
+last_readme_fingerprint: 689f65dd22279a7646e411929df217ed55c21e2aaacc889ef8f1eb6cde2ea751

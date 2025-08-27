@@ -150,3 +150,22 @@ docker run --rm -p 8000:8000 --name fastapi-basic unsafe-fastapi-basic
 ```
 
 **Note:** This approach doesn't provide the development benefits (code reload, debug logs) and requires manual container management.
+
+## Documentation Generation
+
+This project includes a documentation generation tool that automatically creates README files from code annotations. The tool scans source code for `@unsafe` annotations and generates comprehensive documentation with examples, HTTP requests, and images.
+
+### Usage
+
+```bash
+# List all documentation targets
+python -m tools.unsafe_docs list-targets -v
+
+# Generate documentation for all targets
+python -m tools.unsafe_docs run-all -v
+
+# Generate for a specific target
+python -m tools.unsafe_docs generate --target languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/
+```
+
+The tool automatically discovers `readme.yml` configuration files and processes code annotations to create detailed documentation with table of contents, code examples, and security explanations.
