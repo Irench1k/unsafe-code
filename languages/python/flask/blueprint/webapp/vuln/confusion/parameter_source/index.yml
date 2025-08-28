@@ -254,8 +254,8 @@ examples:
       code_start_line: 9
       code_end_line: 22
     file_hashes:
-      r05_middleware/routes.py: c1a6fce737d4d19c625ce265aac66435105170dc85611abeacf3bf61948a57cc
       r05_middleware/middleware.py: 7be8f54cda7ee73c500580ef9b605340802d6bfcdca640d15a4c00e95ef50c11
+      r05_middleware/routes.py: c1a6fce737d4d19c625ce265aac66435105170dc85611abeacf3bf61948a57cc
     fingerprint: b576312ef0e55d83e1ec8475f4e2be795dffeed76f03af1733a17b94883af89c
 attachments:
   images/image-source-merging.png: 226b0c9334337b8519564db5335dbee60e5b2e4021622fdac601ee0bd09e85b2

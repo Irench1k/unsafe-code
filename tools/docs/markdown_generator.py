@@ -1,5 +1,7 @@
 """Markdown generation using python-markdown-generator."""
 
+import io
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List
 
@@ -7,6 +9,17 @@ from markdowngenerator import MarkdownGenerator
 
 from .languages import assemble_code_from_parts
 from .models import DirectoryIndex, Example
+
+
+@dataclass
+class TocEntry:
+    id: int
+    category: str
+    title: str
+    link: str
+
+    def row(self, doc: MarkdownGenerator) -> List[str]:
+        return [str(self.id), self.category, doc.generateHrefNotation(self.title, self.link)]
 
 
 class MarkdownBuilder:
@@ -17,64 +30,61 @@ class MarkdownBuilder:
         self.structure = structure
 
     def generate(self) -> str:
-        with MarkdownGenerator(filename=None, enable_write=False, enable_TOC=False) as doc:
-            # Title
-            doc.addHeader(1, self.title)
-
-            # Introduction (allow Markdown/HTML; avoid extra blank lines)
-            if self.intro:
-                doc.writeTextLine(self.intro, html_escape=False)
-
-            # Table of contents entries (computed once)
+        # Prevent the library from creating a physical file by providing
+        # an in-memory document object.
+        with MarkdownGenerator(document=io.StringIO(), enable_write=False, enable_TOC=False) as doc:
+            self._render_title_and_intro(doc)
             toc_entries = self._collect_toc_entries()
-
-            for entry in self.structure:
-                if entry.get("table-of-contents") or entry.get("table_of_contents"):
-                    self._add_table_of_contents(doc, toc_entries)
-                    continue
-
-                section_title = entry.get("section", "")
-                if section_title:
-                    doc.addHeader(2, section_title)
-
-                description = entry.get("description", "")
-                if description:
-                    doc.writeTextLine(description, html_escape=False)
-
-                for ex_id in entry.get("examples", []):
-                    ex = self.index.examples.get(int(ex_id))
-                    if ex:
-                        self._add_example_section(doc, ex)
-
-            # document_data_array already contains line terminators; concatenate as-is
+            self._render_structure(doc, toc_entries)
             return "".join(doc.document_data_array)
 
-    def _collect_toc_entries(self) -> List[Dict]:
-        entries: List[Dict] = []
+    def _render_title_and_intro(self, doc: MarkdownGenerator) -> None:
+        doc.addHeader(1, self.title)
+        if self.intro:
+            doc.writeTextLine(self.intro, html_escape=False)
+
+    def _collect_toc_entries(self) -> List[TocEntry]:
+        entries: List[TocEntry] = []
         for entry in self.structure:
             if entry.get("section") and entry.get("examples"):
                 section_name = entry.get("section", "")
                 for ex_id in entry.get("examples", []):
                     ex = self.index.examples.get(int(ex_id))
                     if ex:
-                        link = self._get_code_link(ex)
                         entries.append(
-                            {
-                                "id": ex.id,
-                                "category": section_name,
-                                "title": ex.title or f"Example {ex.id}",
-                                "link": link,
-                            }
+                            TocEntry(
+                                id=ex.id,
+                                category=section_name,
+                                title=(ex.title or f"Example {ex.id}"),
+                                link=self._get_code_link(ex),
+                            )
                         )
         return entries
 
-    def _add_table_of_contents(self, doc: MarkdownGenerator, entries: List[Dict]) -> None:
+    def _add_table_of_contents(self, doc: MarkdownGenerator, entries: List[TocEntry]) -> None:
         doc.addHeader(2, "Table of Contents")
-        rows = []
-        for e in entries:
-            link_text = doc.generateHrefNotation(e["title"], e["link"])
-            rows.append([str(e["id"]), e["category"], link_text])
+        rows = [e.row(doc) for e in entries]
         doc.addTable(header_names=["Index", "Category", "Example"], row_elements=rows, alignment="center", html_escape=False)
+
+    def _render_structure(self, doc: MarkdownGenerator, toc_entries: List[TocEntry]) -> None:
+        for entry in self.structure:
+            if self._is_toc_marker(entry):
+                self._add_table_of_contents(doc, toc_entries)
+                continue
+            section_title = entry.get("section", "")
+            if section_title:
+                doc.addHeader(2, section_title)
+            description = entry.get("description", "")
+            if description:
+                doc.writeTextLine(description, html_escape=False)
+            for ex_id in entry.get("examples", []):
+                ex = self.index.examples.get(int(ex_id))
+                if ex:
+                    self._add_example_section(doc, ex)
+
+    @staticmethod
+    def _is_toc_marker(entry: Dict) -> bool:
+        return bool(entry.get("table-of-contents") or entry.get("table_of_contents"))
 
     def _add_example_section(self, doc: MarkdownGenerator, example: Example) -> None:
         # Header, add colon only if title present
