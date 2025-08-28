@@ -229,8 +229,8 @@ examples:
       code_start_line: 9
       code_end_line: 16
     file_hashes:
-      r04_decorator/decorator.py: 4619e3f8fb6e690326ceb8031b6e7477058159b2ce82632968c0ab22f5be0bf2
       r04_decorator/routes.py: 874362cadbb60eaefbe3932f90b23c7c5013d86d7d92df7167f741003ee79eb4
+      r04_decorator/decorator.py: 4619e3f8fb6e690326ceb8031b6e7477058159b2ce82632968c0ab22f5be0bf2
     fingerprint: b52e3eea2437e98917745d06ee2482c2dd9dc04659ae80f8a1574b1a05139c67
   9:
     id: 9
