@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Dict, List, Literal, Optional
 
 
 AnnotationKind = Literal["function", "block"]
@@ -25,8 +25,6 @@ class Example:
     notes: Optional[str] = None
     request_details: Optional[str] = None  # "open" | "closed" | None
     parts: List[ExamplePart] = field(default_factory=list)
-
-    # Derived - removed anchor fields for simplified TOC generation
 
     # Caching/hashes
     file_hashes: Dict[str, str] = field(default_factory=dict)
@@ -61,7 +59,6 @@ class DirectoryIndex:
                     }
                     for p in sorted(ex.parts, key=lambda pp: pp.part)
                 ],
-
                 "file_hashes": ex.file_hashes,
                 "fingerprint": ex.fingerprint,
             }
@@ -78,7 +75,7 @@ class DirectoryIndex:
         }
 
     @staticmethod
-    def from_dict(data: dict) -> DirectoryIndex:
+    def from_dict(data: dict) -> "DirectoryIndex":
         idx = DirectoryIndex(
             version=data.get("version", "0"),
             root=Path(data.get("root", ".")),
@@ -86,7 +83,7 @@ class DirectoryIndex:
             id_prefix=data.get("id_prefix"),
         )
         exs = data.get("examples", {})
-        for k, v in exs.items():
+        for _, v in exs.items():
             ex = Example(
                 id=int(v["id"]),
                 kind=v["kind"],
@@ -104,7 +101,6 @@ class DirectoryIndex:
                         code_end_line=int(p["code_end_line"]),
                     )
                 )
-            # Anchor fields removed for simplified implementation
             ex.file_hashes = v.get("file_hashes", {})
             ex.fingerprint = v.get("fingerprint")
             idx.examples[ex.id] = ex
@@ -112,5 +108,4 @@ class DirectoryIndex:
         idx.build_signature = data.get("build_signature")
         idx.last_readme_fingerprint = data.get("last_readme_fingerprint")
         return idx
-
 

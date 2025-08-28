@@ -2,14 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from .yaml_io import read_yaml
-
-
-@dataclass
-class ReadmeSpecExample:
-    id: int
 
 
 @dataclass
@@ -56,5 +51,4 @@ def load_readme_spec(path: Path) -> ReadmeSpec:
         sections=sections,
         table_of_contents=toc,
     )
-
 

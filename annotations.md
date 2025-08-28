@@ -72,3 +72,7 @@ Per directory with `readme.yml` we store an index with:
 ### Known behavior
 - Exact code spans are best-effort within the language rules; for Python functions we include decorators (if present) and span from the def to the end of the function body. For blocks we require `@/unsafe[block]` to delimit the span
 - TOC links use the first part's file and line range for multi-part examples
+- Notes that include fenced code blocks (e.g., ```http) inside `notes: |` are supported.
+  The generator normalizes indentation within YAML block scalars so that these
+  fenced blocks parse cleanly with strict PyYAML. Author as usual; no special
+  escaping is required.

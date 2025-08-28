@@ -57,15 +57,15 @@ def authenticate_user():
 #   requests), the attacker can send both GET and POST requests (if the endpoint is
 #   configured to accept both methods).
 #
-#  ```http
-#  POST /vuln/confusion/parameter-source/example6? HTTP/1.1
-#  Content-Type: application/x-www-form-urlencoded
-#  Content-Length: 26
+#   ```http
+#   POST /vuln/confusion/parameter-source/example6? HTTP/1.1
+#   Content-Type: application/x-www-form-urlencoded
+#   Content-Length: 26
 #
-#  user=alice&password=123456
-#  ```
+#   user=alice&password=123456
+#   ```
 #
-#  However, the attacker can send both GET and POST requests (if the endpoint is configured to accept both methods).
+#   However, the attacker can send both GET and POST requests (if the endpoint is configured to accept both methods).
 # @/unsafe
 def authenticate_user_example6():
     """Authenticate the user, based solely on the request body."""

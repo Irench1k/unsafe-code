@@ -15,4 +15,3 @@ def write_yaml(path: Path, data: Dict[str, Any]) -> None:
     with path.open("w", encoding="utf-8") as f:
         yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True)
 
-

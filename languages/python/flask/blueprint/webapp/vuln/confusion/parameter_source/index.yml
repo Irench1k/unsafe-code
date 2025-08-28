@@ -1,5 +1,5 @@
 version: '1'
-root: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source
+root: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source
 category: confusion.parameter-source
 id_prefix: flask-vuln-confusion-parameter-source-
 examples:
@@ -14,12 +14,12 @@ examples:
     request_details: open
     parts:
     - part: 1
-      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/routes.py
+      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/routes.py
       code_start_line: 51
       code_end_line: 67
     file_hashes:
-      /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/routes.py: 2ba81bd376e0a74c57f89e3d096285306e2af98a6d7988eede6ebf929b556d2e
-    fingerprint: 8d513368f2daf27e4a2467cfe18420090796dac19b1a842c439e312105b781b6
+      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/routes.py: 2ba81bd376e0a74c57f89e3d096285306e2af98a6d7988eede6ebf929b556d2e
+    fingerprint: c0844b4780f578d7005c8493168ac212ccdba6199226aaa847a93c304a50a84e
   1:
     id: 1
     kind: function
@@ -44,13 +44,12 @@ examples:
     request_details: null
     parts:
     - part: 1
-      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
+      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
       code_start_line: 40
       code_end_line: 54
     file_hashes:
-      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
-      : b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
-    fingerprint: bb378b03f668ed27d0ccd3586c80a91ba3e78495857747950b5fd857885e35f7
+      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py: b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
+    fingerprint: a98a0ea75871163682b1ed00654b7882063c5832b30d25217097561c7993e197
   2:
     id: 2
     kind: block
@@ -61,13 +60,12 @@ examples:
     request_details: open
     parts:
     - part: 1
-      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
+      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
       code_start_line: 64
       code_end_line: 88
     file_hashes:
-      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
-      : b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
-    fingerprint: 4aecb55058abb5eacd6a2d35df9019af3ef19b641edcc38111bbdeb526fe2153
+      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py: b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
+    fingerprint: b9119e7464cfd935fe287c7b9dda40cb26f10e495320b1fdadb1de34cf6466ff
   3:
     id: 3
     kind: block
@@ -84,13 +82,12 @@ examples:
     request_details: null
     parts:
     - part: 1
-      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
+      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
       code_start_line: 104
       code_end_line: 120
     file_hashes:
-      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
-      : b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
-    fingerprint: de89af27c069787cf0d46217dd28d673a6985bb31b4841db681a344892078de7
+      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py: b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
+    fingerprint: e528002100314c41c4e5d2a356b15ea826c199642e59a4b9bda201e5a8a3c7d2
   4:
     id: 4
     kind: block
@@ -105,13 +102,12 @@ examples:
     request_details: null
     parts:
     - part: 1
-      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r02_custom_helpers/routes.py
+      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r02_custom_helpers/routes.py
       code_start_line: 54
       code_end_line: 69
     file_hashes:
-      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r02_custom_helpers/routes.py
-      : 8bb18abd1ea679f7a0f6f209094bdda4759879992d7f60c59c51042182971226
-    fingerprint: 8aa8826cbc5ff5ce4c121a76d403d134f52d9eaedd8d36d69ca952362b8d7d32
+      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r02_custom_helpers/routes.py: 8bb18abd1ea679f7a0f6f209094bdda4759879992d7f60c59c51042182971226
+    fingerprint: a8664a3cc5a593e5cfec775c9af107eb710384f5ee3a431c5428f2fb30837bcc
   5:
     id: 5
     kind: block
@@ -126,13 +122,12 @@ examples:
     request_details: null
     parts:
     - part: 1
-      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r02_custom_helpers/routes.py
+      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r02_custom_helpers/routes.py
       code_start_line: 83
       code_end_line: 98
     file_hashes:
-      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r02_custom_helpers/routes.py
-      : 8bb18abd1ea679f7a0f6f209094bdda4759879992d7f60c59c51042182971226
-    fingerprint: ab588855e186512a51bbfad6957ad8e1ccf7d2752acede37976b6a0c5050b17a
+      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r02_custom_helpers/routes.py: 8bb18abd1ea679f7a0f6f209094bdda4759879992d7f60c59c51042182971226
+    fingerprint: 4b4df811bebd100416dc0cfa9f549210cc931efcc30ad7017c0a92bcb8b707af
   6:
     id: 6
     kind: block
@@ -177,13 +172,12 @@ examples:
     request_details: open
     parts:
     - part: 1
-      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py
+      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py
       code_start_line: 70
       code_end_line: 87
     file_hashes:
-      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py
-      : d47d826655e01312e695c6777248227076fa66b7d0bdbfd22db3ac2e7a046c0f
-    fingerprint: f744a4d417f41a019cee8fe6264abff39328922b46337b55f9a5b8aa432c6c37
+      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py: d47d826655e01312e695c6777248227076fa66b7d0bdbfd22db3ac2e7a046c0f
+    fingerprint: f1a8e4a0f9b1e335c2ec679c3297ddd58062b7ffffc4a2b29fb2104f66d4a9ea
   7:
     id: 7
     kind: block
@@ -200,13 +194,12 @@ examples:
     request_details: null
     parts:
     - part: 1
-      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py
+      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py
       code_start_line: 102
       code_end_line: 118
     file_hashes:
-      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py
-      : d47d826655e01312e695c6777248227076fa66b7d0bdbfd22db3ac2e7a046c0f
-    fingerprint: 7909a30dd0518b7f0fd38ec1bc64656a458b76d8b769d6eaf9df7f6278310044
+      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py: d47d826655e01312e695c6777248227076fa66b7d0bdbfd22db3ac2e7a046c0f
+    fingerprint: 2662bc01cc9cb3d6aae7d20c9fc5b9eaffd333c34e891590659bc08f53d8c96e
   8:
     id: 8
     kind: block
@@ -219,19 +212,17 @@ examples:
     request_details: null
     parts:
     - part: 1
-      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/routes.py
+      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/routes.py
       code_start_line: 18
       code_end_line: 24
     - part: 2
-      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/decorator.py
+      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/decorator.py
       code_start_line: 9
       code_end_line: 16
     file_hashes:
-      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/decorator.py
-      : 4619e3f8fb6e690326ceb8031b6e7477058159b2ce82632968c0ab22f5be0bf2
-      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/routes.py
-      : 874362cadbb60eaefbe3932f90b23c7c5013d86d7d92df7167f741003ee79eb4
-    fingerprint: 0a127d0da2d9e7772256b19759acaea0dad3dd87a962a9f81114fe9c32ff9ad9
+      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/routes.py: 874362cadbb60eaefbe3932f90b23c7c5013d86d7d92df7167f741003ee79eb4
+      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/decorator.py: 4619e3f8fb6e690326ceb8031b6e7477058159b2ce82632968c0ab22f5be0bf2
+    fingerprint: baceb688046843ad559370b8864d76f57c24bc8022efd60e3cbc1d4469c7fd25
   9:
     id: 9
     kind: block
@@ -245,19 +236,17 @@ examples:
     request_details: null
     parts:
     - part: 1
-      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r05_middleware/routes.py
+      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r05_middleware/routes.py
       code_start_line: 18
       code_end_line: 23
     - part: 2
-      file: /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r05_middleware/middleware.py
+      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r05_middleware/middleware.py
       code_start_line: 9
       code_end_line: 22
     file_hashes:
-      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r05_middleware/routes.py
-      : c1a6fce737d4d19c625ce265aac66435105170dc85611abeacf3bf61948a57cc
-      ? /Users/andrew/Projects/unsafe-code/languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r05_middleware/middleware.py
-      : 7be8f54cda7ee73c500580ef9b605340802d6bfcdca640d15a4c00e95ef50c11
-    fingerprint: b13d64acc43a13f80a2039a1ae5bf112e249de8dabc19d49503011fea8d154d2
+      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r05_middleware/routes.py: c1a6fce737d4d19c625ce265aac66435105170dc85611abeacf3bf61948a57cc
+      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r05_middleware/middleware.py: 7be8f54cda7ee73c500580ef9b605340802d6bfcdca640d15a4c00e95ef50c11
+    fingerprint: 9cdffb6b4e79c4b8f7c44b14f14fb4e43368741efdddd6c00e37c97536230c9c
 attachments:
   images/image-source-merging.png: 226b0c9334337b8519564db5335dbee60e5b2e4021622fdac601ee0bd09e85b2
   images/image-0.png: bb70a6dffd6f2d4fced85c5020d2608458849ad86b20ddb54387ae4267f50f3c
@@ -276,5 +265,5 @@ attachments:
   http/exploit-8.http: 030669f0df5e2c44a0a2bb1a145f0208f3390acf5053cbb1e96d053cb8827eff
   http/exploit-3.http: 910d836ddb592bdffeed7b881180b06f0343a2772570ae4aeca6ef7038de06c9
   http/exploit-2.http: 9a833a312abbab4518989681ba072b44edf35439601aa0de692267b57419cfe8
-build_signature: 689f65dd22279a7646e411929df217ed55c21e2aaacc889ef8f1eb6cde2ea751
-last_readme_fingerprint: 689f65dd22279a7646e411929df217ed55c21e2aaacc889ef8f1eb6cde2ea751
+build_signature: 477618ba4eb3ae3173205fb5630635643db8a5ec2850507e7cae321fb4d18826
+last_readme_fingerprint: 477618ba4eb3ae3173205fb5630635643db8a5ec2850507e7cae321fb4d18826

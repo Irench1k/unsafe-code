@@ -166,11 +166,8 @@ Common commands:
 # First time (optional; uv run also auto-syncs)
 uv sync
 
-# Run the docs CLI (installed from project entry point)
-uv run -- unsafe-docs --help
-
-# Or run the module directly
-uv run -- python -m tools.unsafe_docs --help
+# Run the docs CLI (concise alias)
+uv run docs --help
 ```
 
 ### Documentation Generation (with uv)
@@ -179,17 +176,31 @@ This repo includes a documentation generator that scans for `@unsafe` annotation
 
 ```bash
 # List all documentation targets
-uv run -- unsafe-docs list-targets -v
+uv run docs list -v
 
 # Generate documentation for all targets
-uv run -- unsafe-docs run-all -v
+uv run docs all -v
 
 # Generate for a specific target
-uv run -- unsafe-docs generate \
+uv run docs generate \
   --target languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/
 
 # Dry run (no file writes) and verbose logging
-uv run -- unsafe-docs generate --dry-run -v --target <path/to/target>
+uv run docs generate --dry-run -v --target <path/to/target>
+
+# Run unit tests for the docs tool
+uv run docs test -v
+
+# Verify that README/index are up-to-date (CI-friendly)
+uv run docs verify -v
+
+Tip: Enable shell completion for `docs` (optional):
+
+uv run docs --install-completion
+
+Or add an alias for even shorter commands:
+
+alias docs='uv run docs'
 ```
 
 uv will ensure the environment matches `pyproject.toml` and `uv.lock` before each run. No need to activate a virtualenv.
@@ -201,3 +212,26 @@ uv will ensure the environment matches `pyproject.toml` and `uv.lock` before eac
 - Update lock (selective): `uv lock --upgrade-package <package>`
 
 Note: This project depends on the upstream Git repository for Markdown generation: `python-markdown-generator @ git+https://github.com/Nicceboy/python-markdown-generator`. Do not replace it with any PyPI alternative; it provides the `markdowngenerator` module used by the generator.
+CI (GitHub Actions)
+
+Add a simple workflow to verify docs stay in sync:
+
+```yaml
+name: Docs
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Verify docs
+        run: |
+          ~/.local/bin/uv --version
+          ~/.local/bin/uv run docs verify -v
+```

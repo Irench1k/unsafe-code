@@ -214,3 +214,4 @@ def _get_code_link(example: Example, root: Path) -> str:
         return f"{relative_path}#L{first_part.code_start_line}"
     else:
         return relative_path
+

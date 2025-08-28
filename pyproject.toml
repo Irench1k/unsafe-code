@@ -7,12 +7,12 @@ dependencies = [
   "rich>=13.7.1",
   "pyyaml>=6.0.1",
   # Use upstream Git repo for Markdown generation library
-  # Provides the `markdowngenerator` module used by tools.unsafe_docs
+  # Provides the `markdowngenerator` module used by tools.docs
   "python-markdown-generator @ git+https://github.com/Nicceboy/python-markdown-generator",
 ]
 
 [project.scripts]
-unsafe-docs = "tools.unsafe_docs.cli:main"
+docs = "tools.docs.cli:docs_main"
 
 
 [build-system]
@@ -21,6 +21,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["tools"]
+exclude = [
+  "tools/**/tests/**",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true
