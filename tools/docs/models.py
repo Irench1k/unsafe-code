@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Literal, Optional
@@ -24,6 +22,8 @@ class Example:
     title: Optional[str] = None
     notes: Optional[str] = None
     request_details: Optional[str] = None  # "open" | "closed" | None
+    # Language hint for syntax highlighting (e.g., 'python', 'javascript')
+    language: Optional[str] = None
     parts: List[ExamplePart] = field(default_factory=list)
 
     # Caching/hashes
@@ -50,10 +50,12 @@ class DirectoryIndex:
                 "title": ex.title,
                 "notes": ex.notes,
                 "request_details": ex.request_details,
+                "language": ex.language,
                 "parts": [
                     {
                         "part": p.part,
-                        "file": str(Path(p.file_path).as_posix()),
+                        # Store file paths relative to the index root to avoid leaking absolute paths
+                        "file": str(Path(p.file_path).relative_to(self.root).as_posix()),
                         "code_start_line": p.code_start_line,
                         "code_end_line": p.code_end_line,
                     }
@@ -65,7 +67,8 @@ class DirectoryIndex:
 
         return {
             "version": self.version,
-            "root": str(self.root.as_posix()),
+            # Keep root path relative in the serialized index (to the directory containing index.yml)
+            "root": ".",
             "category": self.category,
             "id_prefix": self.id_prefix,
             "examples": {k: ex_to_dict(v) for k, v in sorted(self.examples.items())},
@@ -90,6 +93,7 @@ class DirectoryIndex:
                 title=v.get("title"),
                 notes=v.get("notes"),
                 request_details=v.get("request_details"),
+                language=v.get("language"),
             )
             for p in v.get("parts", []):
                 ex.parts.append(
@@ -108,4 +112,3 @@ class DirectoryIndex:
         idx.build_signature = data.get("build_signature")
         idx.last_readme_fingerprint = data.get("last_readme_fingerprint")
         return idx
-

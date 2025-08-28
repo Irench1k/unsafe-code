@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import hashlib
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
@@ -53,4 +51,3 @@ def backup_file(path: Path, suffix: str = ".bak") -> Optional[Path]:
             candidate.write_bytes(content)
             return candidate
         idx += 1
-

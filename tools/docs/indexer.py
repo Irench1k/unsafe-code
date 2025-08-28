@@ -1,13 +1,11 @@
 """Indexer: builds index.yml from annotations and filesystem."""
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from .annotation_parser import discover_annotations, find_block_end_marker
 from .fs_utils import compute_fingerprint, sha256_file
-from .languages import get_language_for_file, get_supported_extensions
+from .languages import get_language_for_file, get_language_name_for_file, get_supported_extensions
 from .models import DirectoryIndex, Example, ExamplePart
 from .readme_spec import ReadmeSpec
 from .yaml_io import read_yaml, write_yaml
@@ -91,12 +89,18 @@ def build_examples_from_annotations(source_files: List[Path]) -> Dict[int, Examp
             if actual != expected:
                 raise ValueError(f"Non-consecutive part numbers for block example {ex_id}")
 
+        # Detect language from the first part (if any)
+        language = None
+        if parts:
+            language = get_language_name_for_file(parts[0].file_path)
+
         example = Example(
             id=ex_id,
             kind=kind,
             title=title,
             notes=notes,
             request_details=request_details,
+            language=language,
             parts=parts,
         )
         examples[ex_id] = example
@@ -116,10 +120,13 @@ def collect_attachments(root: Path) -> Dict[str, str]:
     return attachments
 
 
-def compute_example_hashes_and_fingerprints(examples: Dict[int, Example]) -> None:
+def compute_example_hashes_and_fingerprints(examples: Dict[int, Example], root: Path) -> None:
     for example in examples.values():
         files = {part.file_path for part in example.parts}
-        example.file_hashes = {path.as_posix(): sha256_file(path) for path in files}
+        # Store file hashes with keys relative to the index root for stability across environments
+        example.file_hashes = {
+            path.relative_to(root).as_posix(): sha256_file(path) for path in files
+        }
         fingerprint_data = [
             str(example.id),
             example.kind,
@@ -133,7 +140,7 @@ def compute_example_hashes_and_fingerprints(examples: Dict[int, Example]) -> Non
 def build_directory_index(root: Path, spec: ReadmeSpec) -> DirectoryIndex:
     source_files = find_source_files(root)
     examples = build_examples_from_annotations(source_files)
-    compute_example_hashes_and_fingerprints(examples)
+    compute_example_hashes_and_fingerprints(examples, root)
     attachments = collect_attachments(root)
 
     index = DirectoryIndex(
@@ -164,4 +171,3 @@ def read_existing_index(index_path: Path) -> Optional[DirectoryIndex]:
 
 def write_index(index_path: Path, index: DirectoryIndex) -> None:
     write_yaml(index_path, index.to_dict())
-

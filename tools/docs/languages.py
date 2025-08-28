@@ -1,11 +1,17 @@
 """Language-specific parsing and configuration."""
 
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Set
+import ast
+
+try:
+    import esprima  # type: ignore
+except Exception:  # pragma: no cover - optional import
+    esprima = None  # Fallback handled in JS parser
+
+from .models import ExamplePart
 
 
 @dataclass
@@ -34,99 +40,124 @@ class FunctionParser(ABC):
 
 
 class PythonFunctionParser(FunctionParser):
-    """Parser for Python function boundaries."""
-    
-    def find_function_end(self, lines: List[str], start_line_1b: int) -> int:
-        """Find the end of a Python function using indentation."""
+    """Parser for Python function boundaries using AST with indentation fallback."""
+
+    def _find_function_end_ast(self, lines: List[str], start_line_1b: int) -> int | None:
+        try:
+            source = "\n".join(lines)
+            tree = ast.parse(source)
+            candidates: List[ast.AST] = []
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    if getattr(node, "lineno", 0) >= start_line_1b:
+                        candidates.append(node)
+            if not candidates:
+                return None
+            # Choose the earliest function starting at or after start_line
+            target = min(candidates, key=lambda n: getattr(n, "lineno", 10**9))
+            end_lineno = getattr(target, "end_lineno", None)
+            if end_lineno is not None:
+                return int(end_lineno)
+            return None
+        except (SyntaxError, ValueError):
+            return None
+
+    def _find_function_end_indentation(self, lines: List[str], start_line_1b: int) -> int:
         n = len(lines)
         i = max(0, start_line_1b - 1)
-
-        # Skip blank lines and comments until we find decorators or function
-        while i < n and (not lines[i].strip() or lines[i].lstrip().startswith("#")):
-            i += 1
-
-        # Capture decorators
-        deco_start = None
-        while i < n and lines[i].lstrip().startswith("@"):
-            deco_start = i if deco_start is None else deco_start
-            i += 1
-
-        # Find function definition
-        def_line = i
-        while def_line < n:
-            stripped = lines[def_line].lstrip()
+        # Find the next 'def' or 'async def'
+        while i < n:
+            stripped = lines[i].lstrip()
             if stripped.startswith("def ") or stripped.startswith("async def "):
                 break
-            # If we see unrelated top-level code, fallback
-            if stripped and not lines[def_line].startswith(" "):
-                break
-            def_line += 1
-
-        if def_line >= n:
-            # Fallback: single line
+            i += 1
+        if i >= n:
             return max(1, start_line_1b)
-
-        # Use decorator start if present, otherwise function start
-        actual_start = deco_start if deco_start is not None else def_line
-        
-        # Find function end by tracking indentation
-        base_indent = len(lines[def_line]) - len(lines[def_line].lstrip(" "))
-        j = def_line + 1
-        last_content = def_line
-        
+        base_indent = len(lines[i]) - len(lines[i].lstrip(" "))
+        j = i + 1
+        last_content = i
         while j < n:
             line = lines[j]
             stripped = line.lstrip()
-            if not stripped:  # Empty line
+            if not stripped:
                 j += 1
                 continue
-                
             current_indent = len(line) - len(stripped)
             if current_indent <= base_indent:
-                # We've left the function
                 break
             last_content = j
             j += 1
+        return last_content + 1
 
-        return last_content + 1  # Convert to 1-based
+    def find_function_end(self, lines: List[str], start_line_1b: int) -> int:
+        end_ast = self._find_function_end_ast(lines, start_line_1b)
+        if end_ast is not None:
+            return end_ast
+        return self._find_function_end_indentation(lines, start_line_1b)
 
 
 class JavaScriptFunctionParser(FunctionParser):
-    """Parser for JavaScript/TypeScript function boundaries using braces."""
-    
-    def find_function_end(self, lines: List[str], start_line_1b: int) -> int:
-        """Find the end of a JS/TS function using brace matching."""
+    """Parser for JavaScript/TypeScript function boundaries using esprima with brace fallback."""
+
+    def _walk_js_ast(self, node):
+        if hasattr(node, 'type'):
+            yield node
+        for key, value in vars(node).items():
+            if isinstance(value, list):
+                for item in value:
+                    if hasattr(item, 'type'):
+                        yield from self._walk_js_ast(item)
+            elif hasattr(value, 'type'):
+                yield from self._walk_js_ast(value)
+
+    def _find_function_end_esprima(self, lines: List[str], start_line_1b: int) -> int | None:
+        if esprima is None:
+            return None
+        try:
+            source = "\n".join(lines)
+            tree = esprima.parseScript(source, {'loc': True, 'range': True})
+            candidates = []
+            for node in self._walk_js_ast(tree):
+                if getattr(node, 'type', None) in (
+                    'FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression', 'MethodDefinition'
+                ):
+                    if hasattr(node, 'loc') and getattr(node.loc.start, 'line', 10**9) >= start_line_1b:
+                        candidates.append(node)
+            if not candidates:
+                return None
+            target = min(candidates, key=lambda n: n.loc.start.line)
+            return int(target.loc.end.line)
+        except Exception:
+            return None
+
+    def _find_js_function_end_braces(self, lines: List[str], start_line_1b: int) -> int:
         n = len(lines)
         i = max(0, start_line_1b - 1)
-        
-        # Find function declaration/expression
+        # Find likely function starting brace
         while i < n:
-            line = lines[i].strip()
-            # Look for function keywords or arrow functions
-            if any(keyword in line for keyword in ['function', '=>', 'function*']):
+            if any(k in lines[i] for k in ['function', '=>']):
                 break
             i += 1
-            
         if i >= n:
             return max(1, start_line_1b)
-            
-        # Count braces to find function end
         brace_count = 0
         found_opening = False
-        
         for j in range(i, n):
-            line = lines[j]
-            for char in line:
-                if char == '{':
+            for ch in lines[j]:
+                if ch == '{':
                     brace_count += 1
                     found_opening = True
-                elif char == '}':
+                elif ch == '}':
                     brace_count -= 1
                     if found_opening and brace_count == 0:
-                        return j + 1  # Found matching closing brace
-        
-        # If we didn't find proper braces, return a reasonable fallback
-        return min(i + 10, n)  # Function likely within next 10 lines
+                        return j + 1
+        return min(i + 10, n)
+
+    def find_function_end(self, lines: List[str], start_line_1b: int) -> int:
+        end_ast = self._find_function_end_esprima(lines, start_line_1b)
+        if end_ast is not None:
+            return end_ast
+        return self._find_js_function_end_braces(lines, start_line_1b)
 
 
 # Language registry
@@ -178,3 +209,25 @@ def get_language_name_for_file(file_path: Path) -> str:
     }
     return mapping.get(ext, '')
 
+
+def assemble_code_from_parts(parts: List[ExamplePart]) -> str:
+    """Read and concatenate code lines for the given parts.
+
+    Each part contributes the lines [code_start_line, code_end_line] (inclusive of start, exclusive of end as stored).
+    Empty line is added between parts.
+    """
+    code_lines: List[str] = []
+    for i, part in enumerate(parts):
+        try:
+            with open(part.file_path, 'r', encoding='utf-8') as f:
+                file_lines = f.readlines()
+            start_idx = max(0, part.code_start_line - 1)
+            end_idx = min(len(file_lines), part.code_end_line)
+            seg = [ln.rstrip('\r\n') for ln in file_lines[start_idx:end_idx]]
+            code_lines.extend(seg)
+            if i < len(parts) - 1:
+                code_lines.append("")
+        except Exception:
+            # Skip unreadable parts silently
+            continue
+    return "\n".join(code_lines)

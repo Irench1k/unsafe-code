@@ -1,5 +1,5 @@
 version: '1'
-root: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source
+root: .
 category: confusion.parameter-source
 id_prefix: flask-vuln-confusion-parameter-source-
 examples:
@@ -12,14 +12,15 @@ examples:
 
       for both authentication and data retrieval.'
     request_details: open
+    language: python
     parts:
     - part: 1
-      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/routes.py
+      file: routes.py
       code_start_line: 51
       code_end_line: 67
     file_hashes:
-      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/routes.py: 2ba81bd376e0a74c57f89e3d096285306e2af98a6d7988eede6ebf929b556d2e
-    fingerprint: c0844b4780f578d7005c8493168ac212ccdba6199226aaa847a93c304a50a84e
+      routes.py: 2ba81bd376e0a74c57f89e3d096285306e2af98a6d7988eede6ebf929b556d2e
+    fingerprint: 1604394585f10506555d35804940c7bc027a8e08d9dd9ac057737740a656eee4
   1:
     id: 1
     kind: function
@@ -42,14 +43,15 @@ examples:
       Here you can see if we provide bob''s name in the request body, we can access
       his messages without his password.'
     request_details: null
+    language: python
     parts:
     - part: 1
-      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
+      file: r01_simplified_patterns/routes.py
       code_start_line: 40
       code_end_line: 54
     file_hashes:
-      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py: b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
-    fingerprint: a98a0ea75871163682b1ed00654b7882063c5832b30d25217097561c7993e197
+      r01_simplified_patterns/routes.py: b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
+    fingerprint: 5e9d9756042a076595392a2d45e66a1f978f6c90b62dd775a24fcc57284cabd0
   2:
     id: 2
     kind: block
@@ -58,14 +60,15 @@ examples:
       and data retrieval into different functions can make the vulnerability harder
       to spot.
     request_details: open
+    language: python
     parts:
     - part: 1
-      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
+      file: r01_simplified_patterns/routes.py
       code_start_line: 64
       code_end_line: 88
     file_hashes:
-      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py: b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
-    fingerprint: b9119e7464cfd935fe287c7b9dda40cb26f10e495320b1fdadb1de34cf6466ff
+      r01_simplified_patterns/routes.py: b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
+    fingerprint: 997b2787befc8be33f8df0b10267aaf7b54c7bd117dfbd07a65116837c55e4cc
   3:
     id: 3
     kind: block
@@ -80,14 +83,15 @@ examples:
 
       is defined in an another file altogether):'
     request_details: null
+    language: python
     parts:
     - part: 1
-      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py
+      file: r01_simplified_patterns/routes.py
       code_start_line: 104
       code_end_line: 120
     file_hashes:
-      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r01_simplified_patterns/routes.py: b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
-    fingerprint: e528002100314c41c4e5d2a356b15ea826c199642e59a4b9bda201e5a8a3c7d2
+      r01_simplified_patterns/routes.py: b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
+    fingerprint: 90c5f12bc6173241490f669f1c7b1c749b9da97883b5378094fa4c1dff86cece
   4:
     id: 4
     kind: block
@@ -100,14 +104,15 @@ examples:
       is now more realistic!), but if we want, we can still access bob''s messages
       by passing his user name in the request body:'
     request_details: null
+    language: python
     parts:
     - part: 1
-      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r02_custom_helpers/routes.py
+      file: r02_custom_helpers/routes.py
       code_start_line: 54
       code_end_line: 69
     file_hashes:
-      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r02_custom_helpers/routes.py: 8bb18abd1ea679f7a0f6f209094bdda4759879992d7f60c59c51042182971226
-    fingerprint: a8664a3cc5a593e5cfec775c9af107eb710384f5ee3a431c5428f2fb30837bcc
+      r02_custom_helpers/routes.py: 8bb18abd1ea679f7a0f6f209094bdda4759879992d7f60c59c51042182971226
+    fingerprint: 4e4d02d1b027ed7e9edc8fbaafa4c860240cfee31d7ffac5ef02d44aa822a6c7
   5:
     id: 5
     kind: block
@@ -120,14 +125,15 @@ examples:
       his username and Alice''s password in the request query, while providing Alice''s
       username in the request body:'
     request_details: null
+    language: python
     parts:
     - part: 1
-      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r02_custom_helpers/routes.py
+      file: r02_custom_helpers/routes.py
       code_start_line: 83
       code_end_line: 98
     file_hashes:
-      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r02_custom_helpers/routes.py: 8bb18abd1ea679f7a0f6f209094bdda4759879992d7f60c59c51042182971226
-    fingerprint: 4b4df811bebd100416dc0cfa9f549210cc931efcc30ad7017c0a92bcb8b707af
+      r02_custom_helpers/routes.py: 8bb18abd1ea679f7a0f6f209094bdda4759879992d7f60c59c51042182971226
+    fingerprint: 2cabfa43092951a036c3b6b2995f167075de5510b5855ae44bef1d8acc0e1725
   6:
     id: 6
     kind: block
@@ -170,14 +176,15 @@ examples:
       However, the attacker can send both GET and POST requests (if the endpoint is
       configured to accept both methods).'
     request_details: open
+    language: python
     parts:
     - part: 1
-      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py
+      file: r03_request_values/routes.py
       code_start_line: 70
       code_end_line: 87
     file_hashes:
-      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py: d47d826655e01312e695c6777248227076fa66b7d0bdbfd22db3ac2e7a046c0f
-    fingerprint: f1a8e4a0f9b1e335c2ec679c3297ddd58062b7ffffc4a2b29fb2104f66d4a9ea
+      r03_request_values/routes.py: 8f1fb63509c7de615891fb72a5040b57635b0a0f62937a41698ddaf3913023a9
+    fingerprint: 0e97b31d23589a8a59d54033ef7eccfb8053f3606934634a9b986aaebad97b6b
   7:
     id: 7
     kind: block
@@ -192,14 +199,15 @@ examples:
 
       Note that this example does not work with GET request, use POST.'
     request_details: null
+    language: python
     parts:
     - part: 1
-      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py
+      file: r03_request_values/routes.py
       code_start_line: 102
       code_end_line: 118
     file_hashes:
-      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r03_request_values/routes.py: d47d826655e01312e695c6777248227076fa66b7d0bdbfd22db3ac2e7a046c0f
-    fingerprint: 2662bc01cc9cb3d6aae7d20c9fc5b9eaffd333c34e891590659bc08f53d8c96e
+      r03_request_values/routes.py: 8f1fb63509c7de615891fb72a5040b57635b0a0f62937a41698ddaf3913023a9
+    fingerprint: 2b6b517d8dbd4cf6a3c12d15c4a0021f05a5aa3c2581042409bfeeddea2d5369
   8:
     id: 8
     kind: block
@@ -210,19 +218,20 @@ examples:
       Example 8 is functionally equivalent to Example 4, but it may be harder to spot
       the vulnerability while using decorators.'
     request_details: null
+    language: python
     parts:
     - part: 1
-      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/routes.py
+      file: r04_decorator/routes.py
       code_start_line: 18
       code_end_line: 24
     - part: 2
-      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/decorator.py
+      file: r04_decorator/decorator.py
       code_start_line: 9
       code_end_line: 16
     file_hashes:
-      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/routes.py: 874362cadbb60eaefbe3932f90b23c7c5013d86d7d92df7167f741003ee79eb4
-      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r04_decorator/decorator.py: 4619e3f8fb6e690326ceb8031b6e7477058159b2ce82632968c0ab22f5be0bf2
-    fingerprint: baceb688046843ad559370b8864d76f57c24bc8022efd60e3cbc1d4469c7fd25
+      r04_decorator/decorator.py: 4619e3f8fb6e690326ceb8031b6e7477058159b2ce82632968c0ab22f5be0bf2
+      r04_decorator/routes.py: 874362cadbb60eaefbe3932f90b23c7c5013d86d7d92df7167f741003ee79eb4
+    fingerprint: b52e3eea2437e98917745d06ee2482c2dd9dc04659ae80f8a1574b1a05139c67
   9:
     id: 9
     kind: block
@@ -234,19 +243,20 @@ examples:
       Example 9 is functionally equivalent to Example 4, but it may be harder to spot
       the vulnerability while using middleware.'
     request_details: null
+    language: python
     parts:
     - part: 1
-      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r05_middleware/routes.py
+      file: r05_middleware/routes.py
       code_start_line: 18
       code_end_line: 23
     - part: 2
-      file: languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r05_middleware/middleware.py
+      file: r05_middleware/middleware.py
       code_start_line: 9
       code_end_line: 22
     file_hashes:
-      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r05_middleware/routes.py: c1a6fce737d4d19c625ce265aac66435105170dc85611abeacf3bf61948a57cc
-      languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/r05_middleware/middleware.py: 7be8f54cda7ee73c500580ef9b605340802d6bfcdca640d15a4c00e95ef50c11
-    fingerprint: 9cdffb6b4e79c4b8f7c44b14f14fb4e43368741efdddd6c00e37c97536230c9c
+      r05_middleware/routes.py: c1a6fce737d4d19c625ce265aac66435105170dc85611abeacf3bf61948a57cc
+      r05_middleware/middleware.py: 7be8f54cda7ee73c500580ef9b605340802d6bfcdca640d15a4c00e95ef50c11
+    fingerprint: b576312ef0e55d83e1ec8475f4e2be795dffeed76f03af1733a17b94883af89c
 attachments:
   images/image-source-merging.png: 226b0c9334337b8519564db5335dbee60e5b2e4021622fdac601ee0bd09e85b2
   images/image-0.png: bb70a6dffd6f2d4fced85c5020d2608458849ad86b20ddb54387ae4267f50f3c
@@ -265,5 +275,5 @@ attachments:
   http/exploit-8.http: 030669f0df5e2c44a0a2bb1a145f0208f3390acf5053cbb1e96d053cb8827eff
   http/exploit-3.http: 910d836ddb592bdffeed7b881180b06f0343a2772570ae4aeca6ef7038de06c9
   http/exploit-2.http: 9a833a312abbab4518989681ba072b44edf35439601aa0de692267b57419cfe8
-build_signature: 477618ba4eb3ae3173205fb5630635643db8a5ec2850507e7cae321fb4d18826
-last_readme_fingerprint: 477618ba4eb3ae3173205fb5630635643db8a5ec2850507e7cae321fb4d18826
+build_signature: 42dcd965aa37a6d3bc8b647b15772cd38e03b79ba4bd8910872672cf09edfaea
+last_readme_fingerprint: 42dcd965aa37a6d3bc8b647b15772cd38e03b79ba4bd8910872672cf09edfaea

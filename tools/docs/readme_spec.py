@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
@@ -26,8 +24,8 @@ class ReadmeSpec:
 
 def load_readme_spec(path: Path) -> ReadmeSpec:
     data = read_yaml(path)
-    title = data.get("title", "")
-    intro = data.get("intro", "")
+    title = (data.get("title", "") or "").strip()
+    intro = (data.get("intro", "") or "").strip()
     category = data.get("category")
     id_prefix = data.get("id-prefix") or data.get("id_prefix")
     structure = data.get("structure", [])
@@ -38,8 +36,10 @@ def load_readme_spec(path: Path) -> ReadmeSpec:
         if entry.get("table-of-contents") or entry.get("table_of_contents"):
             toc = True
             continue
-        sec_title = entry.get("section", "")
+        sec_title = (entry.get("section", "") or "").strip()
         description = entry.get("description")
+        if isinstance(description, str):
+            description = description.strip()
         examples = entry.get("examples", [])
         sections.append(ReadmeSpecSection(title=sec_title, description=description, examples=examples))
 
@@ -51,4 +51,3 @@ def load_readme_spec(path: Path) -> ReadmeSpec:
         sections=sections,
         table_of_contents=toc,
     )
-
