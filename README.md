@@ -39,6 +39,7 @@ _...and more coming soon!_
 ## Prerequisites and Setup
 
 - Install Docker (Docker Desktop or Docker Engine with Compose v2)
+- Install uv (https://docs.astral.sh/uv/). On macOS with Homebrew: `brew install uv`.
 - Clone this repository:
 
 ```bash
@@ -151,21 +152,52 @@ docker run --rm -p 8000:8000 --name fastapi-basic unsafe-fastapi-basic
 
 **Note:** This approach doesn't provide the development benefits (code reload, debug logs) and requires manual container management.
 
-## Documentation Generation
+## Using uv (Project Python)
 
-This project includes a documentation generation tool that automatically creates README files from code annotations. The tool scans source code for `@unsafe` annotations and generates comprehensive documentation with examples, HTTP requests, and images.
+We use uv to manage Python and project dependencies. uv creates and syncs a `.venv/` automatically and maintains a cross‑platform lockfile `uv.lock` for reproducible installs.
 
-### Usage
+- Python version: pinned via `.python-version` to `3.12`. uv will download it if missing.
+- Project metadata: see `pyproject.toml`.
+- Lockfile: `uv.lock` (commit this file).
+
+Common commands:
+
+```bash
+# First time (optional; uv run also auto-syncs)
+uv sync
+
+# Run the docs CLI (installed from project entry point)
+uv run -- unsafe-docs --help
+
+# Or run the module directly
+uv run -- python -m tools.unsafe_docs --help
+```
+
+### Documentation Generation (with uv)
+
+This repo includes a documentation generator that scans for `@unsafe` annotations and produces README files.
 
 ```bash
 # List all documentation targets
-python -m tools.unsafe_docs list-targets -v
+uv run -- unsafe-docs list-targets -v
 
 # Generate documentation for all targets
-python -m tools.unsafe_docs run-all -v
+uv run -- unsafe-docs run-all -v
 
 # Generate for a specific target
-python -m tools.unsafe_docs generate --target languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/
+uv run -- unsafe-docs generate \
+  --target languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/
+
+# Dry run (no file writes) and verbose logging
+uv run -- unsafe-docs generate --dry-run -v --target <path/to/target>
 ```
 
-The tool automatically discovers `readme.yml` configuration files and processes code annotations to create detailed documentation with table of contents, code examples, and security explanations.
+uv will ensure the environment matches `pyproject.toml` and `uv.lock` before each run. No need to activate a virtualenv.
+
+### Managing dependencies (maintainers)
+
+- Add packages: `uv add <package>`
+- Remove packages: `uv remove <package>`
+- Update lock (selective): `uv lock --upgrade-package <package>`
+
+Note: This project depends on the upstream Git repository for Markdown generation: `python-markdown-generator @ git+https://github.com/Nicceboy/python-markdown-generator`. Do not replace it with any PyPI alternative; it provides the `markdowngenerator` module used by the generator.
