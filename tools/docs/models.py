@@ -61,7 +61,8 @@ class DirectoryIndex:
                     }
                     for p in sorted(ex.parts, key=lambda pp: pp.part)
                 ],
-                "file_hashes": ex.file_hashes,
+                # Sort file_hashes by path key for deterministic output
+                "file_hashes": {k: ex.file_hashes[k] for k in sorted(ex.file_hashes)},
                 "fingerprint": ex.fingerprint,
             }
 
@@ -72,7 +73,8 @@ class DirectoryIndex:
             "category": self.category,
             "id_prefix": self.id_prefix,
             "examples": {k: ex_to_dict(v) for k, v in sorted(self.examples.items())},
-            "attachments": self.attachments,
+            # Sort attachments for deterministic output
+            "attachments": {k: self.attachments[k] for k in sorted(self.attachments)},
             "build_signature": self.build_signature,
             "last_readme_fingerprint": self.last_readme_fingerprint,
         }

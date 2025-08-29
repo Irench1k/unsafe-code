@@ -26,8 +26,7 @@ Here you can find several examples on how Flask framework design allows those vu
 ## Secure Baseline  
   
 ### Example 0: Secure Implementation  
-Here you can see a secure implementation that consistently uses query string parameters
-for both authentication and data retrieval.  
+Here you can see a secure implementation that consistently uses query string parameters for both authentication and data retrieval.  
 ```python
 @bp.route("/example0", methods=["GET", "POST"])
 def example0():
@@ -60,13 +59,9 @@ GET http://localhost:8000/vuln/confusion/parameter-source/example0?user=alice&pa
 ## Simplified Vulnerability Patterns  
   
 ### Example 1: Basic Parameter Source Confusion  
-Demonstrates the most basic form of parameter source confusion where authentication
-uses **query** parameters but data retrieval uses **form** data.
+Demonstrates the most basic form of parameter source confusion where authentication uses **query** parameters but data retrieval uses **form** data.
 
-We take the user name from the query string during the validation,
-but during the data retrieval another value is used, taken from the request body (form).
-This does not look very realistic, but it demonstrates the core of the vulnerability,
-we will build upon this further.
+We take the user name from the query string during the validation, but during the data retrieval another value is used, taken from the request body (form). This does not look very realistic, but it demonstrates the core of the vulnerability, we will build upon this further.
 
 Here you can see if we provide bob's name in the request body, we can access his messages without his password.  
 ```python
@@ -181,11 +176,9 @@ user=bob
   
   
 ### Example 3: Cross-Module Parameter Source Confusion  
-In the previous example, you can still see that the `user` value gets retrieved from the
-`request.args` during validation but from the `request.form` during data retrieval.
+In the previous example, you can still see that the `user` value gets retrieved from the `request.args` during validation but from the `request.form` during data retrieval.
 
-A more subtle example, where this is not immediately obvious (imagine, `authenticate_user`
-is defined in an another file altogether):  
+A more subtle example, where this is not immediately obvious (imagine, `authenticate_user` is defined in an another file altogether):  
 ```python
 def authenticate_user():
     """Authenticate the user, based solely on the request query string."""
@@ -399,14 +392,9 @@ user=alice
 ## Request.values Confusion  
   
 ### Example 6: Form Authentication Bypass  
-The endpoint uses form data for authentication, but request.values.get() allows query
-parameters to override form values, creating a vulnerability. Although designed for POST
-requests, the endpoint accepts both GET and POST methods, enabling the attack.
+The endpoint uses form data for authentication, but request.values.get() allows query parameters to override form values, creating a vulnerability. Although designed for POST requests, the endpoint accepts both GET and POST methods, enabling the attack.
 
-Note that although the regular usage would rely on POST request (or PUT, PATCH, etc.),
-and wouldn't work with GET (because flask's request.values ignores form data in GET
-requests), the attacker can send both GET and POST requests (if the endpoint is
-configured to accept both methods).
+Note that although the regular usage would rely on POST request (or PUT, PATCH, etc.), and wouldn't work with GET (because flask's request.values ignores form data in GET requests), the attacker can send both GET and POST requests (if the endpoint is configured to accept both methods).
 
 ```http
 POST /vuln/confusion/parameter-source/example6? HTTP/1.1
@@ -492,8 +480,7 @@ user=alice&password=123456
 ### Example 7: Request.Values in Authentication  
 Demonstrates how using request.values in authentication while using form data for access creates vulnerabilities.
 
-This is an example of a varient of example 6, as we do the similar thing, but now we can pass Bob's username in the request body with Alice's password, while passing Alice's username in the request query.
-Note that this example does not work with GET request, use POST.  
+This is an example of a varient of example 6, as we do the similar thing, but now we can pass Bob's username in the request body with Alice's password, while passing Alice's username in the request query. Note that this example does not work with GET request, use POST.  
 ```python
 def authenticate_user_example7():
     """Authenticate the user, based solely on the request body."""

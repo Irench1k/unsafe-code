@@ -8,7 +8,7 @@ from rich import print
 from rich.console import Console
 from rich.table import Table
 
-from .fs_utils import backup_file, find_files_by_name, write_text
+from .fs_utils import backup_file, find_files_by_name, write_text, sha256_file, compute_fingerprint
 from .indexer import (
     build_directory_index,
     read_existing_index,
@@ -74,8 +74,16 @@ def index_cmd(
             spec = load_readme_spec(d / "readme.yml")
             idx = build_directory_index(d, spec)
 
+            # Avoid churn: only write if signature changed or file absent
+            idx_existing = read_existing_index(d / "index.yml")
             if not dry_run and write:
-                write_index(d / "index.yml", idx)
+                if not idx_existing or idx_existing.build_signature != idx.build_signature:
+                    write_index(d / "index.yml", idx)
+                else:
+                    print(f"[yellow]Skipped (no changes):[/yellow] {d}")
+                    if verbose:
+                        print(f"  [dim]Signature:[/dim] {idx.build_signature}")
+                    continue
 
             print(f"[green]Indexed:[/green] {d}")
 
@@ -120,7 +128,16 @@ def generate_cmd(
             idx_existing = read_existing_index(d / "index.yml")
             idx = build_directory_index(d, spec)
 
-            if idx_existing and not force and idx_existing.build_signature == idx.build_signature and idx_existing.last_readme_fingerprint:
+            # Include readme.yml content in the regeneration decision to avoid stale caches
+            spec_hash = sha256_file(readme_yml)
+            combined_readme_sig = compute_fingerprint([idx.build_signature or "", spec_hash])
+
+            if (
+                idx_existing
+                and not force
+                and idx_existing.build_signature == idx.build_signature
+                and idx_existing.last_readme_fingerprint == combined_readme_sig
+            ):
                 print(f"[yellow]Skipped (no changes):[/yellow] {d}")
                 continue
 
@@ -140,7 +157,8 @@ def generate_cmd(
             if not dry_run:
                 write_text(readme_path, readme_content)
 
-            idx.last_readme_fingerprint = idx.build_signature
+            # Persist the combined fingerprint that includes readme.yml content
+            idx.last_readme_fingerprint = combined_readme_sig
             if not dry_run:
                 write_index(d / "index.yml", idx)
 
@@ -209,6 +227,8 @@ def verify_cmd(
             readme_yml = d / "readme.yml"
             spec = load_readme_spec(readme_yml)
             idx = build_directory_index(d, spec)
+            spec_hash = sha256_file(readme_yml)
+            combined_readme_sig = compute_fingerprint([idx.build_signature or "", spec_hash])
 
             idx_existing = read_existing_index(d / "index.yml")
             if not idx_existing:
@@ -224,11 +244,11 @@ def verify_cmd(
                 mismatches += 1
                 continue
 
-            if idx_existing.last_readme_fingerprint != idx.build_signature:
+            if idx_existing.last_readme_fingerprint != combined_readme_sig:
                 print(f"[yellow]README not regenerated:[/yellow] {d}")
                 if verbose:
-                    print(f"  [dim]fingerprint:[/dim] {idx_existing.last_readme_fingerprint}")
-                    print(f"  [dim]signature:  [/dim] {idx.build_signature}")
+                    print(f"  [dim]expected:[/dim] {combined_readme_sig}")
+                    print(f"  [dim]actual:  [/dim] {idx_existing.last_readme_fingerprint}")
                 mismatches += 1
                 continue
 

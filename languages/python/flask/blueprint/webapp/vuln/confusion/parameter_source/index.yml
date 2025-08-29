@@ -7,10 +7,9 @@ examples:
     id: 0
     kind: function
     title: Secure Implementation
-    notes: 'Here you can see a secure implementation that consistently uses query
-      string parameters
-
-      for both authentication and data retrieval.'
+    notes: >-
+      Here you can see a secure implementation that consistently uses query string parameters
+      for both authentication and data retrieval.
     request_details: open
     language: python
     parts:
@@ -20,28 +19,24 @@ examples:
       code_end_line: 67
     file_hashes:
       routes.py: 2ba81bd376e0a74c57f89e3d096285306e2af98a6d7988eede6ebf929b556d2e
-    fingerprint: 1604394585f10506555d35804940c7bc027a8e08d9dd9ac057737740a656eee4
+    fingerprint: 68a3017fd1a6d7a56ef89f0d3882a0a235ae602a05429ae4d824031f42b461aa
   1:
     id: 1
     kind: function
     title: Basic Parameter Source Confusion
-    notes: 'Demonstrates the most basic form of parameter source confusion where authentication
-
+    notes: >-
+      Demonstrates the most basic form of parameter source confusion where authentication
       uses **query** parameters but data retrieval uses **form** data.
 
 
-      We take the user name from the query string during the validation,
-
-      but during the data retrieval another value is used, taken from the request
-      body (form).
-
-      This does not look very realistic, but it demonstrates the core of the vulnerability,
-
-      we will build upon this further.
+      We take the user name from the query string during the validation, but during the data
+      retrieval another value is used, taken from the request body (form). This does not look
+      very realistic, but it demonstrates the core of the vulnerability, we will build upon
+      this further.
 
 
-      Here you can see if we provide bob''s name in the request body, we can access
-      his messages without his password.'
+      Here you can see if we provide bob's name in the request body, we can access his messages
+      without his password.
     request_details: null
     language: python
     parts:
@@ -51,14 +46,14 @@ examples:
       code_end_line: 54
     file_hashes:
       r01_simplified_patterns/routes.py: b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
-    fingerprint: 5e9d9756042a076595392a2d45e66a1f978f6c90b62dd775a24fcc57284cabd0
+    fingerprint: ea7aa13a6448a3061a1efc116dc0b7b3030a9ea802d620961e66c5d24e9f663f
   2:
     id: 2
     kind: block
     title: Function-Level Parameter Source Confusion
-    notes: Functionally equivalent to example 1, but shows how separating authentication
-      and data retrieval into different functions can make the vulnerability harder
-      to spot.
+    notes: >-
+      Functionally equivalent to example 1, but shows how separating authentication and data
+      retrieval into different functions can make the vulnerability harder to spot.
     request_details: open
     language: python
     parts:
@@ -73,15 +68,13 @@ examples:
     id: 3
     kind: block
     title: Cross-Module Parameter Source Confusion
-    notes: 'In the previous example, you can still see that the `user` value gets
-      retrieved from the
-
-      `request.args` during validation but from the `request.form` during data retrieval.
+    notes: >-
+      In the previous example, you can still see that the `user` value gets retrieved from
+      the `request.args` during validation but from the `request.form` during data retrieval.
 
 
       A more subtle example, where this is not immediately obvious (imagine, `authenticate_user`
-
-      is defined in an another file altogether):'
+      is defined in an another file altogether):
     request_details: null
     language: python
     parts:
@@ -91,18 +84,18 @@ examples:
       code_end_line: 120
     file_hashes:
       r01_simplified_patterns/routes.py: b1d1df4452ffb8537711620e0dad38bd1c5c8279723d24f9d68f144d9fce249d
-    fingerprint: 90c5f12bc6173241490f669f1c7b1c749b9da97883b5378094fa4c1dff86cece
+    fingerprint: efd2a43ba6132449e18082e54019a74ff118ce93c47e386706a1b8eefc952367
   4:
     id: 4
     kind: block
     title: Form-Query Priority Resolution
-    notes: 'Shows how a helper function that implements source prioritization can
-      create vulnerabilities.
+    notes: >-
+      Shows how a helper function that implements source prioritization can create vulnerabilities.
 
 
-      In Example 4 we don''t need to specify body parameters to get a result (which
-      is now more realistic!), but if we want, we can still access bob''s messages
-      by passing his user name in the request body:'
+      In Example 4 we don't need to specify body parameters to get a result (which is now
+      more realistic!), but if we want, we can still access bob's messages by passing his
+      user name in the request body:
     request_details: null
     language: python
     parts:
@@ -117,13 +110,13 @@ examples:
     id: 5
     kind: block
     title: Mixed-Source Authentication
-    notes: 'Shows how authentication and data access can use different combinations
-      of sources.
+    notes: >-
+      Shows how authentication and data access can use different combinations of sources.
 
 
-      This one is interesting, because you can access Bob''s messages by providing
-      his username and Alice''s password in the request query, while providing Alice''s
-      username in the request body:'
+      This one is interesting, because you can access Bob's messages by providing his username
+      and Alice's password in the request query, while providing Alice's username in the request
+      body:
     request_details: null
     language: python
     parts:
@@ -138,25 +131,16 @@ examples:
     id: 6
     kind: block
     title: Form Authentication Bypass
-    notes: 'The endpoint uses form data for authentication, but request.values.get()
-      allows query
-
-      parameters to override form values, creating a vulnerability. Although designed
-      for POST
-
-      requests, the endpoint accepts both GET and POST methods, enabling the attack.
+    notes: >-
+      The endpoint uses form data for authentication, but request.values.get() allows query
+      parameters to override form values, creating a vulnerability. Although designed for
+      POST requests, the endpoint accepts both GET and POST methods, enabling the attack.
 
 
-      Note that although the regular usage would rely on POST request (or PUT, PATCH,
-      etc.),
-
-      and wouldn''t work with GET (because flask''s request.values ignores form data
-      in GET
-
-      requests), the attacker can send both GET and POST requests (if the endpoint
-      is
-
-      configured to accept both methods).
+      Note that although the regular usage would rely on POST request (or PUT, PATCH, etc.),
+      and wouldn't work with GET (because flask's request.values ignores form data in GET
+      requests), the attacker can send both GET and POST requests (if the endpoint is configured
+      to accept both methods).
 
 
       ```http
@@ -173,8 +157,8 @@ examples:
       ```
 
 
-      However, the attacker can send both GET and POST requests (if the endpoint is
-      configured to accept both methods).'
+      However, the attacker can send both GET and POST requests (if the endpoint is configured
+      to accept both methods).
     request_details: open
     language: python
     parts:
@@ -184,20 +168,20 @@ examples:
       code_end_line: 87
     file_hashes:
       r03_request_values/routes.py: 8f1fb63509c7de615891fb72a5040b57635b0a0f62937a41698ddaf3913023a9
-    fingerprint: 0e97b31d23589a8a59d54033ef7eccfb8053f3606934634a9b986aaebad97b6b
+    fingerprint: 8570d55f2560cc9550104e0da197f060a3396dbccb409c1f26761c6a07a0ee52
   7:
     id: 7
     kind: block
     title: Request.Values in Authentication
-    notes: 'Demonstrates how using request.values in authentication while using form
-      data for access creates vulnerabilities.
+    notes: >-
+      Demonstrates how using request.values in authentication while using form data for access
+      creates vulnerabilities.
 
 
-      This is an example of a varient of example 6, as we do the similar thing, but
-      now we can pass Bob''s username in the request body with Alice''s password,
-      while passing Alice''s username in the request query.
-
-      Note that this example does not work with GET request, use POST.'
+      This is an example of a varient of example 6, as we do the similar thing, but now we
+      can pass Bob's username in the request body with Alice's password, while passing Alice's
+      username in the request query. Note that this example does not work with GET request,
+      use POST.
     request_details: null
     language: python
     parts:
@@ -207,16 +191,17 @@ examples:
       code_end_line: 118
     file_hashes:
       r03_request_values/routes.py: 8f1fb63509c7de615891fb72a5040b57635b0a0f62937a41698ddaf3913023a9
-    fingerprint: 2b6b517d8dbd4cf6a3c12d15c4a0021f05a5aa3c2581042409bfeeddea2d5369
+    fingerprint: 82dd3f91da6561f1df3fdbcbc63113c81518e99e7e516b2181f1dafb7a1b2243
   8:
     id: 8
     kind: block
     title: Decorator-based Authentication
-    notes: 'Shows how using decorators can obscure parameter source confusion.
+    notes: >-
+      Shows how using decorators can obscure parameter source confusion.
 
 
-      Example 8 is functionally equivalent to Example 4, but it may be harder to spot
-      the vulnerability while using decorators.'
+      Example 8 is functionally equivalent to Example 4, but it may be harder to spot the
+      vulnerability while using decorators.
     request_details: null
     language: python
     parts:
@@ -229,19 +214,19 @@ examples:
       code_start_line: 9
       code_end_line: 16
     file_hashes:
-      r04_decorator/routes.py: 874362cadbb60eaefbe3932f90b23c7c5013d86d7d92df7167f741003ee79eb4
       r04_decorator/decorator.py: 4619e3f8fb6e690326ceb8031b6e7477058159b2ce82632968c0ab22f5be0bf2
+      r04_decorator/routes.py: 874362cadbb60eaefbe3932f90b23c7c5013d86d7d92df7167f741003ee79eb4
     fingerprint: b52e3eea2437e98917745d06ee2482c2dd9dc04659ae80f8a1574b1a05139c67
   9:
     id: 9
     kind: block
     title: Middleware-based Authentication
-    notes: 'Demonstrates how Flask''s middleware system can contribute to parameter
-      source confusion.
+    notes: >-
+      Demonstrates how Flask's middleware system can contribute to parameter source confusion.
 
 
-      Example 9 is functionally equivalent to Example 4, but it may be harder to spot
-      the vulnerability while using middleware.'
+      Example 9 is functionally equivalent to Example 4, but it may be harder to spot the
+      vulnerability while using middleware.
     request_details: null
     language: python
     parts:
@@ -258,22 +243,22 @@ examples:
       r05_middleware/routes.py: c1a6fce737d4d19c625ce265aac66435105170dc85611abeacf3bf61948a57cc
     fingerprint: b576312ef0e55d83e1ec8475f4e2be795dffeed76f03af1733a17b94883af89c
 attachments:
-  images/image-source-merging.png: 226b0c9334337b8519564db5335dbee60e5b2e4021622fdac601ee0bd09e85b2
+  http/exploit-0.http: 0798c02c1757012b268c8a201890fbb4fb53418c868be6897354ce2812fd824d
+  http/exploit-1.http: db134e194cdb975b2646d9f916473df14f9805b439e1e2f26b13c3277322047e
+  http/exploit-2.http: 9a833a312abbab4518989681ba072b44edf35439601aa0de692267b57419cfe8
+  http/exploit-3.http: 910d836ddb592bdffeed7b881180b06f0343a2772570ae4aeca6ef7038de06c9
+  http/exploit-4.http: 289a818dc4a304cb4e9f412af41054a8c839e5ad704a951eaffda1b68254efb1
+  http/exploit-5.http: ff28093f43df1d503b3853c2777bb74be07be0f832b3022134aa67ce6b362f1c
+  http/exploit-6.http: 988543b43aaf95700e915cd7d69ae2d0c5d617520a10cbe2f6777a9d871bd7cc
+  http/exploit-7.http: b6b38780e020c72a15ca9063a6f9f7e0f75bc6eb15115813a1b0fd11478a419b
+  http/exploit-8.http: 030669f0df5e2c44a0a2bb1a145f0208f3390acf5053cbb1e96d053cb8827eff
+  http/exploit-9.http: 030669f0df5e2c44a0a2bb1a145f0208f3390acf5053cbb1e96d053cb8827eff
   images/image-0.png: bb70a6dffd6f2d4fced85c5020d2608458849ad86b20ddb54387ae4267f50f3c
   images/image-1.png: f1ad5afa27e0e8e9c7df1e2b15fcc58aaf02afbf352535d2014bfd8dae2ecae2
   images/image-3.png: e3d237f1d43aae13b6294025bf92d68347342edb9d9407870b9646d217d0a075
+  images/image-5.png: 9d6a637120034fdc72780422ac73eb858c6479f2d36e6980bdf7fd38edbe68dc
   images/image-6.png: 596a59ba2f347f1e82b0144531369e174dc5b6782fa8aa5129199344687aaf18
   images/image-7.png: c6a8e3dbdf09c9a4d810330cabc6638feb8d3f9c874220e7407f917b17d08cf4
-  images/image-5.png: 9d6a637120034fdc72780422ac73eb858c6479f2d36e6980bdf7fd38edbe68dc
-  http/exploit-1.http: db134e194cdb975b2646d9f916473df14f9805b439e1e2f26b13c3277322047e
-  http/exploit-0.http: 0798c02c1757012b268c8a201890fbb4fb53418c868be6897354ce2812fd824d
-  http/exploit-7.http: b6b38780e020c72a15ca9063a6f9f7e0f75bc6eb15115813a1b0fd11478a419b
-  http/exploit-6.http: 988543b43aaf95700e915cd7d69ae2d0c5d617520a10cbe2f6777a9d871bd7cc
-  http/exploit-9.http: 030669f0df5e2c44a0a2bb1a145f0208f3390acf5053cbb1e96d053cb8827eff
-  http/exploit-5.http: ff28093f43df1d503b3853c2777bb74be07be0f832b3022134aa67ce6b362f1c
-  http/exploit-4.http: 289a818dc4a304cb4e9f412af41054a8c839e5ad704a951eaffda1b68254efb1
-  http/exploit-8.http: 030669f0df5e2c44a0a2bb1a145f0208f3390acf5053cbb1e96d053cb8827eff
-  http/exploit-3.http: 910d836ddb592bdffeed7b881180b06f0343a2772570ae4aeca6ef7038de06c9
-  http/exploit-2.http: 9a833a312abbab4518989681ba072b44edf35439601aa0de692267b57419cfe8
-build_signature: 42dcd965aa37a6d3bc8b647b15772cd38e03b79ba4bd8910872672cf09edfaea
-last_readme_fingerprint: 42dcd965aa37a6d3bc8b647b15772cd38e03b79ba4bd8910872672cf09edfaea
+  images/image-source-merging.png: 226b0c9334337b8519564db5335dbee60e5b2e4021622fdac601ee0bd09e85b2
+build_signature: 42a7edefb3ac67425b66bd8f583dac5e04741bdcfabc49c860388bf94a354a7f
+last_readme_fingerprint: f02368990e9f87e93304707dbb2f7aa381160a4d3f1223acea68a32740484c84

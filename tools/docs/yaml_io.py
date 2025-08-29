@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import Any, Dict
 
+import textwrap
+
 import yaml
 
 
@@ -9,9 +11,38 @@ def read_yaml(path: Path) -> Dict[str, Any]:
         return yaml.safe_load(f) or {}
 
 
+class _FoldedStr(str):
+    """Marker subclass for YAML folded scalar (>) emission."""
+
+
+def _represent_folded_str(dumper: yaml.Dumper, data: _FoldedStr):
+    return dumper.represent_scalar("tag:yaml.org,2002:str", str(data), style=">")
+
+
+# Register for both the default Dumper and SafeDumper
+yaml.add_representer(_FoldedStr, _represent_folded_str)
+yaml.add_representer(_FoldedStr, _represent_folded_str, Dumper=yaml.SafeDumper)
+
+
+def _deep_convert_notes_to_folded(value: Any) -> Any:
+    if isinstance(value, dict):
+        new = {}
+        for k, v in value.items():
+            if k == "notes" and isinstance(v, str):
+                new[k] = _FoldedStr(v)
+            else:
+                new[k] = _deep_convert_notes_to_folded(v)
+        return new
+    if isinstance(value, list):
+        return [_deep_convert_notes_to_folded(v) for v in value]
+    return value
+
+
 def write_yaml(path: Path, data: Dict[str, Any]) -> None:
+    # Convert notes fields to folded scalars for nice YAML formatting
+    data = _deep_convert_notes_to_folded(data)
     with path.open("w", encoding="utf-8") as f:
-        yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True)
+        yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True, width=88)
 
 
 # ----- Annotation YAML parsing (centralized PyYAML usage) -----
@@ -38,6 +69,77 @@ def _format_yaml_error(yaml_content: str, err: yaml.YAMLError) -> str:
     return f"{header}\n{body}\n\n{frame}"
 
 
+def _normalize_notes_markdown(text: str) -> str:
+    """Normalize markdown notes:
+
+    - Collapse intra-paragraph line breaks to single spaces
+    - Collapse multiple blank lines to a single blank line
+    - Preserve fenced code blocks verbatim (``` ... ```)
+    """
+    if not text:
+        return ""
+
+    lines = text.splitlines()
+    out_blocks: list[str] = []
+    in_code = False
+    para_acc: list[str] = []
+
+    def flush_para():
+        nonlocal para_acc
+        if para_acc:
+            # Join with a single space
+            joined = " ".join(s.strip() for s in para_acc if s is not None)
+            out_blocks.append(joined)
+            para_acc = []
+
+    i = 0
+    while i < len(lines):
+        ln = lines[i]
+        stripped = ln.strip()
+        if stripped.startswith("```"):
+            flush_para()
+            # Collect entire fenced block
+            code_block = [ln]
+            i += 1
+            while i < len(lines):
+                code_block.append(lines[i])
+                if lines[i].strip().startswith("```"):
+                    i += 1
+                    break
+                i += 1
+            out_blocks.append("\n".join(code_block))
+            continue
+        if stripped == "":
+            # Blank line separates paragraphs
+            flush_para()
+            # Ensure at most a single blank line between blocks
+            if out_blocks and out_blocks[-1] != "":
+                out_blocks.append("")
+            elif not out_blocks:
+                # avoid leading blank blocks
+                pass
+            i += 1
+            continue
+        # Accumulate paragraph lines
+        para_acc.append(ln)
+        i += 1
+
+    flush_para()
+    # Remove trailing blank blocks
+    while out_blocks and out_blocks[-1] == "":
+        out_blocks.pop()
+
+    # Re-join: ensure single blank line between blocks
+    result: list[str] = []
+    for b in out_blocks:
+        if b == "":
+            if result and result[-1] != "":
+                result.append("")
+        else:
+            result.append(b)
+    return "\n".join(result)
+
+
 def parse_annotation_metadata(yaml_content: str) -> Dict[str, Any]:
     """Parse YAML metadata for @unsafe annotations.
 
@@ -58,14 +160,19 @@ def parse_annotation_metadata(yaml_content: str) -> Dict[str, Any]:
     def _s(v: Any) -> str:
         return str(v).strip()
 
+    def _normalize_title(text: str) -> str:
+        # Collapse all whitespace (including newlines) to single spaces
+        return " ".join(text.split())
+
     result: Dict[str, Any] = {
         'id': int(data['id']),
     }
     if 'title' in data and data['title'] is not None:
-        result['title'] = _s(data['title'])
+        result['title'] = _normalize_title(_s(data['title']))
     if 'notes' in data and data['notes'] is not None:
-        # Preserve multi-line notes but trim trailing/leading whitespace
-        result['notes'] = _s(data['notes'])
+        # Normalize multiline markdown notes for clean YAML and stable rendering
+        normalized = _normalize_notes_markdown(_s(data['notes']))
+        result['notes'] = normalized
     # Normalize request-details variations
     if 'request-details' in data and data['request-details'] is not None:
         result['request-details'] = _s(data['request-details'])

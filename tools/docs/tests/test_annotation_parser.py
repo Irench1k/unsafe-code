@@ -84,7 +84,7 @@ request-details: open
         expected = {
             'id': 1,
             'title': 'Test Example',
-            'notes': 'This is a test note\nwith multiple lines',
+            'notes': 'This is a test note with multiple lines',
             'request-details': 'open'
         }
         self.assertEqual(result, expected)
