@@ -49,7 +49,7 @@ notes: |
             version="1",
             root=Path("."),
             category=None,
-            id_prefix=None,
+            namespace=None,
             examples={1: ex},
             attachments={},
         )
@@ -74,14 +74,15 @@ notes: |
             version="1",
             root=Path("."),
             category=None,
-            id_prefix=None,
+            namespace=None,
             examples={1: ex},
             attachments={},
         )
         title = "Doc"
-        intro = "Intro"
-        structure = [{"section": "S", "description": "D", "examples": [1]}]
-        md = generate_readme(idx, title, intro, structure)
+        summary = ""
+        description = "Intro"
+        structure = [{"title": "S", "description": "D", "examples": [1]}]
+        md = generate_readme(idx, title, summary, description, structure, toc=False)
         # Notes kept as a single block; newline preserved inside generator output
         self.assertIn("Line one of notes\nLine two of notes", md)
 

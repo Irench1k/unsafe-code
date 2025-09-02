@@ -1,29 +1,28 @@
 ---
 title: Parameter Source Confusion Vulnerabilities in Flask
-intro: |
+summary: |
   This directory contains examples demonstrating various patterns of parameter source confusion vulnerabilities in Flask applications. These examples show how mixing different parameter sources (query strings, form data, and request.values) can lead to security vulnerabilities.
+description: |
+  ## Overview
+  Parameter source confusion occurs when an application retrieves the same parameter from different sources in different parts of the code. This can lead to security vulnerabilities when authentication and data access use different sources for the same parameter.
+
+  Here you can find several examples on how Flask framework design allows those vulnerabilities to be present.
 category: confusion.parameter-source
-id-prefix: flask-vuln-confusion-parameter-source-
-structure:
-  - section: "Overview"
-    description: |
-      Parameter source confusion occurs when an application retrieves the same parameter from different sources in different parts of the code. This can lead to security vulnerabilities when authentication and data access use different sources for the same parameter.
+namespace: flask-vuln-confusion-parameter-source
+toc: true
+outline:
 
-      Here you can find several examples on how Flask framework design allows those vulnerabilities to be present.
-
-  - table-of-contents: true
-
-  - section: "Secure Baseline"
+  - title: "Secure Baseline"
     examples:
       - 0
 
-  - section: "Simplified Vulnerability Patterns"
+  - title: "Simplified Vulnerability Patterns"
     examples:
       - 1
       - 2
       - 3
 
-  - section: "Source Merging in Custom Helper Function"
+  - title: "Source Merging in Custom Helper Function"
     description: |
       The examples 1-3 are realistic and some are hard to detect, but there are still two issues with it:
 
@@ -39,15 +38,15 @@ structure:
       - 4
       - 5
 
-  - section: "Request.values Confusion"
+  - title: "Request.values Confusion"
     examples:
       - 6
       - 7
 
-  - section: "Decorator-based Authentication"
+  - title: "Decorator-based Authentication"
     examples:
       - 8
 
-  - section: "Middleware-based Authentication"
+  - title: "Middleware-based Authentication"
     examples:
       - 9

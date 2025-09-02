@@ -21,7 +21,7 @@ class Example:
     kind: AnnotationKind
     title: Optional[str] = None
     notes: Optional[str] = None
-    request_details: Optional[str] = None  # "open" | "closed" | None
+    http: Optional[str] = None  # "open" | "closed" | None
     # Language hint for syntax highlighting (e.g., 'python', 'javascript')
     language: Optional[str] = None
     parts: List[ExamplePart] = field(default_factory=list)
@@ -36,7 +36,7 @@ class DirectoryIndex:
     version: str
     root: Path
     category: Optional[str]
-    id_prefix: Optional[str]
+    namespace: Optional[str]
     examples: Dict[int, Example] = field(default_factory=dict)
     attachments: Dict[str, str] = field(default_factory=dict)  # relative path -> sha256
     build_signature: Optional[str] = None  # hash over examples + attachments
@@ -49,7 +49,7 @@ class DirectoryIndex:
                 "kind": ex.kind,
                 "title": ex.title,
                 "notes": ex.notes,
-                "request_details": ex.request_details,
+                "http": ex.http,
                 "language": ex.language,
                 "parts": [
                     {
@@ -71,7 +71,7 @@ class DirectoryIndex:
             # Keep root path relative in the serialized index (to the directory containing index.yml)
             "root": ".",
             "category": self.category,
-            "id_prefix": self.id_prefix,
+            "namespace": self.namespace,
             "examples": {k: ex_to_dict(v) for k, v in sorted(self.examples.items())},
             # Sort attachments for deterministic output
             "attachments": {k: self.attachments[k] for k in sorted(self.attachments)},
@@ -85,7 +85,7 @@ class DirectoryIndex:
             version=data.get("version", "0"),
             root=Path(data.get("root", ".")),
             category=data.get("category"),
-            id_prefix=data.get("id_prefix"),
+            namespace=data.get("namespace"),
         )
         exs = data.get("examples", {})
         for _, v in exs.items():
@@ -94,7 +94,7 @@ class DirectoryIndex:
                 kind=v["kind"],
                 title=v.get("title"),
                 notes=v.get("notes"),
-                request_details=v.get("request_details"),
+                http=v.get("http"),
                 language=v.get("language"),
             )
             for p in v.get("parts", []):

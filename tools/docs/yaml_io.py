@@ -109,6 +109,14 @@ def _normalize_notes_markdown(text: str) -> str:
                 i += 1
             out_blocks.append("\n".join(code_block))
             continue
+        if stripped.startswith("#"):
+            # Treat ATX headers as their own blocks; do not merge with following lines
+            flush_para()
+            out_blocks.append(stripped)
+            # Ensure a blank line after header for readability
+            out_blocks.append("")
+            i += 1
+            continue
         if stripped == "":
             # Blank line separates paragraphs
             flush_para()
@@ -141,7 +149,12 @@ def _normalize_notes_markdown(text: str) -> str:
 
 
 def parse_annotation_metadata(yaml_content: str) -> Dict[str, Any]:
-    """Parse YAML metadata for @unsafe annotations.
+    """Parse YAML metadata for fenced @unsafe annotations.
+
+    Strict rules:
+    - Required: id (int)
+    - Optional: title (str), notes (str markdown), http ("open"|"closed"), part (int >= 1)
+    - Unknown keys are errors (no aliases accepted)
 
     Performs type casting and trims string fields to normalize input.
     Raises a ValueError with a precise message on parsing or validation errors.
@@ -156,6 +169,13 @@ def parse_annotation_metadata(yaml_content: str) -> Dict[str, Any]:
 
     if 'id' not in data:
         raise ValueError("Missing required 'id' field in annotation")
+
+    # Enforce canonical keys only
+    allowed_keys = {"id", "title", "notes", "http", "part"}
+    unknown = [k for k in data.keys() if k not in allowed_keys]
+    if unknown:
+        allowed_list = ", ".join(sorted(allowed_keys))
+        raise ValueError(f"Unknown annotation key(s): {', '.join(sorted(unknown))}. Allowed: {allowed_list}")
 
     def _s(v: Any) -> str:
         return str(v).strip()
@@ -173,12 +193,16 @@ def parse_annotation_metadata(yaml_content: str) -> Dict[str, Any]:
         # Normalize multiline markdown notes for clean YAML and stable rendering
         normalized = _normalize_notes_markdown(_s(data['notes']))
         result['notes'] = normalized
-    # Normalize request-details variations
-    if 'request-details' in data and data['request-details'] is not None:
-        result['request-details'] = _s(data['request-details'])
-    elif 'request_details' in data and data['request_details'] is not None:
-        result['request-details'] = _s(data['request_details'])
+    # HTTP details: 'open' or 'closed' (default closed). Use canonical key 'http'.
+    if 'http' in data and data['http'] is not None:
+        http_val = _s(data['http']).lower()
+        if http_val not in ("open", "closed"):
+            raise ValueError("Invalid value for 'http'. Allowed: 'open' or 'closed'")
+        result['http'] = http_val
     if 'part' in data and data['part'] is not None:
-        result['part'] = int(data['part'])
+        part_int = int(data['part'])
+        if part_int < 1:
+            raise ValueError("'part' must be >= 1")
+        result['part'] = part_int
 
     return result

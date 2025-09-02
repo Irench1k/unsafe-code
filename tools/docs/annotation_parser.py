@@ -133,11 +133,11 @@ def parse_file_annotations(file_path: Path) -> List[RawAnnotation]:
 
 
 def discover_annotations(files: List[Path]) -> List[RawAnnotation]:
-    """Discover all annotations across multiple files."""
+    """Discover all annotations across multiple files.
+
+    Strict mode: any parsing error aborts with a clear exception.
+    """
     all_annotations: List[RawAnnotation] = []
     for file_path in files:
-        try:
-            all_annotations.extend(parse_file_annotations(file_path))
-        except Exception as e:
-            print(f"Warning: Failed to parse annotations in {file_path}: {e}")
+        all_annotations.extend(parse_file_annotations(file_path))
     return all_annotations

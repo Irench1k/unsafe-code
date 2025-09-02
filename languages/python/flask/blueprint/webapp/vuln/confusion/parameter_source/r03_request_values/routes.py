@@ -46,7 +46,7 @@ def authenticate_user():
 # @unsafe[block]
 # id: 6
 # title: Form Authentication Bypass
-# request-details: open
+# http: open
 # notes: |
 #   The endpoint uses form data for authentication, but request.values.get() allows query
 #   parameters to override form values, creating a vulnerability. Although designed for POST

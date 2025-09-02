@@ -28,14 +28,13 @@ def calculate_code_boundaries(annotation, file_lines: List[str]) -> tuple[int, i
             code_end = code_start
     else:  # block
         block_end = find_block_end_marker(file_lines, code_start)
-        if block_end:
-            code_end = block_end - 1
-            # Trim trailing empty lines within block
-            while code_end >= code_start and not file_lines[code_end - 1].strip():
-                code_end -= 1
-            code_end = max(code_start, code_end)
-        else:
-            code_end = code_start
+        if not block_end:
+            raise ValueError("Missing @/unsafe[block] terminator for block annotation")
+        code_end = block_end - 1
+        # Trim trailing empty lines within block
+        while code_end >= code_start and not file_lines[code_end - 1].strip():
+            code_end -= 1
+        code_end = max(code_start, code_end)
 
     return code_start, code_end
 
@@ -63,7 +62,7 @@ def build_examples_from_annotations(source_files: List[Path]) -> Dict[int, Examp
         first_ann = annotations[0]
         title = first_ann.metadata.get('title')
         notes = first_ann.metadata.get('notes')
-        request_details = first_ann.metadata.get('request-details')
+        http_state = first_ann.metadata.get('http')
 
         parts = []
         for ann in annotations:
@@ -99,7 +98,7 @@ def build_examples_from_annotations(source_files: List[Path]) -> Dict[int, Examp
             kind=kind,
             title=title,
             notes=notes,
-            request_details=request_details,
+            http=http_state,
             language=language,
             parts=parts,
         )
@@ -147,7 +146,7 @@ def build_directory_index(root: Path, spec: ReadmeSpec) -> DirectoryIndex:
         version="1",
         root=root,
         category=spec.category,
-        id_prefix=spec.id_prefix,
+        namespace=spec.namespace,
         examples=examples,
         attachments=attachments,
     )

@@ -78,14 +78,14 @@ title: Test Example
 notes: |
   This is a test note
   with multiple lines
-request-details: open
+http: open
 """
         result = parse_annotation_metadata(yaml_content)
         expected = {
             'id': 1,
             'title': 'Test Example',
             'notes': 'This is a test note with multiple lines',
-            'request-details': 'open'
+            'http': 'open'
         }
         self.assertEqual(result, expected)
 

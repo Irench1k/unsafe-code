@@ -16,6 +16,7 @@ from .indexer import (
 )
 from .markdown_generator import generate_readme
 from .readme_spec import load_readme_spec
+from .languages import assemble_code_from_parts
 
 
 app = typer.Typer(add_completion=True, help="Docs generator for Unsafe Code")
@@ -144,11 +145,20 @@ def generate_cmd(
             if not dry_run:
                 write_index(d / "index.yml", idx)
 
-            from .yaml_io import read_yaml
-            data = read_yaml(readme_yml)
-            structure = data.get("structure", [])
+            # Use the parsed spec directly; ToC handled via spec.toc
+            sections = [
+                {"title": s.title, "description": s.description, "examples": s.examples}
+                for s in spec.sections
+            ]
 
-            readme_content = generate_readme(idx, spec.title, spec.intro, structure)
+            readme_content = generate_readme(
+                idx,
+                spec.title,
+                spec.summary,
+                spec.description,
+                sections,
+                spec.toc,
+            )
 
             readme_path = d / "README.md"
             if backup and not dry_run and readme_path.exists():
@@ -196,6 +206,65 @@ def all_cmd(
             generate_cmd(root=root, target=str(d), force=force, backup=True, dry_run=dry_run, verbose=verbose)
         except Exception as e:
             console.print(f"[red]Generation failed for {d}: {e}[/red]")
+
+
+@app.command(name="watch")
+def watch_cmd(
+    root: str = typer.Argument(str(Path.cwd())),
+    target: Optional[str] = typer.Option(None, help="Path to a specific readme.yml or its directory"),
+    interval: float = typer.Option(1.0, help="Polling interval in seconds"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
+):
+    """Continuously watch for changes and regenerate README.md files.
+
+    This uses a lightweight polling strategy (no extra dependencies). It watches:
+    - readme.yml content
+    - example code and attachments captured by the index signature
+    """
+    import time
+
+    base = Path(root)
+    if target:
+        tpath = Path(target)
+        yml_path = tpath if tpath.name == "readme.yml" else tpath / "readme.yml"
+        if not yml_path.exists():
+            console.print(f"[red]readme.yml not found at {yml_path}[/red]")
+            raise typer.Exit(code=1)
+        dirs = [yml_path.parent]
+    else:
+        dirs = [p.parent for p in _find_readme_yml_paths(base)]
+
+    if not dirs:
+        console.print("[yellow]No readme.yml targets found to watch.[/yellow]")
+        raise typer.Exit(code=0)
+
+    console.print(f"[green]Watching {len(dirs)} target(s). Press Ctrl+C to stop.[/green]")
+    last_fps: dict[Path, str] = {}
+
+    try:
+        while True:
+            for d in dirs:
+                try:
+                    readme_yml = d / "readme.yml"
+                    spec = load_readme_spec(readme_yml)
+                    idx = build_directory_index(d, spec)
+                    spec_hash = sha256_file(readme_yml)
+                    fp = compute_fingerprint([idx.build_signature or "", spec_hash])
+                    if last_fps.get(d) != fp:
+                        if verbose:
+                            print(f"[cyan]Change detected:[/cyan] {d}")
+                        # Update index and README
+                        index_cmd(root=root, target=str(d), write=True, dry_run=False, verbose=verbose)
+                        generate_cmd(root=root, target=str(d), force=True, backup=True, dry_run=False, verbose=verbose)
+                        last_fps[d] = fp
+                except Exception as e:
+                    console.print(f"[red]Watch error in {d}: {e}[/red]")
+                    if verbose:
+                        import traceback
+                        traceback.print_exc()
+            time.sleep(max(0.1, interval))
+    except KeyboardInterrupt:
+        console.print("\n[green]Stopped watching.[/green]")
 
 
 @app.command(name="test")
@@ -268,6 +337,65 @@ def verify_cmd(
     else:
         print("[green]All targets up-to-date.[/green]")
         raise typer.Exit(code=0)
+
+
+@app.command(name="show")
+def show_cmd(
+    example_id: int = typer.Argument(..., help="Example id to preview"),
+    root: str = typer.Argument(str(Path.cwd())),
+    target: Optional[str] = typer.Option(None, help="Path to a specific readme.yml or its directory"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
+):
+    """Preview a single example: metadata, parts, and assembled code."""
+    base = Path(root)
+    if target:
+        tpath = Path(target)
+        yml_path = tpath if tpath.name == "readme.yml" else tpath / "readme.yml"
+        if not yml_path.exists():
+            console.print(f"[red]readme.yml not found at {yml_path}[/red]")
+            raise typer.Exit(code=1)
+        dirs = [yml_path.parent]
+    else:
+        dirs = [p.parent for p in _find_readme_yml_paths(base)]
+
+    if not dirs:
+        console.print("[red]No readme.yml targets found.[/red]")
+        raise typer.Exit(code=1)
+
+    # Use the first directory by default when not specified
+    d = dirs[0]
+    try:
+        spec = load_readme_spec(d / "readme.yml")
+        idx = build_directory_index(d, spec)
+        ex = idx.examples.get(int(example_id))
+        if not ex:
+            console.print(f"[red]Example {example_id} not found in {d}[/red]")
+            raise typer.Exit(code=1)
+
+        console.print(f"[bold]Example {ex.id}[/bold] — kind: {ex.kind}, lang: {ex.language or ''}")
+        if ex.title:
+            console.print(f"[bold]Title:[/bold] {ex.title}")
+        if ex.notes:
+            console.print(f"[bold]Notes:[/bold]\n{ex.notes}")
+        if ex.http:
+            console.print(f"[bold]HTTP:[/bold] {ex.http}")
+        if ex.parts:
+            console.print("[bold]Parts:[/bold]")
+            for p in sorted(ex.parts, key=lambda p: p.part):
+                rel = Path(p.file_path).relative_to(idx.root).as_posix()
+                console.print(f"  - part {p.part}: {rel} [{p.code_start_line}-{p.code_end_line}]")
+            code = assemble_code_from_parts(ex.parts)
+            if code:
+                console.print("\n[bold]Code:[/bold]")
+                console.print(f"```{ex.language or ''}\n{code}\n```")
+        else:
+            console.print("[yellow]No parts/codespan resolved.[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Error showing example: {e}[/red]")
+        if verbose:
+            import traceback
+            traceback.print_exc()
+        raise typer.Exit(code=1)
 
 def docs_main() -> None:
     app()
