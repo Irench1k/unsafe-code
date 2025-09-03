@@ -242,9 +242,87 @@ examples:
       r05_middleware/middleware.py: 7be8f54cda7ee73c500580ef9b605340802d6bfcdca640d15a4c00e95ef50c11
       r05_middleware/routes.py: c1a6fce737d4d19c625ce265aac66435105170dc85611abeacf3bf61948a57cc
     fingerprint: b576312ef0e55d83e1ec8475f4e2be795dffeed76f03af1733a17b94883af89c
+  11:
+    id: 11
+    kind: block
+    title: '[Not Vulnerable] First Item Checked, First Item Used'
+    notes: >-
+      This example is not vulnerable and is meant to demonstrate how the vulnerability could
+      realistically get added to the codebase during refactoring.
+
+
+      We start by implementing a helper function `@check_group_membership` that checks that
+      the user is a member of the group which messages are being accessed.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r06_multi_value/routes.py
+      code_start_line: 18
+      code_end_line: 23
+    - part: 2
+      file: r06_multi_value/decorator.py
+      code_start_line: 24
+      code_end_line: 33
+    file_hashes:
+      r06_multi_value/decorator.py: 2227ae829d4ace127dc01b1d77556618d58793139ff96ea60ab1ad9c5225ce2c
+      r06_multi_value/routes.py: 9d9d7a2dac8c80da6210d99a8a7742d854357d2f4b8e5ca58e5527e3d9a04a6b
+    fingerprint: c23bc6cdc421528102550c688d87cf61e5522d8e9bcc7c948e7e75c00e2ae7a6
+  12:
+    id: 12
+    kind: block
+    title: Utility Reuse Mismatch — .get vs .getlist
+    notes: >-
+      Builds upon the previous example. Consider that we need to add a new API endpoint that
+      allows the user to access the messages of multiple groups in a single request.
+
+
+      We start by copying the previous implementation and changing the function body to iterate
+      over all the groups in the request.
+
+
+      The code looks clean and works nicely for the "happy path", but it is vulnerable as
+      the function body now acts on the unverified data – remember that `@check_group_membership`
+      only checks the first group in the request.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r06_multi_value/routes.py
+      code_start_line: 41
+      code_end_line: 49
+    file_hashes:
+      r06_multi_value/routes.py: 9d9d7a2dac8c80da6210d99a8a7742d854357d2f4b8e5ca58e5527e3d9a04a6b
+    fingerprint: 96ad1d3d64f76f616355f2b04444974cbda0eefbfeb8b6afc1f7bc246f43cd28
+  13:
+    id: 13
+    kind: block
+    title: Any vs All — Fail-Open Authorization for Batch Actions
+    notes: >-
+      Authorization incorrectly uses `any()` over the requested groups, allowing a user who
+      is an admin of one group to grant membership for additional groups in the same request.
+      The action then applies to every provided group. Correct behavior would require `all()`.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r06_multi_value/routes.py
+      code_start_line: 61
+      code_end_line: 68
+    - part: 2
+      file: r06_multi_value/decorator.py
+      code_start_line: 41
+      code_end_line: 50
+    file_hashes:
+      r06_multi_value/decorator.py: 2227ae829d4ace127dc01b1d77556618d58793139ff96ea60ab1ad9c5225ce2c
+      r06_multi_value/routes.py: 9d9d7a2dac8c80da6210d99a8a7742d854357d2f4b8e5ca58e5527e3d9a04a6b
+    fingerprint: ddd6f335d601d52edd3535a7dd278e3ccdd98c7825b5e7bafd6d30d9511247a2
 attachments:
   http/exploit-0.http: 0798c02c1757012b268c8a201890fbb4fb53418c868be6897354ce2812fd824d
   http/exploit-1.http: db134e194cdb975b2646d9f916473df14f9805b439e1e2f26b13c3277322047e
+  http/exploit-11.http: d78d4707248df931747c5f745356ccc5e3d877b24460a48cb22379518de6ca2c
+  http/exploit-12.http: 83469682c3db11147ae00d0d9c493c03c9b0ba1efba6b71f4fa72f02240bae6a
+  http/exploit-13.http: 2f2a44507d831b9d1b8e6ee8ce76c4a5ce96664d5ae1a0ea18477ebbc7c7f417
   http/exploit-2.http: 9a833a312abbab4518989681ba072b44edf35439601aa0de692267b57419cfe8
   http/exploit-3.http: 910d836ddb592bdffeed7b881180b06f0343a2772570ae4aeca6ef7038de06c9
   http/exploit-4.http: 289a818dc4a304cb4e9f412af41054a8c839e5ad704a951eaffda1b68254efb1
@@ -260,5 +338,5 @@ attachments:
   images/image-6.png: 596a59ba2f347f1e82b0144531369e174dc5b6782fa8aa5129199344687aaf18
   images/image-7.png: c6a8e3dbdf09c9a4d810330cabc6638feb8d3f9c874220e7407f917b17d08cf4
   images/image-source-merging.png: 226b0c9334337b8519564db5335dbee60e5b2e4021622fdac601ee0bd09e85b2
-build_signature: ca4e788d6f85f943220e07ee550a8d7ed82bf9ea526051505ff08076f2097ae3
-last_readme_fingerprint: 495453d9fff96efbb0f92cc2805629a51ecaec519a419720b8e48f26ac25c221
+build_signature: a95e4e9a9d5213ed194c618234eebb36ad6cd486e891aeba7ebc3109a589048f
+last_readme_fingerprint: c9d69ee488a712af0b4755e70be16bda612ef110910789dbab9c2ec87bfc7ff9
