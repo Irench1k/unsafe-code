@@ -49,3 +49,7 @@ def check_multi_group_membership(f):
         return f(*args, **kwargs)
     return decorated_check_multi_group_membership
 # @/unsafe[block]
+
+# TODO: Add another example where the decorator is trying to filter out invalid groups
+# but it stops at the first invalid group, leaving the rest of the groups unverified
+# there could also be off-by-one errors when iterating over the groups
