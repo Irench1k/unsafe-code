@@ -53,6 +53,13 @@ outline:
 
   - title: "Multi-Value Parameters"
     examples:
+      - 10
       - 11
       - 12
+  
+  - title: "Path and query parameter Confusion"
+    examples:
       - 13
+      - 14
+      - 15
+      - 16

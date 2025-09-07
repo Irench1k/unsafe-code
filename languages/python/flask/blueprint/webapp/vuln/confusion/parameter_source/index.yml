@@ -15,11 +15,11 @@ examples:
     parts:
     - part: 1
       file: routes.py
-      code_start_line: 51
-      code_end_line: 67
+      code_start_line: 55
+      code_end_line: 71
     file_hashes:
-      routes.py: aca7420dd5ebb30826aa31ff431da7c9ba4dd2a43c3841d719d659f005b0d234
-    fingerprint: 51df7f513aaa7e5931eb8357f99aaac183787b8ff850a9caa234ba4adb274e5d
+      routes.py: d30c269266e3b5dcb58a8dfc5ce89605e7cb13b641742707345915ffaa655887
+    fingerprint: 7d4a9c33287fedcab97d1584354b617aac31303d585714a069b8c2cbaff2968a
   1:
     id: 1
     kind: function
@@ -242,8 +242,8 @@ examples:
       r05_middleware/middleware.py: 7be8f54cda7ee73c500580ef9b605340802d6bfcdca640d15a4c00e95ef50c11
       r05_middleware/routes.py: c1a6fce737d4d19c625ce265aac66435105170dc85611abeacf3bf61948a57cc
     fingerprint: b576312ef0e55d83e1ec8475f4e2be795dffeed76f03af1733a17b94883af89c
-  11:
-    id: 11
+  10:
+    id: 10
     kind: block
     title: '[Not Vulnerable] First Item Checked, First Item Used'
     notes: >-
@@ -265,11 +265,11 @@ examples:
       code_start_line: 24
       code_end_line: 33
     file_hashes:
-      r06_multi_value/decorator.py: 2227ae829d4ace127dc01b1d77556618d58793139ff96ea60ab1ad9c5225ce2c
-      r06_multi_value/routes.py: 9d9d7a2dac8c80da6210d99a8a7742d854357d2f4b8e5ca58e5527e3d9a04a6b
-    fingerprint: c23bc6cdc421528102550c688d87cf61e5522d8e9bcc7c948e7e75c00e2ae7a6
-  12:
-    id: 12
+      r06_multi_value/decorator.py: 6aa5c4817ed2f1a8c309fd10c7fb666bb40c03e6a4def4d23f75d1ec271d4016
+      r06_multi_value/routes.py: 1c4dd4356c7f8392cf7ffce2227bf1a3cb06cb1642721448e48296739ccd2eec
+    fingerprint: 28f9630a7a045fd23f674a4aa29529b28d12a45e66d4b556cfe532038b6655ce
+  11:
+    id: 11
     kind: block
     title: Utility Reuse Mismatch — .get vs .getlist
     notes: >-
@@ -292,10 +292,10 @@ examples:
       code_start_line: 41
       code_end_line: 49
     file_hashes:
-      r06_multi_value/routes.py: 9d9d7a2dac8c80da6210d99a8a7742d854357d2f4b8e5ca58e5527e3d9a04a6b
-    fingerprint: 96ad1d3d64f76f616355f2b04444974cbda0eefbfeb8b6afc1f7bc246f43cd28
-  13:
-    id: 13
+      r06_multi_value/routes.py: 1c4dd4356c7f8392cf7ffce2227bf1a3cb06cb1642721448e48296739ccd2eec
+    fingerprint: a0a6c9a65f13183dddf66b3e0de87db95a4ab81c3d3f6735b8cfddc8c66be8c8
+  12:
+    id: 12
     kind: block
     title: Any vs All — Fail-Open Authorization for Batch Actions
     notes: >-
@@ -314,15 +314,140 @@ examples:
       code_start_line: 41
       code_end_line: 50
     file_hashes:
-      r06_multi_value/decorator.py: 2227ae829d4ace127dc01b1d77556618d58793139ff96ea60ab1ad9c5225ce2c
-      r06_multi_value/routes.py: 9d9d7a2dac8c80da6210d99a8a7742d854357d2f4b8e5ca58e5527e3d9a04a6b
-    fingerprint: ddd6f335d601d52edd3535a7dd278e3ccdd98c7825b5e7bafd6d30d9511247a2
+      r06_multi_value/decorator.py: 6aa5c4817ed2f1a8c309fd10c7fb666bb40c03e6a4def4d23f75d1ec271d4016
+      r06_multi_value/routes.py: 1c4dd4356c7f8392cf7ffce2227bf1a3cb06cb1642721448e48296739ccd2eec
+    fingerprint: 60ec97aace8f7a7eaa6915d7035e2cf9c858b31de32127e686998b20da81c65f
+  13:
+    id: 13
+    kind: block
+    title: Motivation for using path and query parameters [Not Vulnerable]
+    notes: >-
+      We move to authorization rather than authentication vulnerabilities, so for the following
+      examples the authentication will be done reliably and safely, via the `Authorization`
+      header (based on Basic Auth and handled in the `@basic_auth` decorator). We also follow
+      the best practices by storing the authenticated user in the global context (`g.user`).
+
+
+      Imagine that at this point we have many `/groups/` and `/user/` endpoints for creating,
+      updating and deleting groups, users and messages.
+
+
+      When the endpoint needs to work with a specific group, this could be passed as a query/form
+      argument as in the previous examples, but if the `group` argument is required, it might
+      be more idiomatic to make it a path parameter instead.
+
+
+      Here we will work with two endpoints, the `/groups/<group>/messages` which will return
+      the messages from a specific group (taking the `group` from the path) and the `/user/messages`
+      which will return the user's private messages by default, but also supporting an optional
+      `group` query argument.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r07_path_query/routes.py
+      code_start_line: 31
+      code_end_line: 57
+    - part: 2
+      file: r07_path_query/decorator.py
+      code_start_line: 15
+      code_end_line: 28
+    file_hashes:
+      r07_path_query/decorator.py: e7d596e480042122dcb62fe21a167115d14bb90c51fec2c441284aa2e723d20e
+      r07_path_query/routes.py: ca0050c16628842a204cf2b55e0841f874688fc84fd87f8701b2cbfa8599c0c1
+    fingerprint: b9ba8072793f6957682ef3c4238a26a78f766f5afd3f34990b310817217f6e05
+  14:
+    id: 14
+    kind: block
+    title: Path and query parameter confusion via merging decorator
+    notes: >-
+      Here we aim to make the code more idiomatic by moving the group membership check to
+      the decorator `@check_group_membership`. It results in a cleaner code and appears to
+      confirm to the single-responsibility principle.
+
+
+      This code, however, is now vulnerable to path and query parameter confusion.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r07_path_query/routes.py
+      code_start_line: 71
+      code_end_line: 85
+    - part: 2
+      file: r07_path_query/decorator.py
+      code_start_line: 36
+      code_end_line: 45
+    file_hashes:
+      r07_path_query/decorator.py: e7d596e480042122dcb62fe21a167115d14bb90c51fec2c441284aa2e723d20e
+      r07_path_query/routes.py: ca0050c16628842a204cf2b55e0841f874688fc84fd87f8701b2cbfa8599c0c1
+    fingerprint: 64a2f309c11af8aa0d05803a712708a08ed6ae99da93b3744d866a7eab5bf217
+  15:
+    id: 15
+    kind: block
+    title: Path and query parameter confusion despite global source of truth
+    notes: >-
+      Here we aim to mitigate the confusion risk in the `group` merging behavior by applying
+      the single source of truth. We do this already for the identity of the authenticated
+      user, by storing it in the global context (`g.user`). So, here we extend `@basic_auth_v2`
+      to also store the group in the global context (`g.group`).
+
+
+      Despite these efforts, the code is still vulnerable.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r07_path_query/routes.py
+      code_start_line: 101
+      code_end_line: 115
+    - part: 2
+      file: r07_path_query/decorator.py
+      code_start_line: 52
+      code_end_line: 72
+    file_hashes:
+      r07_path_query/decorator.py: e7d596e480042122dcb62fe21a167115d14bb90c51fec2c441284aa2e723d20e
+      r07_path_query/routes.py: ca0050c16628842a204cf2b55e0841f874688fc84fd87f8701b2cbfa8599c0c1
+    fingerprint: 5a0a5e3801382b29b8508658f3f24291a20213287b3ad2ba3c5b5441b3abbd55
+  16:
+    id: 16
+    kind: block
+    title: Path and query parameter confusion due to decorator order
+    notes: >-
+      We try to fix the root cause of the vulnerability here by enforcing correct merging
+      order – view args take precedence over query args. Additionally, we enforce that only
+      one of the two can be present.
+
+
+      The code, however, remains vulnerable despite these efforts! This time, the problem
+      is that the `@check_group_membership_v2` decorator is applied too early – before the
+      `@basic_auth_v3` decorator which is responsible for setting the `g.group` global variable.
+      This makes `@check_group_membership_v2` a no-op.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r07_path_query/routes.py
+      code_start_line: 132
+      code_end_line: 137
+    - part: 2
+      file: r07_path_query/decorator.py
+      code_start_line: 79
+      code_end_line: 100
+    file_hashes:
+      r07_path_query/decorator.py: e7d596e480042122dcb62fe21a167115d14bb90c51fec2c441284aa2e723d20e
+      r07_path_query/routes.py: ca0050c16628842a204cf2b55e0841f874688fc84fd87f8701b2cbfa8599c0c1
+    fingerprint: f3d87f04632255eca78a23ddc42d148c8df30024f80885eacc0b05821990f2b6
 attachments:
   http/exploit-0.http: 0798c02c1757012b268c8a201890fbb4fb53418c868be6897354ce2812fd824d
   http/exploit-1.http: db134e194cdb975b2646d9f916473df14f9805b439e1e2f26b13c3277322047e
-  http/exploit-11.http: d78d4707248df931747c5f745356ccc5e3d877b24460a48cb22379518de6ca2c
+  http/exploit-10.http: 8c6e314c38b9020fdbf7ca6439117fc9e581d23bf854bdc273950dfa4b6d0b33
+  http/exploit-11.http: 49f61e95566ce1d9fefdf0557ef130156901eff607135d60d57059cc25410735
   http/exploit-12.http: 83469682c3db11147ae00d0d9c493c03c9b0ba1efba6b71f4fa72f02240bae6a
-  http/exploit-13.http: 2f2a44507d831b9d1b8e6ee8ce76c4a5ce96664d5ae1a0ea18477ebbc7c7f417
+  http/exploit-13.http: 5af4fc52c058b07012525c301786a7e6e8ea7c3b67a8bf9c78bb8bb59c2af5fe
+  http/exploit-14.http: b6c9cc3b4b4a75db6784c5b4d0435a8c658fd189295f70aa6a7a7a3d0d58e5f7
+  http/exploit-15.http: 192aa2906721642400628f32a37aa6af6f110d0a723a90092812093f970bf49d
+  http/exploit-16.http: 13bb5c1f4e588d8c24b72ae1fdfb038aa7ffca87f40782871324501d7baede71
   http/exploit-2.http: 9a833a312abbab4518989681ba072b44edf35439601aa0de692267b57419cfe8
   http/exploit-3.http: 910d836ddb592bdffeed7b881180b06f0343a2772570ae4aeca6ef7038de06c9
   http/exploit-4.http: 289a818dc4a304cb4e9f412af41054a8c839e5ad704a951eaffda1b68254efb1
@@ -338,5 +463,5 @@ attachments:
   images/image-6.png: 596a59ba2f347f1e82b0144531369e174dc5b6782fa8aa5129199344687aaf18
   images/image-7.png: c6a8e3dbdf09c9a4d810330cabc6638feb8d3f9c874220e7407f917b17d08cf4
   images/image-source-merging.png: 226b0c9334337b8519564db5335dbee60e5b2e4021622fdac601ee0bd09e85b2
-build_signature: a95e4e9a9d5213ed194c618234eebb36ad6cd486e891aeba7ebc3109a589048f
-last_readme_fingerprint: c9d69ee488a712af0b4755e70be16bda612ef110910789dbab9c2ec87bfc7ff9
+build_signature: 681f95dd0f00bb9c06526f680ccb3ebe82f6a6d7e6fa9f13a2dbb7aa18aa28c5
+last_readme_fingerprint: 1e98da47549246f25c36b4ec81fcd0316bb6374faf619199df0c7486522c6de8
