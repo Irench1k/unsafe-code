@@ -1,5 +1,5 @@
 from flask import Blueprint, request, g
-from .decorator import basic_auth, check_group_membership_v1, basic_auth_v2, check_group_membership_v2, basic_auth_v3
+from .decorator import basic_auth_v1, check_group_membership_v1, basic_auth_v2, check_group_membership_v2, basic_auth_v3
 from .database import get_user_messages, get_group_messages, is_group_member
 
 bp = Blueprint("path_query", __name__)
@@ -11,7 +11,7 @@ bp = Blueprint("path_query", __name__)
 #   We move to authorization rather than authentication vulnerabilities, so
 #   for the following examples the authentication will be done reliably and
 #   safely, via the `Authorization` header (based on Basic Auth and handled
-#   in the `@basic_auth` decorator). We also follow the best practices by
+#   in the `@basic_auth_v1` decorator). We also follow the best practices by
 #   storing the authenticated user in the global context (`g.user`).
 #
 #   Imagine that at this point we have many `/groups/` and `/user/` endpoints
@@ -29,7 +29,7 @@ bp = Blueprint("path_query", __name__)
 #   argument.
 # @/unsafe
 @bp.get("/example13/groups/<group>/messages")
-@basic_auth
+@basic_auth_v1
 def example13_group_messages(group):
     """Returns group's messages, if the user is a member of the group."""
     if not is_group_member(g.user, group):
@@ -37,7 +37,7 @@ def example13_group_messages(group):
     return get_group_messages(group)
 
 @bp.get("/example13/user/messages")
-@basic_auth
+@basic_auth_v1
 def example13_user_messages():
     """
     Returns user's messages: private or from a group.
@@ -69,14 +69,14 @@ def example13_user_messages():
 #   This code, however, is now vulnerable to path and query parameter confusion.
 # @/unsafe[block]
 @bp.get("/example14/groups/<group>/messages")
-@basic_auth
+@basic_auth_v1
 @check_group_membership_v1
 def example14_group_messages(group):
     """Returns group's messages, if the user is a member of the group."""
     return get_group_messages(group)
 
 @bp.get("/example14/user/messages")
-@basic_auth
+@basic_auth_v1
 @check_group_membership_v1
 def example14_user_messages():
     """Returns user's messages: private or from a group."""

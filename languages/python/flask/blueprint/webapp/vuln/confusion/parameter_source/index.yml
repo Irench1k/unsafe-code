@@ -15,11 +15,11 @@ examples:
     parts:
     - part: 1
       file: routes.py
-      code_start_line: 55
-      code_end_line: 71
+      code_start_line: 56
+      code_end_line: 72
     file_hashes:
-      routes.py: d30c269266e3b5dcb58a8dfc5ce89605e7cb13b641742707345915ffaa655887
-    fingerprint: 7d4a9c33287fedcab97d1584354b617aac31303d585714a069b8c2cbaff2968a
+      routes.py: 243b66ed6cc5472968655b085fdc8a9da4cb519d93a20d16ea04f7db9d1c6584
+    fingerprint: 2c75f2587e17b1fbc97e55f184f50740d707f5341c1a9306b7cb05a087c88ebd
   1:
     id: 1
     kind: function
@@ -324,8 +324,8 @@ examples:
     notes: >-
       We move to authorization rather than authentication vulnerabilities, so for the following
       examples the authentication will be done reliably and safely, via the `Authorization`
-      header (based on Basic Auth and handled in the `@basic_auth` decorator). We also follow
-      the best practices by storing the authenticated user in the global context (`g.user`).
+      header (based on Basic Auth and handled in the `@basic_auth_v1` decorator). We also
+      follow the best practices by storing the authenticated user in the global context (`g.user`).
 
 
       Imagine that at this point we have many `/groups/` and `/user/` endpoints for creating,
@@ -353,9 +353,9 @@ examples:
       code_start_line: 15
       code_end_line: 28
     file_hashes:
-      r07_path_query/decorator.py: e7d596e480042122dcb62fe21a167115d14bb90c51fec2c441284aa2e723d20e
-      r07_path_query/routes.py: ca0050c16628842a204cf2b55e0841f874688fc84fd87f8701b2cbfa8599c0c1
-    fingerprint: b9ba8072793f6957682ef3c4238a26a78f766f5afd3f34990b310817217f6e05
+      r07_path_query/decorator.py: 30ba01b7c521d29f7039a4ca4efd8101e59b108640956982240ce4e69e6da00c
+      r07_path_query/routes.py: c5e1614e1f51c048c723a6d88c4ab0448a19817b6a1f6f96fcf958be7426c946
+    fingerprint: 9483839cd9f69635564f5b9e069c17ace891e6c6210e40025386864350d750fb
   14:
     id: 14
     kind: block
@@ -379,9 +379,9 @@ examples:
       code_start_line: 36
       code_end_line: 45
     file_hashes:
-      r07_path_query/decorator.py: e7d596e480042122dcb62fe21a167115d14bb90c51fec2c441284aa2e723d20e
-      r07_path_query/routes.py: ca0050c16628842a204cf2b55e0841f874688fc84fd87f8701b2cbfa8599c0c1
-    fingerprint: 64a2f309c11af8aa0d05803a712708a08ed6ae99da93b3744d866a7eab5bf217
+      r07_path_query/decorator.py: 30ba01b7c521d29f7039a4ca4efd8101e59b108640956982240ce4e69e6da00c
+      r07_path_query/routes.py: c5e1614e1f51c048c723a6d88c4ab0448a19817b6a1f6f96fcf958be7426c946
+    fingerprint: c9b508e2a7830cf0809229c0ce3c84c042069e6f0e5212b59999bb625dcbcfde
   15:
     id: 15
     kind: block
@@ -406,9 +406,9 @@ examples:
       code_start_line: 52
       code_end_line: 72
     file_hashes:
-      r07_path_query/decorator.py: e7d596e480042122dcb62fe21a167115d14bb90c51fec2c441284aa2e723d20e
-      r07_path_query/routes.py: ca0050c16628842a204cf2b55e0841f874688fc84fd87f8701b2cbfa8599c0c1
-    fingerprint: 5a0a5e3801382b29b8508658f3f24291a20213287b3ad2ba3c5b5441b3abbd55
+      r07_path_query/decorator.py: 30ba01b7c521d29f7039a4ca4efd8101e59b108640956982240ce4e69e6da00c
+      r07_path_query/routes.py: c5e1614e1f51c048c723a6d88c4ab0448a19817b6a1f6f96fcf958be7426c946
+    fingerprint: a91935fccbc4a8cdeb28bedba2af35323f9883de4178215231bfa83e41df8bcc
   16:
     id: 16
     kind: block
@@ -435,9 +435,51 @@ examples:
       code_start_line: 79
       code_end_line: 100
     file_hashes:
-      r07_path_query/decorator.py: e7d596e480042122dcb62fe21a167115d14bb90c51fec2c441284aa2e723d20e
-      r07_path_query/routes.py: ca0050c16628842a204cf2b55e0841f874688fc84fd87f8701b2cbfa8599c0c1
-    fingerprint: f3d87f04632255eca78a23ddc42d148c8df30024f80885eacc0b05821990f2b6
+      r07_path_query/decorator.py: 30ba01b7c521d29f7039a4ca4efd8101e59b108640956982240ce4e69e6da00c
+      r07_path_query/routes.py: c5e1614e1f51c048c723a6d88c4ab0448a19817b6a1f6f96fcf958be7426c946
+    fingerprint: 1dc0b09062d2cc9244c2f8e26bd59764e9645dd1a9f79010bf35b85b43780ced
+  17:
+    id: 17
+    kind: block
+    title: HTTP Method Confusion — GET With Body Triggers Update Without Auth
+    notes: >-
+      A complicated controller for a groups API. Lists groups, returns group messages and
+      posts new messages to a group.
+
+
+      The code processes both GET and POST requests, but lacks explicit method checks. This
+      introduces a vulnerability due to incorrect assumptions.
+
+
+      The group membership check is performed in the `@check_group_membership` decorator,
+      which checks the `group` argument – if present – in the request.values. The developer
+      intent was to support passing the `group` argument via query string in GET requests,
+      as well as via form argument in POST requests, and also support GET requests without
+      the `group` argument.
+
+
+      However, since the code does not enforce this and lacks explicit method checks, it also
+      supports GET requests with the `group` argument in the form body (Flask supports GET
+      requests with the body, and will parse this data in `request.form` by default).
+
+
+      At the same time, `request.values` used in the `@check_group_membership` decorator ignores
+      the form data on GET requests, leading to a confusion vulnerability.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r08_method_confusion/routes.py
+      code_start_line: 31
+      code_end_line: 64
+    - part: 2
+      file: r08_method_confusion/decorator.py
+      code_start_line: 30
+      code_end_line: 39
+    file_hashes:
+      r08_method_confusion/decorator.py: 1dd0f1f6a4fdd1613453320b52aefc3e2d597a08f83e615d8e5f3d68cee31eee
+      r08_method_confusion/routes.py: 0d5bb4a98e0ee81f60120e52b6f33b14abbefec1de71873a06094eadeffe514c
+    fingerprint: 3e532fc81b6b2ba5a116ad5a3360586ec2c284a79cae09cb05af6ac2c99ab7e9
 attachments:
   http/exploit-0.http: 0798c02c1757012b268c8a201890fbb4fb53418c868be6897354ce2812fd824d
   http/exploit-1.http: db134e194cdb975b2646d9f916473df14f9805b439e1e2f26b13c3277322047e
@@ -448,6 +490,7 @@ attachments:
   http/exploit-14.http: b6c9cc3b4b4a75db6784c5b4d0435a8c658fd189295f70aa6a7a7a3d0d58e5f7
   http/exploit-15.http: 192aa2906721642400628f32a37aa6af6f110d0a723a90092812093f970bf49d
   http/exploit-16.http: 13bb5c1f4e588d8c24b72ae1fdfb038aa7ffca87f40782871324501d7baede71
+  http/exploit-17.http: 31a081c193529e24aeacb577727559ba0bda380f4ac3a209144278b591969672
   http/exploit-2.http: 9a833a312abbab4518989681ba072b44edf35439601aa0de692267b57419cfe8
   http/exploit-3.http: 910d836ddb592bdffeed7b881180b06f0343a2772570ae4aeca6ef7038de06c9
   http/exploit-4.http: 289a818dc4a304cb4e9f412af41054a8c839e5ad704a951eaffda1b68254efb1
@@ -463,5 +506,5 @@ attachments:
   images/image-6.png: 596a59ba2f347f1e82b0144531369e174dc5b6782fa8aa5129199344687aaf18
   images/image-7.png: c6a8e3dbdf09c9a4d810330cabc6638feb8d3f9c874220e7407f917b17d08cf4
   images/image-source-merging.png: 226b0c9334337b8519564db5335dbee60e5b2e4021622fdac601ee0bd09e85b2
-build_signature: 681f95dd0f00bb9c06526f680ccb3ebe82f6a6d7e6fa9f13a2dbb7aa18aa28c5
-last_readme_fingerprint: 1e98da47549246f25c36b4ec81fcd0316bb6374faf619199df0c7486522c6de8
+build_signature: bd3cd75ce46cb91f62e78b4bbd53398fdd9ce4e5040e8fc061388cb99c5ec373
+last_readme_fingerprint: aed9c6b3d1177240328ef9e222f75385312e5a42f1b89b914054292880c0def0

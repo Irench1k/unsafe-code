@@ -10,7 +10,7 @@ Here you can find several examples on how Flask framework design allows those vu
 
 | Category | Example | File |
 |:---:|:---:|:---:|
-| Secure Baseline | [Example 0: Secure Implementation](#ex-0) | [routes.py](routes.py#L55-L71) |
+| Secure Baseline | [Example 0: Secure Implementation](#ex-0) | [routes.py](routes.py#L56-L72) |
 | Simplified Vulnerability Patterns | [Example 1: Basic Parameter Source Confusion](#ex-1) | [r01_simplified_patterns/routes.py](r01_simplified_patterns/routes.py#L40-L54) |
 | Simplified Vulnerability Patterns | [Example 2: Function-Level Parameter Source Confusion](#ex-2) | [r01_simplified_patterns/routes.py](r01_simplified_patterns/routes.py#L64-L88) |
 | Simplified Vulnerability Patterns | [Example 3: Cross-Module Parameter Source Confusion](#ex-3) | [r01_simplified_patterns/routes.py](r01_simplified_patterns/routes.py#L104-L120) |
@@ -27,6 +27,7 @@ Here you can find several examples on how Flask framework design allows those vu
 | Path and query parameter Confusion | [Example 14: Path and query parameter confusion via merging decorator](#ex-14) | [r07_path_query/routes.py](r07_path_query/routes.py#L71-L85) |
 | Path and query parameter Confusion | [Example 15: Path and query parameter confusion despite global source of truth](#ex-15) | [r07_path_query/routes.py](r07_path_query/routes.py#L101-L115) |
 | Path and query parameter Confusion | [Example 16: Path and query parameter confusion due to decorator order](#ex-16) | [r07_path_query/routes.py](r07_path_query/routes.py#L132-L137) |
+| HTTP Method Confusion | [Example 17: HTTP Method Confusion — GET With Body Triggers Update Without Auth](#ex-17) | [r08_method_confusion/routes.py](r08_method_confusion/routes.py#L31-L64) |
 
 ## Secure Baseline
 <a id="ex-0"></a>
@@ -828,7 +829,7 @@ user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket
 <a id="ex-13"></a>
 
 ### Example 13: Motivation for using path and query parameters [Not Vulnerable]
-We move to authorization rather than authentication vulnerabilities, so for the following examples the authentication will be done reliably and safely, via the `Authorization` header (based on Basic Auth and handled in the `@basic_auth` decorator). We also follow the best practices by storing the authenticated user in the global context (`g.user`).
+We move to authorization rather than authentication vulnerabilities, so for the following examples the authentication will be done reliably and safely, via the `Authorization` header (based on Basic Auth and handled in the `@basic_auth_v1` decorator). We also follow the best practices by storing the authenticated user in the global context (`g.user`).
 
 Imagine that at this point we have many `/groups/` and `/user/` endpoints for creating, updating and deleting groups, users and messages.
 
@@ -837,7 +838,7 @@ When the endpoint needs to work with a specific group, this could be passed as a
 Here we will work with two endpoints, the `/groups/<group>/messages` which will return the messages from a specific group (taking the `group` from the path) and the `/user/messages` which will return the user's private messages by default, but also supporting an optional `group` query argument.
 ```python
 @bp.get("/example13/groups/<group>/messages")
-@basic_auth
+@basic_auth_v1
 def example13_group_messages(group):
     """Returns group's messages, if the user is a member of the group."""
     if not is_group_member(g.user, group):
@@ -845,7 +846,7 @@ def example13_group_messages(group):
     return get_group_messages(group)
 
 @bp.get("/example13/user/messages")
-@basic_auth
+@basic_auth_v1
 def example13_user_messages():
     """
     Returns user's messages: private or from a group.
@@ -864,7 +865,7 @@ def example13_user_messages():
         return "Forbidden: not an member for the requested group", 403
     return get_group_messages(group)
 
-def basic_auth(f):
+def basic_auth_v1(f):
     """Authenticates the user via Basic Auth. Stores the authenticated user in \`g.user\`."""
     @wraps(f)
     def decorated_basic_auth(*args, **kwargs):
@@ -931,14 +932,14 @@ Here we aim to make the code more idiomatic by moving the group membership check
 This code, however, is now vulnerable to path and query parameter confusion.
 ```python
 @bp.get("/example14/groups/<group>/messages")
-@basic_auth
+@basic_auth_v1
 @check_group_membership_v1
 def example14_group_messages(group):
     """Returns group's messages, if the user is a member of the group."""
     return get_group_messages(group)
 
 @bp.get("/example14/user/messages")
-@basic_auth
+@basic_auth_v1
 @check_group_membership_v1
 def example14_user_messages():
     """Returns user's messages: private or from a group."""
@@ -1121,6 +1122,158 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 #   {
 #     "from": "mr.krabs@krusty-krab.sea",
 #     "message": "I am updating the safe password to '123456'. Do not tell anyone!"
+#   }
+# ]
+```
+
+</details>
+
+## HTTP Method Confusion
+<a id="ex-17"></a>
+
+### Example 17: HTTP Method Confusion — GET With Body Triggers Update Without Auth
+A complicated controller for a groups API. Lists groups, returns group messages and posts new messages to a group.
+
+The code processes both GET and POST requests, but lacks explicit method checks. This introduces a vulnerability due to incorrect assumptions.
+
+The group membership check is performed in the `@check_group_membership` decorator, which checks the `group` argument – if present – in the request.values. The developer intent was to support passing the `group` argument via query string in GET requests, as well as via form argument in POST requests, and also support GET requests without the `group` argument.
+
+However, since the code does not enforce this and lacks explicit method checks, it also supports GET requests with the `group` argument in the form body (Flask supports GET requests with the body, and will parse this data in `request.form` by default).
+
+At the same time, `request.values` used in the `@check_group_membership` decorator ignores the form data on GET requests, leading to a confusion vulnerability.
+```python
+@bp.route("/example17/groups", methods=["GET", "POST"])
+@basic_auth
+@check_group_membership
+def example17():
+    """
+    Groups controller. Lists groups, returns group messages and posts new messages to a group.
+    
+    GET requests:
+      - without additional arguments, lists the groups the user is a member of
+      - with a \`group\` query argument, returns the messages from the specified group
+
+    POST requests:
+      - with a \`group\` and \`message\` form argument, posts a new message to the specified group
+
+    Authorization: A user can only access and post to groups they are a member of!
+
+    GET  /groups                             -> list of groups the user is a member of
+    GET  /groups?group=staff@krusty-krab.sea -> messages from the staff group, if the user is a member of the group
+    POST /groups                             -> posts a new message to the specified group
+    """
+    if 'group' in request.form and 'message' in request.form:
+        # POST /example17/groups
+        # Content-Type: application/x-www-form-urlencoded
+        #
+        # group=staff@krusty-krab.sea&message=<message text>
+        post_message_to_group(g.user, request.form.get("group"), request.form.get("message"))
+        return {"status": "success"}
+
+    if 'group' in request.args:
+        # GET /example17/groups?group=staff@krusty-krab.sea
+        return get_group_messages(request.args.get("group"))
+
+    # GET /example17/groups
+    return list_user_groups(g.user)
+
+def check_group_membership(f):
+    @wraps(f)
+    def decorated_check_group_membership(*args, **kwargs):
+        group = request.values.get("group")
+
+        if group and not is_group_member(g.user, group):
+            return "Forbidden: not an member for the requested group", 403
+
+        return f(*args, **kwargs)
+    return decorated_check_group_membership
+```
+<details>
+<summary><b>See HTTP Request</b></summary>
+
+```http
+@base = http://localhost:8000/vuln/confusion/parameter-source/example17
+
+# Without any arguments, GET request lists the groups the user is a member of
+GET {{base}}/groups
+Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
+# Returns 200 OK:
+#
+# [
+#   "staff@krusty-krab.sea"
+# ]
+
+###
+
+# With a \`group\` query argument, GET request returns the messages from the specified group
+GET {{base}}/groups?group=staff@chum-bucket.sea
+Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
+# Returns 200 OK:
+#
+# [
+#   {
+#     "from": "plankton@chum-bucket.sea",
+#     "message": "To my future self, don't forget to steal the formula!"
+#   }
+# ]
+
+###
+
+# A POST request lets the user post a new message to the group where they are a member
+POST {{base}}/groups
+Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
+Content-Type: application/x-www-form-urlencoded
+
+group=staff@chum-bucket.sea&message=If only I could steal employees from Krusty Krab...
+# Returns 200 OK:
+#
+# {
+#   "status": "success"
+# }
+#
+# (The previous request now will show two messages for the staff@chum-bucket.sea group)
+
+###
+
+# Plankton should not able to post a new message to the Krusty Krab's group
+POST {{base}}/groups
+Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
+Content-Type: application/x-www-form-urlencoded
+
+group=staff@krusty-krab.sea&message=Come, work for me at Chum Bucket!
+# Returns 403 Forbidden error:
+#
+# Forbidden: not an member for the requested group
+
+###
+
+# However, due to the method confusion, Plankton can bypass this check by sending a GET request with the form body
+GET {{base}}/groups
+Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
+Content-Type: application/x-www-form-urlencoded
+
+group=staff@krusty-krab.sea&message=Hey employees, it's me Krabs! My safe got rusty and needs to be repaired, please keep it open over night!
+# Returns 200 OK:
+#
+# {
+#   "status": "success"
+# }
+
+###
+
+# Verify that the message was posted, using SpongeBob's credentials
+GET {{base}}/groups?group=staff@krusty-krab.sea
+Authorization: Basic spongebob@krusty-krab.sea:bikinibottom
+# Returns 200 OK:
+#
+# [
+#   {
+#     "from": "mr.krabs@krusty-krab.sea",
+#     "message": "I am updating the safe password to '123456'. Do not tell anyone!"
+#   },
+#   {
+#     "from": "plankton@chum-bucket.sea",
+#     "message": "Hey employees, it's me Krabs! My safe got rusty and needs to be repaired, please keep it open over night!"
 #   }
 # ]
 ```

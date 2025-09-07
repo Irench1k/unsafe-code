@@ -6,6 +6,7 @@ from .r04_decorator.routes import bp as decorator_bp
 from .r05_middleware.routes import bp as middleware_bp
 from .r06_multi_value.routes import bp as multi_value_bp
 from .r07_path_query.routes import bp as path_query_bp
+from .r08_method_confusion.routes import bp as method_confusion_bp
 
 # Confusion-based vulnerability examples
 bp = Blueprint("parameter_source", __name__)
@@ -17,7 +18,7 @@ bp.register_blueprint(decorator_bp)
 bp.register_blueprint(middleware_bp)
 bp.register_blueprint(multi_value_bp)
 bp.register_blueprint(path_query_bp)
-
+bp.register_blueprint(method_confusion_bp)
 
 @bp.route("/")
 def index():

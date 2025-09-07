@@ -12,7 +12,7 @@ def response_401():
 # id: 13
 # part: 2
 # @/unsafe
-def basic_auth(f):
+def basic_auth_v1(f):
     """Authenticates the user via Basic Auth. Stores the authenticated user in `g.user`."""
     @wraps(f)
     def decorated_basic_auth(*args, **kwargs):
