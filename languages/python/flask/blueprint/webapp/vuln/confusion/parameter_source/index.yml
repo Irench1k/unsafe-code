@@ -265,9 +265,9 @@ examples:
       code_start_line: 24
       code_end_line: 33
     file_hashes:
-      r06_multi_value/decorator.py: 6aa5c4817ed2f1a8c309fd10c7fb666bb40c03e6a4def4d23f75d1ec271d4016
+      r06_multi_value/decorator.py: 419b2fd9d46b295f77fd71035b62e35d915d07aa6e54bb78d637bd6d292998d6
       r06_multi_value/routes.py: 1c4dd4356c7f8392cf7ffce2227bf1a3cb06cb1642721448e48296739ccd2eec
-    fingerprint: 28f9630a7a045fd23f674a4aa29529b28d12a45e66d4b556cfe532038b6655ce
+    fingerprint: 04d92c48b8aa0e3117386556b0d2d0e9980ff1b0ef1ca91072dfc60c59292a8c
   11:
     id: 11
     kind: block
@@ -314,9 +314,9 @@ examples:
       code_start_line: 41
       code_end_line: 50
     file_hashes:
-      r06_multi_value/decorator.py: 6aa5c4817ed2f1a8c309fd10c7fb666bb40c03e6a4def4d23f75d1ec271d4016
+      r06_multi_value/decorator.py: 419b2fd9d46b295f77fd71035b62e35d915d07aa6e54bb78d637bd6d292998d6
       r06_multi_value/routes.py: 1c4dd4356c7f8392cf7ffce2227bf1a3cb06cb1642721448e48296739ccd2eec
-    fingerprint: 60ec97aace8f7a7eaa6915d7035e2cf9c858b31de32127e686998b20da81c65f
+    fingerprint: 2aed552bd84673a610a60f6a7bf35421fbb2a6cdceb80961ff218443a9a9d3d6
   13:
     id: 13
     kind: block
@@ -506,5 +506,5 @@ attachments:
   images/image-6.png: 596a59ba2f347f1e82b0144531369e174dc5b6782fa8aa5129199344687aaf18
   images/image-7.png: c6a8e3dbdf09c9a4d810330cabc6638feb8d3f9c874220e7407f917b17d08cf4
   images/image-source-merging.png: 226b0c9334337b8519564db5335dbee60e5b2e4021622fdac601ee0bd09e85b2
-build_signature: bd3cd75ce46cb91f62e78b4bbd53398fdd9ce4e5040e8fc061388cb99c5ec373
-last_readme_fingerprint: aed9c6b3d1177240328ef9e222f75385312e5a42f1b89b914054292880c0def0
+build_signature: 2ee803c15141b59e8e30733335a864278ab9b8a18e59fb14f05ccf0a74ed5298
+last_readme_fingerprint: 0b33b3b5b36bb1dc6d132c18de6d35c110411ffff026b30101e7e403c99da1b1

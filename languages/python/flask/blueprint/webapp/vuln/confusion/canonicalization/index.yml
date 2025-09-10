@@ -1,0 +1,46 @@
+version: '1'
+root: .
+category: confusion.canonicalization
+namespace: flask-vuln-confusion-canonicalization
+examples:
+  18:
+    id: 18
+    kind: block
+    title: Lowercase Normalization
+    notes: >-
+      This example demonstrates a canonicalization confusion vulnerability using inconsistent
+      lowercase normalization.
+
+
+      The vulnerability occurs because:
+
+
+      1. Users can create new groups with any casing (e.g., "STAFF@KRUSTY-KRAB.SEA"), making
+      themselves admins
+
+
+      2. During group membership checks, the group name is NOT normalized/lowercased
+
+
+      3. When retrieving group messages, the group name IS normalized to lowercase
+
+
+      Attack scenario: Attacker creates a group "STAFF@KRUSTY-KRAB.SEA" (uppercase) and becomes
+      admin. When checking membership, system looks for "STAFF@KRUSTY-KRAB.SEA" (finds attacker's
+      group). When retrieving messages, system normalizes to "staff@krusty-krab.sea" (finds
+      legitimate group). As a result: Attacker gains access to messages from the legitimate
+      group they shouldn't see.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r01_lowercase/routes.py
+      code_start_line: 27
+      code_end_line: 40
+    file_hashes:
+      r01_lowercase/routes.py: 33149d5b489ef303eb861c8a43bda969462bb1135108f5b277658d5d73cb9eff
+    fingerprint: 068171e065455ac49f23a3e59dc1bbd5d8ad5f5fb935077750b2dd88268dc9cf
+attachments:
+  http/exploit-18.http: 1707435f67a14b752803a21cee16573f187daec5858825daf4b605aef8561a73
+build_signature: ea62d796b357fa4df6accadaa54396261871886e3331beceeac86be66e10617d
+last_readme_fingerprint: e6ed2349e0dfa2e4552664e50f7a0bd6bbc92646e6b46b722087781411797d90
