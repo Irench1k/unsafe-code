@@ -12,6 +12,7 @@ namespace: flask-vuln-confusion-canonicalization
 toc: true
 outline:
 
-  - title: "Lowercase Transformation"
+  - title: "Case Transformation"
     examples:
       - 18
+      - 19

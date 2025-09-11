@@ -40,7 +40,46 @@ examples:
     file_hashes:
       r01_lowercase/routes.py: 33149d5b489ef303eb861c8a43bda969462bb1135108f5b277658d5d73cb9eff
     fingerprint: 068171e065455ac49f23a3e59dc1bbd5d8ad5f5fb935077750b2dd88268dc9cf
+  19:
+    id: 19
+    kind: block
+    title: Case insensitive Object Retrieval
+    notes: >-
+      In this example we are still using case canonicalization for group retrieval, but now
+      instead of showing the attacker the victim's group content, we are showing the attacker's
+      newly created group content to the victim, allowing impersonation.
+
+
+      The vulnerability occurs when an attacker creates a new group with the same name as
+      the victim's group but uses different casing.During group creation, the system checks
+      for exact name matches to enforce uniqueness, so "STAFF@KRUSTY-KRAB.SEA" is considered
+      different from "staff@krusty-krab.sea" and creation succeeds. However, during group
+      retrieval, the system performs case-insensitive matching and returns the most recently
+      created group that matches. When the victim tries to access their original group "staff@krusty-krab.sea",
+      they actually receive the attacker's group "STAFF@KRUSTY-KRAB.SEA" because it was added
+      later and the case-insensitive lookup treats them as the same group.
+
+
+      This vulnerability allows the attacker to impersonate legitimate group members and post
+      messages that appear to come from trusted colleagues or administrators, potentially
+      leading to social engineering attacks and information disclosure.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r02_insensitive_object_retrieval/routes.py
+      code_start_line: 27
+      code_end_line: 41
+    - part: 2
+      file: r02_insensitive_object_retrieval/database.py
+      code_start_line: 87
+      code_end_line: 93
+    file_hashes:
+      r02_insensitive_object_retrieval/database.py: d16e39bcdfb16be0048a45990535fba69eed70b73e9725d6d78c18315363b68a
+      r02_insensitive_object_retrieval/routes.py: a8a724e8120c0ea0baadfe468a5cc3bad68ca89ff697e7b266a41bb487d8982d
+    fingerprint: 89560278cea8b5fcf7bf8560befbb041a301acc33ad2b78c145f9df116b368e6
 attachments:
   http/exploit-18.http: 1707435f67a14b752803a21cee16573f187daec5858825daf4b605aef8561a73
-build_signature: ea62d796b357fa4df6accadaa54396261871886e3331beceeac86be66e10617d
-last_readme_fingerprint: e6ed2349e0dfa2e4552664e50f7a0bd6bbc92646e6b46b722087781411797d90
+  http/exploit-19.http: 1e73aaf4cd46bfad5cf5c0a44f645ab03c523eff50041bbb0ad4867e35201a05
+build_signature: 0179b57c7a2034221050a788358688676ae5c8534ff7ba76ae3a3f4a6017d502
+last_readme_fingerprint: 3c2140ab303c40369a712557d45ecdcb36c434ba7c83e283bf19c627334b975b
