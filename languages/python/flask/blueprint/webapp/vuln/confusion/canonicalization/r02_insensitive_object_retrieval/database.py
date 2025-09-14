@@ -125,6 +125,9 @@ def add_group(groupname, members, messages):
     if type(groupname) != str:
         raise Exception("Group name should be string!")
     
+    # We reconstruct the users and messages from scratch here, in order to
+    # avoid passing on unvalidated garbage, as at this point both
+    # `members` and `messages` are coming from the request body.
     users_safe = []
     for member in members:
         role = member.get("role", None)
