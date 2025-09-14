@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 from .r01_lowercase.routes import bp as lowercase_bp
-from .r02_lowercase.routes import bp as lowercase_2_bp
+from .r02_insensitive_object_retrieval.routes import bp as lowercase_2_bp
 
 # Confusion-based vulnerability examples
 bp = Blueprint("canonicalization", __name__)
