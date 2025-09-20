@@ -40,6 +40,8 @@ _...and more coming soon!_
 
 - Install Docker (Docker Desktop or Docker Engine with Compose v2)
 - Install uv (https://docs.astral.sh/uv/). On macOS with Homebrew: `brew install uv`.
+- Install REST Client extension for VS Code to execute exploit examples (like `exploit-19.http`) found in `/http/` directories
+(https://marketplace.visualstudio.com/items?itemName=humao.rest-client)
 - Clone this repository:
 
 ```bash
