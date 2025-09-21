@@ -38,7 +38,7 @@ class GroupRepository:
     def is_group_member(self, username: str, groupname: str) -> bool:
         """Check if the user is a member of the group."""
         group = self.get_group(groupname)
-        return username in group.users
+        return any((group_member.user == username for group_member in group.users))
 
     def add_group(self, group: Group) -> None:
         """Add a new group to the database."""

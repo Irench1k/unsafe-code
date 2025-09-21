@@ -33,7 +33,7 @@ def basic_auth(f):
 def check_group_membership(f):
     @wraps(f)
     def decorated_check_group_membership(*args, **kwargs):
-        group = request.values.get("group")
+        group = request.view_args.get("group")
 
         if group and not is_group_member(g.user, group):
             return "Forbidden: not an member for the requested group", 403
