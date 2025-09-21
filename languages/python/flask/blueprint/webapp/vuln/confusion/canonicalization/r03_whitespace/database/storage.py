@@ -28,4 +28,3 @@ class DatabaseStorage:
 
     def add_group_to_storage(self, group_data):
         self._data["groups"].append(group_data)
-

@@ -13,16 +13,25 @@ bp = Blueprint("whitespace", __name__)
 # id: 20
 # title: Whitespace Canonicalization
 # notes: |
-#   TBD
+#   This is a classic whitespace confusion attack - two parts of the code handle whitespace differently:
+#   - strip() only removes leading/trailing whitespace
+#   - replace(" ", "") removes ALL whitespace
+#
+#   So here's what happens:
+#   - @check_group_membership uses strip() - sees "staff @krusty-krab.sea" and keeps the middle space
+#   - example20 uses replace() - turns "staff @krusty-krab.sea" into "staff@krusty-krab.sea"
+#
+#   The attack: Plankton creates "staff @krusty-krab.sea" (with space), gets authorized for HIS group,
+#   but the code actually fetches messages from "staff@krusty-krab.sea" (Mr. Krabs' group).
 # @/unsafe
 @bp.get("/example20/groups/<group>/messages")
 @basic_auth
 @check_group_membership
 def example20(group):
-    messages = get_group_messages(group)
-    # Each `Message` model can be converted to a dictionary using `model_dump()`
-    # and to a JSON string using `model_dump_json()`, however messages is a list[Message]
-    # so we need to iterate over it and convert each message to a dictionary manually
+    # Mobile users tend to send requests with whitespaces due to autocompletion.
+    group_no_whitespace = group.replace(" ", "")
+    messages = get_group_messages(group_no_whitespace)
+    
     return jsonify([m.model_dump() for m in messages])
 
 @bp.post("/example20/groups")

@@ -75,11 +75,45 @@ examples:
       code_start_line: 87
       code_end_line: 93
     file_hashes:
-      r02_insensitive_object_retrieval/database.py: d16e39bcdfb16be0048a45990535fba69eed70b73e9725d6d78c18315363b68a
+      r02_insensitive_object_retrieval/database.py: 0b20b4d64e2954e6a8a64055ad5a88e43f1e41124cfb8cdb11f77efdf58f6465
       r02_insensitive_object_retrieval/routes.py: a8a724e8120c0ea0baadfe468a5cc3bad68ca89ff697e7b266a41bb487d8982d
-    fingerprint: 89560278cea8b5fcf7bf8560befbb041a301acc33ad2b78c145f9df116b368e6
+    fingerprint: 66d22b6a364135223a56805bd24f69a58b2eb3de16ae785ddf93b0f2198da013
+  20:
+    id: 20
+    kind: block
+    title: Whitespace Canonicalization
+    notes: >-
+      This is a classic whitespace confusion attack - two parts of the code handle whitespace
+      differently: - strip() only removes leading/trailing whitespace - replace(" ", "") removes
+      ALL whitespace
+
+
+      So here's what happens: - @check_group_membership uses strip() - sees "staff @krusty-krab.sea"
+      and keeps the middle space - example20 uses replace() - turns "staff @krusty-krab.sea"
+      into "staff@krusty-krab.sea"
+
+
+      The attack: Plankton creates "staff @krusty-krab.sea" (with space), gets authorized
+      for HIS group, but the code actually fetches messages from "staff@krusty-krab.sea" (Mr.
+      Krabs' group).
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r03_whitespace/routes.py
+      code_start_line: 27
+      code_end_line: 55
+    - part: 2
+      file: r03_whitespace/decorator.py
+      code_start_line: 36
+      code_end_line: 49
+    file_hashes:
+      r03_whitespace/decorator.py: 37ac40794a7041eb030a237e2f69cdbf77d55130d17990618869df1255b3a1fc
+      r03_whitespace/routes.py: ff5ec0370f2f1e8ad1c61c84b0f3f756d4655d83d0bd6bb219417c027944d424
+    fingerprint: 55cf1ee61a56379f49d1eea25350ea8d142e8815db03f7c66065ab938bd54a05
 attachments:
   http/exploit-18.http: 1707435f67a14b752803a21cee16573f187daec5858825daf4b605aef8561a73
   http/exploit-19.http: 1e73aaf4cd46bfad5cf5c0a44f645ab03c523eff50041bbb0ad4867e35201a05
-build_signature: 0179b57c7a2034221050a788358688676ae5c8534ff7ba76ae3a3f4a6017d502
-last_readme_fingerprint: 3c2140ab303c40369a712557d45ecdcb36c434ba7c83e283bf19c627334b975b
+  http/exploit-20.http: f1ab97c17f69336911b2d1f2fa26b94ab08892e4e8b57c2e0fcfd224f54fee7c
+build_signature: 8c44cd7b8c6fcae8a2113fde2bd0eeb8c7b23298a87257e33350f9817069809d
+last_readme_fingerprint: 0c060b1f96a73e8ea5d6bc5e69e0c8987fd937624da95657d719d5e853af5343

@@ -29,15 +29,22 @@ def basic_auth(f):
 
     return decorated_basic_auth
 
-
+# @unsafe[block]
+# id: 20
+# part: 2
+# @/unsafe
 def check_group_membership(f):
     @wraps(f)
     def decorated_check_group_membership(*args, **kwargs):
         group = request.view_args.get("group")
+        
+        # Remove extra whitespaces that users can add due to autocompletion
+        group_no_whitespace = group.strip()
 
-        if group and not is_group_member(g.user, group):
+        if not is_group_member(g.user, group_no_whitespace):
             return "Forbidden: not an member for the requested group", 403
 
         return f(*args, **kwargs)
 
     return decorated_check_group_membership
+# @/unsafe[block]

