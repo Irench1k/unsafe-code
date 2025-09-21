@@ -27,11 +27,19 @@ class DatabaseStorage:
         return None
 
     def add_group_to_storage(self, new_group):
-        new_groups = []        
+        new_groups = []
+
+        # If the group already exists, we update it
+        is_group_updated = False
         for old_group in self._data["groups"]:
             if old_group["name"] == new_group["name"]:
                 new_groups.append(new_group)
+                is_group_updated = True
             else:
                 new_groups.append(old_group)
+    
+        # If the group does not exist, we add it
+        if not is_group_updated:
+            new_groups.append(new_group)
 
         self._data["groups"] = new_groups
