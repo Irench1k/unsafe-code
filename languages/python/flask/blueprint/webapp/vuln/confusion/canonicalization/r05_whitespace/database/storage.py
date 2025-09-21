@@ -26,10 +26,6 @@ class DatabaseStorage:
                 return group
         return None
 
-    # @unsafe[block]
-    # id: 21
-    # part: 3
-    # @/unsafe
     def add_group_to_storage(self, new_group):
         new_groups = []
 
@@ -49,4 +45,3 @@ class DatabaseStorage:
             new_groups.append(new_group)
 
         self._data["groups"] = new_groups
-    # @/unsafe[block]

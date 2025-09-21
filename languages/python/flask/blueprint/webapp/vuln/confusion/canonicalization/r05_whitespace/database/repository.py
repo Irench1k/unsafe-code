@@ -52,3 +52,13 @@ class GroupRepository:
     def update_group(self, group: Group) -> None:
         """Update existing group in the database."""
         self.storage.add_group_to_storage(group.model_dump())
+        
+    def add_member(self, groupname: str, group_member: GroupMember) -> None:
+        """Add a new member to the group."""
+        group = self.get_group(groupname)
+        
+        if self.is_group_member(group_member.user, groupname):
+            raise Exception("Member already exists!")
+        
+        group.users.append(group_member)
+        self.update_group(group)

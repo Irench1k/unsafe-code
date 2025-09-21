@@ -1,6 +1,6 @@
 from .storage import DatabaseStorage
 from .repository import UserRepository, GroupRepository
-from .models import Message, Group
+from .models import Message, Group, GroupMember
 
 _storage = DatabaseStorage()
 user_repository = UserRepository(_storage)
@@ -24,6 +24,9 @@ def create_new_group(group: Group) -> None:
 
 def update_existing_group(group: Group) -> None:
     return group_repository.update_group(group)
+
+def add_member(groupname: str, member_request: GroupMember) -> None:
+    return group_repository.add_member(groupname, member_request)
 
 def group_exists(groupname: str) -> bool:
     try:

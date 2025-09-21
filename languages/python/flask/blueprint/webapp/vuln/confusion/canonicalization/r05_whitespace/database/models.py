@@ -14,12 +14,7 @@ class GroupMember(BaseModel):
     role: Literal["member", "admin"]
     user: str
 
-# @unsafe[block]
-# id: 21
-# part: 2
-# @/unsafe
 class Group(BaseModel):
     name: constr(strip_whitespace=True)
     users: list[GroupMember]
     messages: list[Message]
-# @/unsafe[block]

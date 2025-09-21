@@ -111,9 +111,87 @@ examples:
       r03_whitespace/decorator.py: 37ac40794a7041eb030a237e2f69cdbf77d55130d17990618869df1255b3a1fc
       r03_whitespace/routes.py: ff5ec0370f2f1e8ad1c61c84b0f3f756d4655d83d0bd6bb219417c027944d424
     fingerprint: 55cf1ee61a56379f49d1eea25350ea8d142e8815db03f7c66065ab938bd54a05
+  21:
+    id: 21
+    kind: block
+    title: Whitespace Canonicalization
+    notes: >-
+      Previously we only had 'add group' functionality. Now we add group update handler as
+      well. There are two distinct API endpoints now, one creates a new group (and we make
+      sure to check that the group truly does not exist yet!), and the other endpoint updates
+      the existing group (this is privileged operation, so we check that the user is an admin
+      with @check_if_admin decorator).
+
+
+      Unfortunately, the code remains vulnerable to canonicalization confusion attack. In
+      the `create_group` handler we perform group uniqueness check on the raw group name provided
+      by user `request.json.get("name")`. However, if the check passes, the `create_new_group`
+      is called with the canonicalized data in the Group object. Group model uses `constr`
+      feature from pydantic, which strips whitespace on insertion, so the attacker can bypass
+      group uniqueness check by providing a group name with extra whitespace at the start
+      or end of the group name.
+
+
+      Compare the exploit to exploit-19.http. Here the impact is much worse, because instead
+      of ovewriting the existing group (and losing its message history), this time Plankton
+      can simply add himself to the group admins, getting privileged access to existing group
+      and its messages. This happens because DatabaseStorage.add_group_to_storage tries to
+      be idempotent and cleverly creates a new group if it doesn't exist yet while only updating
+      permissions of an existing group. As a result, even though `create_group` and `update_group`
+      are meant to be separate handlers, in fact they only differ in the security check implementations,
+      while the downstream code path is shared. So by bypassing group uniqueness check in
+      `create_group` Plankton in fact manages to use this handler as if it was `update_group`
+      - while he wouldn't be able to use `update_group` directly.
+
+
+      The root cause of the attack is again an inconsistent canonicalization: when we check
+      for group existence, we use raw input, but when we store the group, we use canonicalized
+      data.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r04_whitespace/routes.py
+      code_start_line: 49
+      code_end_line: 94
+    - part: 2
+      file: r04_whitespace/database/models.py
+      code_start_line: 21
+      code_end_line: 24
+    - part: 3
+      file: r04_whitespace/database/storage.py
+      code_start_line: 33
+      code_end_line: 51
+    file_hashes:
+      r04_whitespace/database/models.py: 2b52c91495ba137595a7a42bfa0037f98f7ae9eab0315937353e7e9776c1f8c6
+      r04_whitespace/database/storage.py: bb447b07e9f1d4cc26e473861bf4bfb31ff9589220f2ed00e9244e79073a5b4d
+      r04_whitespace/routes.py: 27a4d5b79abcb702c518c22d96cd22002735e0dfff71eae67ef4560ed61c0540
+    fingerprint: 82a081f576bd4ab31118a703a4223f8d0f9b0bf787c8dcf0f61c1d5c25229500
+  22:
+    id: 22
+    kind: block
+    title: Whitespace Canonicalization
+    notes: >-
+      TBD
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r05_whitespace/routes.py
+      code_start_line: 19
+      code_end_line: 48
+    - part: 2
+      file: r05_whitespace/decorator.py
+      code_start_line: 48
+      code_end_line: 58
+    file_hashes:
+      r05_whitespace/decorator.py: f4b51f7b6b3a13d42f993ce328a3a31358344b6b8ea5e165fce2e27e4605261d
+      r05_whitespace/routes.py: cfb2dbe6976ea19acb2959ce82da67d7bffe0d7b0454cab45138cb89843ecbba
+    fingerprint: a0716f86802b13bd3bcc9c8c80333675d3eaa40995563732e531c1d36d8db470
 attachments:
   http/exploit-18.http: 1707435f67a14b752803a21cee16573f187daec5858825daf4b605aef8561a73
   http/exploit-19.http: 1e73aaf4cd46bfad5cf5c0a44f645ab03c523eff50041bbb0ad4867e35201a05
-  http/exploit-20.http: f1ab97c17f69336911b2d1f2fa26b94ab08892e4e8b57c2e0fcfd224f54fee7c
-build_signature: 8c44cd7b8c6fcae8a2113fde2bd0eeb8c7b23298a87257e33350f9817069809d
-last_readme_fingerprint: 0c060b1f96a73e8ea5d6bc5e69e0c8987fd937624da95657d719d5e853af5343
+  http/exploit-20.http: d9f4038204cc2b00a4d2e249c95942323e9fd84052e5bf6331223dff96b24686
+  http/exploit-21.http: 054935b860d1f7b048e0848a175e6fe5dd77d2d52cbfe366b050e9ceab45004f
+build_signature: eadc40e5ef0e9e21b373fa3a52b06724db28e4f7f0268a4483a9fbcc98b84520
+last_readme_fingerprint: 91f7c9bfda085099de48f4f8b6fb7f06719732e8919ec148de5bc1d898d4d303

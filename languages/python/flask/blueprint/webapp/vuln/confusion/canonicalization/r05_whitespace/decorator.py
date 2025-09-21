@@ -41,6 +41,10 @@ def check_group_membership(f):
 
     return decorated_check_group_membership
 
+# @unsafe[block]
+# id: 22
+# part: 2
+# @/unsafe
 def check_if_admin(f):
     @wraps(f)
     def decorated_check_if_admin(*args, **kwargs):
@@ -52,3 +56,4 @@ def check_if_admin(f):
         return f(*args, **kwargs)
      
     return decorated_check_if_admin
+# @/unsafe[block]
