@@ -1,0 +1,20 @@
+from pydantic import BaseModel
+from typing import Literal
+
+class Message(BaseModel):
+    from_user: str
+    message: str
+
+class User(BaseModel):
+    name: str
+    password: str
+    messages: list[Message]
+
+class GroupMember(BaseModel):
+    role: Literal["member", "admin"]
+    user: str
+
+class Group(BaseModel):
+    name: str
+    users: list[GroupMember]
+    messages: list[Message]
