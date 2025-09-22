@@ -15,6 +15,6 @@ class GroupMember(BaseModel):
     user: str
 
 class Group(BaseModel):
-    name: constr(strip_whitespace=True)
+    name: str
     users: list[GroupMember]
     messages: list[Message]
