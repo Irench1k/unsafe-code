@@ -1,13 +1,14 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, Response, request, jsonify, g
 
 from pydantic import ValidationError
 
 from .decorator import basic_auth, check_group_membership, check_if_admin
-from .database import get_group_messages, create_new_group, update_existing_group, add_member, group_exists
-from .database.models import Group
-from .database.models import GroupMember
+from .services.groups import GroupService
+from .services.messages import MessageService
+from .schemas.groups import CreateGroupMember, CreateGroup, UpdateGroupSettings, GroupDTO
+from .schemas.messages import MessagesDTO
 
-bp = Blueprint("whitespace_2", __name__)
+bp = Blueprint("sqlalchemy", __name__)
 
 
 # @unsafe[block]
@@ -19,15 +20,16 @@ bp = Blueprint("whitespace_2", __name__)
 @bp.get("/example22/groups/<group>/messages")
 @basic_auth
 @check_group_membership
-def example22(group):
-    messages = get_group_messages(group)
-    
-    return jsonify([m.model_dump() for m in messages])
+def example22(group: str) -> Response:
+    message_service = MessageService()
+    dto: MessagesDTO = message_service.get_group_messages(group)
+    return jsonify(dto.model_dump())
+# @/unsafe[block]
 
 @bp.post("/example22/groups/<group>")
 @basic_auth
 @check_if_admin
-def add_group_member(group):
+def add_group_member(group: str) -> Response:
     """
     Accepts a POST request with a JSON body:
     {
@@ -36,17 +38,13 @@ def add_group_member(group):
     }
     """
     try:
-        member_request = GroupMember.model_validate_json(request.data)
+        cmd = CreateGroupMember.model_validate_json(request.data)
     except ValidationError as e:
-        return {"status": "error", "message": str(e)}, 400
+        return jsonify({"status": "error", "message": str(e)}), 400
     
-    try:
-        add_member(group, member_request)
-    except Exception as e:
-        return {"status": "error", "message": str(e)}, 400
-        
-    return jsonify({"status": "ok"})
-# @/unsafe[block]
+    group_service = GroupService()
+    dto: GroupDTO = group_service.add_member(group, cmd)
+    return jsonify(dto.model_dump())
 
 @bp.post("/example22/groups")
 @basic_auth
@@ -61,36 +59,30 @@ def create_group():
     }
     """
     try:
-        group_request = Group.model_validate_json(request.data)
+        cmd = CreateGroup.model_validate_json(request.data)
     except ValidationError as e:
-        return {"status": "error", "message": str(e)}, 400
-
-    if group_exists(request.json.get("name", None)):
-        return {"status": "error", "message": "Group already exists!"}, 400
+        return jsonify({"status": "error", "message": str(e)}), 400
     
-    create_new_group(group_request)
-    return jsonify({"status": "ok"})
+    group_service = GroupService()
+    dto: GroupDTO = group_service.create_group(g.user, cmd)
+    return jsonify(dto.model_dump())
 
 @bp.post("/example22/groups/<group>")
 @basic_auth
 @check_if_admin
-def update_group(group):
+def update_group(group: str) -> Response:
     """Create a new group.
 
     Accepts a POST request with a JSON body:
     {
-        "users": [{"role": "member" | "admin", "user": "string"}],
-        "messages": [{"from_user": "string", "message": "string"}]
+        "users": [{"role": "member" | "admin", "user": "string"}]
     }
     """
     try:
-        group_request = Group.model_validate_json({
-            "name": group,
-            "users": request.json.get("users", None),
-            "messages": request.json.get("messages", None)
-        })
+        cmd = UpdateGroupSettings.model_validate_json(request.data)
     except ValidationError as e:
-        return {"status": "error", "message": str(e)}, 400
-
-    update_existing_group(group_request)
-    return jsonify({"status": "ok"})
+        return jsonify({"status": "error", "message": str(e)}), 400
+    
+    group_service = GroupService()
+    dto: GroupDTO = group_service.update_group(group, cmd)
+    return jsonify(dto.model_dump())

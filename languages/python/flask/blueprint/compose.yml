@@ -8,6 +8,18 @@ services:
     ports:
       - "${PORT:-8000}:8000"
     networks: [lab]
+    environment:
+      DATABASE_URL: postgresql+psycopg://unsafe:code@db:5432/lab
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: unsafe
+      POSTGRES_PASSWORD: code
+      POSTGRES_DB: lab
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    # no volumes here, the database is ephemeral
 
 networks:
   lab: {}
