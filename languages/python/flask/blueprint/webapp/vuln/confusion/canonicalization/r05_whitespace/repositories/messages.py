@@ -1,65 +1,61 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from ..models import Group, Message, User
+
+from ..models import Message
 
 
 class MessageRepository:
     def __init__(self, session: Session):
         self.s = session
 
-    # Create
-
-    def send_to_user(
-        self, author_email: str, recipient_user_email: str, body: str
-    ) -> Message:
+    def _create_message(self, from_user: str, message: str, recipient_group: str = "", recipient_user: str = "") -> Message:
+        """Create a message using email addresses"""
         msg = Message(
-            author=User(email=author_email),
-            recipient_user=User(email=recipient_user_email),
-            body=body,
+            from_user=from_user,
+            message=message,
+            recipient_group=recipient_group,
+            recipient_user=recipient_user
         )
         self.s.add(msg)
         self.s.flush()
         return msg
 
-    def send_to_group(
-        self, author_email: str, recipient_group_name: str, body: str
-    ) -> Message:
-        msg = Message(
-            author=User(email=author_email),
-            recipient_group=Group(name=recipient_group_name),
-            body=body,
+    def send_to_user(self, from_user: str, recipient_user: str, message: str) -> Message:
+        """Send message to a user - using email addresses"""
+        return self._create_message(
+            from_user=from_user,
+            message=message,
+            recipient_user=recipient_user
         )
-        self.s.add(msg)
-        self.s.flush()
-        return msg
 
-    # Query by sender
-
-    def by_sender(self, email: str, limit: int = 100, offset: int = 0) -> list[Message]:
-        stmt = (
-            select(Message)
-            .where(Message.author.has(User.email == email))
-            .order_by(Message.created_at.desc())
-            .limit(limit).offset(offset)
+    def send_to_group(self, from_user: str, recipient_group: str, message: str) -> Message:
+        """Send message to a group - using group name"""
+        return self._create_message(
+            from_user=from_user,
+            message=message,
+            recipient_group=recipient_group
         )
+
+    def get_user_messages(self, user_email: str) -> list[Message]:
+        """Get messages sent to a specific user"""
+        stmt = select(Message).where(Message.recipient_user == user_email)
         return list(self.s.scalars(stmt).all())
 
-    # Inbox / destination
-
-    def to_user(self, email: str, limit: int = 100, offset: int = 0) -> list[Message]:
-        stmt = (
-            select(Message)
-            .where(Message.recipient_user.has(User.email == email))
-            .order_by(Message.created_at.desc())
-            .limit(limit).offset(offset)
-        )
+    def get_group_messages(self, group_name: str) -> list[Message]:
+        """Get messages sent to a specific group"""
+        stmt = select(Message).where(Message.recipient_group == group_name)
         return list(self.s.scalars(stmt).all())
 
-    def to_group(self, group_name: str, limit: int = 100, offset: int = 0) -> list[Message]:
-        stmt = (
-            select(Message)
-            .where(Message.recipient_group.has(Group.name == group_name))
-            .order_by(Message.created_at.desc())
-            .limit(limit).offset(offset)
+    def get_messages_from_user(self, user_email: str) -> list[Message]:
+        """Get all messages sent by a user"""
+        stmt = select(Message).where(Message.from_user == user_email)
+        return list(self.s.scalars(stmt).all())
+
+    def get_messages_for_domain(self, domain: str) -> list[Message]:
+        """Get all messages for users/groups in a domain"""
+        stmt = select(Message).where(
+            (Message.from_user.ilike(f'%@{domain}')) |
+            (Message.recipient_user.ilike(f'%@{domain}')) |
+            (Message.recipient_group.ilike(f'%@{domain}'))
         )
         return list(self.s.scalars(stmt).all())

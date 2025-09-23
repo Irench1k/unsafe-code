@@ -1,8 +1,9 @@
+from ..db import make_session
+from ..models import RoleEnum
 from ..repositories.groups import GroupRepository
 from ..repositories.users import UserRepository
-from ..models import RoleEnum
-from ..schemas.groups import CreateGroupMember, CreateGroup, UpdateGroupSettings, GroupDTO
-from ..db import make_session
+from ..schemas.groups import (CreateGroup, CreateGroupMember, GroupDTO,
+                              UpdateGroupSettings)
 
 
 class GroupService:
@@ -10,6 +11,9 @@ class GroupService:
         self.s = make_session()
         self.groups = GroupRepository(self.s)
         self.users = UserRepository(self.s)
+
+    def _same_org(self, owner: str, user: str) -> bool:
+        return owner.split('@')[-1] == user.split('@')[-1]
 
     def create_group(self, owner: str, group: CreateGroup) -> GroupDTO:
         if not self._same_org(owner, group.name):
@@ -32,7 +36,7 @@ class GroupService:
             else:
                 self.groups.add_member(group.name, user.user, user.role)
 
-        return GroupDTO.from_db(grp)
+        return GroupDTO.from_db(grp, self.groups.get_group_members(grp.name))
 
     def update_group(self, group: str, settings: UpdateGroupSettings) -> GroupDTO:
         grp = self.groups.get_by_name(group)
@@ -41,11 +45,11 @@ class GroupService:
 
         for user in settings.users:
             self.groups.add_member(group, user.user, user.role)
-        return GroupDTO.from_db(grp)
+        return GroupDTO.from_db(grp, self.groups.get_group_members(grp.name))
 
     def add_member(self, group: str, member: CreateGroupMember) -> GroupDTO:
         grp = self.groups.get_by_name(group)
         if not grp:
             raise ValueError("Group not found")
         self.groups.add_member(group, member.user, member.role)
-        return GroupDTO.from_db(grp)
+        return GroupDTO.from_db(grp, self.groups.get_group_members(grp.name))

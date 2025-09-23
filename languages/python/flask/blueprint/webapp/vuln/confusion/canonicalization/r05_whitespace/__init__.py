@@ -1,5 +1,7 @@
 import os
-from flask import Flask
+
+from flask import Blueprint
+
 from .db import ensure_schema, make_engine_for_schema, make_session
 from .models import Base
 #from .seed import seed
@@ -7,7 +9,7 @@ from .routes import bp
 
 SCHEMA = "R05"
 
-def register(app: Flask) -> None:
+def register(app: Blueprint) -> None:
     """
     Register blueprint and (optionally) auto-init schema/tables/seed for this example.
     This file depends only on this example's own modules.

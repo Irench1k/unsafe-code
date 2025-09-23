@@ -1,5 +1,5 @@
-from pydantic import BaseModel, constr
-from typing import Literal
+from pydantic import BaseModel, StringConstraints
+from typing import Literal, Annotated
 
 class Message(BaseModel):
     from_user: str
@@ -19,7 +19,7 @@ class GroupMember(BaseModel):
 # part: 2
 # @/unsafe
 class Group(BaseModel):
-    name: constr(strip_whitespace=True)
+    name: Annotated[str, StringConstraints(strip_whitespace=True)]
     users: list[GroupMember]
     messages: list[Message]
 # @/unsafe[block]

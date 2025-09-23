@@ -1,7 +1,10 @@
-from flask import request, Response, g
 from functools import wraps
-from .services.users import UserService
+
+from flask import Response, g, request
+
 from .services.groups import GroupService
+from .services.users import UserService
+
 
 def response_401():
     """Sends a 401 response, asking for authentication."""

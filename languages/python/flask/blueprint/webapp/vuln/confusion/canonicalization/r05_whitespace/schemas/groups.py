@@ -1,6 +1,10 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Literal
-from ..models import GroupMember as GroupMemberModel, Group as GroupModel
+
+from pydantic import BaseModel, ConfigDict, EmailStr
+
+from ..models import Group as GroupModel
+from ..models import GroupMember as GroupMemberModel
+
 
 # Input schemas
 class CreateGroupMember(BaseModel):
@@ -26,7 +30,7 @@ class GroupMemberDTO(BaseModel):
 
     @classmethod
     def from_db(cls, user: GroupMemberModel):
-        return cls(role=user.role, user=user.user)
+        return cls(role=user.role.value, user=user.user_email)
 
 class GroupDTO(BaseModel):
     name: EmailStr
@@ -35,6 +39,6 @@ class GroupDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
 
     @classmethod
-    def from_db(cls, group: GroupModel):
+    def from_db(cls, group: GroupModel, users: list[GroupMemberModel]):
         return cls(name=group.name, description=group.description,
-            users=[GroupMemberDTO.from_db(user) for user in group.member_links])
+            users=[GroupMemberDTO.from_db(user) for user in users])

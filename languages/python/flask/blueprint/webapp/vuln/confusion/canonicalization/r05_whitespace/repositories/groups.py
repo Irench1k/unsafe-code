@@ -1,5 +1,6 @@
-from sqlalchemy import select, exists, and_
+from sqlalchemy import select
 from sqlalchemy.orm import Session
+
 from ..models import Group, GroupMember, RoleEnum
 
 
@@ -7,61 +8,84 @@ class GroupRepository:
     def __init__(self, session: Session):
         self.s = session
 
-    def get_by_name(self, org_id: int, name: str) -> Group | None:
-        stmt = select(Group).where(
-            and_(Group.organization_id == org_id, Group.name == name)
-        )
+    def create_group(self, name: str, description: str = "") -> Group:
+        """Create a new group"""
+        group = Group(name=name, description=description)
+        self.s.add(group)
+        self.s.flush()
+        return group
+
+    def get_by_name(self, name: str) -> Group | None:
+        """Get group by name"""
+        stmt = select(Group).where(Group.name == name)
         return self.s.scalars(stmt).first()
 
-    def create_group(self, org_id: int, name: str, description: str | None) -> Group:
-        grp = Group(organization_id=org_id, name=name, description=description)
-        self.s.add(grp)
-        self.s.flush()  # get grp.id
-        return grp
+    def group_exists(self, name: str) -> bool:
+        """Check if group exists by name"""
+        return self.get_by_name(name) is not None
 
-    def update_group(self, org_id: int, name: str, *, new_name: str | None, description: str | None) -> Group:
-        grp = self.get_by_name(org_id, name)
-        if not grp:
-            raise ValueError("Group not found")
-        if new_name:
-            grp.name = new_name
-        if description is not None:
-            grp.description = description
-        self.s.flush()
-        return grp
+    def list_groups_for_domain(self, domain: str) -> list[Group]:
+        """Get all groups for a domain"""
+        stmt = select(Group).where(Group.name.ilike(f'%@{domain}'))
+        return list(self.s.scalars(stmt).all())
 
-    def add_member(self, org_id: int, group_name: str, user_id: int, role: RoleEnum = RoleEnum.member) -> Group:
-        grp = self.get_by_name(org_id, group_name)
-        if not grp:
-            raise ValueError("Group not found")
-
-        # sanity: ensure user belongs to same org
-        user = self.s.get(User, user_id)
-        if not user or user.organization_id != org_id:
-            raise ValueError("User not found in organization")
-
-        link = self.s.get(GroupMember, {"user_id": user_id, "group_id": grp.id})
-        if link:
-            link.role = role
-        else:
-            link = GroupMember(user_id=user_id, group_id=grp.id, role=role)
-            self.s.add(link)
-
-        self.s.flush()
-        return grp
-
-    def is_member(self, user_id: int, group_id: int) -> bool:
-        stmt = select(exists().where(
-            and_(GroupMember.user_id == user_id, GroupMember.group_id == group_id)
-        ))
-        return self.s.scalar(stmt)
-
-    def is_admin(self, user_id: int, group_id: int) -> bool:
-        stmt = select(exists().where(
-            and_(
-                GroupMember.user_id == user_id,
-                GroupMember.group_id == group_id,
-                GroupMember.role == RoleEnum.admin
+    def add_member(self, group_name: str, user_email: str, role: RoleEnum):
+        """Add member to group using email addresses"""
+        # First check if membership already exists
+        existing = self.s.scalars(
+            select(GroupMember).where(
+                (GroupMember.group_name == group_name) &
+                (GroupMember.user_email == user_email)
             )
-        ))
-        return self.s.scalar(stmt)
+        ).first()
+
+        if existing:
+            # Update role if membership exists
+            existing.role = role
+        else:
+            # Create new membership
+            member = GroupMember(
+                group_name=group_name,
+                user_email=user_email,
+                role=role
+            )
+            self.s.add(member)
+        self.s.flush()
+
+    def get_group_members(self, group_name: str) -> list[GroupMember]:
+        """Get all members of a group by name"""
+        stmt = select(GroupMember).where(GroupMember.group_name == group_name)
+        return list(self.s.scalars(stmt).all())
+
+    def is_user_member(self, user_email: str, group_name: str) -> bool:
+        """Check if user is member of group"""
+        stmt = select(GroupMember).where(
+            (GroupMember.user_email == user_email) &
+            (GroupMember.group_name == group_name)
+        )
+        return self.s.scalars(stmt).first() is not None
+
+    def is_user_admin(self, user_email: str, group_name: str) -> bool:
+        """Check if user is admin of group"""
+        stmt = select(GroupMember).where(
+            (GroupMember.user_email == user_email) &
+            (GroupMember.group_name == group_name) &
+            (GroupMember.role == RoleEnum.admin)
+        )
+        return self.s.scalars(stmt).first() is not None
+
+    def update_group_members(self, group_name: str, members: list[dict]):
+        """Update all members of a group - mimicking r04's group update behavior"""
+        # Delete existing members
+        existing_members = select(GroupMember).where(GroupMember.group_name == group_name)
+        for member in self.s.scalars(existing_members):
+            self.s.delete(member)
+
+        # Add new members
+        for member_data in members:
+            self.add_member(
+                group_name=group_name,
+                user_email=member_data["user"],
+                role=RoleEnum(member_data["role"])
+            )
+        self.s.flush()

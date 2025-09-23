@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict, EmailStr
+
 from ..models import Message as MessageModel
+
 
 # Shared message schema: used for both private and group messages
 class Message(BaseModel):
@@ -9,7 +11,7 @@ class Message(BaseModel):
 
     @classmethod
     def from_db(cls, message: MessageModel):
-        return cls(sender=message.author.email, message=message.body)
+        return cls(sender=message.from_user, message=message.message)
 
 class MessagesDTO(BaseModel):
     recipient: EmailStr
@@ -17,6 +19,6 @@ class MessagesDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
 
     @classmethod
-    def from_db(cls, recipient: EmailStr, messages: list[Message]):
+    def from_db(cls, recipient: EmailStr, messages: list[MessageModel]):
         return cls(recipient=recipient,
             messages=[Message.from_db(message) for message in messages])

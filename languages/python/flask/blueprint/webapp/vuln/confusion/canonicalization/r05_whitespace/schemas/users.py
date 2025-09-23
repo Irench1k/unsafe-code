@@ -1,5 +1,7 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
+
 from ..models import User as UserModel
+
 
 class CreateUser(BaseModel):
     email: EmailStr

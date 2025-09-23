@@ -1,17 +1,19 @@
-from ..repositories.users import UserRepository
-from ..schemas.users import UserDTO, CreateUser
-from ..db import make_session
 import bcrypt
+
+from ..db import make_session
+from ..repositories.users import UserRepository
+from ..schemas.users import CreateUser, UserDTO
+
 
 class UserService:
     def __init__(self):
         self.s = make_session()
         self.users = UserRepository(self.s)
 
-    def create_user(self, user: CreateUser) -> UserDTO:
+    def create_user(self, cmd: CreateUser) -> UserDTO:
         user = self.users.create_user(
-            user.email, user.first_name, user.last_name,
-            bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            cmd.email, cmd.first_name, cmd.last_name,
+            bcrypt.hashpw(cmd.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         )
         return UserDTO.from_db(user)
 

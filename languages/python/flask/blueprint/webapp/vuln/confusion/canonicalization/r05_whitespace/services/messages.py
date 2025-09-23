@@ -1,6 +1,7 @@
+from ..db import make_session
 from ..repositories.messages import MessageRepository
 from ..schemas.messages import MessagesDTO
-from ..db import make_session
+
 
 class MessageService:
     def __init__(self):

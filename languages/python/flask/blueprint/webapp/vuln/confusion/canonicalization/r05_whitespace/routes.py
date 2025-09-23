@@ -1,12 +1,12 @@
-from flask import Blueprint, Response, request, jsonify, g
-
+from flask import Blueprint, Response, g, jsonify, request
 from pydantic import ValidationError
 
 from .decorator import basic_auth, check_group_membership, check_if_admin
+from .schemas.groups import (CreateGroup, CreateGroupMember, GroupDTO,
+                             UpdateGroupSettings)
+from .schemas.messages import MessagesDTO
 from .services.groups import GroupService
 from .services.messages import MessageService
-from .schemas.groups import CreateGroupMember, CreateGroup, UpdateGroupSettings, GroupDTO
-from .schemas.messages import MessagesDTO
 
 bp = Blueprint("sqlalchemy", __name__)
 
@@ -29,7 +29,7 @@ def example22(group: str) -> Response:
 @bp.post("/example22/groups/<group>")
 @basic_auth
 @check_if_admin
-def add_group_member(group: str) -> Response:
+def add_group_member(group: str) -> Response | tuple[Response, int]:
     """
     Accepts a POST request with a JSON body:
     {
@@ -48,7 +48,7 @@ def add_group_member(group: str) -> Response:
 
 @bp.post("/example22/groups")
 @basic_auth
-def create_group():
+def create_group() -> Response | tuple[Response, int]:
     """Create a new group.
 
     Accepts a POST request with a JSON body:
@@ -70,7 +70,7 @@ def create_group():
 @bp.post("/example22/groups/<group>")
 @basic_auth
 @check_if_admin
-def update_group(group: str) -> Response:
+def update_group(group: str) -> Response | tuple[Response, int]:
     """Create a new group.
 
     Accepts a POST request with a JSON body:
