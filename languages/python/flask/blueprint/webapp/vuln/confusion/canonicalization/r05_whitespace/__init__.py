@@ -1,13 +1,37 @@
+import logging
 import os
 
 from flask import Blueprint
 
-from .db import ensure_schema, make_engine_for_schema, make_session
+from .db import SCHEMA, ensure_schema, make_engine_for_schema, make_session, wait_for_db, redacted_dsn
 from .models import Base
-#from .seed import seed
 from .routes import bp
+from .seed import seed_database
 
-SCHEMA = "R05"
+log = logging.getLogger(__name__)
+
+@bp.before_request
+def create_session():
+    """Create database session per request."""
+    from flask import g
+    g.db_session = make_session()
+
+@bp.teardown_request
+def close_db(error):
+    """Clean up database session at the end of each request."""
+    from flask import g
+    s = getattr(g, 'db_session', None)
+    if not s:
+        return
+    try:
+        if error:
+            s.rollback()
+    finally:
+        s.close()
+
+def _in_reloader_parent() -> bool:
+    # In debug, parent has WERKZEUG_RUN_MAIN unset; child has it == "true"
+    return os.getenv("WERKZEUG_RUN_MAIN") != "true"
 
 def register(app: Blueprint) -> None:
     """
@@ -16,16 +40,36 @@ def register(app: Blueprint) -> None:
     """
     app.register_blueprint(bp)
 
-    if os.getenv("AUTO_INIT_EXAMPLES", "0") != "1":
+    log.info("Registering example blueprint, DSN=%s, schema=%s", redacted_dsn(), SCHEMA)
+
+    # Skip seeding in the reloader parent
+    if _in_reloader_parent():
+        log.info("Debug reloader parent detected; skipping init/seed in this process.")
         return
 
-    # Create schema, create tables into that schema, seed demo data
+    # 1) Verify the DB is reachable early, with clear logs
+    wait_for_db()  # pings using admin engine (no search_path)
+
+    # 2) Ensure schema
     ensure_schema()
+
+    # 3) Ping the schema-engine explicitly (search_path applied)
     engine = make_engine_for_schema()
+    wait_for_db(engine)
+
+    # 4) Create tables and seed demo data
+    log.info("Creating tables in schema %s", SCHEMA)
     Base.metadata.create_all(engine)
-#    session = make_session()
-#    try:
-#        #seed(session)
-#    finally:
-#        session.close()
-#
+
+    session = make_session()
+    try:
+        log.info("Seeding demo data into schema %s…", SCHEMA)
+        seed_database(session)
+        session.commit()
+        log.info("Seeding complete.")
+    except Exception:
+        session.rollback()
+        log.exception("Seeding failed; rolled back.")
+        raise
+    finally:
+        session.close()

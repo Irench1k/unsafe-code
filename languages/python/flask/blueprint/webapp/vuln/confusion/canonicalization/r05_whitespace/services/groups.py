@@ -1,4 +1,3 @@
-from ..db import make_session
 from ..models import RoleEnum
 from ..repositories.groups import GroupRepository
 from ..repositories.users import UserRepository
@@ -8,9 +7,9 @@ from ..schemas.groups import (CreateGroup, CreateGroupMember, GroupDTO,
 
 class GroupService:
     def __init__(self):
-        self.s = make_session()
-        self.groups = GroupRepository(self.s)
-        self.users = UserRepository(self.s)
+        from flask import g
+        self.groups = GroupRepository(g.db_session)
+        self.users = UserRepository(g.db_session)
 
     def _same_org(self, owner: str, user: str) -> bool:
         return owner.split('@')[-1] == user.split('@')[-1]
@@ -53,3 +52,11 @@ class GroupService:
             raise ValueError("Group not found")
         self.groups.add_member(group, member.user, member.role)
         return GroupDTO.from_db(grp, self.groups.get_group_members(grp.name))
+
+    def is_member(self, user_email: str, group_name: str) -> bool:
+        """Check if user is member of group"""
+        return self.groups.is_user_member(user_email, group_name)
+
+    def is_admin(self, user_email: str, group_name: str) -> bool:
+        """Check if user is admin of group"""
+        return self.groups.is_user_admin(user_email, group_name)

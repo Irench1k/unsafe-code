@@ -1,14 +1,13 @@
 import bcrypt
 
-from ..db import make_session
 from ..repositories.users import UserRepository
 from ..schemas.users import CreateUser, UserDTO
 
 
 class UserService:
     def __init__(self):
-        self.s = make_session()
-        self.users = UserRepository(self.s)
+        from flask import g
+        self.users = UserRepository(g.db_session)
 
     def create_user(self, cmd: CreateUser) -> UserDTO:
         user = self.users.create_user(

@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict
+
 from ..models import Organization as OrganizationModel
+
 
 class CreateOrganization(BaseModel):
     name: str

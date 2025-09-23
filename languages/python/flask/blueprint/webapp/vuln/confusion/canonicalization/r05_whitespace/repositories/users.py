@@ -19,6 +19,10 @@ class UserRepository:
         stmt = select(User).where(User.email == email)
         return self.s.scalars(stmt).first()
 
+    def get_by_username(self, username: str) -> User | None:
+        """Get user by username (alias for email for compatibility)"""
+        return self.get_by_email(username)
+
     def list_users_for_domain(self, domain: str) -> list[User]:
         """Get all users for a domain"""
         stmt = select(User).where(User.email.ilike(f'%@{domain}'))

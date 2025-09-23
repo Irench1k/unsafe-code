@@ -1,7 +1,8 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, Integer, String, Text, func
+from sqlalchemy import (CheckConstraint, DateTime, Enum, Integer, String, Text,
+                        func)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 # ---------- Base ----------

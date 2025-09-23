@@ -17,12 +17,12 @@ def response_401():
 
 def basic_auth(f):
     """Authenticates the user via Basic Auth. Stores the authenticated user in `g.user`."""
-    user_service = UserService()
-
     @wraps(f)
     def decorated_basic_auth(*args, **kwargs):
         # request.authorization extracts the username and password from the Authorization header (Basic Auth)
         auth = request.authorization
+        user_service = UserService()
+
         if not auth or not user_service.authenticate(auth.username, auth.password):
             return response_401()
 
@@ -32,31 +32,39 @@ def basic_auth(f):
 
     return decorated_basic_auth
 
+# @unsafe[block]
+# id: 22
+# part: 1
+# @/unsafe
 def check_group_membership(f):
-    group_service = GroupService()
-
     @wraps(f)
     def decorated_check_group_membership(*args, **kwargs):
         group = request.view_args.get("group")
 
-        if not group_service.is_member(g.user, group):
+        # Remove extra whitespaces that users can add due to autocompletion
+        group_no_whitespace = group.strip()
+
+        group_service = GroupService()
+
+        if not group_service.is_member(g.user, group_no_whitespace):
             return "Forbidden: not an member for the requested group", 403
 
         return f(*args, **kwargs)
 
     return decorated_check_group_membership
+# @/unsafe[block]
 
 # @unsafe[block]
 # id: 22
 # part: 2
 # @/unsafe
 def check_if_admin(f):
-    group_service = GroupService()
-
     @wraps(f)
     def decorated_check_if_admin(*args, **kwargs):
         group = request.view_args.get("group")
         
+        group_service = GroupService()
+
         if not group_service.is_admin(g.user, group):
             return "Forbidden: not an admin for the requested group", 403
         
