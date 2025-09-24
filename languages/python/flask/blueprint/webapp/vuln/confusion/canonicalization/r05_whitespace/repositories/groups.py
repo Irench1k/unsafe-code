@@ -12,7 +12,6 @@ class GroupRepository:
         """Create a new group"""
         group = Group(name=name, description=description)
         self.s.add(group)
-        self.s.flush()
         return group
 
     def get_by_name(self, name: str) -> Group | None:
@@ -41,16 +40,18 @@ class GroupRepository:
 
         if existing:
             # Update role if membership exists
+            print(f"Existing member {user_email} in group {group_name} with role {existing.role}")
             existing.role = role
         else:
             # Create new membership
+            print(f"Creating new member {user_email} in group {group_name} with role {role}")
             member = GroupMember(
                 group_name=group_name,
                 user_email=user_email,
                 role=role
             )
             self.s.add(member)
-        self.s.flush()
+        print(f"Added member {user_email} to group {group_name} with role {role}")
 
     def get_group_members(self, group_name: str) -> list[GroupMember]:
         """Get all members of a group by name"""
@@ -88,4 +89,3 @@ class GroupRepository:
                 user_email=member_data["user"],
                 role=RoleEnum(member_data["role"])
             )
-        self.s.flush()

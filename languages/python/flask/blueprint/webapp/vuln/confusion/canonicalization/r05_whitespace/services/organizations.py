@@ -11,4 +11,5 @@ class OrganizationService:
         organization = self.organizations.create_organization(
             cmd.name, cmd.domain, cmd.owner_email
         )
+        self.organizations.s.commit()
         return OrganizationDTO.from_db(organization)

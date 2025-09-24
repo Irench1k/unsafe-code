@@ -25,6 +25,7 @@ def close_db(error):
         return
     try:
         if error:
+            log.error("Rolling back database session due to error: %s", error)
             s.rollback()
     finally:
         s.close()

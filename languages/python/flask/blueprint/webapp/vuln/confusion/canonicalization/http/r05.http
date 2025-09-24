@@ -1,0 +1,35 @@
+@base = http://localhost:8000/vuln/confusion/canonicalization/example22
+
+GET {{base}}/groups/staff@krusty-krab.sea/messages
+Authorization: Basic spongebob@krusty-krab.sea:bikinibottom
+###
+POST {{base}}/groups/staff@krusty-krab.sea/members
+Authorization: Basic mr.krabs@krusty-krab.sea:$$$money$$$
+Content-Type: application/json
+
+{
+    "role": "member",
+    "user": "plankton@chum-bucket.sea"
+}
+###
+GET {{base}}/groups/staff@krusty-krab.sea/members
+Authorization: Basic spongebob@krusty-krab.sea:bikinibottom
+###
+GET {{base}}/groups/staff@krusty-krab.sea/messages
+Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
+###
+GET {{base}}/groups/staff@krusty-krab.sea/members
+Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
+###
+POST {{base}}/groups/staff@krusty-krab.sea
+Authorization: Basic mr.krabs@krusty-krab.sea:$$$money$$$
+Content-Type: application/json
+
+{
+    "users": [
+        {
+            "role": "member",
+            "user": "plankton@chum-bucket.sea"
+        }
+    ]
+}

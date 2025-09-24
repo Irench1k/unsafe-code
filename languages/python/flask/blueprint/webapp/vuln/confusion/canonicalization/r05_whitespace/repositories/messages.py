@@ -17,7 +17,6 @@ class MessageRepository:
             recipient_user=recipient_user
         )
         self.s.add(msg)
-        self.s.flush()
         return msg
 
     def send_to_user(self, from_user: str, recipient_user: str, message: str) -> Message:

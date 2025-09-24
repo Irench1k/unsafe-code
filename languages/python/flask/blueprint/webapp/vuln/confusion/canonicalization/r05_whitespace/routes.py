@@ -3,7 +3,7 @@ from flask import Blueprint, Response, g, jsonify, request
 from pydantic import ValidationError
 
 from .decorator import basic_auth, check_group_membership, check_if_admin
-from .schemas.groups import (CreateGroup, CreateGroupMember, GroupDTO,
+from .schemas.groups import (CreateGroup, CreateGroupMember, GroupDTO, GroupMembersDTO,
                              UpdateGroupSettings)
 from .schemas.messages import MessagesDTO
 from .schemas.organizations import CreateOrganization
@@ -19,29 +19,18 @@ bp = Blueprint("sqlalchemy", __name__)
 # id: 22
 # title: Whitespace Canonicalization
 # notes: |
-#   This is a classic whitespace confusion attack - two parts of the code handle whitespace differently:
-#   - strip() only removes leading/trailing whitespace
-#   - replace(" ", "") removes ALL whitespace
-#
-#   So here's what happens:
-#   - @check_group_membership uses strip() - sees "staff @krusty-krab.sea" and keeps the middle space
-#   - example22 uses replace() - turns "staff @krusty-krab.sea" into "staff@krusty-krab.sea"
-#
-#   The attack: Plankton creates "staff @krusty-krab.sea" (with space), gets authorized for HIS group,
-#   but the code actually fetches messages from "staff@krusty-krab.sea" (Mr. Krabs' group).
 # @/unsafe
 @bp.get("/example22/groups/<group>/messages")
 @basic_auth
 @check_group_membership
 def example22(group: str) -> Response:
     # Mobile users tend to send requests with whitespaces due to autocompletion.
-    group_no_whitespace = group.replace(" ", "")
     message_service = MessageService()
-    dto: MessagesDTO = message_service.get_group_messages(group_no_whitespace)
+    dto: MessagesDTO = message_service.get_group_messages(group)
     return jsonify(dto.model_dump())
 # @/unsafe[block]
 
-@bp.post("/example22/groups/<group>")
+@bp.post("/example22/groups/<group>/members")
 @basic_auth
 @check_if_admin
 def add_group_member(group: str) -> Response | tuple[Response, int]:
@@ -52,6 +41,8 @@ def add_group_member(group: str) -> Response | tuple[Response, int]:
         "user": "string"
     }
     """
+    # Mobile users tend to send requests with whitespaces due to autocompletion.
+    
     try:
         cmd = CreateGroupMember.model_validate_json(request.data)
     except ValidationError as e:
@@ -59,6 +50,17 @@ def add_group_member(group: str) -> Response | tuple[Response, int]:
 
     group_service = GroupService()
     dto: GroupDTO = group_service.add_member(group, cmd)
+    return jsonify(dto.model_dump())
+
+@bp.get("/example22/groups/<group>/members")
+@basic_auth
+@check_group_membership
+def get_group_members(group: str) -> Response | tuple[Response, int]:
+    """Get all members of a group"""
+    # Mobile users tend to send requests with whitespaces due to autocompletion.
+    
+    group_service = GroupService()
+    dto: GroupMembersDTO = group_service.get_group_members(group)
     return jsonify(dto.model_dump())
 
 @bp.post("/example22/groups")

@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, RootModel
 
 from ..models import Group as GroupModel
 from ..models import GroupMember as GroupMemberModel
@@ -31,6 +31,8 @@ class GroupMemberDTO(BaseModel):
     @classmethod
     def from_db(cls, user: GroupMemberModel):
         return cls(role=user.role.value, user=user.user_email)
+
+GroupMembersDTO = RootModel[list[GroupMemberDTO]]
 
 class GroupDTO(BaseModel):
     name: EmailStr

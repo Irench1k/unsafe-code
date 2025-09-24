@@ -1,7 +1,7 @@
 from ..models import RoleEnum
 from ..repositories.groups import GroupRepository
 from ..repositories.users import UserRepository
-from ..schemas.groups import (CreateGroup, CreateGroupMember, GroupDTO,
+from ..schemas.groups import (CreateGroup, CreateGroupMember, GroupDTO, GroupMemberDTO, GroupMembersDTO,
                               UpdateGroupSettings)
 
 
@@ -26,15 +26,12 @@ class GroupService:
         # add owner as admin even if they are not in the list
         self.groups.add_member(grp.name, owner, RoleEnum.admin)
         for user in group.users:
-            if not self._same_org(owner, user.user):
-                # skip users that are not in the same organization
-                continue
             if user.user == owner:
                 # skip owner, as we already added them as admin
                 continue
             else:
-                self.groups.add_member(group.name, user.user, user.role)
-
+                self.groups.add_member(grp.name, user.user, user.role)
+        self.groups.s.commit()
         return GroupDTO.from_db(grp, self.groups.get_group_members(grp.name))
 
     def update_group(self, group: str, settings: UpdateGroupSettings) -> GroupDTO:
@@ -44,6 +41,7 @@ class GroupService:
 
         for user in settings.users:
             self.groups.add_member(group, user.user, user.role)
+        self.groups.s.commit()
         return GroupDTO.from_db(grp, self.groups.get_group_members(grp.name))
 
     def add_member(self, group: str, member: CreateGroupMember) -> GroupDTO:
@@ -51,7 +49,8 @@ class GroupService:
         if not grp:
             raise ValueError("Group not found")
         self.groups.add_member(group, member.user, member.role)
-        return GroupDTO.from_db(grp, self.groups.get_group_members(grp.name))
+        self.groups.s.commit()
+        return GroupDTO.from_db(grp, self.groups.get_group_members(group))
 
     def is_member(self, user_email: str, group_name: str) -> bool:
         """Check if user is member of group"""
@@ -60,3 +59,8 @@ class GroupService:
     def is_admin(self, user_email: str, group_name: str) -> bool:
         """Check if user is admin of group"""
         return self.groups.is_user_admin(user_email, group_name)
+
+    def get_group_members(self, group_name: str) -> GroupMembersDTO:
+        """Get all members of a group"""
+        print(f"Getting group members for {group_name}")
+        return GroupMembersDTO([GroupMemberDTO.from_db(member) for member in self.groups.get_group_members(group_name)])

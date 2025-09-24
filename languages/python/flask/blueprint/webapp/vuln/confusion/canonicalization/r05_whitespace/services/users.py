@@ -14,6 +14,7 @@ class UserService:
             cmd.email, cmd.first_name, cmd.last_name,
             bcrypt.hashpw(cmd.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         )
+        self.users.s.commit()
         return UserDTO.from_db(user)
 
     def authenticate(self, username: str, password: str) -> bool:

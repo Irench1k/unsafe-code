@@ -12,7 +12,6 @@ class OrganizationRepository:
         """Create a new organization"""
         org = Organization(name=name, domain=domain, owner_email=owner_email)
         self.s.add(org)
-        self.s.flush()
         return org
 
     def get_by_domain(self, domain: str) -> Organization | None:

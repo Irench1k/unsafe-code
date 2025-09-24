@@ -11,7 +11,6 @@ class UserRepository:
     def create_user(self, email: str, first_name: str, last_name: str, password_hash: str) -> User:
         user = User(email=email, first_name=first_name, last_name=last_name, password_hash=password_hash)
         self.s.add(user)
-        self.s.flush()
         return user
 
     def get_by_email(self, email: str) -> User | None:

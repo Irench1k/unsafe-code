@@ -82,9 +82,7 @@ def _session_factory():
         engine = make_engine_for_schema()
         _SessionLocal = sessionmaker(
             bind=engine,
-            autoflush=False,
-            autocommit=False,
-            expire_on_commit=False,
+            autoflush=True
         )
     return _SessionLocal
 
