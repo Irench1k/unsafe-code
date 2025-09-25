@@ -3,6 +3,11 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 from ..models import Message as MessageModel
 
 
+class SendMessageRequest(BaseModel):
+    """Schema for sending messages to users or groups"""
+    message: str
+    model_config = ConfigDict(extra='forbid')
+
 # Shared message schema: used for both private and group messages
 class Message(BaseModel):
     sender: EmailStr
