@@ -2,7 +2,170 @@ version: '1'
 root: .
 category: ii.cross-component-parse
 namespace: flask-ii-cross-component-parse
-examples: {}
-attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: df2689afcefddf5725b226f94b038dcfef3e39d5c16c0b9575bc24eef6a2885d
+examples:
+  8:
+    id: 8
+    kind: block
+    title: Decorator-based Authentication with Parsing Drift
+    notes: >-
+      Shows how using decorators can obscure parameter source confusion.
+
+
+      Example 8 is functionally equivalent to Example 4 from the old parameter source confusion
+      examples, but it may be harder to spot the vulnerability while using decorators.
+
+
+      The decorator authenticates using request.args.get("user"), but the handler retrieves
+      the user via get_user() which prioritizes request.form over request.args.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r02_decorator_drift/routes.py
+      code_start_line: 19
+      code_end_line: 25
+    - part: 2
+      file: r02_decorator_drift/decorator.py
+      code_start_line: 16
+      code_end_line: 23
+    file_hashes:
+      r02_decorator_drift/decorator.py: 9d5eb026a7132ad602bdbb56591d81d5d2cd745b331486f2d0e4b4689c047a92
+      r02_decorator_drift/routes.py: 8d78d2c2c4d8ecd48fa3eaccc36e8afd5cef27d38c1b9ecb33f2d41cd49330eb
+    fingerprint: 68114472ec7a3a81be260168282da4853117027f83e7a24b3504a6bfdda908c9
+  9:
+    id: 9
+    kind: block
+    title: Middleware-based Authentication with Parsing Drift
+    notes: >-
+      Demonstrates how Flask's middleware system can contribute to parameter source confusion.
+
+
+      Example 9 is functionally equivalent to Example 4 from the old parameter source confusion
+      examples, but it may be harder to spot the vulnerability while using middleware.
+
+
+      The before_request middleware authenticates using request.args.get("user"), but the
+      handler retrieves the user via get_user(request) which prioritizes request.form over
+      request.args. This allows an attacker to authenticate as Alice but access Bob's messages.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r03_middleware_drift/routes.py
+      code_start_line: 22
+      code_end_line: 27
+    - part: 2
+      file: r03_middleware_drift/middleware.py
+      code_start_line: 9
+      code_end_line: 22
+    file_hashes:
+      r03_middleware_drift/middleware.py: 7be8f54cda7ee73c500580ef9b605340802d6bfcdca640d15a4c00e95ef50c11
+      r03_middleware_drift/routes.py: 99d0558951828b7f9ce2894752b55e35606c73920f3cfde5bda83a4fec1934f3
+    fingerprint: 9cb66884c99b44cd43726316c6518fd1a894454c56e5948d47d98a43fe4aeedd
+  13:
+    id: 13
+    kind: block
+    title: Shared Contract Baseline [Not Vulnerable]
+    notes: >-
+      We move to authorization rather than authentication vulnerabilities, so for the following
+      examples the authentication will be done reliably and safely, via the `Authorization`
+      header (based on Basic Auth and handled in the `@basic_auth_v1` decorator). We also
+      follow the best practices by storing the authenticated user in the global context (`g.user`).
+
+
+      Imagine that at this point we have many `/groups/` and `/user/` endpoints for creating,
+      updating and deleting groups, users and messages.
+
+
+      When the endpoint needs to work with a specific group, this could be passed as a query/form
+      argument as in the previous examples, but if the `group` argument is required, it might
+      be more idiomatic to make it a path parameter instead.
+
+
+      Here we will work with two endpoints, the `/groups/<group>/messages` which will return
+      the messages from a specific group (taking the `group` from the path) and the `/user/messages`
+      which will return the user's private messages by default, but also supporting an optional
+      `group` query argument.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r01_baseline/routes.py
+      code_start_line: 31
+      code_end_line: 57
+    - part: 2
+      file: r01_baseline/decorator.py
+      code_start_line: 15
+      code_end_line: 28
+    file_hashes:
+      r01_baseline/decorator.py: 5e07e4bafb8fdb2db0445812fc93687ba0688c956389cba3a18aafb8cb73b3c3
+      r01_baseline/routes.py: 5fab6fc5c1161d08af87cf4cbac2609dda6e4913552c67fbd26c592b5bb19794
+    fingerprint: 48fbea82a28e446b9ea5907423a132ce62d840d61932ec8419a1326a0482ad24
+  14:
+    id: 14
+    kind: block
+    title: Path and query parameter confusion via merging decorator
+    notes: >-
+      Here we aim to make the code more idiomatic by moving the group membership check to
+      the decorator `@check_group_membership`. It results in a cleaner code and appears to
+      confirm to the single-responsibility principle.
+
+
+      This code, however, is now vulnerable to path and query parameter confusion. The decorator's
+      merging logic (request.args or request.view_args) prioritizes query parameters, while
+      Flask's URL routing binds path parameters directly to function arguments. An attacker
+      can pass their group in the query string to bypass authorization while accessing a different
+      group's data via the path.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r02_decorator_drift/routes.py
+      code_start_line: 43
+      code_end_line: 57
+    - part: 2
+      file: r02_decorator_drift/decorator.py
+      code_start_line: 32
+      code_end_line: 57
+    file_hashes:
+      r02_decorator_drift/decorator.py: 9d5eb026a7132ad602bdbb56591d81d5d2cd745b331486f2d0e4b4689c047a92
+      r02_decorator_drift/routes.py: 8d78d2c2c4d8ecd48fa3eaccc36e8afd5cef27d38c1b9ecb33f2d41cd49330eb
+    fingerprint: 98167d809be92c7923b67c71d03a200fbf078ba04c0f8d71d37aee1be566cf0f
+  15:
+    id: 15
+    kind: block
+    title: Path and query parameter confusion despite global source of truth
+    notes: >-
+      Here we aim to mitigate the confusion risk in the `group` merging behavior by applying
+      the single source of truth. We do this already for the identity of the authenticated
+      user, by storing it in the global context (`g.user`). So, here we extend `@basic_auth_v2`
+      to also store the group in the global context (`g.group`).
+
+
+      Despite these efforts, the code is still vulnerable. The decorator sets g.group with
+      query-priority merging, but the handler function still receives the path parameter directly
+      from Flask's routing. The handler passes this path parameter to get_group_messages(),
+      ignoring g.group entirely in example15_group_messages.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r02_decorator_drift/routes.py
+      code_start_line: 76
+      code_end_line: 90
+    - part: 2
+      file: r02_decorator_drift/decorator.py
+      code_start_line: 65
+      code_end_line: 85
+    file_hashes:
+      r02_decorator_drift/decorator.py: 9d5eb026a7132ad602bdbb56591d81d5d2cd745b331486f2d0e4b4689c047a92
+      r02_decorator_drift/routes.py: 8d78d2c2c4d8ecd48fa3eaccc36e8afd5cef27d38c1b9ecb33f2d41cd49330eb
+    fingerprint: c448ae032af0dc9b2fe17a82702c7a6467e06faa1f21cfc04d4f24e3f8bc1f3e
+attachments:
+  http/exploit-13.http: ca171f22412131fdbc7c6415bc442588203ce656b02f9a4166de15936ce635e8
+  http/exploit-14.http: 857966815992cd56bec25e836b622be2c4cbfe1a568307f951dbae57ab670d1e
+  http/exploit-15.http: 3174bd27bdac5c8bdac2cb07ace72e5e95b9fc48c4300f2c72648dc693f03f09
+  http/exploit-8.http: 7b78352d75ccdeef67f8aec67bab26103de649f228ca99999e655317fcbb7916
+  http/exploit-9.http: 09d2949ef97219ecd62728fcb4d43d222af1b514e727043d12d41f6f21feb39d
+build_signature: 2dcda52ca01826e187b3e3a64147dacbce277d1b5ec803602f57c004b08ab85e
+last_readme_fingerprint: 02ca4dbc064c4970995d58299d4b0c13f25276034d5c43d16630fc32e13da118

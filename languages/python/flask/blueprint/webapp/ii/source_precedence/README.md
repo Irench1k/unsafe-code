@@ -8,8 +8,6 @@ Source precedence bugs creep in when two parts of the stack read the "same" inpu
 
 **Review checklist:** 1. Identify every lookup of the relevant key (e.g. `user`, `group`, `account_id`). 2. Note whether it comes from `.args`, `.form`, `.view_args`, `.json`, or `.values`. 3. Confirm the security decision and the business logic read from the same place, or explicitly reconcile them before use.
 
-The examples below currently live in `confusion/parameter_source/` and will migrate here with the new taxonomy.
-
 ## Table of Contents
 
 | Category | Example | File |
@@ -52,7 +50,7 @@ def example0():
 <summary><b>See HTTP Request</b></summary>
 
 ```http
-GET http://localhost:8000/vuln/ii/source-precedence/example0?user=alice&password=123456
+GET http://localhost:8000/ii/source-precedence/example0?user=alice&password=123456
 ```
 </details>
 
@@ -88,14 +86,14 @@ def example1():
 
 ```http
 # Expected Usage:
-GET http://localhost:8000/confusion/parameter-source/example1?user=alice&password=123456
+GET http://localhost:8000/ii/source-precedence/example1?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
 
 user=alice
 ###
 
 # Attack
-GET http://localhost:8000/confusion/parameter-source/example1?user=alice&password=123456
+GET http://localhost:8000/ii/source-precedence/example1?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
 
 user=bob
@@ -139,7 +137,7 @@ def example2():
 
 ```http
 # Expected Usage:
-GET http://localhost:8000/confusion/parameter-source/example2?user=alice&password=123456
+GET http://localhost:8000/ii/source-precedence/example2?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
 
 user=alice
@@ -156,7 +154,7 @@ user=alice
 ###
 
 # Attack
-GET http://localhost:8000/confusion/parameter-source/example2?user=alice&password=123456
+GET http://localhost:8000/ii/source-precedence/example2?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
 
 user=bob
@@ -205,8 +203,9 @@ def example3():
 <summary><b>See HTTP Request</b></summary>
 
 ```http
+@base = http://localhost:8000/ii/source-precedence
 # Expected Usage:
-GET http://localhost:8000/confusion/parameter-source/example3?user=alice&password=123456
+GET {{base}}/example3?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
 
 user=alice
@@ -223,7 +222,7 @@ user=alice
 ###
 
 # Attack
-GET http://localhost:8000/confusion/parameter-source/example3?user=alice&password=123456
+GET {{base}}/example3?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
 
 user=bob
@@ -274,8 +273,9 @@ def example4():
 <summary><b>See HTTP Request</b></summary>
 
 ```http
+@base = http://localhost:8000/ii/source-precedence
 # Expected Usage:
-GET http://localhost:8000/confusion/parameter-source/example4?user=alice&password=123456
+GET {{base}}/example4?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
 
 user=alice
@@ -292,7 +292,7 @@ user=alice
 ###
 
 # Attack
-GET http://localhost:8000/confusion/parameter-source/example4?user=alice&password=123456
+GET {{base}}/example4?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
 
 user=bob
@@ -341,8 +341,9 @@ def example5():
 <summary><b>See HTTP Request</b></summary>
 
 ```http
+@base = http://localhost:8000/ii/source-precedence
 # Expected Usage:
-GET http://localhost:8000/confusion/parameter-source/example5?user=alice&password=123456
+GET {{base}}/example5?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
 
 user=alice
@@ -359,7 +360,7 @@ user=alice
 ###
 
 # Attack
-GET http://localhost:8000/confusion/parameter-source/example5?user=bob&password=123456
+GET {{base}}/example5?user=bob&password=123456
 Content-Type: application/x-www-form-urlencoded
 
 user=alice
@@ -422,8 +423,9 @@ def example6():
 <summary><b>See HTTP Request</b></summary>
 
 ```http
+@base = http://localhost:8000/ii/source-precedence
 # Regular requests would pass credentials solely via POST body:
-POST http://localhost:8000/confusion/parameter-source/example6
+POST {{base}}/example6
 Content-Type: application/x-www-form-urlencoded
 
 user=alice&password=123456
@@ -441,14 +443,14 @@ user=alice&password=123456
 ###
 
 # Attacker can get Alice's messages by adding user=alice to the query string:
-POST http://localhost:8000/confusion/parameter-source/example6?user=bob
+POST {{base}}/example6?user=bob
 Content-Type: application/x-www-form-urlencoded
 
 user=alice&password=123456
 ###
 
 # Notably, attack works even with the GET request, assuming it's enabled:
-GET http://localhost:8000/confusion/parameter-source/example6?user=bob
+GET {{base}}/example6?user=bob
 Content-Type: application/x-www-form-urlencoded
 
 user=alice&password=123456
@@ -495,8 +497,9 @@ def example7():
 <summary><b>See HTTP Request</b></summary>
 
 ```http
+@base = http://localhost:8000/ii/source-precedence
 # Regular requests would pass credentials solely via POST body:
-POST http://localhost:8000/confusion/parameter-source/example7
+POST {{base}}/example7
 Content-Type: application/x-www-form-urlencoded
 
 user=alice&password=123456
@@ -514,7 +517,7 @@ user=alice&password=123456
 ###
 
 # Attacker can get Alice's messages by adding user=alice to the query string:
-POST http://localhost:8000/confusion/parameter-source/example7?user=alice
+POST {{base}}/example7?user=alice
 Content-Type: application/x-www-form-urlencoded
 
 user=bob&password=123456

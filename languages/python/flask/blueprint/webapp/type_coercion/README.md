@@ -8,8 +8,8 @@ Python and JavaScript perform automatic type conversions, and these conversions 
 - Use strict validators (Pydantic strict types, Marshmallow `validate`) for anything that drives authorization or feature flags.
 
 ## Subcategories
-- [Booleans & Flags](booleans-and-flags/) - Truthiness surprises that enable privileged code paths.
-- [Loose Equality](loose-equality/) - String and number comparisons that succeed only because of auto-casting.
-- [Array vs Scalar](array-vs-scalar/) - Branches that behave differently when the same parameter arrives once or many times.
-- [Null, Empty, Missing](null-empty-missing/) - Treating `""`, `0`, `None`, and "not provided" as the same thing.
+- [Booleans & Flags](booleans_and_flags/) - Truthiness surprises that enable privileged code paths.
+- [Loose Equality](loose_equality/) - String and number comparisons that succeed only because of auto-casting.
+- [Array vs Scalar](array_vs_scalar/) - Branches that behave differently when the same parameter arrives once or many times.
+- [Null, Empty, Missing](null_empty_missing/) - Treating `""`, `0`, `None`, and "not provided" as the same thing.
 - [Deserialization](deserialization/) - Hydrating attacker-controlled objects or polymorphic payloads that smuggle behavior.

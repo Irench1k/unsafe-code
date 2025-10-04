@@ -10,8 +10,6 @@ description: |
   - Identify whether user input can be repeated (multi-select UI, query arrays, batching endpoints).
   - Check if the guard uses `.get()` while downstream loops over `.getlist()` (or vice versa).
   - Pay attention to `any()` vs `all()` semantics when interpreting lists of roles or permissions.
-
-  The examples listed still live in `confusion/parameter_source/r06_multi_value/` and will migrate here.
 category: ii.multi-value-semantics
 namespace: flask-ii-multi-value-semantics
 toc: true

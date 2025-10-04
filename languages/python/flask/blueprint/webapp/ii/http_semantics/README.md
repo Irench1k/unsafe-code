@@ -6,8 +6,6 @@ REST conventions say "GET requests have no body" and "POST carries form data." F
 
 **Checklist:** - Explicitly branch on `request.method` before trusting where parameters come from. - Disallow unexpected bodies (`GET` with form data) when they bypass validation. - Keep idempotent and mutating logic separated; otherwise a GET with a body can act as a privileged POST.
 
-The current example remains under `confusion/parameter_source/` until we migrate the source code.
-
 ## Table of Contents
 
 | Category | Example | File |
@@ -79,7 +77,7 @@ def check_group_membership(f):
 <summary><b>See HTTP Request</b></summary>
 
 ```http
-@base = http://localhost:8000/confusion/parameter-source/example17
+@base = http://localhost:8000/ii/http-semantics/example17
 
 # Without any arguments, GET request lists the groups the user is a member of
 GET {{base}}/groups

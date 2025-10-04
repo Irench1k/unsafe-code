@@ -6,8 +6,6 @@ Canonicalization is meant to make comparisons simple: lowercase the e-mail, stri
 
 **What to watch for in Flask apps:** - Decorators that normalize user IDs before storing them in `g`, while downstream code trusts the raw path parameter. - Database helpers that lowercase keys but uniqueness checks run before the transform. - Pydantic or Marshmallow models that strip whitespace, yet guards compare the unstripped string.
 
-The cases below come from the current `confusion/canonicalization/` samples and will migrate into this bucket.
-
 ## Table of Contents
 
 | Category | Example | File |
@@ -53,7 +51,7 @@ def example18_post():
 <summary><b>See HTTP Request</b></summary>
 
 ```http
-@base = http://localhost:8000/vuln/ii/normalization-canonicalization/example18
+@base = http://localhost:8000/ii/normalization-canonicalization/example18
 
 # Here Plankton is creating a new group that has the same name which is used by Mr. Krabs,
 # but in upper case, leaving a room for lower-case exploitation.
@@ -127,7 +125,7 @@ def get_group(groupname):
 <summary><b>See HTTP Request</b></summary>
 
 ```http
-@base = http://localhost:8000/vuln/ii/normalization-canonicalization/example19
+@base = http://localhost:8000/ii/normalization-canonicalization/example19
 
 # Before attack:
 #   When Spongebob checks his group, he accesses the real group and sees the real messages.
@@ -261,7 +259,7 @@ def check_group_membership(f):
 <summary><b>See HTTP Request</b></summary>
 
 ```http
-@base = http://localhost:8000/vuln/ii/normalization-canonicalization/example20
+@base = http://localhost:8000/ii/normalization-canonicalization/example20
 
 # Normally:
 #   Spongebob can see Mr. Krabs messages as he is a member of the group.
@@ -396,7 +394,7 @@ class Group(BaseModel):
 <summary><b>See HTTP Request</b></summary>
 
 ```http
-@base = http://localhost:8000/vuln/ii/normalization-canonicalization/example21
+@base = http://localhost:8000/ii/normalization-canonicalization/example21
 
 # We start with the same setup as previously, Plankton is unable to access Mr. Krabs group.
 GET {{base}}/groups/staff@krusty-krab.sea/messages

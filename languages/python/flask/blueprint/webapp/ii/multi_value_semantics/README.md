@@ -6,8 +6,6 @@ Web forms and query strings support repeated keys: `role=admin&role=auditor`. Fl
 
 **When debugging or reviewing:** - Identify whether user input can be repeated (multi-select UI, query arrays, batching endpoints). - Check if the guard uses `.get()` while downstream loops over `.getlist()` (or vice versa). - Pay attention to `any()` vs `all()` semantics when interpreting lists of roles or permissions.
 
-The examples listed still live in `confusion/parameter_source/r06_multi_value/` and will migrate here.
-
 ## Table of Contents
 
 | Category | Example | File |
@@ -47,20 +45,21 @@ def check_group_membership(f):
 <summary><b>See HTTP Request</b></summary>
 
 ```http
+@base = http://localhost:8000/ii/multi-value-semantics
 ### Expected usage: Mr. Krabs is an admin of the staff group and should be able to access the group messages
-POST http://localhost:8000/confusion/parameter-source/example10
+POST {{base}}/example10
 Content-Type: application/x-www-form-urlencoded
 
 user=mr.krabs@krusty-krab.sea&password=$$$money$$$&group=staff@krusty-krab.sea
 ###
 # Plankton is able to access his own group's messages
-POST http://localhost:8000/confusion/parameter-source/example10
+POST {{base}}/example10
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea
 ###
 # But Plankton is not able to access the Krusty Krab's messages
-POST http://localhost:8000/confusion/parameter-source/example10
+POST {{base}}/example10
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea&group=staff@krusty-krab.sea
@@ -93,20 +92,21 @@ def example11():
 <summary><b>See HTTP Request</b></summary>
 
 ```http
+@base = http://localhost:8000/ii/multi-value-semantics
 ### Expected usage: Mr. Krabs is an admin of the staff group and should be able to access the group messages
-POST http://localhost:8000/confusion/parameter-source/example11
+POST {{base}}/example11
 Content-Type: application/x-www-form-urlencoded
 
 user=mr.krabs@krusty-krab.sea&password=$$$money$$$&group=staff@krusty-krab.sea&group=managers@krusty-krab.sea
 ###
 # Plankton is able to access his own group's messages
-POST http://localhost:8000/confusion/parameter-source/example11
+POST {{base}}/example11
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea
 ###
 # But now Plankton is able to access the Krusty Krab's messages
-POST http://localhost:8000/confusion/parameter-source/example11
+POST {{base}}/example11
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea&group=staff@krusty-krab.sea&group=managers@krusty-krab.sea
@@ -145,20 +145,21 @@ def check_multi_group_membership(f):
 <summary><b>See HTTP Request</b></summary>
 
 ```http
+@base = http://localhost:8000/ii/multi-value-semantics
 ### Expected usage: Mr. Krabs is an admin of the staff group and should be able to access the group messages
-POST http://localhost:8000/confusion/parameter-source/example12
+POST {{base}}/example12
 Content-Type: application/x-www-form-urlencoded
 
 user=mr.krabs@krusty-krab.sea&password=$$$money$$$&group=staff@krusty-krab.sea&group=managers@krusty-krab.sea
 ###
 # Plankton is able to access his own group's messages
-POST http://localhost:8000/confusion/parameter-source/example12
+POST {{base}}/example12
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea
 ###
 # But now Plankton is able to access the Krusty Krab's messages
-POST http://localhost:8000/confusion/parameter-source/example12
+POST {{base}}/example12
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea&group=staff@krusty-krab.sea&group=managers@krusty-krab.sea

@@ -2,7 +2,43 @@ version: '1'
 root: .
 category: policy-composition-and-precedence.merge-order-and-short-circuit
 namespace: flask-policy-merge-order
-examples: {}
-attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: 4d6386843f5285492faa669f9705c4321a5aad0a0a0fcb7e215564096096643b
+examples:
+  16:
+    id: 16
+    kind: block
+    title: Authorization Bypass via Decorator Execution Order
+    notes: >-
+      We try to fix the root cause of the vulnerability here by enforcing correct merging
+      order – view args take precedence over query args. Additionally, we enforce that only
+      one of the two can be present.
+
+
+      The code, however, remains vulnerable despite these efforts! This time, the problem
+      is that the `@check_group_membership_v2` decorator is applied too early – before the
+      `@basic_auth_v3` decorator which is responsible for setting the `g.group` global variable.
+      This makes `@check_group_membership_v2` a no-op.
+
+
+      This is a pure policy composition issue: the guard decorator executes before the authentication
+      decorator prepares the state it depends on. Flask applies decorators bottom-up (outer
+      decorator runs first), so @check_group_membership_v2 sees g.group = None and passes
+      all requests.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 25
+      code_end_line: 30
+    - part: 2
+      file: decorator.py
+      code_start_line: 15
+      code_end_line: 46
+    file_hashes:
+      decorator.py: cb924813870ceabc4b6eb203daffe167a329836ff475a89c39ec4ea067dd68b6
+      routes.py: 2847e8bd1941800c5851247478f5f4f738a100ea4af98b5017d687ff951996c2
+    fingerprint: 550a707dae030a68f9995934b3b48d2dde013e5c4faa03abd64a54ddba4ad599
+attachments:
+  http/exploit-16.http: ba95b1a0b08a6c7164a3992fb63d6864c7551235334ad494093240f740b95cbb
+build_signature: 38442ea76c07fbae4b7a4c9f5e972b9ed764ac91cb6c90b80614c949c82b14fe
+last_readme_fingerprint: ddae8d5ab10992040ca8e45bf90418003fd938787a06ed48fde11d88cdddd19f

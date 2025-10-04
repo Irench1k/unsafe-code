@@ -10,8 +10,6 @@ description: |
   - Decorators that normalize user IDs before storing them in `g`, while downstream code trusts the raw path parameter.
   - Database helpers that lowercase keys but uniqueness checks run before the transform.
   - Pydantic or Marshmallow models that strip whitespace, yet guards compare the unstripped string.
-
-  The cases below come from the current `confusion/canonicalization/` samples and will migrate into this bucket.
 category: ii.normalization-canonicalization
 namespace: flask-ii-normalization-canonicalization
 toc: true

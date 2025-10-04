@@ -4,14 +4,13 @@ summary: |
   Decorators, middleware, and helpers sometimes grab request data before the view does; if each layer resolves parameters differently, the same call holds two meanings.
 description: |
   ## Overview
-  Flask encourages reuse through decorators, before-request hooks, and helper modules. Each layer can inspect the request separately, but nothing guarantees they normalize or source parameters the same way. A guard might authenticate using `request.args` while the view trusts `request.form`, or a decorator may resolve `g.group` before another decorator has prepared it.
+  Flask's architecture allows each layer (decorators, middleware, before-request hooks, views) to independently choose how to source request data from multiple APIs: `request.args`, `request.form`, `request.values`, or `request.view_args`. When layers use different APIs or apply different merging strategies (e.g., args-priority vs form-priority), the same HTTP request carries multiple semantic interpretations. The guard validates one parameter value while the handler acts on another, enabling authorization bypasses even when all components execute in correct order.
 
   **Spotting the issue:**
-  - Audit every decorator or middleware applied to a route and see which request APIs they touch.
-  - Trace the order of decorators - Flask applies them bottom-up, so a guard may run before the state it relies on exists.
-  - Be suspicious when global state (e.g. `g.*`) is set in one layer and consumed in another without a single source of truth.
-
-  These scenarios currently live under `confusion/parameter_source/` and will move here.
+  - Audit every decorator or middleware applied to a route and see which request APIs they touch (`request.args` vs `request.form` vs `request.values` vs `request.view_args`).
+  - Check for custom merging logic that prioritizes sources differently (e.g., `request.args or request.view_args` vs direct function parameter binding).
+  - Be suspicious when global state (e.g. `g.*`) is set in one layer but components still access raw request sources directly.
+  - Verify decorators and handlers agree on which parameter source is authoritative for security decisions.
 category: ii.cross-component-parse
 namespace: flask-ii-cross-component-parse
 toc: true

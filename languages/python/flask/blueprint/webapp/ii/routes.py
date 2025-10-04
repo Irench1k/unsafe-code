@@ -1,6 +1,6 @@
 from flask import Blueprint
 
-from .behavior_order.routes import bp as behavior_order_bp
+from .cross_component_parse.routes import bp as cross_component_parse_bp
 from .http_semantics.routes import bp as http_semantics_bp
 from .multi_value_semantics.routes import bp as multi_value_semantics_bp
 from .normalization_canonicalization.routes import (
@@ -20,7 +20,7 @@ def index():
 # Register child blueprints - explicit but clean
 bp.register_blueprint(source_precedence_bp, url_prefix="/source-precedence")
 bp.register_blueprint(multi_value_semantics_bp, url_prefix="/multi-value-semantics")
-bp.register_blueprint(behavior_order_bp, url_prefix="/behavior-order")
+bp.register_blueprint(cross_component_parse_bp, url_prefix="/cross-component-parse")
 bp.register_blueprint(http_semantics_bp, url_prefix="/http-semantics")
 bp.register_blueprint(
     normalization_canonicalization_bp, url_prefix="/normalization-canonicalization"

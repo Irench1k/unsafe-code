@@ -15,8 +15,6 @@ description: |
   1. Identify every lookup of the relevant key (e.g. `user`, `group`, `account_id`).
   2. Note whether it comes from `.args`, `.form`, `.view_args`, `.json`, or `.values`.
   3. Confirm the security decision and the business logic read from the same place, or explicitly reconcile them before use.
-
-  The examples below currently live in `confusion/parameter_source/` and will migrate here with the new taxonomy.
 category: ii.source-precedence
 namespace: flask-ii-source-precedence
 toc: true

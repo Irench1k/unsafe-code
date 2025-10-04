@@ -4,6 +4,6 @@ Cache and application disagree on which request parts make a response unique, ca
 
 This is a **semantic disagreement**: the cache and Flask have different understandings of what makes a response cacheable or unique. Flask may vary output by session cookie or `Authorization` header, but if the cache doesn't include those in its key (or strips them before keying), the first authenticated request seeds the cache for everyone. Both components are "working correctly" per their configs—they just disagree on the semantics of cache keying.
 
-**Contrast with [Trust Boundary > Cache & Edge Trust](../../trust-boundary-errors/cache-edge-trust/)**: That category covers code **assuming** a cache already enforced auth or keying correctly. This category covers caches that **semantically disagree** with the app on what "unique" means.
+**Contrast with [Trust Boundary > Cache & Edge Trust](../../trust_boundary_errors/cache_edge_trust/)**: That category covers code **assuming** a cache already enforced auth or keying correctly. This category covers caches that **semantically disagree** with the app on what "unique" means.
 
 **Practice tips:** - Set `Vary` headers intentionally and confirm your CDN respects them. - Avoid caching authenticated endpoints at the edge unless you can key by user or tenant. - Document which headers your cache strips or normalizes before they hit Flask.

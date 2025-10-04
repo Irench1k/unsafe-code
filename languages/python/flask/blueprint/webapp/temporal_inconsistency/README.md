@@ -8,7 +8,7 @@ Security decisions are made at a specific point in time. If an application check
 - Favor atomic database operations or idempotency keys when mutations matter.
 
 ## Subcategories
-- [TOCTOU Checks](toctou-checks/) - Separating validation from action with mutable state in between.
-- [Races & Missing Synchronization](races-missing-sync/) - Parallel requests that clobber shared data without locks.
-- [Idempotency & Replay](idempotency-and-replay/) - Repeated delivery of the same intent produces duplicate side effects.
-- [Cache Coherence & Keying](cache-coherence-and-keying/) - Stale or shared caches that serve the wrong user's data after an update.
+- [TOCTOU Checks](toctou_checks/) - Separating validation from action with mutable state in between.
+- [Races & Missing Synchronization](races_missing_sync/) - Parallel requests that clobber shared data without locks.
+- [Idempotency & Replay](idempotency_and_replay/) - Repeated delivery of the same intent produces duplicate side effects.
+- [Cache Coherence & Keying](cache_coherence_and_keying/) - Stale or shared caches that serve the wrong user's data after an update.
