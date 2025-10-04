@@ -49,7 +49,7 @@ def example18_post():
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/confusion/canonicalization/example18
 
 # Here Plankton is creating a new group that has the same name which is used by Mr. Krabs,
@@ -123,7 +123,7 @@ def get_group(groupname):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/confusion/canonicalization/example19
 
 # Before attack: 
@@ -201,9 +201,13 @@ Authorization: Basic spongebob@krusty-krab.sea:bikinibottom
 <a id="ex-20"></a>
 
 ### Example 20: Whitespace Canonicalization
-This is a classic whitespace confusion attack - two parts of the code handle whitespace differently: - strip() only removes leading/trailing whitespace - replace(" ", "") removes ALL whitespace
+This is a classic whitespace confusion attack - two parts of the code handle whitespace differently:
+- strip() only removes leading/trailing whitespace
+- replace(" ", "") removes ALL whitespace
 
-So here's what happens: - @check_group_membership uses strip() - sees "staff @krusty-krab.sea" and keeps the middle space - example20 uses replace() - turns "staff @krusty-krab.sea" into "staff@krusty-krab.sea"
+So here's what happens:
+- @check_group_membership uses strip() - sees "staff @krusty-krab.sea" and keeps the middle space
+- example20 uses replace() - turns "staff @krusty-krab.sea" into "staff@krusty-krab.sea"
 
 The attack: Plankton creates "staff @krusty-krab.sea" (with space), gets authorized for HIS group, but the code actually fetches messages from "staff@krusty-krab.sea" (Mr. Krabs' group).
 ```python
@@ -255,7 +259,7 @@ def check_group_membership(f):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/confusion/canonicalization/example20
 
 # Normally: 
@@ -390,7 +394,7 @@ class Group(BaseModel):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/confusion/canonicalization/example21
 
 # We start with the same setup as previously, Plankton is unable to access Mr. Krabs group.

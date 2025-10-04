@@ -84,13 +84,19 @@ examples:
     title: Whitespace Canonicalization
     notes: >-
       This is a classic whitespace confusion attack - two parts of the code handle whitespace
-      differently: - strip() only removes leading/trailing whitespace - replace(" ", "") removes
-      ALL whitespace
+      differently:
+
+      - strip() only removes leading/trailing whitespace
+
+      - replace(" ", "") removes ALL whitespace
 
 
-      So here's what happens: - @check_group_membership uses strip() - sees "staff @krusty-krab.sea"
-      and keeps the middle space - example20 uses replace() - turns "staff @krusty-krab.sea"
-      into "staff@krusty-krab.sea"
+      So here's what happens:
+
+      - @check_group_membership uses strip() - sees "staff @krusty-krab.sea" and keeps the
+      middle space
+
+      - example20 uses replace() - turns "staff @krusty-krab.sea" into "staff@krusty-krab.sea"
 
 
       The attack: Plankton creates "staff @krusty-krab.sea" (with space), gets authorized
@@ -110,7 +116,7 @@ examples:
     file_hashes:
       r03_whitespace/decorator.py: 37ac40794a7041eb030a237e2f69cdbf77d55130d17990618869df1255b3a1fc
       r03_whitespace/routes.py: ff5ec0370f2f1e8ad1c61c84b0f3f756d4655d83d0bd6bb219417c027944d424
-    fingerprint: 55cf1ee61a56379f49d1eea25350ea8d142e8815db03f7c66065ab938bd54a05
+    fingerprint: 225218494373d41eb454b51b86216e47603dc2c05da288de3c8d2956ee74f409
   21:
     id: 21
     kind: block
@@ -172,5 +178,5 @@ attachments:
   http/exploit-19.http: bd36bb022f1eb94f7c6c3c9b23344ed14cb447204ec596a94ef3b8290b67b3b6
   http/exploit-20.http: 508c18cf4477bcd798aabebcb9b50f93e86f418f93a5bd11f53d9b2708feb177
   http/exploit-21.http: 1f6032f057eb073d7c99041b9d7aca95bd4fa4a0ffecef702c4efde89fbbdf60
-build_signature: 441219f5180bfd0886b9d6d40770f698d8998137d73fe63fc7fa64b41bbd0ead
-last_readme_fingerprint: a7d076675464a073ff3d4bc043c14687bc86966f74119cd32a4cb51b087dbd52
+build_signature: 303c7f0b7d6b931fa64a50ef5bbffcc4fba0509a18c823a0609a13ad8f89e989
+last_readme_fingerprint: 31fd4fee58cc4f3adac45d7dd1f694a3827c661c54d4472ea1c64d9b905047c2

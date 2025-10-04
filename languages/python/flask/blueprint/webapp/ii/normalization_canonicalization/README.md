@@ -4,7 +4,10 @@ Normalizing input (lowercasing, trimming, decoding) helps comparisons, but if on
 
 Canonicalization is meant to make comparisons simple: lowercase the e-mail, strip surrounding spaces, normalize Unicode, decode `%2F`. The bug shows up when only **some** parts of the flow canonicalize a value. Guards may validate raw input while storage or lookup uses the normalized form (or the reverse), giving attackers a way to smuggle alternate representations.
 
-**What to watch for in Flask apps:** - Decorators that normalize user IDs before storing them in `g`, while downstream code trusts the raw path parameter. - Database helpers that lowercase keys but uniqueness checks run before the transform. - Pydantic or Marshmallow models that strip whitespace, yet guards compare the unstripped string.
+**What to watch for in Flask apps:**
+- Decorators that normalize user IDs before storing them in `g`, while downstream code trusts the raw path parameter.
+- Database helpers that lowercase keys but uniqueness checks run before the transform.
+- Pydantic or Marshmallow models that strip whitespace, yet guards compare the unstripped string.
 
 ## Table of Contents
 
@@ -50,7 +53,7 @@ def example18_post():
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/ii/normalization-canonicalization/example18
 
 # Here Plankton is creating a new group that has the same name which is used by Mr. Krabs,
@@ -124,7 +127,7 @@ def get_group(groupname):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/ii/normalization-canonicalization/example19
 
 # Before attack:
@@ -204,9 +207,13 @@ Stripping spaces (or normalizing structured payloads) in only part of the stack 
 <a id="ex-20"></a>
 
 ### Example 20: Whitespace Canonicalization
-This is a classic whitespace confusion attack - two parts of the code handle whitespace differently: - strip() only removes leading/trailing whitespace - replace(" ", "") removes ALL whitespace
+This is a classic whitespace confusion attack - two parts of the code handle whitespace differently:
+- strip() only removes leading/trailing whitespace
+- replace(" ", "") removes ALL whitespace
 
-So here's what happens: - @check_group_membership uses strip() - sees "staff @krusty-krab.sea" and keeps the middle space - example20 uses replace() - turns "staff @krusty-krab.sea" into "staff@krusty-krab.sea"
+So here's what happens:
+- @check_group_membership uses strip() - sees "staff @krusty-krab.sea" and keeps the middle space
+- example20 uses replace() - turns "staff @krusty-krab.sea" into "staff@krusty-krab.sea"
 
 The attack: Plankton creates "staff @krusty-krab.sea" (with space), gets authorized for HIS group, but the code actually fetches messages from "staff@krusty-krab.sea" (Mr. Krabs' group).
 ```python
@@ -258,7 +265,7 @@ def check_group_membership(f):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/ii/normalization-canonicalization/example20
 
 # Normally:
@@ -393,7 +400,7 @@ class Group(BaseModel):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/ii/normalization-canonicalization/example21
 
 # We start with the same setup as previously, Plankton is unable to access Mr. Krabs group.

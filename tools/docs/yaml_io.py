@@ -75,14 +75,24 @@ def _normalize_notes_markdown(text: str) -> str:
     - Collapse intra-paragraph line breaks to single spaces
     - Collapse multiple blank lines to a single blank line
     - Preserve fenced code blocks verbatim (``` ... ```)
+    - Preserve list items (unordered: -, *; ordered: 1., 2., etc.)
     """
     if not text:
         return ""
+
+    import re
 
     lines = text.splitlines()
     out_blocks: list[str] = []
     in_code = False
     para_acc: list[str] = []
+
+    # Pattern to match list items: unordered (- or *) or ordered (digit(s) followed by .)
+    list_item_pattern = re.compile(r"^(\s*)([-*]|\d+\.)\s+")
+
+    def is_list_item(line: str) -> bool:
+        """Check if a line is a list item."""
+        return bool(list_item_pattern.match(line))
 
     def flush_para():
         nonlocal para_acc
@@ -115,6 +125,12 @@ def _normalize_notes_markdown(text: str) -> str:
             out_blocks.append(stripped)
             # Ensure a blank line after header for readability
             out_blocks.append("")
+            i += 1
+            continue
+        if is_list_item(ln):
+            # List items are treated as their own blocks, not joined with surrounding text
+            flush_para()
+            out_blocks.append(stripped)
             i += 1
             continue
         if stripped == "":
