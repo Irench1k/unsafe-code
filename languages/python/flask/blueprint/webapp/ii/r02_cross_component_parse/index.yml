@@ -8,30 +8,43 @@ examples:
     kind: block
     title: Decorator-based Authentication with Parsing Drift
     notes: >-
-      Shows how using decorators can obscure parameter source confusion.
+      Shows how using decorators can obscure parameter source confusion, leading to authentication
+      bypass.
 
 
-      Example 8 is functionally equivalent to Example 4 from the old parameter source confusion
-      examples, but it may be harder to spot the vulnerability while using decorators.
+      Example 8 is functionally equivalent to Example 4 from the source precedence examples,
+      but it may be harder to spot the vulnerability when using decorators because the parameter
+      source logic is split across multiple layers.
 
 
-      The decorator authenticates using request.args.get("user"), but the handler retrieves
-      the user via get_user() which prioritizes request.form over request.args.
+      THE VULNERABILITY: Authentication bypass via source precedence confusion.
+
+      - Authentication decorator validates credentials from request.args (query string)
+
+      - Handler retrieves user identity from get_user_ex8(), which prioritizes request.form
+
+      - Attack: Provide Alice's credentials in query string, Bob's name in form body
+
+      - Result: Authenticate as Alice, but access Bob's messages
+
+
+      This is NOT authorization binding drift - it's authentication bypass because the authenticated
+      identity itself gets confused between authentication check and data access.
     http: null
     language: python
     parts:
     - part: 1
       file: r02_decorator_drift/routes.py
-      code_start_line: 19
-      code_end_line: 25
+      code_start_line: 28
+      code_end_line: 34
     - part: 2
       file: r02_decorator_drift/decorator.py
-      code_start_line: 16
+      code_start_line: 9
       code_end_line: 23
     file_hashes:
-      r02_decorator_drift/decorator.py: 9d5eb026a7132ad602bdbb56591d81d5d2cd745b331486f2d0e4b4689c047a92
-      r02_decorator_drift/routes.py: 8d78d2c2c4d8ecd48fa3eaccc36e8afd5cef27d38c1b9ecb33f2d41cd49330eb
-    fingerprint: 68114472ec7a3a81be260168282da4853117027f83e7a24b3504a6bfdda908c9
+      r02_decorator_drift/decorator.py: ff55e702086945517e9b98782453610fdbd3e66759fe17dba3eacc197d67af3e
+      r02_decorator_drift/routes.py: e9bf0a6a26bb1c4f5884a3bd0bdf2ecc3815fa868633430e37989988fb09a9f4
+    fingerprint: fbf2a7c864b89e78dba9bf9e2b2b1eec3e0c8ec82399b6f94983bf7f390369fb
   9:
     id: 9
     kind: block
@@ -101,71 +114,11 @@ examples:
       r01_baseline/decorator.py: 5e07e4bafb8fdb2db0445812fc93687ba0688c956389cba3a18aafb8cb73b3c3
       r01_baseline/routes.py: 5fab6fc5c1161d08af87cf4cbac2609dda6e4913552c67fbd26c592b5bb19794
     fingerprint: 48fbea82a28e446b9ea5907423a132ce62d840d61932ec8419a1326a0482ad24
-  14:
-    id: 14
-    kind: block
-    title: Path and query parameter confusion via merging decorator
-    notes: >-
-      Here we aim to make the code more idiomatic by moving the group membership check to
-      the decorator `@check_group_membership`. It results in a cleaner code and appears to
-      confirm to the single-responsibility principle.
-
-
-      This code, however, is now vulnerable to path and query parameter confusion. The decorator's
-      merging logic (request.args or request.view_args) prioritizes query parameters, while
-      Flask's URL routing binds path parameters directly to function arguments. An attacker
-      can pass their group in the query string to bypass authorization while accessing a different
-      group's data via the path.
-    http: null
-    language: python
-    parts:
-    - part: 1
-      file: r02_decorator_drift/routes.py
-      code_start_line: 43
-      code_end_line: 57
-    - part: 2
-      file: r02_decorator_drift/decorator.py
-      code_start_line: 32
-      code_end_line: 57
-    file_hashes:
-      r02_decorator_drift/decorator.py: 9d5eb026a7132ad602bdbb56591d81d5d2cd745b331486f2d0e4b4689c047a92
-      r02_decorator_drift/routes.py: 8d78d2c2c4d8ecd48fa3eaccc36e8afd5cef27d38c1b9ecb33f2d41cd49330eb
-    fingerprint: 98167d809be92c7923b67c71d03a200fbf078ba04c0f8d71d37aee1be566cf0f
-  15:
-    id: 15
-    kind: block
-    title: Path and query parameter confusion despite global source of truth
-    notes: >-
-      Here we aim to mitigate the confusion risk in the `group` merging behavior by applying
-      the single source of truth. We do this already for the identity of the authenticated
-      user, by storing it in the global context (`g.user`). So, here we extend `@basic_auth_v2`
-      to also store the group in the global context (`g.group`).
-
-
-      Despite these efforts, the code is still vulnerable. The decorator sets g.group with
-      query-priority merging, but the handler function still receives the path parameter directly
-      from Flask's routing. The handler passes this path parameter to get_group_messages(),
-      ignoring g.group entirely in example15_group_messages.
-    http: null
-    language: python
-    parts:
-    - part: 1
-      file: r02_decorator_drift/routes.py
-      code_start_line: 76
-      code_end_line: 90
-    - part: 2
-      file: r02_decorator_drift/decorator.py
-      code_start_line: 65
-      code_end_line: 85
-    file_hashes:
-      r02_decorator_drift/decorator.py: 9d5eb026a7132ad602bdbb56591d81d5d2cd745b331486f2d0e4b4689c047a92
-      r02_decorator_drift/routes.py: 8d78d2c2c4d8ecd48fa3eaccc36e8afd5cef27d38c1b9ecb33f2d41cd49330eb
-    fingerprint: c448ae032af0dc9b2fe17a82702c7a6467e06faa1f21cfc04d4f24e3f8bc1f3e
 attachments:
   http/exploit-13.http: ca171f22412131fdbc7c6415bc442588203ce656b02f9a4166de15936ce635e8
   http/exploit-14.http: 857966815992cd56bec25e836b622be2c4cbfe1a568307f951dbae57ab670d1e
   http/exploit-15.http: 3174bd27bdac5c8bdac2cb07ace72e5e95b9fc48c4300f2c72648dc693f03f09
   http/exploit-8.http: 7b78352d75ccdeef67f8aec67bab26103de649f228ca99999e655317fcbb7916
   http/exploit-9.http: 09d2949ef97219ecd62728fcb4d43d222af1b514e727043d12d41f6f21feb39d
-build_signature: 2dcda52ca01826e187b3e3a64147dacbce277d1b5ec803602f57c004b08ab85e
-last_readme_fingerprint: 02ca4dbc064c4970995d58299d4b0c13f25276034d5c43d16630fc32e13da118
+build_signature: ceedb835472c208fcac37ef4c85e53bccc8d38a4c8e9e32df6df190a4e892e89
+last_readme_fingerprint: cadc3ae309479041eaa679fd4887cafefd65c7fc6d33cd754600abc5af7d6965

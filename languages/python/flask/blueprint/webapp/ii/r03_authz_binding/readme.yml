@@ -1,0 +1,69 @@
+---
+title: Authorization Binding Drift in Flask
+summary: |
+  Binding bugs happen when we authenticate one identity but later trust user-controlled parameters for the actual work, letting attackers act on behalf of someone else or access unintended resources.
+description: |
+  ## Overview
+  Authorization binding drift occurs when an application successfully authenticates WHO a user is, but then trusts user-controlled parameters to determine WHICH resource to act on or WHOSE identity to act as. This separates the security decision (authentication/authorization) from the action being taken.
+
+  **Key distinction from other inconsistent interpretation bugs:**
+  - **NOT source precedence**: We're not confusing parameter sources (args vs form). The authenticated identity is correctly established.
+  - **NOT parsing drift**: Different components don't parse differently. Authentication succeeds properly.
+  - **IS binding drift**: The authenticated identity (WHO) is correct, but user-controlled parameters rebind the resource (WHICH) or identity (AS WHOM) for the actual operation.
+
+  **Common patterns:**
+  1. **Resource rebinding**: Authenticate user X, authorize access to resource A, but action uses user-controlled resource B
+  2. **Identity rebinding**: Authenticate user X, authorize action on resource, but operation claims to be "from" user Y
+
+  In multi-tenant or multi-user APIs, a common pattern is to authenticate once (session, token, Basic Auth) and then trust request data to determine which account, tenant, or resource to act on. If the handler uses attacker-controlled identifiers after successful authentication - `request.json["owner"]`, `request.args["user_id"]`, path vs query confusion - it creates binding drift.
+
+  **When reviewing code:**
+  - Trace the authenticated identity from authentication → authorization → action
+  - Check if authorization decisions and actions use THE SAME identifier for resources
+  - Look for user-controlled parameters that determine resource IDs or identities AFTER authentication
+  - Verify that decorators and handlers don't apply different merging logic for resource identifiers
+  - Be suspicious of "from_user", "owner_id", "account_id" parameters after authentication succeeded
+
+  **Real-world scenarios:**
+  - Social media APIs where you can post "as" another user
+  - Multi-tenant apps where you authenticate as user X but can access tenant Y's data
+  - Group messaging where authentication checks one group but data comes from another
+  - Background job APIs that trust user-supplied "owner" fields
+category: ii.r03-authz-binding
+namespace: flask-ii-r03-authz-binding
+toc: true
+outline:
+  - title: Secure Authorization Baseline
+    description: |
+      The correct pattern for handling authorization binding: authenticate the user,
+      establish their identity in global context (g.user), and consistently use
+      the same source for resource identifiers in both authorization checks and
+      data access. No user-controlled parameters can rebind resources after
+      authorization succeeds.
+    examples:
+      - 13
+  - title: Path-Query Confusion Leading to Binding Drift
+    description: |
+      Authorization binding drift caused by decorators that merge path and query
+      parameters with inconsistent priority. The decorator checks authorization
+      using one source (query parameters), but the handler accesses data using
+      another source (path parameters), creating binding drift even though the
+      authenticated identity is correct.
+
+      These examples show how parameter source merging creates binding drift
+      between the authorization check (WHICH resource is authorized) and the
+      action (WHICH resource is accessed).
+    examples:
+      - 14
+      - 15
+  - title: Classic Identity Rebinding
+    description: |
+      The purest form of authorization binding drift: the application correctly
+      authenticates WHO the user is and verifies they have access to a resource,
+      but then trusts user-controlled parameters to determine which identity to
+      ACT AS when performing operations.
+
+      This demonstrates post-authentication identity rebinding, where users can
+      impersonate others by controlling identity fields in request data.
+    examples:
+      - 16

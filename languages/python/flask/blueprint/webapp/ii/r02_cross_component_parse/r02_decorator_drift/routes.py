@@ -1,6 +1,6 @@
-from flask import Blueprint, request, g
-from .decorator import authentication_required, basic_auth_v1, check_group_membership_v1, basic_auth_v2, check_group_membership_v2
-from .database import get_messages_ex8, get_user_ex8, get_user_messages, get_group_messages, is_group_member
+from flask import Blueprint
+from .decorator import authentication_required
+from .database import get_messages_ex8, get_user_ex8
 
 bp = Blueprint("decorator_drift", __name__)
 
@@ -8,13 +8,22 @@ bp = Blueprint("decorator_drift", __name__)
 # id: 8
 # title: "Decorator-based Authentication with Parsing Drift"
 # notes: |
-#   Shows how using decorators can obscure parameter source confusion.
+#   Shows how using decorators can obscure parameter source confusion, leading
+#   to authentication bypass.
 #
-#   Example 8 is functionally equivalent to Example 4 from the old parameter source
-#   confusion examples, but it may be harder to spot the vulnerability while using decorators.
+#   Example 8 is functionally equivalent to Example 4 from the source precedence
+#   examples, but it may be harder to spot the vulnerability when using decorators
+#   because the parameter source logic is split across multiple layers.
 #
-#   The decorator authenticates using request.args.get("user"), but the handler retrieves
-#   the user via get_user() which prioritizes request.form over request.args.
+#   THE VULNERABILITY: Authentication bypass via source precedence confusion.
+#   - Authentication decorator validates credentials from request.args (query string)
+#   - Handler retrieves user identity from get_user_ex8(), which prioritizes request.form
+#   - Attack: Provide Alice's credentials in query string, Bob's name in form body
+#   - Result: Authenticate as Alice, but access Bob's messages
+#
+#   This is NOT authorization binding drift - it's authentication bypass because
+#   the authenticated identity itself gets confused between authentication check
+#   and data access.
 # @/unsafe
 @bp.route("/example8", methods=["GET", "POST"])
 @authentication_required
@@ -23,69 +32,4 @@ def example8():
     if messages is None:
         return "No messages found", 404
     return messages
-# @/unsafe[block]
-
-
-# @unsafe[block]
-# id: 14
-# title: "Path and query parameter confusion via merging decorator"
-# notes: |
-#   Here we aim to make the code more idiomatic by moving the group membership
-#   check to the decorator `@check_group_membership`. It results in a cleaner
-#   code and appears to confirm to the single-responsibility principle.
-#
-#   This code, however, is now vulnerable to path and query parameter confusion.
-#   The decorator's merging logic (request.args or request.view_args) prioritizes
-#   query parameters, while Flask's URL routing binds path parameters directly to
-#   function arguments. An attacker can pass their group in the query string to
-#   bypass authorization while accessing a different group's data via the path.
-# @/unsafe
-@bp.get("/example14/groups/<group>/messages")
-@basic_auth_v1
-@check_group_membership_v1
-def example14_group_messages(group):
-    """Returns group's messages, if the user is a member of the group."""
-    return get_group_messages(group)
-
-@bp.get("/example14/user/messages")
-@basic_auth_v1
-@check_group_membership_v1
-def example14_user_messages():
-    """Returns user's messages: private or from a group."""
-    if 'group' in request.args:
-        return get_group_messages(request.args.get("group"))
-    return get_user_messages(g.user)
-# @/unsafe[block]
-
-
-# @unsafe[block]
-# id: 15
-# title: "Path and query parameter confusion despite global source of truth"
-# notes: |
-#   Here we aim to mitigate the confusion risk in the `group` merging behavior
-#   by applying the single source of truth. We do this already for the identity
-#   of the authenticated user, by storing it in the global context (`g.user`).
-#   So, here we extend `@basic_auth_v2` to also store the group in the global
-#   context (`g.group`).
-#
-#   Despite these efforts, the code is still vulnerable. The decorator sets g.group
-#   with query-priority merging, but the handler function still receives the path
-#   parameter directly from Flask's routing. The handler passes this path parameter
-#   to get_group_messages(), ignoring g.group entirely in example15_group_messages.
-# @/unsafe
-@bp.get("/example15/groups/<group>/messages")
-@basic_auth_v2
-@check_group_membership_v2
-def example15_group_messages(group):
-    """Returns group's messages, if the user is a member of the group."""
-    return get_group_messages(group)
-
-@bp.get("/example15/user/messages")
-@basic_auth_v2
-@check_group_membership_v2
-def example15_user_messages():
-    """Returns user's messages: private or from a group."""
-    if 'group' in request.args:
-        return get_group_messages(g.group)  # We use g.group here now, single source of truth
-    return get_user_messages(g.user)
 # @/unsafe[block]

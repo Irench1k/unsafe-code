@@ -1,34 +1,46 @@
 ---
 title: Cross-Component Parsing Drift in Flask
 summary: |
-  Decorators, middleware, and helpers sometimes grab request data before the view does; if each layer resolves parameters differently, the same call holds two meanings.
+  Decorators, middleware, and helpers sometimes grab request data before the view does; if each layer resolves parameters differently, the same call holds two meanings, enabling authentication bypass.
 description: |
   ## Overview
-  Flask's architecture allows each layer (decorators, middleware, before-request hooks, views) to independently choose how to source request data from multiple APIs: `request.args`, `request.form`, `request.values`, or `request.view_args`. When layers use different APIs or apply different merging strategies (e.g., args-priority vs form-priority), the same HTTP request carries multiple semantic interpretations. The guard validates one parameter value while the handler acts on another, enabling authorization bypasses even when all components execute in correct order.
+  Flask's architecture allows each layer (decorators, middleware, before-request hooks, views) to independently choose how to source request data from multiple APIs: `request.args`, `request.form`, `request.values`. When layers use different APIs or apply different merging strategies (e.g., args-priority vs form-priority), the same HTTP request carries multiple semantic interpretations. The authentication check validates one user identity while the handler acts as a different user, enabling authentication bypasses even when all components execute in correct order.
+
+  **Key distinction from other inconsistent interpretation bugs:**
+  - **IS source precedence**: Different components read from different sources (args vs form vs values)
+  - **IS authentication bypass**: The vulnerability allows acting as a different USER than the one authenticated
+  - **NOT authorization binding drift**: This is about confused identity during authentication, not about rebinding resources after successful authentication
+
+  **The vulnerability pattern:**
+  1. Decorator/middleware authenticates user credentials from one source (e.g., `request.args`)
+  2. Handler retrieves identity from different source (e.g., `request.form`)
+  3. Authentication validates Alice's password, but handler acts as Bob
 
   **Spotting the issue:**
-  - Audit every decorator or middleware applied to a route and see which request APIs they touch (`request.args` vs `request.form` vs `request.values` vs `request.view_args`).
-  - Check for custom merging logic that prioritizes sources differently (e.g., `request.args or request.view_args` vs direct function parameter binding).
-  - Be suspicious when global state (e.g. `g.*`) is set in one layer but components still access raw request sources directly.
-  - Verify decorators and handlers agree on which parameter source is authoritative for security decisions.
+  - Audit every decorator or middleware applied to a route and see which request APIs they touch (`request.args` vs `request.form` vs `request.values`).
+  - Check for custom merging logic that prioritizes sources differently (e.g., `user_from_form or user_from_args`).
+  - Verify authentication decorators and handlers use the SAME source for user identity.
+  - Look for decorators that set global state but handlers that read raw request data directly.
+
+  **Real-world scenarios:**
+  - Legacy authentication that reads from query string while new code expects form data
+  - API refactors that move from GET to POST without updating all middleware
+  - Shared decorators applied to endpoints with different expected request types
 category: ii.cross-component-parse
 namespace: flask-ii-cross-component-parse
 toc: true
 outline:
-  - title: Shared Contract Baseline
-    description: |
-      A safe reference flow where decorators and views agree on how the group identifier is sourced.
-    examples:
-      - 13
   - title: Decorators That Drift
     description: |
-      Guards implemented as decorators merge or prioritize request data differently than the view, enabling bypasses.
+      Authentication guards implemented as decorators read user credentials from one
+      source (query parameters), while the view retrieves the user identity from a
+      different source (form data), enabling authentication bypass.
     examples:
       - 8
-      - 14
-      - 15
   - title: Middleware Short-Circuiting Views
     description: |
-      Before-request hooks authenticate on query parameters only, while views consume form data.
+      Before-request hooks authenticate using query parameters only, while views
+      consume form data for the actual operation, creating the same authentication
+      bypass but at the middleware layer.
     examples:
       - 9

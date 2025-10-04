@@ -1,0 +1,215 @@
+version: '1'
+root: .
+category: ii.r03-authz-binding
+namespace: flask-ii-r03-authz-binding
+examples:
+  13:
+    id: 13
+    kind: block
+    title: Secure Authorization Binding Baseline [Not Vulnerable]
+    notes: >-
+      This demonstrates the correct way to handle authorization binding in a multi-user application.
+      Authentication establishes WHO the user is, and authorization checks verify that the
+      authenticated identity has access to the requested resource.
+
+
+      Key security properties:
+
+      - Authentication via Basic Auth establishes `g.user` (WHO)
+
+      - Authorization checks use the SAME source for the resource identifier (group parameter)
+
+      - The data retrieval also uses the SAME source for the resource identifier
+
+      - No user-controlled parameters can rebind the resource after authorization
+
+
+      This example provides two endpoints:
+
+      1. `/groups/<group>/messages` - Returns messages from a specific group (path parameter)
+
+      2. `/user/messages` - Returns user's private messages, or group messages if `group`
+      query param provided
+
+
+      In both cases, the authorization check and the data access use the same source, preventing
+      any binding drift attacks.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r01_baseline/routes.py
+      code_start_line: 28
+      code_end_line: 58
+    - part: 2
+      file: r01_baseline/decorator.py
+      code_start_line: 20
+      code_end_line: 36
+    file_hashes:
+      r01_baseline/decorator.py: 8b681ce69fafe2466d6980fd3567d52452842e936238402fae306655d919583d
+      r01_baseline/routes.py: c116af9d41261679fb4cfe4395f4e239369657307063ea9c54f7a6bd02e9d37a
+    fingerprint: fc70e90041ba3b01c684ac0ebf9514e874f516430a77cee9156a371bf8954112
+  14:
+    id: 14
+    kind: block
+    title: Authorization Binding Drift via Path-Query Confusion
+    notes: >-
+      This example demonstrates authorization binding drift caused by a decorator that merges
+      path and query parameters with query-priority.
+
+
+      THE VULNERABILITY: Authorization binding drift, NOT source precedence.
+
+      - Authentication establishes WHO: Plankton (verified identity)
+
+      - Authorization checks WHICH resource: staff@chum-bucket.sea (from query param)
+
+      - Action accesses DIFFERENT resource: staff@krusty-krab.sea (from path param)
+
+
+      The key insight: We know WHO Plankton is (authentication succeeded), but we allow him
+      to control WHICH resource the authorization checks versus WHICH resource gets accessed.
+
+
+      Attack flow:
+
+      1. Plankton authenticates as himself (WHO = plankton@chum-bucket.sea) ✓
+
+      2. Authorization decorator checks access to staff@chum-bucket.sea (query param) ✓
+
+      3. Handler retrieves messages from staff@krusty-krab.sea (path param) ✗
+
+
+      This is binding drift because the authenticated identity is correct, but the resource
+      identifier gets rebound between authorization and action.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r02_path_query_confusion/routes.py
+      code_start_line: 35
+      code_end_line: 50
+    - part: 2
+      file: r02_path_query_confusion/decorator.py
+      code_start_line: 21
+      code_end_line: 50
+    file_hashes:
+      r02_path_query_confusion/decorator.py: 32a3e8ade10bcca35dfc72824a86a68329bdbb61891fd23ac26bf61fcf152214
+      r02_path_query_confusion/routes.py: b49036438aa2b904a5cee4fb571e762dd5e4b061b1cea767a76f628b42cd0025
+    fingerprint: 50daa38ee0f83cad147e9e7f759c11181c034d5dabf91d7a8267e7cc97633b84
+  15:
+    id: 15
+    kind: block
+    title: Authorization Binding Drift Despite Global Source of Truth
+    notes: >-
+      This example attempts to fix the binding drift by introducing a single source of truth
+      (g.group), but the vulnerability persists because handlers still use path parameters
+      directly.
+
+
+      THE VULNERABILITY: Authorization binding drift via inconsistent source usage.
+
+      - Authentication establishes WHO: Plankton (stored in g.user) ✓
+
+      - Decorator sets g.group using query-priority merging ✓
+
+      - Authorization checks WHICH resource: g.group (staff@chum-bucket.sea from query) ✓
+
+      - Action accesses DIFFERENT resource: group parameter (staff@krusty-krab.sea from path)
+      ✗
+
+
+      This demonstrates that even "single source of truth" patterns can fail if:
+
+      1. The source is populated with user-controlled priority logic
+
+      2. Some code paths ignore the source and use raw request data
+
+
+      Attack flow (same as Example 14):
+
+      1. Plankton authenticates as himself ✓
+
+      2. Decorator sets g.group = "staff@chum-bucket.sea" (query param) ✓
+
+      3. Authorization checks membership in g.group ✓
+
+      4. Handler uses path param "staff@krusty-krab.sea" instead of g.group ✗
+
+
+      The fix would be to either: a) Always use g.group in handlers (never path params directly),
+      OR b) Don't set g.group with merging logic - use path param directly everywhere
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r02_path_query_confusion/routes.py
+      code_start_line: 82
+      code_end_line: 97
+    - part: 2
+      file: r02_path_query_confusion/decorator.py
+      code_start_line: 59
+      code_end_line: 92
+    file_hashes:
+      r02_path_query_confusion/decorator.py: 32a3e8ade10bcca35dfc72824a86a68329bdbb61891fd23ac26bf61fcf152214
+      r02_path_query_confusion/routes.py: b49036438aa2b904a5cee4fb571e762dd5e4b061b1cea767a76f628b42cd0025
+    fingerprint: 53663bca75af46586bbe7b898c43789a31f29024dfd9de52c746949a2bc9b4ed
+  16:
+    id: 16
+    kind: block
+    title: Classic Authorization Binding Drift - User Identity Rebinding
+    notes: >-
+      This demonstrates the most straightforward form of authorization binding drift: the
+      application authenticates WHO the user is, verifies they have access to a resource,
+      but then trusts a user-controlled parameter to determine which identity to ACT AS.
+
+
+      THE VULNERABILITY: Identity rebinding after successful authorization.
+
+      - Authentication establishes WHO: Squidward (verified via Basic Auth) ✓
+
+      - Authorization checks WHICH resource: staff@krusty-krab.sea (verified member) ✓
+
+      - Action uses DIFFERENT identity: spongebob@krusty-krab.sea (from request body) ✗
+
+
+      This is the purest form of authorization binding drift: we authenticate the user correctly,
+      we authorize them for the correct resource, but then we let them rebind their identity
+      when performing the action.
+
+
+      Key insight: This is NOT about confused parameters or different sources. It's about
+      trusting user input for identity AFTER authentication succeeded.
+
+
+      Attack scenario:
+
+      1. Mr. Krabs announces Employee of the Month voting in the staff group
+
+      2. Squidward (who desperately wants the recognition) authenticates as himself
+
+      3. He's authorized to post to staff@krusty-krab.sea (he's a member)
+
+      4. But the API trusts the "from_user" parameter from the request body
+
+      5. Squidward posts a vote for himself while claiming it's from SpongeBob
+
+
+      Impact: Squidward can impersonate SpongeBob and manipulate the vote!
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r03_simple_rebinding/routes.py
+      code_start_line: 39
+      code_end_line: 76
+    file_hashes:
+      r03_simple_rebinding/routes.py: 8460cd403cec22442190be0d869ef230effab224fb8e9d961ba0f8a500cb0473
+    fingerprint: 8de6f86a0a9513d8a45ad2faf1cb460b7e88c60578ea929ffb2112e061d59484
+attachments:
+  http/exploit-13.http: 705851661eb343598b3fcb937a9dd0408a304e19b48c812412522f2e8f6c1875
+  http/exploit-14.http: 0cf49be054acff47dcd8c256d339928fd95f5c257889f620a665913684b6a513
+  http/exploit-15.http: 377ce6d14c09e5013fa40f4690b2c0de7db56aa98529b25af8ea281fabd38585
+  http/exploit-16.http: 1bb938674dd60eaca6ea0df08238e637eae2868fc7c13adca3722357d8ae17ee
+build_signature: 0d2a49df1d3de1c7a2cb8e5c4f257f5f80a2eda2ae41d8aa46603d0a2ff9ede7
+last_readme_fingerprint: c7d3db738d25e151c67a9e4969a7ef1d4feefca1c11bea1fd054ec55cbcd5683
