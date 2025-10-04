@@ -1,12 +1,12 @@
 from flask import Blueprint
 
-from .cross_component_parse.routes import bp as cross_component_parse_bp
-from .http_semantics.routes import bp as http_semantics_bp
-from .multi_value_semantics.routes import bp as multi_value_semantics_bp
-from .normalization_canonicalization.routes import (
+from .r01_source_precedence.routes import bp as source_precedence_bp
+from .r02_cross_component_parse.routes import bp as cross_component_parse_bp
+from .r03_multi_value_semantics.routes import bp as multi_value_semantics_bp
+from .r04_http_semantics.routes import bp as http_semantics_bp
+from .r05_normalization_canonicalization.routes import (
     bp as normalization_canonicalization_bp,
 )
-from .source_precedence.routes import bp as source_precedence_bp
 
 # Inconsistent Interpretation vulnerability examples
 bp = Blueprint("ii", __name__)
