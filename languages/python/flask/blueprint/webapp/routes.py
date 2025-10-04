@@ -9,7 +9,7 @@ bp = Blueprint("vuln", __name__)
 
 @bp.route("/")
 def index():
-    return "Vulnerability examples - try /confusion, /type-issues, /state-management, /ii, /policy-composition-and-precedence\n"
+    return "Vulnerability examples - try /ii, /policy-composition-and-precedence\n"
 
 bp.register_blueprint(ii_bp, url_prefix="/ii")
 bp.register_blueprint(policy_bp, url_prefix="/policy-composition-and-precedence")
