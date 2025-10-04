@@ -1,0 +1,205 @@
+version: '1'
+root: .
+category: ii.source-precedence
+namespace: flask-ii-source-precedence
+examples:
+  0:
+    id: 0
+    kind: function
+    title: Secure Implementation
+    notes: >-
+      Here you can see a secure implementation that consistently uses query string parameters
+      for both authentication and data retrieval.
+    http: open
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 38
+      code_end_line: 54
+    file_hashes:
+      routes.py: 5162fd2ab374d0319d720e1ed71f2f6f28e5ed0e525033fa07701d7b52a61acf
+    fingerprint: 29e2c8861845ae214130819dd4582999af0d50abe751742a1d3c1980a57dc15e
+  1:
+    id: 1
+    kind: function
+    title: Basic Parameter Source Confusion
+    notes: >-
+      Demonstrates the most basic form of parameter source confusion where authentication
+      uses **query** parameters but data retrieval uses **form** data.
+
+
+      We take the user name from the query string during the validation, but during the data
+      retrieval another value is used, taken from the request body (form). This does not look
+      very realistic, but it demonstrates the core of the vulnerability, we will build upon
+      this further.
+
+
+      Here you can see if we provide bob's name in the request body, we can access his messages
+      without his password.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 71
+      code_end_line: 85
+    file_hashes:
+      routes.py: 5162fd2ab374d0319d720e1ed71f2f6f28e5ed0e525033fa07701d7b52a61acf
+    fingerprint: 5a0a62720cbe6ffff60a4b0b9bb41cd2f752b6d2b71c294047dc30706b290a3b
+  2:
+    id: 2
+    kind: block
+    title: Function-Level Parameter Source Confusion
+    notes: >-
+      Functionally equivalent to example 1, but shows how separating authentication and data
+      retrieval into different functions can make the vulnerability harder to spot.
+    http: open
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 95
+      code_end_line: 119
+    file_hashes:
+      routes.py: 5162fd2ab374d0319d720e1ed71f2f6f28e5ed0e525033fa07701d7b52a61acf
+    fingerprint: b9b6c42d77bcd67a5ade4a18afaba9e6e1dd52ed4d59e6a4f23e9d15f3e73835
+  3:
+    id: 3
+    kind: block
+    title: Cross-Module Parameter Source Confusion
+    notes: >-
+      In the previous example, you can still see that the `user` value gets retrieved from
+      the `request.args` during validation but from the `request.form` during data retrieval.
+
+
+      A more subtle example, where this is not immediately obvious (imagine, `authenticate_user`
+      is defined in an another file altogether):
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 135
+      code_end_line: 151
+    file_hashes:
+      routes.py: 5162fd2ab374d0319d720e1ed71f2f6f28e5ed0e525033fa07701d7b52a61acf
+    fingerprint: 937769fb028bb8e3259f46c18c9e27f43cc2141da584993464b69c001783618c
+  4:
+    id: 4
+    kind: block
+    title: Form-Query Priority Resolution
+    notes: >-
+      Shows how a helper function that implements source prioritization can create vulnerabilities.
+
+
+      In Example 4 we don't need to specify body parameters to get a result (which is now
+      more realistic!), but if we want, we can still access bob's messages by passing his
+      user name in the request body:
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 165
+      code_end_line: 180
+    file_hashes:
+      routes.py: 5162fd2ab374d0319d720e1ed71f2f6f28e5ed0e525033fa07701d7b52a61acf
+    fingerprint: 40239e0dfa8faa127a294c6d3b2082282337171432241ba3c5798542af6f6642
+  5:
+    id: 5
+    kind: block
+    title: Mixed-Source Authentication
+    notes: >-
+      Shows how authentication and data access can use different combinations of sources.
+
+
+      This one is interesting, because you can access Bob's messages by providing his username
+      and Alice's password in the request query, while providing Alice's username in the request
+      body:
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 194
+      code_end_line: 209
+    file_hashes:
+      routes.py: 5162fd2ab374d0319d720e1ed71f2f6f28e5ed0e525033fa07701d7b52a61acf
+    fingerprint: 72f0af44f6ec6dbc6ab980b728553449207ca94785b36300077329849bec044a
+  6:
+    id: 6
+    kind: block
+    title: Form Authentication Bypass
+    notes: >-
+      The endpoint uses form data for authentication, but request.values.get() allows query
+      parameters to override form values, creating a vulnerability. Although designed for
+      POST requests, the endpoint accepts both GET and POST methods, enabling the attack.
+
+
+      Note that although the regular usage would rely on POST request (or PUT, PATCH, etc.),
+      and wouldn't work with GET (because flask's request.values ignores form data in GET
+      requests), the attacker can send both GET and POST requests (if the endpoint is configured
+      to accept both methods).
+
+
+      ```http
+
+      POST /ii/source-precedence/example6? HTTP/1.1
+
+      Content-Type: application/x-www-form-urlencoded
+
+      Content-Length: 26
+
+
+      user=alice&password=123456
+
+      ```
+
+
+      However, the attacker can send both GET and POST requests (if the endpoint is configured
+      to accept both methods).
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 233
+      code_end_line: 250
+    file_hashes:
+      routes.py: 5162fd2ab374d0319d720e1ed71f2f6f28e5ed0e525033fa07701d7b52a61acf
+    fingerprint: 7168497a0f9aec1f48ad5d8557f1c1bf873debaf3daa1ace75ed6c2038a938a3
+  7:
+    id: 7
+    kind: function
+    title: Request.Values in Authentication
+    notes: >-
+      Demonstrates how using request.values in authentication while using form data for access
+      creates vulnerabilities.
+
+
+      This is an example of a varient of example 6, as we do the similar thing, but now we
+      can pass Bob's username in the request body with Alice's password, while passing Alice's
+      username in the request query. Note that this example does not work with GET request,
+      use POST.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 264
+      code_end_line: 277
+    file_hashes:
+      routes.py: 5162fd2ab374d0319d720e1ed71f2f6f28e5ed0e525033fa07701d7b52a61acf
+    fingerprint: 30d5f991d34accfba52c0b9fef464af2292ab914965d27a372ae5380049f5cd3
+attachments:
+  http/exploit-0.http: 2b15126d43b52f08de66caec80a8be2a50b72afbbdda644dc50c2af1fc0889c2
+  http/exploit-1.http: 44654d6b0ad2935ec988fc7f70944e22d70dfa3c421eab06fabc8279ecb293e8
+  http/exploit-2.http: 42f1afbdde3b3f8fdd3f39a7c78cef1ef94c4c3cb80368c27bc42458f9114366
+  http/exploit-3.http: cab8115e240e11c61955a5d0df83821a709b28c2134407fde84e283e3e28c067
+  http/exploit-4.http: 936c83145d381e78963446bd210ea32e4a5f5853ebd6cf219f33d1ea395ce606
+  http/exploit-5.http: a0db9bcf526c27a9c11c4eaad199a655fcd6c3c10107931ce341bf210b6ed79c
+  http/exploit-6.http: 1476caba09f7a2e1cc6e311e40c647777a2b1439cdebe38700a1d8b24078c09b
+  http/exploit-7.http: 44f83b97ae209ff20d0c3d7ca4d96c14c29d373f20c7213c16a2fb7b9a285319
+build_signature: 89793cf8e5ad420d1cd9d8896ee1e7ded8857bdae02d6bf0f9e567bd0382921f
+last_readme_fingerprint: cf0aab45ceab61c02b14d8792ba3230dfe9ecc6d06a6511ef79a295b296cc629

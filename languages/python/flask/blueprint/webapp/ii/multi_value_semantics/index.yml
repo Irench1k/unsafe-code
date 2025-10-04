@@ -1,0 +1,86 @@
+version: '1'
+root: .
+category: ii.multi-value-semantics
+namespace: flask-ii-multi-value-semantics
+examples:
+  10:
+    id: 10
+    kind: block
+    title: '[Not Vulnerable] First Item Checked, First Item Used'
+    notes: >-
+      This example is not vulnerable and is meant to demonstrate how the vulnerability could
+      realistically get added to the codebase during refactoring.
+
+
+      We start by implementing a helper function `@check_group_membership` that checks that
+      the user is a member of the group which messages are being accessed.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 18
+      code_end_line: 23
+    - part: 2
+      file: decorator.py
+      code_start_line: 24
+      code_end_line: 33
+    file_hashes:
+      decorator.py: 5b9dc1d870580b8529d9914a2f8578385f14f3d3fe51d35f2320028ad773765a
+      routes.py: e1dd25f8826c3ac3f78c3589641ebd8b6bebf3d3610171a546287169c8a4bcb6
+    fingerprint: 05de248ceddd68b9e9e44a5eaa9ee35928539d45fa79e0cac3a4091c7a408f9c
+  11:
+    id: 11
+    kind: block
+    title: Utility Reuse Mismatch — .get vs .getlist
+    notes: >-
+      Builds upon the previous example. Consider that we need to add a new API endpoint that
+      allows the user to access the messages of multiple groups in a single request.
+
+
+      We start by copying the previous implementation and changing the function body to iterate
+      over all the groups in the request.
+
+
+      The code looks clean and works nicely for the "happy path", but it is vulnerable as
+      the function body now acts on the unverified data – remember that `@check_group_membership`
+      only checks the first group in the request.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 41
+      code_end_line: 49
+    file_hashes:
+      routes.py: e1dd25f8826c3ac3f78c3589641ebd8b6bebf3d3610171a546287169c8a4bcb6
+    fingerprint: 2e9274c4ce51839cb460eded35820cca0fc74170cbc865d7863ac226e70c3ac1
+  12:
+    id: 12
+    kind: block
+    title: Any vs All — Fail-Open Authorization for Batch Actions
+    notes: >-
+      Authorization incorrectly uses `any()` over the requested groups, allowing a user who
+      is an admin of one group to grant membership for additional groups in the same request.
+      The action then applies to every provided group. Correct behavior would require `all()`.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 61
+      code_end_line: 68
+    - part: 2
+      file: decorator.py
+      code_start_line: 41
+      code_end_line: 50
+    file_hashes:
+      decorator.py: 5b9dc1d870580b8529d9914a2f8578385f14f3d3fe51d35f2320028ad773765a
+      routes.py: e1dd25f8826c3ac3f78c3589641ebd8b6bebf3d3610171a546287169c8a4bcb6
+    fingerprint: 97a9abdc2867f8ac1c5ca57efa0fc020503ca02271301cebb32924c776cba143
+attachments:
+  http/exploit-10.http: b08bc3d7dd133502bbb1235819d742662688aee52444e2015044f13653132b23
+  http/exploit-11.http: 66211c3ee413704fa4b592d88c88368061a9eaf96864d4b4066aebccaebcae9f
+  http/exploit-12.http: e53456c8a57beb7e683f2d1ba78fb1258a06731ce9f92fa232c39d1847691be5
+build_signature: 5bc4d207e09a3d1397d22f3a937f226d87458b450035a22387192eb2d5d1968c
+last_readme_fingerprint: 58488295e13052e254d2972cf1e270eeb4aa560652a907a81a9590c3d85bc345

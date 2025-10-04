@@ -1,0 +1,176 @@
+version: '1'
+root: .
+category: ii.normalization-canonicalization
+namespace: flask-ii-normalization-canonicalization
+examples:
+  18:
+    id: 18
+    kind: block
+    title: Lowercase Normalization
+    notes: >-
+      This example demonstrates a canonicalization confusion vulnerability using inconsistent
+      lowercase normalization.
+
+
+      The vulnerability occurs because:
+
+
+      1. Users can create new groups with any casing (e.g., "STAFF@KRUSTY-KRAB.SEA"), making
+      themselves admins
+
+
+      2. During group membership checks, the group name is NOT normalized/lowercased
+
+
+      3. When retrieving group messages, the group name IS normalized to lowercase
+
+
+      Attack scenario: Attacker creates a group "STAFF@KRUSTY-KRAB.SEA" (uppercase) and becomes
+      admin. When checking membership, system looks for "STAFF@KRUSTY-KRAB.SEA" (finds attacker's
+      group). When retrieving messages, system normalizes to "staff@krusty-krab.sea" (finds
+      legitimate group). As a result: Attacker gains access to messages from the legitimate
+      group they shouldn't see.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r01_lowercase/routes.py
+      code_start_line: 27
+      code_end_line: 40
+    file_hashes:
+      r01_lowercase/routes.py: 33149d5b489ef303eb861c8a43bda969462bb1135108f5b277658d5d73cb9eff
+    fingerprint: 068171e065455ac49f23a3e59dc1bbd5d8ad5f5fb935077750b2dd88268dc9cf
+  19:
+    id: 19
+    kind: block
+    title: Case insensitive Object Retrieval
+    notes: >-
+      In this example we are still using case canonicalization for group retrieval, but now
+      instead of showing the attacker the victim's group content, we are showing the attacker's
+      newly created group content to the victim, allowing impersonation.
+
+
+      The vulnerability occurs when an attacker creates a new group with the same name as
+      the victim's group but uses different casing.During group creation, the system checks
+      for exact name matches to enforce uniqueness, so "STAFF@KRUSTY-KRAB.SEA" is considered
+      different from "staff@krusty-krab.sea" and creation succeeds. However, during group
+      retrieval, the system performs case-insensitive matching and returns the most recently
+      created group that matches. When the victim tries to access their original group "staff@krusty-krab.sea",
+      they actually receive the attacker's group "STAFF@KRUSTY-KRAB.SEA" because it was added
+      later and the case-insensitive lookup treats them as the same group.
+
+
+      This vulnerability allows the attacker to impersonate legitimate group members and post
+      messages that appear to come from trusted colleagues or administrators, potentially
+      leading to social engineering attacks and information disclosure.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r02_insensitive_object_retrieval/routes.py
+      code_start_line: 27
+      code_end_line: 41
+    - part: 2
+      file: r02_insensitive_object_retrieval/database.py
+      code_start_line: 87
+      code_end_line: 93
+    file_hashes:
+      r02_insensitive_object_retrieval/database.py: 0b20b4d64e2954e6a8a64055ad5a88e43f1e41124cfb8cdb11f77efdf58f6465
+      r02_insensitive_object_retrieval/routes.py: a8a724e8120c0ea0baadfe468a5cc3bad68ca89ff697e7b266a41bb487d8982d
+    fingerprint: 66d22b6a364135223a56805bd24f69a58b2eb3de16ae785ddf93b0f2198da013
+  20:
+    id: 20
+    kind: block
+    title: Whitespace Canonicalization
+    notes: >-
+      This is a classic whitespace confusion attack - two parts of the code handle whitespace
+      differently: - strip() only removes leading/trailing whitespace - replace(" ", "") removes
+      ALL whitespace
+
+
+      So here's what happens: - @check_group_membership uses strip() - sees "staff @krusty-krab.sea"
+      and keeps the middle space - example20 uses replace() - turns "staff @krusty-krab.sea"
+      into "staff@krusty-krab.sea"
+
+
+      The attack: Plankton creates "staff @krusty-krab.sea" (with space), gets authorized
+      for HIS group, but the code actually fetches messages from "staff@krusty-krab.sea" (Mr.
+      Krabs' group).
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r03_whitespace/routes.py
+      code_start_line: 27
+      code_end_line: 55
+    - part: 2
+      file: r03_whitespace/decorator.py
+      code_start_line: 36
+      code_end_line: 49
+    file_hashes:
+      r03_whitespace/decorator.py: 37ac40794a7041eb030a237e2f69cdbf77d55130d17990618869df1255b3a1fc
+      r03_whitespace/routes.py: ff5ec0370f2f1e8ad1c61c84b0f3f756d4655d83d0bd6bb219417c027944d424
+    fingerprint: 55cf1ee61a56379f49d1eea25350ea8d142e8815db03f7c66065ab938bd54a05
+  21:
+    id: 21
+    kind: block
+    title: Whitespace Canonicalization
+    notes: >-
+      Previously we only had 'add group' functionality. Now we add group update handler as
+      well. There are two distinct API endpoints now, one creates a new group (and we make
+      sure to check that the group truly does not exist yet!), and the other endpoint updates
+      the existing group (this is privileged operation, so we check that the user is an admin
+      with @check_if_admin decorator).
+
+
+      Unfortunately, the code remains vulnerable to canonicalization confusion attack. In
+      the `create_group` handler we perform group uniqueness check on the raw group name provided
+      by user `request.json.get("name")`. However, if the check passes, the `create_new_group`
+      is called with the canonicalized data in the Group object. Group model uses `constr`
+      feature from pydantic, which strips whitespace on insertion, so the attacker can bypass
+      group uniqueness check by providing a group name with extra whitespace at the start
+      or end of the group name.
+
+
+      Compare the exploit to exploit-19.http. Here the impact is much worse, because instead
+      of ovewriting the existing group (and losing its message history), this time Plankton
+      can simply add himself to the group admins, getting privileged access to existing group
+      and its messages. This happens because DatabaseStorage.add_group_to_storage tries to
+      be idempotent and cleverly creates a new group if it doesn't exist yet while only updating
+      permissions of an existing group. As a result, even though `create_group` and `update_group`
+      are meant to be separate handlers, in fact they only differ in the security check implementations,
+      while the downstream code path is shared. So by bypassing group uniqueness check in
+      `create_group` Plankton in fact manages to use this handler as if it was `update_group`
+      - while he wouldn't be able to use `update_group` directly.
+
+
+      The root cause of the attack is again an inconsistent canonicalization: when we check
+      for group existence, we use raw input, but when we store the group, we use canonicalized
+      data.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r04_whitespace/routes.py
+      code_start_line: 49
+      code_end_line: 94
+    - part: 2
+      file: r04_whitespace/database/models.py
+      code_start_line: 21
+      code_end_line: 24
+    - part: 3
+      file: r04_whitespace/database/storage.py
+      code_start_line: 33
+      code_end_line: 51
+    file_hashes:
+      r04_whitespace/database/models.py: 673739cb5ef43c5a6f0c05ea2187c90b6e9ad00c6c3e8884e52a5bf47daf19bd
+      r04_whitespace/database/storage.py: bb447b07e9f1d4cc26e473861bf4bfb31ff9589220f2ed00e9244e79073a5b4d
+      r04_whitespace/routes.py: 27a4d5b79abcb702c518c22d96cd22002735e0dfff71eae67ef4560ed61c0540
+    fingerprint: 7f7e5620ddef17ccd1b104b4d507a4e0ff79619c2d776e3901ddd6f459ce7f2a
+attachments:
+  http/exploit-18.http: 65ff80adaf9d86fe4c2ebf035b4b98ca020f6575eb4a44c71643ed5b6a68a727
+  http/exploit-19.http: 854464518539ba51461391400e6df5d519c724acb35ae0aa4edadae396ec6ad5
+  http/exploit-20.http: 56e8afb2d513dced64421bffc7a697e8538bbf4c5796a0ae172dca296bc9f413
+  http/exploit-21.http: 773eaa6584e09465f5347fe9bffb9c7aabad35b925cc404004efec9cbb8d981f
+build_signature: a7026f41cf2eb3e1318a19063eae99db51f63a5f0c95bfa4ee4d72822f371ab9
+last_readme_fingerprint: b61acec8acc10de781f6d6d3ac9f083aa835a71fcab1a9448bba70bbdfcfbff7

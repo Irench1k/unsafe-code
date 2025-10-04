@@ -1,0 +1,8 @@
+version: '1'
+root: .
+category: temporal-inconsistency.cache-coherence-and-keying
+namespace: flask-temporal-cache-coherence
+examples: {}
+attachments: {}
+build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+last_readme_fingerprint: 722a739c7ccd5a48117a42642e7604f177a391d95308393da764ccda3e9a52dc

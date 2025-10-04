@@ -1,0 +1,8 @@
+version: '1'
+root: .
+category: trust-boundary-errors.gateway-identity
+namespace: flask-trust-boundary-gateway-identity
+examples: {}
+attachments: {}
+build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+last_readme_fingerprint: afc2c2742d4827a55127fcd01f85c2ec75f5dd5f1da3cffa5286aa17a460be99

@@ -1,0 +1,8 @@
+version: '1'
+root: .
+category: unsafe-defaults-and-misconfiguration.secret-and-key-defaults
+namespace: flask-unsafe-defaults-secret-key
+examples: {}
+attachments: {}
+build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+last_readme_fingerprint: 2f366940487ff4ae10077cbd46b38ff724dfe53236eeaeb59259d502e4fa92ea

@@ -1,0 +1,133 @@
+version: '1'
+root: .
+category: ii.behavior-order
+namespace: flask-ii-behavior-order
+examples:
+  13:
+    id: 13
+    kind: block
+    title: Motivation for using path and query parameters [Not Vulnerable]
+    notes: >-
+      We move to authorization rather than authentication vulnerabilities, so for the following
+      examples the authentication will be done reliably and safely, via the `Authorization`
+      header (based on Basic Auth and handled in the `@basic_auth_v1` decorator). We also
+      follow the best practices by storing the authenticated user in the global context (`g.user`).
+
+
+      Imagine that at this point we have many `/groups/` and `/user/` endpoints for creating,
+      updating and deleting groups, users and messages.
+
+
+      When the endpoint needs to work with a specific group, this could be passed as a query/form
+      argument as in the previous examples, but if the `group` argument is required, it might
+      be more idiomatic to make it a path parameter instead.
+
+
+      Here we will work with two endpoints, the `/groups/<group>/messages` which will return
+      the messages from a specific group (taking the `group` from the path) and the `/user/messages`
+      which will return the user's private messages by default, but also supporting an optional
+      `group` query argument.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 31
+      code_end_line: 57
+    - part: 2
+      file: decorator.py
+      code_start_line: 15
+      code_end_line: 28
+    file_hashes:
+      decorator.py: 5e38bef4a66ce61841eb55a487981837a80fc5d3fdd143b4cff8c23cf7b579f2
+      routes.py: 25b33a3fbc31ba9d2309b3d6013358f6813395fb29ec870d783041bc942b67c0
+    fingerprint: a6574896d28b6357b7a9b6710a60de1773542a4877f6d45c9279ffca713f5ef6
+  14:
+    id: 14
+    kind: block
+    title: Path and query parameter confusion via merging decorator
+    notes: >-
+      Here we aim to make the code more idiomatic by moving the group membership check to
+      the decorator `@check_group_membership`. It results in a cleaner code and appears to
+      confirm to the single-responsibility principle.
+
+
+      This code, however, is now vulnerable to path and query parameter confusion.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 71
+      code_end_line: 85
+    - part: 2
+      file: decorator.py
+      code_start_line: 36
+      code_end_line: 45
+    file_hashes:
+      decorator.py: 5e38bef4a66ce61841eb55a487981837a80fc5d3fdd143b4cff8c23cf7b579f2
+      routes.py: 25b33a3fbc31ba9d2309b3d6013358f6813395fb29ec870d783041bc942b67c0
+    fingerprint: 5975c2b7a2e3a0b1fc123ec254499f74cf1ad7797ea8ceb83113b561c129811c
+  15:
+    id: 15
+    kind: block
+    title: Path and query parameter confusion despite global source of truth
+    notes: >-
+      Here we aim to mitigate the confusion risk in the `group` merging behavior by applying
+      the single source of truth. We do this already for the identity of the authenticated
+      user, by storing it in the global context (`g.user`). So, here we extend `@basic_auth_v2`
+      to also store the group in the global context (`g.group`).
+
+
+      Despite these efforts, the code is still vulnerable.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 101
+      code_end_line: 115
+    - part: 2
+      file: decorator.py
+      code_start_line: 52
+      code_end_line: 72
+    file_hashes:
+      decorator.py: 5e38bef4a66ce61841eb55a487981837a80fc5d3fdd143b4cff8c23cf7b579f2
+      routes.py: 25b33a3fbc31ba9d2309b3d6013358f6813395fb29ec870d783041bc942b67c0
+    fingerprint: badc66fca4c42bf8cd7c2d9ca40bbf24e94e84ea848c4416b9840396b53ad256
+  16:
+    id: 16
+    kind: block
+    title: Path and query parameter confusion due to decorator order
+    notes: >-
+      We try to fix the root cause of the vulnerability here by enforcing correct merging
+      order – view args take precedence over query args. Additionally, we enforce that only
+      one of the two can be present.
+
+
+      The code, however, remains vulnerable despite these efforts! This time, the problem
+      is that the `@check_group_membership_v2` decorator is applied too early – before the
+      `@basic_auth_v3` decorator which is responsible for setting the `g.group` global variable.
+      This makes `@check_group_membership_v2` a no-op.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 132
+      code_end_line: 137
+    - part: 2
+      file: decorator.py
+      code_start_line: 79
+      code_end_line: 100
+    file_hashes:
+      decorator.py: 5e38bef4a66ce61841eb55a487981837a80fc5d3fdd143b4cff8c23cf7b579f2
+      routes.py: 25b33a3fbc31ba9d2309b3d6013358f6813395fb29ec870d783041bc942b67c0
+    fingerprint: ce62bef2e0bcf0e7b6ef348001635682bafdc41daedb2e5a90730cea69dd6d2c
+attachments:
+  http/exploit-13.http: ecd79a1caa851e9cf77a34fb8e8f3e98b0335b30abab8a2c4905488adac71c4e
+  http/exploit-14.http: 5d594169b1a1796ef07bf148678f28480ae7f7cd317b77131484cccecfd69c7c
+  http/exploit-15.http: a7d3c57487aeaa97b26b9c901194bb81747865e97660ac34ba9fe445531a8665
+  http/exploit-16.http: 41706f3fef53176d8dcf6f318e234841171a4a3a3816199b8b9ba13b22430138
+build_signature: 05a4cc2d93d4df7325639d6c42f7fce6571bc67fc083ca138a39786d7bff1b18
+last_readme_fingerprint: 996c72f1930e01eb941683e3d6a2f16dcff1b3951c2a5440fb8781035b5f29e0

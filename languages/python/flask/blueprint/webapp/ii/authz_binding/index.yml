@@ -1,0 +1,8 @@
+version: '1'
+root: .
+category: ii.authz-binding
+namespace: flask-ii-authz-binding
+examples: {}
+attachments: {}
+build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+last_readme_fingerprint: 851c6ab36285bbdf6df7dcb1e6fece6c809994c02c96321f81aff38ae5d7d92e

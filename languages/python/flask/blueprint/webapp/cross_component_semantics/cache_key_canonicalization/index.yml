@@ -1,0 +1,8 @@
+version: '1'
+root: .
+category: cross-component-semantics.cache-key-canonicalization
+namespace: flask-cross-component-cache-keying
+examples: {}
+attachments: {}
+build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+last_readme_fingerprint: 3e0d5d416662611d5ffa8fff43046820e6fd324c7acce3f28cf53f4d833bceba

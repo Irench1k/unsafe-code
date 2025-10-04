@@ -1,0 +1,8 @@
+version: '1'
+root: .
+category: type-coercion.deserialization
+namespace: flask-type-coercion-deserialization
+examples: {}
+attachments: {}
+build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+last_readme_fingerprint: 07548ea055cd14c9022b1bc005debcf139045141212875a26e2029e3563a605a

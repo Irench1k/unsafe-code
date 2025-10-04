@@ -1,0 +1,51 @@
+version: '1'
+root: .
+category: ii.http-semantics
+namespace: flask-ii-http-semantics
+examples:
+  17:
+    id: 17
+    kind: block
+    title: HTTP Method Confusion — GET With Body Triggers Update Without Auth
+    notes: >-
+      A complicated controller for a groups API. Lists groups, returns group messages and
+      posts new messages to a group.
+
+
+      The code processes both GET and POST requests, but lacks explicit method checks. This
+      introduces a vulnerability due to incorrect assumptions.
+
+
+      The group membership check is performed in the `@check_group_membership` decorator,
+      which checks the `group` argument – if present – in the request.values. The developer
+      intent was to support passing the `group` argument via query string in GET requests,
+      as well as via form argument in POST requests, and also support GET requests without
+      the `group` argument.
+
+
+      However, since the code does not enforce this and lacks explicit method checks, it also
+      supports GET requests with the `group` argument in the form body (Flask supports GET
+      requests with the body, and will parse this data in `request.form` by default).
+
+
+      At the same time, `request.values` used in the `@check_group_membership` decorator ignores
+      the form data on GET requests, leading to a confusion vulnerability.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 31
+      code_end_line: 64
+    - part: 2
+      file: decorator.py
+      code_start_line: 30
+      code_end_line: 39
+    file_hashes:
+      decorator.py: bed1978cd48b134793200c7783e457e47e2146741b07e7ca1e924d2d0766f469
+      routes.py: 7e21593c899b6e1c001d50981daf006ad330a14f03ec965a06a8f19256203fdd
+    fingerprint: 84c3e8f3e52de2c53df6e73f4cc5c8815f34ff6fcda1585a83f1635c4901921e
+attachments:
+  http/exploit-17.http: 05c4f78463bc78879d5d1ce00579826111d242be66852840925edcd2eb6db1d0
+build_signature: 48390d3d8ee9a7ce720b9bf156c8ad599383e8bcad2592ea55f250431a1fac92
+last_readme_fingerprint: 213e1d870fcef299df6c46375e4d80382848a0ced3ad50d0ede38ab98eaf6730

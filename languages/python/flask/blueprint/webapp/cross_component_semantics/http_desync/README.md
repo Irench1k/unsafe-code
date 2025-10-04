@@ -1,0 +1,7 @@
+# HTTP Desync Between Proxy and Flask
+When a proxy and Flask disagree about how long a request is, the leftover bytes become an attacker-controlled second request that skips your checks.
+## Overview
+
+Transfer-Encoding vs Content-Length mismatches, or dual Content-Length headers, can make a front proxy and the backend worker parse different request boundaries. The proxy forwards what it thinks is a single request, but Flask reads the remainder as a fresh one that starts midstream. That smuggled request can dodge authentication middleware entirely.
+
+**Practice tips:** - Ensure your proxy normalizes or rejects conflicting length headers before hitting Flask. - Keep an eye on vendor advisories for request smuggling patches and enable the mitigations they ship. - Add integration tests that send intentionally malformed length headers to confirm the stack closes the connection.

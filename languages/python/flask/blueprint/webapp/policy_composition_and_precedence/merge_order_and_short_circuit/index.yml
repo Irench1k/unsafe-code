@@ -1,0 +1,8 @@
+version: '1'
+root: .
+category: policy-composition-and-precedence.merge-order-and-short-circuit
+namespace: flask-policy-merge-order
+examples: {}
+attachments: {}
+build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+last_readme_fingerprint: 4d6386843f5285492faa669f9705c4321a5aad0a0a0fcb7e215564096096643b

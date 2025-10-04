@@ -1,0 +1,7 @@
+# Merge Order and Short-Circuit Pitfalls
+Layering a permissive guard ahead of a stricter policy, or returning early from a cache, means the stronger rule does not execute.
+## Overview
+
+Flask decorators execute bottom-up, while blueprints and middleware have their own ordering rules. If a permissive check runs before the restrictive one and returns a response, the stricter guard does not execute. Likewise, caching middleware that serves a response before reaching the handler can bypass per-request authorization entirely.
+
+**Practice tips:** - Audit decorator order whenever mixing auth, caching, and convenience helpers. - Ensure middleware that returns responses still enforces critical checks. - Write regression tests that show the stricter guard running in the expected order.

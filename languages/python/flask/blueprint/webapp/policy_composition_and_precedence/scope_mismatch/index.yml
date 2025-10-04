@@ -1,0 +1,8 @@
+version: '1'
+root: .
+category: policy-composition-and-precedence.scope-mismatch
+namespace: flask-policy-scope-mismatch
+examples: {}
+attachments: {}
+build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+last_readme_fingerprint: 4c4e4142ef1639dadec1b411d61477d1658b1995c6dfd20d92c1ac668ad557da

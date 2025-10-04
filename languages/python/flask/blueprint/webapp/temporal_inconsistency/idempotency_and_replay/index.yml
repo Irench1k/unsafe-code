@@ -1,0 +1,8 @@
+version: '1'
+root: .
+category: temporal-inconsistency.idempotency-and-replay
+namespace: flask-temporal-idempotency
+examples: {}
+attachments: {}
+build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+last_readme_fingerprint: 442f0130218dfefebce570e956e7218c17a8814a9a01a71cea8d20657b666fc3

@@ -1,0 +1,8 @@
+version: '1'
+root: .
+category: trust-boundary-errors.header-authority
+namespace: flask-trust-boundary-header-authority
+examples: {}
+attachments: {}
+build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+last_readme_fingerprint: 44295d04fa8c7ed11401b7ba7cf94b6fb2b6ed459a5a8d057c29197f39365960

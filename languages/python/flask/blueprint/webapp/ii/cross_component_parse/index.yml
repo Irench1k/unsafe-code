@@ -1,0 +1,8 @@
+version: '1'
+root: .
+category: ii.cross-component-parse
+namespace: flask-ii-cross-component-parse
+examples: {}
+attachments: {}
+build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+last_readme_fingerprint: df2689afcefddf5725b226f94b038dcfef3e39d5c16c0b9575bc24eef6a2885d

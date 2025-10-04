@@ -1,0 +1,8 @@
+version: '1'
+root: .
+category: temporal-inconsistency.races-missing-sync
+namespace: flask-temporal-races
+examples: {}
+attachments: {}
+build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+last_readme_fingerprint: 066c9eab02969aa0bc85b29182822460362b2f8d56973ce80bee62dd1c718370

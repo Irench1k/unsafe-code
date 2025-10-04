@@ -1,0 +1,8 @@
+version: '1'
+root: .
+category: cross-component-semantics.http-desync
+namespace: flask-cross-component-http-desync
+examples: {}
+attachments: {}
+build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+last_readme_fingerprint: 30fc11f686bed8d7eb94b10fc52b0cd33b94306ced1c15efb4eaabd6f15a4550

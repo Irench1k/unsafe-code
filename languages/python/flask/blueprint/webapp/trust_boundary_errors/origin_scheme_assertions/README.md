@@ -1,0 +1,9 @@
+# Origin and Scheme Assertions
+Code assumes requests are HTTPS or from trusted origins without verifying, leading to downgraded security or CORS bypasses.
+## Overview
+
+This is a **code-level trust error**: your application checks `request.is_secure`, validates CORS `Origin` headers, or enforces HTTPS redirects based on scheme detection—but trusts these values without verifying they came from infrastructure. If TLS terminates before Flask and `X-Forwarded-Proto` isn't validated, the app may misclassify plain HTTP as secure. Or CORS logic may trust attacker-controlled `Origin` headers. The code is **assuming** the scheme/origin values are authoritative when they may be attacker-influenced.
+
+**Contrast with [Unsafe Defaults > CORS & Scheme](../../unsafe-defaults-and-misconfiguration/cors-and-scheme/)**: That category covers **configuration mistakes** (wrong `PREFERRED_URL_SCHEME`, permissive CORS allowlists, missing `ProxyFix`). This category covers the **code pattern** of trusting scheme/origin without validation.
+
+**Practice tips:** - Calibrate proxy headers (`ProxyFix`, `USE_X_SENDFILE`, `SESSION_COOKIE_SECURE`) during deployment, not just in dev. - Test CORS and redirect behavior with tools that spoof the `Host` and `Origin` headers. - Default to denying credentialed cross-origin requests unless you can prove the scheme and origin values are trustworthy.
