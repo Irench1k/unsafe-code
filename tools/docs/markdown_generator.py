@@ -150,13 +150,13 @@ class MarkdownBuilder:
                 doc.writeTextLine("<details open>", html_escape=False)
                 doc.writeTextLine("<summary><b>See HTTP Request</b></summary>", html_escape=False)
                 doc.writeTextLine()
-                doc.addCodeBlock(http_content, syntax="http")
+                doc.addCodeBlock(http_content, syntax="shell")
                 doc.writeTextLine("</details>", html_escape=False)
                 # Critical: extra blank line after closing details
                 doc.writeTextLine()
             else:
                 doc.insertDetailsAndSummary(summary_name="<b>See HTTP Request</b>", escape_html=False)
-                doc.addCodeBlock(http_content, syntax="http")
+                doc.addCodeBlock(http_content, syntax="shell")
                 doc.endDetailsAndSummary()
                 # Critical: extra blank line after closing details
                 doc.writeTextLine()
