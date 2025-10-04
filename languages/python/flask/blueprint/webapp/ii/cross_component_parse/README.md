@@ -1,10 +1,16 @@
 # Cross-Component Parsing Drift in Flask
+
 Decorators, middleware, and helpers sometimes grab request data before the view does; if each layer resolves parameters differently, the same call holds two meanings.
+
 ## Overview
 
 Flask's architecture allows each layer (decorators, middleware, before-request hooks, views) to independently choose how to source request data from multiple APIs: `request.args`, `request.form`, `request.values`, or `request.view_args`. When layers use different APIs or apply different merging strategies (e.g., args-priority vs form-priority), the same HTTP request carries multiple semantic interpretations. The guard validates one parameter value while the handler acts on another, enabling authorization bypasses even when all components execute in correct order.
 
-**Spotting the issue:** - Audit every decorator or middleware applied to a route and see which request APIs they touch (`request.args` vs `request.form` vs `request.values` vs `request.view_args`). - Check for custom merging logic that prioritizes sources differently (e.g., `request.args or request.view_args` vs direct function parameter binding). - Be suspicious when global state (e.g. `g.*`) is set in one layer but components still access raw request sources directly. - Verify decorators and handlers agree on which parameter source is authoritative for security decisions.
+**Spotting the issue:**
+- Audit every decorator or middleware applied to a route and see which request APIs they touch (`request.args` vs `request.form` vs `request.values` vs `request.view_args`).
+- Check for custom merging logic that prioritizes sources differently (e.g., `request.args or request.view_args` vs direct function parameter binding).
+- Be suspicious when global state (e.g. `g.*`) is set in one layer but components still access raw request sources directly.
+- Verify decorators and handlers agree on which parameter source is authoritative for security decisions.
 
 ## Table of Contents
 
@@ -17,10 +23,11 @@ Flask's architecture allows each layer (decorators, middleware, before-request h
 | Middleware Short-Circuiting Views | [Example 9: Middleware-based Authentication with Parsing Drift](#ex-9) | [r03_middleware_drift/routes.py](r03_middleware_drift/routes.py#L22-L27) |
 
 ## Shared Contract Baseline
-A safe reference flow where decorators and views agree on how the group identifier is sourced.
-<a id="ex-13"></a>
 
-### Example 13: Shared Contract Baseline [Not Vulnerable]
+A safe reference flow where decorators and views agree on how the group identifier is sourced.
+
+### Example 13: Shared Contract Baseline [Not Vulnerable] <a id="ex-13"></a>
+
 We move to authorization rather than authentication vulnerabilities, so for the following examples the authentication will be done reliably and safely, via the `Authorization` header (based on Basic Auth and handled in the `@basic_auth_v1` decorator). We also follow the best practices by storing the authenticated user in the global context (`g.user`).
 
 Imagine that at this point we have many `/groups/` and `/user/` endpoints for creating, updating and deleting groups, users and messages.
@@ -75,7 +82,7 @@ def basic_auth_v1(f):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/ii/cross-component-parse/example13
 
 ### Plankton can access his own private messages:
@@ -117,10 +124,11 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 </details>
 
 ## Decorators That Drift
-Guards implemented as decorators merge or prioritize request data differently than the view, enabling bypasses.
-<a id="ex-8"></a>
 
-### Example 8: Decorator-based Authentication with Parsing Drift
+Guards implemented as decorators merge or prioritize request data differently than the view, enabling bypasses.
+
+### Example 8: Decorator-based Authentication with Parsing Drift <a id="ex-8"></a>
+
 Shows how using decorators can obscure parameter source confusion.
 
 Example 8 is functionally equivalent to Example 4 from the old parameter source confusion examples, but it may be harder to spot the vulnerability while using decorators.
@@ -147,7 +155,7 @@ def authentication_required(f):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/ii/cross-component-parse
 
 ### Expected Usage:
@@ -193,9 +201,8 @@ user=bob
 
 </details>
 
-<a id="ex-14"></a>
+### Example 14: Path and query parameter confusion via merging decorator <a id="ex-14"></a>
 
-### Example 14: Path and query parameter confusion via merging decorator
 Here we aim to make the code more idiomatic by moving the group membership check to the decorator `@check_group_membership`. It results in a cleaner code and appears to confirm to the single-responsibility principle.
 
 This code, however, is now vulnerable to path and query parameter confusion. The decorator's merging logic (request.args or request.view_args) prioritizes query parameters, while Flask's URL routing binds path parameters directly to function arguments. An attacker can pass their group in the query string to bypass authorization while accessing a different group's data via the path.
@@ -246,7 +253,7 @@ def check_group_membership_v1(f):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/ii/cross-component-parse/example14
 
 ### The group authorization check prevents Plankton from accessing the Krusty Krab's messages:
@@ -274,9 +281,8 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
 </details>
 
-<a id="ex-15"></a>
+### Example 15: Path and query parameter confusion despite global source of truth <a id="ex-15"></a>
 
-### Example 15: Path and query parameter confusion despite global source of truth
 Here we aim to mitigate the confusion risk in the `group` merging behavior by applying the single source of truth. We do this already for the identity of the authenticated user, by storing it in the global context (`g.user`). So, here we extend `@basic_auth_v2` to also store the group in the global context (`g.group`).
 
 Despite these efforts, the code is still vulnerable. The decorator sets g.group with query-priority merging, but the handler function still receives the path parameter directly from Flask's routing. The handler passes this path parameter to get_group_messages(), ignoring g.group entirely in example15_group_messages.
@@ -322,7 +328,7 @@ def check_group_membership_v2(f):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/ii/cross-component-parse/example15
 
 ### The group authorization check prevents Plankton from accessing the Krusty Krab's messages:
@@ -352,10 +358,11 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 </details>
 
 ## Middleware Short-Circuiting Views
-Before-request hooks authenticate on query parameters only, while views consume form data.
-<a id="ex-9"></a>
 
-### Example 9: Middleware-based Authentication with Parsing Drift
+Before-request hooks authenticate on query parameters only, while views consume form data.
+
+### Example 9: Middleware-based Authentication with Parsing Drift <a id="ex-9"></a>
+
 Demonstrates how Flask's middleware system can contribute to parameter source confusion.
 
 Example 9 is functionally equivalent to Example 4 from the old parameter source confusion examples, but it may be harder to spot the vulnerability while using middleware.
@@ -387,7 +394,7 @@ def register_middleware(app):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/ii/cross-component-parse
 
 ### Expected Usage:

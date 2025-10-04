@@ -308,7 +308,7 @@ notes: |
         self.assertNotIn("## Section Title\nSection description.", md)
 
     def test_readme_spacing_section_description_and_examples(self):
-        """Test that there's blank line between section description and example anchor."""
+        """Test that there's blank line between section description and example header."""
         ex = Example(id=1, kind="function", title="Test Example", notes="Example notes")
         idx = DirectoryIndex(
             version="1",
@@ -324,13 +324,13 @@ notes: |
         structure = [{"title": "Section Title", "description": "Section description.", "examples": [1]}]
         md = generate_readme(idx, title, summary, description, structure, toc=False)
 
-        # Should have blank line between description and anchor
-        self.assertIn("Section description.\n\n<a id=\"ex-1\"></a>", md)
+        # Should have blank line between description and example header (with inline anchor)
+        self.assertIn("Section description.\n\n### Example 1: Test Example <a id=\"ex-1\"></a>", md)
         # Should NOT be directly adjacent
-        self.assertNotIn("Section description.\n<a id=\"ex-1\"></a>", md)
+        self.assertNotIn("Section description.\n### Example 1: Test Example", md)
 
-    def test_readme_spacing_example_anchor_and_header(self):
-        """Test that example anchor and header are close (no extra blank line between them)."""
+    def test_readme_inline_anchor_in_header(self):
+        """Test that anchor tag is inline with the example header."""
         ex = Example(id=1, kind="function", title="Test Example", notes="Example notes")
         idx = DirectoryIndex(
             version="1",
@@ -346,13 +346,13 @@ notes: |
         structure = [{"title": "", "description": "", "examples": [1]}]
         md = generate_readme(idx, title, summary, description, structure, toc=False)
 
-        # Anchor and header should be adjacent (compact style)
-        self.assertIn("<a id=\"ex-1\"></a>\n### Example 1: Test Example", md)
-        # Should NOT have double blank line
-        self.assertNotIn("<a id=\"ex-1\"></a>\n\n### Example 1: Test Example", md)
+        # Anchor should be inline with header
+        self.assertIn("### Example 1: Test Example <a id=\"ex-1\"></a>", md)
+        # Should NOT be on separate lines
+        self.assertNotIn("<a id=\"ex-1\"></a>\n### Example 1: Test Example", md)
 
     def test_readme_spacing_example_header_and_notes(self):
-        """Test that there's a blank line between example header and notes."""
+        """Test that there's a blank line between example header (with inline anchor) and notes."""
         ex = Example(id=1, kind="function", title="Test Example", notes="Example notes")
         idx = DirectoryIndex(
             version="1",
@@ -368,10 +368,10 @@ notes: |
         structure = [{"title": "", "description": "", "examples": [1]}]
         md = generate_readme(idx, title, summary, description, structure, toc=False)
 
-        # Should have blank line between header and notes
-        self.assertIn("### Example 1: Test Example\n\nExample notes", md)
+        # Should have blank line between header (with anchor) and notes
+        self.assertIn("### Example 1: Test Example <a id=\"ex-1\"></a>\n\nExample notes", md)
         # Should NOT be directly adjacent
-        self.assertNotIn("### Example 1: Test Example\nExample notes", md)
+        self.assertNotIn("<a id=\"ex-1\"></a>\nExample notes", md)
 
     def test_readme_spacing_multiple_sections_and_examples(self):
         """Test proper spacing with multiple sections and examples."""
@@ -394,13 +394,13 @@ notes: |
         ]
         md = generate_readme(idx, title, summary, description, structure, toc=False)
 
-        # Check spacing for first section
-        self.assertIn("## Section A\n\nDesc A\n\n<a id=\"ex-1\"></a>", md)
-        self.assertIn("### Example 1: First\n\nFirst notes", md)
+        # Check spacing for first section (anchor is now inline)
+        self.assertIn("## Section A\n\nDesc A\n\n### Example 1: First <a id=\"ex-1\"></a>", md)
+        self.assertIn("### Example 1: First <a id=\"ex-1\"></a>\n\nFirst notes", md)
 
         # Check spacing for second section
-        self.assertIn("## Section B\n\nDesc B\n\n<a id=\"ex-2\"></a>", md)
-        self.assertIn("### Example 2: Second\n\nSecond notes", md)
+        self.assertIn("## Section B\n\nDesc B\n\n### Example 2: Second <a id=\"ex-2\"></a>", md)
+        self.assertIn("### Example 2: Second <a id=\"ex-2\"></a>\n\nSecond notes", md)
 
 
 if __name__ == "__main__":

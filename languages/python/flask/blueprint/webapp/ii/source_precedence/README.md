@@ -1,12 +1,20 @@
 # Source Precedence Drift in Flask
+
 When authentication trusts one request container and the handler trusts another, attackers can swap values between query strings, form bodies, JSON, or path params.
+
 ## Overview
 
 Source precedence bugs creep in when two parts of the stack read the "same" input from different sources. Flask makes this easy: query strings, HTML form bodies, JSON payloads, and path parameters each land in different containers, and helpers like `request.values` silently merge them with their own priority rules.
 
-**Common causes:** - Security code in decorators or helpers reads from `request.args` while the view trusts `request.form` or `request.get_json()`. - Refactors that move from query parameters to JSON do not update the guard. - Tests rarely cover both body and query variants, so the inconsistency remains hidden until production.
+**Common causes:**
+- Security code in decorators or helpers reads from `request.args` while the view trusts `request.form` or `request.get_json()`.
+- Refactors that move from query parameters to JSON do not update the guard.
+- Tests rarely cover both body and query variants, so the inconsistency remains hidden until production.
 
-**Review checklist:** 1. Identify every lookup of the relevant key (e.g. `user`, `group`, `account_id`). 2. Note whether it comes from `.args`, `.form`, `.view_args`, `.json`, or `.values`. 3. Confirm the security decision and the business logic read from the same place, or explicitly reconcile them before use.
+**Review checklist:**
+1. Identify every lookup of the relevant key (e.g. `user`, `group`, `account_id`).
+2. Note whether it comes from `.args`, `.form`, `.view_args`, `.json`, or `.values`.
+3. Confirm the security decision and the business logic read from the same place, or explicitly reconcile them before use.
 
 ## Table of Contents
 
@@ -22,10 +30,11 @@ Source precedence bugs creep in when two parts of the stack read the "same" inpu
 | request.values Footguns | [Example 7: Request.Values in Authentication](#ex-7) | [routes.py](routes.py#L264-L277) |
 
 ## Secure Baselines
-Consistent usage keeps authentication and data access aligned - use these to understand the intended flow before exploring the vulnerable variants.
-<a id="ex-0"></a>
 
-### Example 0: Secure Implementation
+Consistent usage keeps authentication and data access aligned - use these to understand the intended flow before exploring the vulnerable variants.
+
+### Example 0: Secure Implementation <a id="ex-0"></a>
+
 Here you can see a secure implementation that consistently uses query string parameters for both authentication and data retrieval.
 ```python
 @bp.route("/example0", methods=["GET", "POST"])
@@ -49,16 +58,17 @@ def example0():
 <details open>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 GET http://localhost:8000/ii/source-precedence/example0?user=alice&password=123456
 ```
 </details>
 
 ## Straightforward Source Drift
-Simple handlers where the guard inspects query parameters but the action trusts form data or vice versa.
-<a id="ex-1"></a>
 
-### Example 1: Basic Parameter Source Confusion
+Simple handlers where the guard inspects query parameters but the action trusts form data or vice versa.
+
+### Example 1: Basic Parameter Source Confusion <a id="ex-1"></a>
+
 Demonstrates the most basic form of parameter source confusion where authentication uses **query** parameters but data retrieval uses **form** data.
 
 We take the user name from the query string during the validation, but during the data retrieval another value is used, taken from the request body (form). This does not look very realistic, but it demonstrates the core of the vulnerability, we will build upon this further.
@@ -84,7 +94,7 @@ def example1():
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 # Expected Usage:
 GET http://localhost:8000/ii/source-precedence/example1?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
@@ -101,9 +111,8 @@ user=bob
 
 </details>
 
-<a id="ex-2"></a>
+### Example 2: Function-Level Parameter Source Confusion <a id="ex-2"></a>
 
-### Example 2: Function-Level Parameter Source Confusion
 Functionally equivalent to example 1, but shows how separating authentication and data retrieval into different functions can make the vulnerability harder to spot.
 ```python
 def authenticate(user, password):
@@ -135,7 +144,7 @@ def example2():
 <details open>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 # Expected Usage:
 GET http://localhost:8000/ii/source-precedence/example2?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
@@ -174,9 +183,8 @@ user=bob
 ```
 </details>
 
-<a id="ex-3"></a>
+### Example 3: Cross-Module Parameter Source Confusion <a id="ex-3"></a>
 
-### Example 3: Cross-Module Parameter Source Confusion
 In the previous example, you can still see that the `user` value gets retrieved from the `request.args` during validation but from the `request.form` during data retrieval.
 
 A more subtle example, where this is not immediately obvious (imagine, `authenticate_user` is defined in an another file altogether):
@@ -202,7 +210,7 @@ def example3():
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/ii/source-precedence
 # Expected Usage:
 GET {{base}}/example3?user=alice&password=123456
@@ -244,10 +252,11 @@ user=bob
 </details>
 
 ## Helper-Induced Mixing
-Utility functions that merge sources (or hide precedence rules) create subtle inconsistencies developers rarely spot in review.
-<a id="ex-4"></a>
 
-### Example 4: Form-Query Priority Resolution
+Utility functions that merge sources (or hide precedence rules) create subtle inconsistencies developers rarely spot in review.
+
+### Example 4: Form-Query Priority Resolution <a id="ex-4"></a>
+
 Shows how a helper function that implements source prioritization can create vulnerabilities.
 
 In Example 4 we don't need to specify body parameters to get a result (which is now more realistic!), but if we want, we can still access bob's messages by passing his user name in the request body:
@@ -272,7 +281,7 @@ def example4():
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/ii/source-precedence
 # Expected Usage:
 GET {{base}}/example4?user=alice&password=123456
@@ -313,9 +322,8 @@ user=bob
 
 </details>
 
-<a id="ex-5"></a>
+### Example 5: Mixed-Source Authentication <a id="ex-5"></a>
 
-### Example 5: Mixed-Source Authentication
 Shows how authentication and data access can use different combinations of sources.
 
 This one is interesting, because you can access Bob's messages by providing his username and Alice's password in the request query, while providing Alice's username in the request body:
@@ -340,7 +348,7 @@ def example5():
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/ii/source-precedence
 # Expected Usage:
 GET {{base}}/example5?user=alice&password=123456
@@ -382,10 +390,11 @@ user=alice
 </details>
 
 ## request.values Footguns
-`request.values` promises convenience but applies its own precedence rules, leading to silent bypasses when paired with explicit `.args` or `.form` lookups.
-<a id="ex-6"></a>
 
-### Example 6: Form Authentication Bypass
+`request.values` promises convenience but applies its own precedence rules, leading to silent bypasses when paired with explicit `.args` or `.form` lookups.
+
+### Example 6: Form Authentication Bypass <a id="ex-6"></a>
+
 The endpoint uses form data for authentication, but request.values.get() allows query parameters to override form values, creating a vulnerability. Although designed for POST requests, the endpoint accepts both GET and POST methods, enabling the attack.
 
 Note that although the regular usage would rely on POST request (or PUT, PATCH, etc.), and wouldn't work with GET (because flask's request.values ignores form data in GET requests), the attacker can send both GET and POST requests (if the endpoint is configured to accept both methods).
@@ -422,7 +431,7 @@ def example6():
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/ii/source-precedence
 # Regular requests would pass credentials solely via POST body:
 POST {{base}}/example6
@@ -471,9 +480,8 @@ user=alice&password=123456
 
 </details>
 
-<a id="ex-7"></a>
+### Example 7: Request.Values in Authentication <a id="ex-7"></a>
 
-### Example 7: Request.Values in Authentication
 Demonstrates how using request.values in authentication while using form data for access creates vulnerabilities.
 
 This is an example of a varient of example 6, as we do the similar thing, but now we can pass Bob's username in the request body with Alice's password, while passing Alice's username in the request query. Note that this example does not work with GET request, use POST.
@@ -496,7 +504,7 @@ def example7():
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/ii/source-precedence
 # Regular requests would pass credentials solely via POST body:
 POST {{base}}/example7

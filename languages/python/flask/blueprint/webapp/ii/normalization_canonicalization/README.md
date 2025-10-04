@@ -24,8 +24,7 @@ Canonicalization is meant to make comparisons simple: lowercase the e-mail, stri
 
 Lowercasing and case-insensitive comparisons differ depending on whether the code is validating, persisting, or authorizing access.
 
-<a id="ex-18"></a>
-### Example 18: Lowercase Normalization
+### Example 18: Lowercase Normalization <a id="ex-18"></a>
 
 This example demonstrates a canonicalization confusion vulnerability using inconsistent lowercase normalization.
 
@@ -95,8 +94,7 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
 </details>
 
-<a id="ex-19"></a>
-### Example 19: Case insensitive Object Retrieval
+### Example 19: Case insensitive Object Retrieval <a id="ex-19"></a>
 
 In this example we are still using case canonicalization for group retrieval, but now instead of showing the attacker the victim's group content, we are showing the attacker's newly created group content to the victim, allowing impersonation.
 
@@ -210,8 +208,7 @@ Authorization: Basic spongebob@krusty-krab.sea:bikinibottom
 
 Stripping spaces (or normalizing structured payloads) in only part of the stack quietly changes which record is read or updated.
 
-<a id="ex-20"></a>
-### Example 20: Whitespace Canonicalization
+### Example 20: Whitespace Canonicalization <a id="ex-20"></a>
 
 This is a classic whitespace confusion attack - two parts of the code handle whitespace differently:
 - strip() only removes leading/trailing whitespace
@@ -230,7 +227,7 @@ def example20(group):
     # Mobile users tend to send requests with whitespaces due to autocompletion.
     group_no_whitespace = group.replace(" ", "")
     messages = get_group_messages(group_no_whitespace)
-
+    
     return jsonify([m.model_dump() for m in messages])
 
 @bp.post("/example20/groups")
@@ -257,7 +254,7 @@ def check_group_membership(f):
     @wraps(f)
     def decorated_check_group_membership(*args, **kwargs):
         group = request.view_args.get("group")
-
+        
         # Remove extra whitespaces that users can add due to autocompletion
         group_no_whitespace = group.strip()
 
@@ -320,8 +317,7 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
 </details>
 
-<a id="ex-21"></a>
-### Example 21: Whitespace Canonicalization
+### Example 21: Whitespace Canonicalization <a id="ex-21"></a>
 
 Previously we only had 'add group' functionality. Now we add group update handler as well. There are two distinct API endpoints now, one creates a new group (and we make sure to check that the group truly does not exist yet!), and the other endpoint updates the existing group (this is privileged operation, so we check that the user is an admin with @check_if_admin decorator).
 
@@ -396,7 +392,7 @@ class Group(BaseModel):
                 is_group_updated = True
             else:
                 new_groups.append(old_group)
-
+    
         # If the group does not exist, we add it
         if not is_group_updated:
             new_groups.append(new_group)
@@ -455,3 +451,4 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 ```
 
 </details>
+

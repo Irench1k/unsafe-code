@@ -113,14 +113,11 @@ class MarkdownBuilder:
     # No special ToC marker: handled globally via spec.toc
 
     def _add_example_section(self, doc: MarkdownGenerator, example: Example) -> None:
-        # Header, add colon only if title present
-        # Add a stable anchor for intra-document links
-        doc.writeTextLine(f"<a id=\"ex-{example.id}\"></a>", html_escape=False)
-        # Write header directly to avoid extra blank line that addHeader introduces
+        # Header with inline anchor for intra-document links
         if example.title:
-            doc.writeTextLine(f"### Example {example.id}: {example.title}", html_escape=False)
+            doc.writeTextLine(f"### Example {example.id}: {example.title} <a id=\"ex-{example.id}\"></a>", html_escape=False)
         else:
-            doc.writeTextLine(f"### Example {example.id}", html_escape=False)
+            doc.writeTextLine(f"### Example {example.id} <a id=\"ex-{example.id}\"></a>", html_escape=False)
         doc.writeTextLine()  # Blank line after example header
 
         if example.notes:

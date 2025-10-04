@@ -1,5 +1,7 @@
 # Canonicalization Confusion Vulnerabilities in Flask
+
 This directory contains examples demonstrating various patterns of canonicalization confusion vulnerabilities in Flask applications. These examples show how inconsistent canonicalization can lead to security vulnerabilities.
+
 ## Overview
 
 Canonicalization is the process of transforming data into a "standard" form, for example, when you paste your email with the first upper case letter most of the email providers will convert it to the lower case, e.g. "Example@mail.com" -> "example@mail.com".
@@ -16,9 +18,9 @@ Canonicalization confusion occurs when an application uses the canonical form in
 | Case Transformation | [Example 21: Whitespace Canonicalization](#ex-21) | [r04_whitespace/routes.py](r04_whitespace/routes.py#L49-L94) |
 
 ## Case Transformation
-<a id="ex-18"></a>
 
-### Example 18: Lowercase Normalization
+### Example 18: Lowercase Normalization <a id="ex-18"></a>
+
 This example demonstrates a canonicalization confusion vulnerability using inconsistent lowercase normalization.
 
 The vulnerability occurs because:
@@ -87,9 +89,8 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
 </details>
 
-<a id="ex-19"></a>
+### Example 19: Case insensitive Object Retrieval <a id="ex-19"></a>
 
-### Example 19: Case insensitive Object Retrieval
 In this example we are still using case canonicalization for group retrieval, but now instead of showing the attacker the victim's group content, we are showing the attacker's newly created group content to the victim, allowing impersonation.
 
 The vulnerability occurs when an attacker creates a new group with the same name as the victim's group but uses different casing.During group creation, the system checks for exact name matches to enforce uniqueness, so "STAFF@KRUSTY-KRAB.SEA" is considered different from "staff@krusty-krab.sea" and creation succeeds. However, during group retrieval, the system performs case-insensitive matching and returns the most recently created group that matches. When the victim tries to access their original group "staff@krusty-krab.sea", they actually receive the attacker's group "STAFF@KRUSTY-KRAB.SEA" because it was added later and the case-insensitive lookup treats them as the same group.
@@ -198,9 +199,8 @@ Authorization: Basic spongebob@krusty-krab.sea:bikinibottom
 
 </details>
 
-<a id="ex-20"></a>
+### Example 20: Whitespace Canonicalization <a id="ex-20"></a>
 
-### Example 20: Whitespace Canonicalization
 This is a classic whitespace confusion attack - two parts of the code handle whitespace differently:
 - strip() only removes leading/trailing whitespace
 - replace(" ", "") removes ALL whitespace
@@ -308,9 +308,8 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
 </details>
 
-<a id="ex-21"></a>
+### Example 21: Whitespace Canonicalization <a id="ex-21"></a>
 
-### Example 21: Whitespace Canonicalization
 Previously we only had 'add group' functionality. Now we add group update handler as well. There are two distinct API endpoints now, one creates a new group (and we make sure to check that the group truly does not exist yet!), and the other endpoint updates the existing group (this is privileged operation, so we check that the user is an admin with @check_if_admin decorator).
 
 Unfortunately, the code remains vulnerable to canonicalization confusion attack. In the `create_group` handler we perform group uniqueness check on the raw group name provided by user `request.json.get("name")`. However, if the check passes, the `create_new_group` is called with the canonicalized data in the Group object. Group model uses `constr` feature from pydantic, which strips whitespace on insertion, so the attacker can bypass group uniqueness check by providing a group name with extra whitespace at the start or end of the group name.

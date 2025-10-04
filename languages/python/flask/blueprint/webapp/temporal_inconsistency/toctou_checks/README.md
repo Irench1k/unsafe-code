@@ -1,7 +1,12 @@
 # Time-of-Check to Time-of-Use Gaps
+
 Checking a rule and acting later in a separate transaction leaves a window where reality can change and an attacker can slip through.
+
 ## Overview
 
 Many Flask handlers validate a condition, commit a response, and only then perform the write that depends on that validation. In between, another request might change the state, invalidating the original decision. Classic examples include quota checks that rely on a count queried before inserting a new record, or permission checks followed by separate updates that no longer match the original criteria.
 
-**Practice tips:** - Use database constraints or atomic operations to couple validation with mutation. - Re-run critical checks inside the same transaction that performs the update. - Build regression tests that fire duplicate requests in parallel to expose the gap.
+**Practice tips:**
+- Use database constraints or atomic operations to couple validation with mutation.
+- Re-run critical checks inside the same transaction that performs the update.
+- Build regression tests that fire duplicate requests in parallel to expose the gap.

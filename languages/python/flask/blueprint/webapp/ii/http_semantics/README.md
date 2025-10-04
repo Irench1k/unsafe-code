@@ -1,10 +1,15 @@
 # HTTP Semantics Confusion in Flask
+
 We lean on verbs like GET and POST to signal how a request should behave, but Flask will parse bodies on any method, so a mismatched assumption can sneak past the guard.
+
 ## Overview
 
 REST conventions say "GET requests have no body" and "POST carries form data." Flask allows clients to send any combination. If authorization logic relies on method-specific expectations (`request.args` for GET, `request.form` for POST), attackers can choose the code path that skips enforcement while still triggering state changes.
 
-**Checklist:** - Explicitly branch on `request.method` before trusting where parameters come from. - Disallow unexpected bodies (`GET` with form data) when they bypass validation. - Keep idempotent and mutating logic separated; otherwise a GET with a body can act as a privileged POST.
+**Checklist:**
+- Explicitly branch on `request.method` before trusting where parameters come from.
+- Disallow unexpected bodies (`GET` with form data) when they bypass validation.
+- Keep idempotent and mutating logic separated; otherwise a GET with a body can act as a privileged POST.
 
 ## Table of Contents
 
@@ -13,10 +18,11 @@ REST conventions say "GET requests have no body" and "POST carries form data." F
 | Method-Body Assumption Bypass | [Example 17: HTTP Method Confusion — GET With Body Triggers Update Without Auth](#ex-17) | [routes.py](routes.py#L31-L64) |
 
 ## Method-Body Assumption Bypass
-A combined GET/POST controller assumes each method uses distinct parameter sources, letting a crafted GET body post messages as another user.
-<a id="ex-17"></a>
 
-### Example 17: HTTP Method Confusion — GET With Body Triggers Update Without Auth
+A combined GET/POST controller assumes each method uses distinct parameter sources, letting a crafted GET body post messages as another user.
+
+### Example 17: HTTP Method Confusion — GET With Body Triggers Update Without Auth <a id="ex-17"></a>
+
 A complicated controller for a groups API. Lists groups, returns group messages and posts new messages to a group.
 
 The code processes both GET and POST requests, but lacks explicit method checks. This introduces a vulnerability due to incorrect assumptions.
@@ -76,7 +82,7 @@ def check_group_membership(f):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/ii/http-semantics/example17
 
 # Without any arguments, GET request lists the groups the user is a member of

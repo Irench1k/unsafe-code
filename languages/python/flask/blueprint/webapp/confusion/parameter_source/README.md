@@ -1,5 +1,7 @@
 # Parameter Source Confusion Vulnerabilities in Flask
+
 This directory contains examples demonstrating various patterns of parameter source confusion vulnerabilities in Flask applications. These examples show how mixing different parameter sources (query strings, form data, and request.values) can lead to security vulnerabilities.
+
 ## Overview
 
 Parameter source confusion occurs when an application retrieves the same parameter from different sources in different parts of the code. This can lead to security vulnerabilities when authentication and data access use different sources for the same parameter.
@@ -30,9 +32,9 @@ Here you can find several examples on how Flask framework design allows those vu
 | HTTP Method Confusion | [Example 17: HTTP Method Confusion — GET With Body Triggers Update Without Auth](#ex-17) | [r08_method_confusion/routes.py](r08_method_confusion/routes.py#L31-L64) |
 
 ## Secure Baseline
-<a id="ex-0"></a>
 
-### Example 0: Secure Implementation
+### Example 0: Secure Implementation <a id="ex-0"></a>
+
 Here you can see a secure implementation that consistently uses query string parameters for both authentication and data retrieval.
 ```python
 @bp.route("/example0", methods=["GET", "POST"])
@@ -56,7 +58,7 @@ def example0():
 <details open>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 GET http://localhost:8000/vuln/confusion/parameter-source/example0?user=alice&password=123456
 ```
 </details>
@@ -64,9 +66,9 @@ GET http://localhost:8000/vuln/confusion/parameter-source/example0?user=alice&pa
 ![alt text](images/image-0.png)
 
 ## Simplified Vulnerability Patterns
-<a id="ex-1"></a>
 
-### Example 1: Basic Parameter Source Confusion
+### Example 1: Basic Parameter Source Confusion <a id="ex-1"></a>
+
 Demonstrates the most basic form of parameter source confusion where authentication uses **query** parameters but data retrieval uses **form** data.
 
 We take the user name from the query string during the validation, but during the data retrieval another value is used, taken from the request body (form). This does not look very realistic, but it demonstrates the core of the vulnerability, we will build upon this further.
@@ -92,7 +94,7 @@ def example1():
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 # Expected Usage:
 GET http://localhost:8000/confusion/parameter-source/example1?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
@@ -110,9 +112,8 @@ user=bob
 </details>
 
 ![alt text](images/image-1.png)
-<a id="ex-2"></a>
+### Example 2: Function-Level Parameter Source Confusion <a id="ex-2"></a>
 
-### Example 2: Function-Level Parameter Source Confusion
 Functionally equivalent to example 1, but shows how separating authentication and data retrieval into different functions can make the vulnerability harder to spot.
 ```python
 def authenticate(user, password):
@@ -144,7 +145,7 @@ def example2():
 <details open>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 # Expected Usage:
 GET http://localhost:8000/confusion/parameter-source/example2?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
@@ -183,9 +184,8 @@ user=bob
 ```
 </details>
 
-<a id="ex-3"></a>
+### Example 3: Cross-Module Parameter Source Confusion <a id="ex-3"></a>
 
-### Example 3: Cross-Module Parameter Source Confusion
 In the previous example, you can still see that the `user` value gets retrieved from the `request.args` during validation but from the `request.form` during data retrieval.
 
 A more subtle example, where this is not immediately obvious (imagine, `authenticate_user` is defined in an another file altogether):
@@ -211,7 +211,7 @@ def example3():
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 # Expected Usage:
 GET http://localhost:8000/confusion/parameter-source/example3?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
@@ -254,18 +254,20 @@ user=bob
 ![alt text](images/image-3.png)
 
 ## Source Merging in Custom Helper Function
+
 The examples 1-3 are realistic and some are hard to detect, but there are still two issues with it:
 
-1. The situation is unlikely to occur in exactly this way, because here the request doesn't work at all if the `user` gets passed only via the query string (it HAS to pass two `user` values, through query string and the body argument).
+1. The situation is unlikely to occur in exactly this way, because here
+the request doesn't work at all if the `user` gets passed only via the query string (it HAS to pass two `user` values, through query string and the body argument).
 
 ![alt text](images/image-source-merging.png)
 
 2. The second issue is that while calling verification function explicitly is valid, a more common pattern is either using a decorator or a middleware.
 
 Let's see how we can resolve those issues.
-<a id="ex-4"></a>
 
-### Example 4: Form-Query Priority Resolution
+### Example 4: Form-Query Priority Resolution <a id="ex-4"></a>
+
 Shows how a helper function that implements source prioritization can create vulnerabilities.
 
 In Example 4 we don't need to specify body parameters to get a result (which is now more realistic!), but if we want, we can still access bob's messages by passing his user name in the request body:
@@ -290,7 +292,7 @@ def example4():
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 # Expected Usage:
 GET http://localhost:8000/confusion/parameter-source/example4?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
@@ -330,9 +332,8 @@ user=bob
 
 </details>
 
-<a id="ex-5"></a>
+### Example 5: Mixed-Source Authentication <a id="ex-5"></a>
 
-### Example 5: Mixed-Source Authentication
 Shows how authentication and data access can use different combinations of sources.
 
 This one is interesting, because you can access Bob's messages by providing his username and Alice's password in the request query, while providing Alice's username in the request body:
@@ -357,7 +358,7 @@ def example5():
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 # Expected Usage:
 GET http://localhost:8000/confusion/parameter-source/example5?user=alice&password=123456
 Content-Type: application/x-www-form-urlencoded
@@ -400,9 +401,9 @@ user=alice
 ![alt text](images/image-5.png)
 
 ## Request.values Confusion
-<a id="ex-6"></a>
 
-### Example 6: Form Authentication Bypass
+### Example 6: Form Authentication Bypass <a id="ex-6"></a>
+
 The endpoint uses form data for authentication, but request.values.get() allows query parameters to override form values, creating a vulnerability. Although designed for POST requests, the endpoint accepts both GET and POST methods, enabling the attack.
 
 Note that although the regular usage would rely on POST request (or PUT, PATCH, etc.), and wouldn't work with GET (because flask's request.values ignores form data in GET requests), the attacker can send both GET and POST requests (if the endpoint is configured to accept both methods).
@@ -439,7 +440,7 @@ def example6():
 <details open>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 # Regular requests would pass credentials solely via POST body:
 POST http://localhost:8000/confusion/parameter-source/example6
 Content-Type: application/x-www-form-urlencoded
@@ -487,9 +488,8 @@ user=alice&password=123456
 </details>
 
 ![alt text](images/image-6.png)
-<a id="ex-7"></a>
+### Example 7: Request.Values in Authentication <a id="ex-7"></a>
 
-### Example 7: Request.Values in Authentication
 Demonstrates how using request.values in authentication while using form data for access creates vulnerabilities.
 
 This is an example of a varient of example 6, as we do the similar thing, but now we can pass Bob's username in the request body with Alice's password, while passing Alice's username in the request query. Note that this example does not work with GET request, use POST.
@@ -515,7 +515,7 @@ def example7():
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 # Regular requests would pass credentials solely via POST body:
 POST http://localhost:8000/confusion/parameter-source/example7
 Content-Type: application/x-www-form-urlencoded
@@ -546,9 +546,9 @@ user=bob&password=123456
 ![alt text](images/image-7.png)
 
 ## Decorator-based Authentication
-<a id="ex-8"></a>
 
-### Example 8: Decorator-based Authentication
+### Example 8: Decorator-based Authentication <a id="ex-8"></a>
+
 Shows how using decorators can obscure parameter source confusion.
 
 Example 8 is functionally equivalent to Example 4, but it may be harder to spot the vulnerability while using decorators.
@@ -573,7 +573,7 @@ def authentication_required(f):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 # Expected Usage:
 GET http://localhost:8000/confusion/parameter-source/example9?user=alice&password=123456
 #
@@ -611,9 +611,9 @@ user=bob
 </details>
 
 ## Middleware-based Authentication
-<a id="ex-9"></a>
 
-### Example 9: Middleware-based Authentication
+### Example 9: Middleware-based Authentication <a id="ex-9"></a>
+
 Demonstrates how Flask's middleware system can contribute to parameter source confusion.
 
 Example 9 is functionally equivalent to Example 4, but it may be harder to spot the vulnerability while using middleware.
@@ -643,7 +643,7 @@ def register_middleware(app):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 # Expected Usage:
 GET http://localhost:8000/confusion/parameter-source/example9?user=alice&password=123456
 #
@@ -681,9 +681,9 @@ user=bob
 </details>
 
 ## Multi-Value Parameters
-<a id="ex-10"></a>
 
-### Example 10: [Not Vulnerable] First Item Checked, First Item Used
+### Example 10: [Not Vulnerable] First Item Checked, First Item Used <a id="ex-10"></a>
+
 This example is not vulnerable and is meant to demonstrate how the vulnerability could realistically get added to the codebase during refactoring.
 
 We start by implementing a helper function `@check_group_membership` that checks that the user is a member of the group which messages are being accessed.
@@ -709,7 +709,7 @@ def check_group_membership(f):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 ### Expected usage: Mr. Krabs is an admin of the staff group and should be able to access the group messages
 POST http://localhost:8000/confusion/parameter-source/example10
 Content-Type: application/x-www-form-urlencoded
@@ -731,9 +731,8 @@ user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket
 
 </details>
 
-<a id="ex-11"></a>
+### Example 11: Utility Reuse Mismatch — .get vs .getlist <a id="ex-11"></a>
 
-### Example 11: Utility Reuse Mismatch — .get vs .getlist
 Builds upon the previous example. Consider that we need to add a new API endpoint that allows the user to access the messages of multiple groups in a single request.
 
 We start by copying the previous implementation and changing the function body to iterate over all the groups in the request.
@@ -753,7 +752,7 @@ def example11():
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 ### Expected usage: Mr. Krabs is an admin of the staff group and should be able to access the group messages
 POST http://localhost:8000/confusion/parameter-source/example11
 Content-Type: application/x-www-form-urlencoded
@@ -775,9 +774,8 @@ user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket
 
 </details>
 
-<a id="ex-12"></a>
+### Example 12: Any vs All — Fail-Open Authorization for Batch Actions <a id="ex-12"></a>
 
-### Example 12: Any vs All — Fail-Open Authorization for Batch Actions
 Authorization incorrectly uses `any()` over the requested groups, allowing a user who is an admin of one group to grant membership for additional groups in the same request. The action then applies to every provided group. Correct behavior would require `all()`.
 ```python
 @bp.post("/example12")
@@ -803,7 +801,7 @@ def check_multi_group_membership(f):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 ### Expected usage: Mr. Krabs is an admin of the staff group and should be able to access the group messages
 POST http://localhost:8000/confusion/parameter-source/example12
 Content-Type: application/x-www-form-urlencoded
@@ -826,9 +824,9 @@ user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket
 </details>
 
 ## Path and query parameter Confusion
-<a id="ex-13"></a>
 
-### Example 13: Motivation for using path and query parameters [Not Vulnerable]
+### Example 13: Motivation for using path and query parameters [Not Vulnerable] <a id="ex-13"></a>
+
 We move to authorization rather than authentication vulnerabilities, so for the following examples the authentication will be done reliably and safely, via the `Authorization` header (based on Basic Auth and handled in the `@basic_auth_v1` decorator). We also follow the best practices by storing the authenticated user in the global context (`g.user`).
 
 Imagine that at this point we have many `/groups/` and `/user/` endpoints for creating, updating and deleting groups, users and messages.
@@ -883,7 +881,7 @@ def basic_auth_v1(f):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/confusion/parameter-source/example13
 
 ### Plankton can access his own private messages:
@@ -924,9 +922,8 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
 </details>
 
-<a id="ex-14"></a>
+### Example 14: Path and query parameter confusion via merging decorator <a id="ex-14"></a>
 
-### Example 14: Path and query parameter confusion via merging decorator
 Here we aim to make the code more idiomatic by moving the group membership check to the decorator `@check_group_membership`. It results in a cleaner code and appears to confirm to the single-responsibility principle.
 
 This code, however, is now vulnerable to path and query parameter confusion.
@@ -961,7 +958,7 @@ def check_group_membership_v1(f):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/confusion/parameter-source/example14
 
 ### The group authorization check prevents Plankton from accessing the Krusty Krab's messages:
@@ -989,9 +986,8 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
 </details>
 
-<a id="ex-15"></a>
+### Example 15: Path and query parameter confusion despite global source of truth <a id="ex-15"></a>
 
-### Example 15: Path and query parameter confusion despite global source of truth
 Here we aim to mitigate the confusion risk in the `group` merging behavior by applying the single source of truth. We do this already for the identity of the authenticated user, by storing it in the global context (`g.user`). So, here we extend `@basic_auth_v2` to also store the group in the global context (`g.group`).
 
 Despite these efforts, the code is still vulnerable.
@@ -1037,7 +1033,7 @@ def check_group_membership_v2(f):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/confusion/parameter-source/example15
 
 ### The group authorization check prevents Plankton from accessing the Krusty Krab's messages:
@@ -1066,9 +1062,8 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
 </details>
 
-<a id="ex-16"></a>
+### Example 16: Path and query parameter confusion due to decorator order <a id="ex-16"></a>
 
-### Example 16: Path and query parameter confusion due to decorator order
 We try to fix the root cause of the vulnerability here by enforcing correct merging order – view args take precedence over query args. Additionally, we enforce that only one of the two can be present.
 
 The code, however, remains vulnerable despite these efforts! This time, the problem is that the `@check_group_membership_v2` decorator is applied too early – before the `@basic_auth_v3` decorator which is responsible for setting the `g.group` global variable. This makes `@check_group_membership_v2` a no-op.
@@ -1106,7 +1101,7 @@ def basic_auth_v3(f):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/confusion/parameter-source/example16
 
 ###
@@ -1129,9 +1124,9 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 </details>
 
 ## HTTP Method Confusion
-<a id="ex-17"></a>
 
-### Example 17: HTTP Method Confusion — GET With Body Triggers Update Without Auth
+### Example 17: HTTP Method Confusion — GET With Body Triggers Update Without Auth <a id="ex-17"></a>
+
 A complicated controller for a groups API. Lists groups, returns group messages and posts new messages to a group.
 
 The code processes both GET and POST requests, but lacks explicit method checks. This introduces a vulnerability due to incorrect assumptions.
@@ -1191,7 +1186,7 @@ def check_group_membership(f):
 <details>
 <summary><b>See HTTP Request</b></summary>
 
-```http
+```shell
 @base = http://localhost:8000/confusion/parameter-source/example17
 
 # Without any arguments, GET request lists the groups the user is a member of
