@@ -16,16 +16,6 @@ curl http://localhost:8000/vuln/type-issues/
 docker compose down
 ```
 
-## Why This Approach?
-
-This example demonstrates a **clean, scalable blueprint structure** that:
-
-- ✅ **Explicit over magic** - Clear imports instead of auto-discovery
-- ✅ **Beginner-friendly** - Easy to understand and debug
-- ✅ **Scalable** - Simple to add hundreds of new examples
-- ✅ **Standardized** - Consistent naming and structure
-- ✅ **Hierarchical** - Supports nested blueprint organization
-
 ## Project Structure
 
 ```
