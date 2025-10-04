@@ -202,6 +202,89 @@ notes: |
         # They should NOT be collapsed into a single line
         self.assertNotIn("- Set `Vary` headers intentionally and confirm your CDN respects them. - Avoid caching", md)
 
+    def test_readme_spacing_title_and_summary(self):
+        """Test that there's a blank line between title and summary."""
+        idx = DirectoryIndex(
+            version="1",
+            root=Path("."),
+            category=None,
+            namespace=None,
+            examples={},
+            attachments={},
+        )
+        title = "Test Title"
+        summary = "This is a summary line."
+        description = ""
+        structure = []
+        md = generate_readme(idx, title, summary, description, structure, toc=False)
+
+        # Should have blank line between title and summary
+        self.assertIn("# Test Title\n\nThis is a summary line.", md)
+        # Should NOT be directly adjacent
+        self.assertNotIn("# Test Title\nThis is a summary line.", md)
+
+    def test_readme_spacing_summary_and_description(self):
+        """Test that there's a blank line between summary and description."""
+        idx = DirectoryIndex(
+            version="1",
+            root=Path("."),
+            category=None,
+            namespace=None,
+            examples={},
+            attachments={},
+        )
+        title = "Test Title"
+        summary = "This is a summary line."
+        description = "## Overview\n\nThis is the description section."
+        structure = []
+        md = generate_readme(idx, title, summary, description, structure, toc=False)
+
+        # Should have blank line between summary and description header
+        self.assertIn("This is a summary line.\n\n## Overview", md)
+        # Should NOT be directly adjacent
+        self.assertNotIn("This is a summary line.\n## Overview", md)
+
+    def test_readme_spacing_title_and_description_no_summary(self):
+        """Test that there's a blank line between title and description when no summary."""
+        idx = DirectoryIndex(
+            version="1",
+            root=Path("."),
+            category=None,
+            namespace=None,
+            examples={},
+            attachments={},
+        )
+        title = "Test Title"
+        summary = ""
+        description = "## Overview\n\nThis is the description section."
+        structure = []
+        md = generate_readme(idx, title, summary, description, structure, toc=False)
+
+        # Should have blank line between title and description
+        self.assertIn("# Test Title\n\n## Overview", md)
+        # Should NOT be directly adjacent
+        self.assertNotIn("# Test Title\n## Overview", md)
+
+    def test_readme_spacing_all_sections(self):
+        """Test proper spacing when all sections (title, summary, description) are present."""
+        idx = DirectoryIndex(
+            version="1",
+            root=Path("."),
+            category=None,
+            namespace=None,
+            examples={},
+            attachments={},
+        )
+        title = "Full Document"
+        summary = "A short summary."
+        description = "## Introduction\n\nDetailed description here."
+        structure = []
+        md = generate_readme(idx, title, summary, description, structure, toc=False)
+
+        # All sections should have proper spacing
+        expected = "# Full Document\n\nA short summary.\n\n## Introduction\n\nDetailed description here."
+        self.assertIn(expected, md)
+
 
 if __name__ == "__main__":
     unittest.main()

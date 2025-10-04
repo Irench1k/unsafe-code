@@ -1,5 +1,7 @@
 # Cache Key Canonicalization
+
 Cache and application disagree on which request parts make a response unique, causing personalized data to leak between users due to semantic mismatch.
+
 ## Overview
 
 This is a **semantic disagreement**: the cache and Flask have different understandings of what makes a response cacheable or unique. Flask may vary output by session cookie or `Authorization` header, but if the cache doesn't include those in its key (or strips them before keying), the first authenticated request seeds the cache for everyone. Both components are "working correctly" per their configs—they just disagree on the semantics of cache keying.

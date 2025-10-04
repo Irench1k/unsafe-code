@@ -51,8 +51,10 @@ class MarkdownBuilder:
 
     def _render_title_and_intro(self, doc: MarkdownGenerator) -> None:
         doc.addHeader(1, self.title)
+        doc.writeTextLine()  # Blank line after title
         if self.summary:
             doc.writeTextLine(self.summary, html_escape=False)
+            doc.writeTextLine()  # Blank line after summary
         if self.description:
             doc.writeTextLine(self.description, html_escape=False)
 
