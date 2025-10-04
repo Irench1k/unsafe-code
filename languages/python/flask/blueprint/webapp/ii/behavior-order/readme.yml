@@ -1,0 +1,23 @@
+---
+title: Behavior Order Pitfalls in Flask
+summary: |
+  Guards can still fail even when everyone reads the same data if they run before the request is fully prepared or if decorators execute in the wrong order.
+description: |
+  ## Overview
+  Flask applies decorators inside-out: the decorator closest to the function runs last. When security logic depends on state prepared by another decorator, a subtle ordering change can make the guard a no-op. Similarly, validating before canonicalization or before merging parameters exposes "time-of-check vs time-of-use" gaps.
+
+  **Questions to ask in review:**
+  - Does the guard rely on `g.*` or other state set by later decorators?
+  - Are there early returns (400s, 401s) that happen before the request has been normalized?
+  - If the handler supports multiple shapes of input, does the guard see the final canonical form or a partial snapshot?
+
+  The current Flask sample illustrating this lives under the legacy `confusion/parameter_source/` path.
+category: ii.behavior-order
+namespace: flask-ii-behavior-order
+toc: true
+outline:
+  - title: Decorator Ordering Drift
+    description: |
+      A supposedly defensive set of decorators still runs the membership check before the group identifier is established.
+    examples:
+      - 16
