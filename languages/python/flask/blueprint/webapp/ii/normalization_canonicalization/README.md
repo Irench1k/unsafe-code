@@ -1,5 +1,7 @@
 # Normalization &amp; Canonicalization Traps in Flask
+
 Normalizing input (lowercasing, trimming, decoding) helps comparisons, but if only some code paths do it, attackers can present the same value in two different skins.
+
 ## Overview
 
 Canonicalization is meant to make comparisons simple: lowercase the e-mail, strip surrounding spaces, normalize Unicode, decode `%2F`. The bug shows up when only **some** parts of the flow canonicalize a value. Guards may validate raw input while storage or lookup uses the normalized form (or the reverse), giving attackers a way to smuggle alternate representations.
@@ -19,10 +21,12 @@ Canonicalization is meant to make comparisons simple: lowercase the e-mail, stri
 | Whitespace & Formatting Drift | [Example 21: Whitespace Canonicalization](#ex-21) | [r04_whitespace/routes.py](r04_whitespace/routes.py#L49-L94) |
 
 ## Case Canonicalization Issues
-Lowercasing and case-insensitive comparisons differ depending on whether the code is validating, persisting, or authorizing access.
-<a id="ex-18"></a>
 
+Lowercasing and case-insensitive comparisons differ depending on whether the code is validating, persisting, or authorizing access.
+
+<a id="ex-18"></a>
 ### Example 18: Lowercase Normalization
+
 This example demonstrates a canonicalization confusion vulnerability using inconsistent lowercase normalization.
 
 The vulnerability occurs because:
@@ -92,8 +96,8 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 </details>
 
 <a id="ex-19"></a>
-
 ### Example 19: Case insensitive Object Retrieval
+
 In this example we are still using case canonicalization for group retrieval, but now instead of showing the attacker the victim's group content, we are showing the attacker's newly created group content to the victim, allowing impersonation.
 
 The vulnerability occurs when an attacker creates a new group with the same name as the victim's group but uses different casing.During group creation, the system checks for exact name matches to enforce uniqueness, so "STAFF@KRUSTY-KRAB.SEA" is considered different from "staff@krusty-krab.sea" and creation succeeds. However, during group retrieval, the system performs case-insensitive matching and returns the most recently created group that matches. When the victim tries to access their original group "staff@krusty-krab.sea", they actually receive the attacker's group "STAFF@KRUSTY-KRAB.SEA" because it was added later and the case-insensitive lookup treats them as the same group.
@@ -203,10 +207,12 @@ Authorization: Basic spongebob@krusty-krab.sea:bikinibottom
 </details>
 
 ## Whitespace &amp; Formatting Drift
-Stripping spaces (or normalizing structured payloads) in only part of the stack quietly changes which record is read or updated.
-<a id="ex-20"></a>
 
+Stripping spaces (or normalizing structured payloads) in only part of the stack quietly changes which record is read or updated.
+
+<a id="ex-20"></a>
 ### Example 20: Whitespace Canonicalization
+
 This is a classic whitespace confusion attack - two parts of the code handle whitespace differently:
 - strip() only removes leading/trailing whitespace
 - replace(" ", "") removes ALL whitespace
@@ -224,7 +230,7 @@ def example20(group):
     # Mobile users tend to send requests with whitespaces due to autocompletion.
     group_no_whitespace = group.replace(" ", "")
     messages = get_group_messages(group_no_whitespace)
-    
+
     return jsonify([m.model_dump() for m in messages])
 
 @bp.post("/example20/groups")
@@ -251,7 +257,7 @@ def check_group_membership(f):
     @wraps(f)
     def decorated_check_group_membership(*args, **kwargs):
         group = request.view_args.get("group")
-        
+
         # Remove extra whitespaces that users can add due to autocompletion
         group_no_whitespace = group.strip()
 
@@ -315,8 +321,8 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 </details>
 
 <a id="ex-21"></a>
-
 ### Example 21: Whitespace Canonicalization
+
 Previously we only had 'add group' functionality. Now we add group update handler as well. There are two distinct API endpoints now, one creates a new group (and we make sure to check that the group truly does not exist yet!), and the other endpoint updates the existing group (this is privileged operation, so we check that the user is an admin with @check_if_admin decorator).
 
 Unfortunately, the code remains vulnerable to canonicalization confusion attack. In the `create_group` handler we perform group uniqueness check on the raw group name provided by user `request.json.get("name")`. However, if the check passes, the `create_new_group` is called with the canonicalized data in the Group object. Group model uses `constr` feature from pydantic, which strips whitespace on insertion, so the attacker can bypass group uniqueness check by providing a group name with extra whitespace at the start or end of the group name.
@@ -390,7 +396,7 @@ class Group(BaseModel):
                 is_group_updated = True
             else:
                 new_groups.append(old_group)
-    
+
         # If the group does not exist, we add it
         if not is_group_updated:
             new_groups.append(new_group)
@@ -449,4 +455,3 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 ```
 
 </details>
-

@@ -285,6 +285,123 @@ notes: |
         expected = "# Full Document\n\nA short summary.\n\n## Introduction\n\nDetailed description here."
         self.assertIn(expected, md)
 
+    def test_readme_spacing_section_headers(self):
+        """Test that section headers (H2) have blank lines after them."""
+        ex = Example(id=1, kind="function", title="Test Example", notes="Example notes")
+        idx = DirectoryIndex(
+            version="1",
+            root=Path("."),
+            category=None,
+            namespace=None,
+            examples={1: ex},
+            attachments={},
+        )
+        title = "Doc"
+        summary = ""
+        description = ""
+        structure = [{"title": "Section Title", "description": "Section description.", "examples": [1]}]
+        md = generate_readme(idx, title, summary, description, structure, toc=False)
+
+        # Section header should have blank line after it
+        self.assertIn("## Section Title\n\nSection description.", md)
+        # Should NOT be directly adjacent
+        self.assertNotIn("## Section Title\nSection description.", md)
+
+    def test_readme_spacing_section_description_and_examples(self):
+        """Test that there's blank line between section description and example anchor."""
+        ex = Example(id=1, kind="function", title="Test Example", notes="Example notes")
+        idx = DirectoryIndex(
+            version="1",
+            root=Path("."),
+            category=None,
+            namespace=None,
+            examples={1: ex},
+            attachments={},
+        )
+        title = "Doc"
+        summary = ""
+        description = ""
+        structure = [{"title": "Section Title", "description": "Section description.", "examples": [1]}]
+        md = generate_readme(idx, title, summary, description, structure, toc=False)
+
+        # Should have blank line between description and anchor
+        self.assertIn("Section description.\n\n<a id=\"ex-1\"></a>", md)
+        # Should NOT be directly adjacent
+        self.assertNotIn("Section description.\n<a id=\"ex-1\"></a>", md)
+
+    def test_readme_spacing_example_anchor_and_header(self):
+        """Test that example anchor and header are close (no extra blank line between them)."""
+        ex = Example(id=1, kind="function", title="Test Example", notes="Example notes")
+        idx = DirectoryIndex(
+            version="1",
+            root=Path("."),
+            category=None,
+            namespace=None,
+            examples={1: ex},
+            attachments={},
+        )
+        title = "Doc"
+        summary = ""
+        description = ""
+        structure = [{"title": "", "description": "", "examples": [1]}]
+        md = generate_readme(idx, title, summary, description, structure, toc=False)
+
+        # Anchor and header should be adjacent (compact style)
+        self.assertIn("<a id=\"ex-1\"></a>\n### Example 1: Test Example", md)
+        # Should NOT have double blank line
+        self.assertNotIn("<a id=\"ex-1\"></a>\n\n### Example 1: Test Example", md)
+
+    def test_readme_spacing_example_header_and_notes(self):
+        """Test that there's a blank line between example header and notes."""
+        ex = Example(id=1, kind="function", title="Test Example", notes="Example notes")
+        idx = DirectoryIndex(
+            version="1",
+            root=Path("."),
+            category=None,
+            namespace=None,
+            examples={1: ex},
+            attachments={},
+        )
+        title = "Doc"
+        summary = ""
+        description = ""
+        structure = [{"title": "", "description": "", "examples": [1]}]
+        md = generate_readme(idx, title, summary, description, structure, toc=False)
+
+        # Should have blank line between header and notes
+        self.assertIn("### Example 1: Test Example\n\nExample notes", md)
+        # Should NOT be directly adjacent
+        self.assertNotIn("### Example 1: Test Example\nExample notes", md)
+
+    def test_readme_spacing_multiple_sections_and_examples(self):
+        """Test proper spacing with multiple sections and examples."""
+        ex1 = Example(id=1, kind="function", title="First", notes="First notes")
+        ex2 = Example(id=2, kind="function", title="Second", notes="Second notes")
+        idx = DirectoryIndex(
+            version="1",
+            root=Path("."),
+            category=None,
+            namespace=None,
+            examples={1: ex1, 2: ex2},
+            attachments={},
+        )
+        title = "Doc"
+        summary = "Summary"
+        description = ""
+        structure = [
+            {"title": "Section A", "description": "Desc A", "examples": [1]},
+            {"title": "Section B", "description": "Desc B", "examples": [2]},
+        ]
+        md = generate_readme(idx, title, summary, description, structure, toc=False)
+
+        # Check spacing for first section
+        self.assertIn("## Section A\n\nDesc A\n\n<a id=\"ex-1\"></a>", md)
+        self.assertIn("### Example 1: First\n\nFirst notes", md)
+
+        # Check spacing for second section
+        self.assertIn("## Section B\n\nDesc B\n\n<a id=\"ex-2\"></a>", md)
+        self.assertIn("### Example 2: Second\n\nSecond notes", md)
+
 
 if __name__ == "__main__":
     unittest.main()

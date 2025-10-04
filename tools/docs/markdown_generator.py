@@ -100,9 +100,11 @@ class MarkdownBuilder:
             section_title = entry.get("title", "")
             if section_title:
                 doc.addHeader(2, section_title)
+                doc.writeTextLine()  # Blank line after section header
             description = entry.get("description", "")
             if description:
                 doc.writeTextLine(description, html_escape=False)
+                doc.writeTextLine()  # Blank line after section description
             for ex_id in entry.get("examples", []):
                 ex = self.index.examples.get(int(ex_id))
                 if ex:
@@ -114,10 +116,12 @@ class MarkdownBuilder:
         # Header, add colon only if title present
         # Add a stable anchor for intra-document links
         doc.writeTextLine(f"<a id=\"ex-{example.id}\"></a>", html_escape=False)
+        # Write header directly to avoid extra blank line that addHeader introduces
         if example.title:
-            doc.addHeader(3, f"Example {example.id}: {example.title}")
+            doc.writeTextLine(f"### Example {example.id}: {example.title}", html_escape=False)
         else:
-            doc.addHeader(3, f"Example {example.id}")
+            doc.writeTextLine(f"### Example {example.id}", html_escape=False)
+        doc.writeTextLine()  # Blank line after example header
 
         if example.notes:
             doc.writeTextLine(example.notes, html_escape=False)
