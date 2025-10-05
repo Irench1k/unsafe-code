@@ -5,7 +5,7 @@ from .database import get_user_messages, get_group_messages, is_group_member
 bp = Blueprint("authz_baseline", __name__)
 
 # @unsafe[block]
-# id: 13
+# id: 1
 # title: "Secure Authorization Binding Baseline [Not Vulnerable]"
 # notes: |
 #   This demonstrates the correct way to handle authorization binding in a multi-user
@@ -25,9 +25,9 @@ bp = Blueprint("authz_baseline", __name__)
 #   In both cases, the authorization check and the data access use the same source,
 #   preventing any binding drift attacks.
 # @/unsafe
-@bp.get("/example13/groups/<group>/messages")
+@bp.get("/example1/groups/<group>/messages")
 @basic_auth_v1
-def example13_group_messages(group):
+def example1_group_messages(group):
     """Returns messages from a specified group."""
     if not is_group_member(g.user, group):
         return "Forbidden: not a member of the requested group", 403
@@ -35,9 +35,9 @@ def example13_group_messages(group):
     return get_group_messages(group)
 
 
-@bp.get("/example13/user/messages")
+@bp.get("/example1/user/messages")
 @basic_auth_v1
-def example13_user_messages():
+def example1_user_messages():
     """
     Returns user's private messages, or group messages if specified.
 

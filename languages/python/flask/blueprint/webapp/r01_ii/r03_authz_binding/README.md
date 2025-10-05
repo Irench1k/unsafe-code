@@ -34,16 +34,16 @@ In multi-tenant or multi-user APIs, a common pattern is to authenticate once (se
 
 | Category | Example | File |
 |:---:|:---:|:---:|
-| Secure Authorization Baseline | [Example 13: Secure Authorization Binding Baseline [Not Vulnerable]](#ex-13) | [r01_baseline/routes.py](r01_baseline/routes.py#L28-L58) |
-| Path-Query Confusion Leading to Binding Drift | [Example 14: Authorization Binding Drift via Path-Query Confusion](#ex-14) | [r02_path_query_confusion/routes.py](r02_path_query_confusion/routes.py#L35-L50) |
-| Path-Query Confusion Leading to Binding Drift | [Example 15: Authorization Binding Drift Despite Global Source of Truth](#ex-15) | [r02_path_query_confusion/routes.py](r02_path_query_confusion/routes.py#L82-L97) |
-| Classic Identity Rebinding | [Example 16: Classic Authorization Binding Drift - User Identity Rebinding](#ex-16) | [r03_simple_rebinding/routes.py](r03_simple_rebinding/routes.py#L39-L76) |
+| Secure Authorization Baseline | [Example 1: Secure Authorization Binding Baseline [Not Vulnerable]](#ex-1) | [r01_baseline/routes.py](r01_baseline/routes.py#L28-L58) |
+| Path-Query Confusion Leading to Binding Drift | [Example 2: Authorization Binding Drift via Path-Query Confusion](#ex-2) | [r02_path_query_confusion/routes.py](r02_path_query_confusion/routes.py#L35-L50) |
+| Path-Query Confusion Leading to Binding Drift | [Example 3: Authorization Binding Drift Despite Global Source of Truth](#ex-3) | [r02_path_query_confusion/routes.py](r02_path_query_confusion/routes.py#L82-L97) |
+| Classic Identity Rebinding | [Example 4: Classic Authorization Binding Drift - User Identity Rebinding](#ex-4) | [r03_simple_rebinding/routes.py](r03_simple_rebinding/routes.py#L39-L76) |
 
 ## Secure Authorization Baseline
 
 The correct pattern for handling authorization binding: authenticate the user, establish their identity in global context (g.user), and consistently use the same source for resource identifiers in both authorization checks and data access. No user-controlled parameters can rebind resources after authorization succeeds.
 
-### Example 13: Secure Authorization Binding Baseline [Not Vulnerable] <a id="ex-13"></a>
+### Example 1: Secure Authorization Binding Baseline [Not Vulnerable] <a id="ex-1"></a>
 
 This demonstrates the correct way to handle authorization binding in a multi-user application. Authentication establishes WHO the user is, and authorization checks verify that the authenticated identity has access to the requested resource.
 
@@ -59,9 +59,9 @@ This example provides two endpoints:
 
 In both cases, the authorization check and the data access use the same source, preventing any binding drift attacks.
 ```python
-@bp.get("/example13/groups/<group>/messages")
+@bp.get("/example1/groups/<group>/messages")
 @basic_auth_v1
-def example13_group_messages(group):
+def example1_group_messages(group):
     """Returns messages from a specified group."""
     if not is_group_member(g.user, group):
         return "Forbidden: not a member of the requested group", 403
@@ -69,9 +69,9 @@ def example13_group_messages(group):
     return get_group_messages(group)
 
 
-@bp.get("/example13/user/messages")
+@bp.get("/example1/user/messages")
 @basic_auth_v1
-def example13_user_messages():
+def example1_user_messages():
     """
     Returns user's private messages, or group messages if specified.
 
@@ -90,30 +90,12 @@ def example13_user_messages():
         return "Forbidden: not a member of the requested group", 403
 
     return get_group_messages(group)
-
-def basic_auth_v1(f):
-    """
-    Authenticates the user via Basic Auth.
-    Stores the authenticated user in \`g.user\`.
-    """
-    @wraps(f)
-    def decorated_basic_auth(*args, **kwargs):
-        # request.authorization extracts the username and password from the Authorization header (Basic Auth)
-        auth = request.authorization
-        if not auth or not authenticate(auth.username, auth.password):
-            return response_401()
-
-        # Store the authenticated user in the global context
-        g.user = auth.username
-        return f(*args, **kwargs)
-
-    return decorated_basic_auth
 ```
 <details>
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/authz-binding/example13
+@base = http://localhost:8000/ii/authz-binding/example1
 
 ### Plankton can access his own group's messages
 GET {{base}}/groups/staff@chum-bucket.sea/messages
@@ -177,7 +159,7 @@ Authorization binding drift caused by decorators that merge path and query param
 
 These examples show how parameter source merging creates binding drift between the authorization check (WHICH resource is authorized) and the action (WHICH resource is accessed).
 
-### Example 14: Authorization Binding Drift via Path-Query Confusion <a id="ex-14"></a>
+### Example 2: Authorization Binding Drift via Path-Query Confusion <a id="ex-2"></a>
 
 This example demonstrates authorization binding drift caused by a decorator that merges path and query parameters with query-priority.
 
@@ -195,59 +177,28 @@ Attack flow:
 
 This is binding drift because the authenticated identity is correct, but the resource identifier gets rebound between authorization and action.
 ```python
-@bp.get("/example14/groups/<group>/messages")
+@bp.get("/example2/groups/<group>/messages")
 @basic_auth_v1
 @check_group_membership_v1
-def example14_group_messages(group):
+def example2_group_messages(group):
     """Returns messages from a specified group."""
     return get_group_messages(group)
 
 
-@bp.get("/example14/user/messages")
+@bp.get("/example2/user/messages")
 @basic_auth_v1
 @check_group_membership_v1
-def example14_user_messages():
+def example2_user_messages():
     """Returns user's private messages, or group messages if specified."""
     if 'group' in request.args:
         return get_group_messages(request.args.get("group"))
     return get_user_messages(g.user)
-
-def basic_auth_v1(f):
-    """Authenticates the user via Basic Auth, stores identity in g.user."""
-    @wraps(f)
-    def decorated_basic_auth(*args, **kwargs):
-        auth = request.authorization
-        if not auth or not authenticate(auth.username, auth.password):
-            return response_401()
-
-        g.user = auth.username
-        return f(*args, **kwargs)
-
-    return decorated_basic_auth
-
-
-def check_group_membership_v1(f):
-    """
-    Checks if the authenticated user is a member of the requested group.
-
-    Supports flexible group parameter passing via query string or path.
-    """
-    @wraps(f)
-    def decorated_check_group_membership(*args, **kwargs):
-        # Support both query and path parameters for group identifier
-        group = request.args.get("group") or request.view_args.get("group")
-
-        if group and not is_group_member(g.user, group):
-            return "Forbidden: not a member of the requested group", 403
-
-        return f(*args, **kwargs)
-    return decorated_check_group_membership
 ```
 <details>
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/authz-binding/example14
+@base = http://localhost:8000/ii/authz-binding/example2
 
 ### The group authorization check prevents Plankton from accessing the Krusty Krab's messages:
 GET {{base}}/groups/staff@krusty-krab.sea/messages
@@ -302,7 +253,7 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
 </details>
 
-### Example 15: Authorization Binding Drift Despite Global Source of Truth <a id="ex-15"></a>
+### Example 3: Authorization Binding Drift Despite Global Source of Truth <a id="ex-3"></a>
 
 This example attempts to fix the binding drift by introducing a single source of truth (g.group), but the vulnerability persists because handlers still use path parameters directly.
 
@@ -316,7 +267,7 @@ This demonstrates that even "single source of truth" patterns can fail if:
 1. The source is populated with user-controlled priority logic
 2. Some code paths ignore the source and use raw request data
 
-Attack flow (same as Example 14):
+Attack flow (same as Example 2):
 1. Plankton authenticates as himself ✓
 2. Decorator sets g.group = "staff@chum-bucket.sea" (query param) ✓
 3. Authorization checks membership in g.group ✓
@@ -324,63 +275,28 @@ Attack flow (same as Example 14):
 
 The fix would be to either: a) Always use g.group in handlers (never path params directly), OR b) Don't set g.group with merging logic - use path param directly everywhere
 ```python
-@bp.get("/example15/groups/<group>/messages")
+@bp.get("/example3/groups/<group>/messages")
 @basic_auth_v2
 @check_group_membership_v2
-def example15_group_messages(group):
+def example3_group_messages(group):
     """Returns messages from a specified group."""
     return get_group_messages(group)
 
 
-@bp.get("/example15/user/messages")
+@bp.get("/example3/user/messages")
 @basic_auth_v2
 @check_group_membership_v2
-def example15_user_messages():
+def example3_user_messages():
     """Returns user's private messages, or group messages if specified."""
     if 'group' in request.args:
         return get_group_messages(g.group)
     return get_user_messages(g.user)
-
-def basic_auth_v2(f):
-    """
-    Authenticates user via Basic Auth and establishes single source of truth.
-
-    Stores both user and group identifiers in global context (g.user, g.group)
-    to ensure consistent access across all decorators and handlers.
-    """
-    @wraps(f)
-    def decorated_basic_auth(*args, **kwargs):
-        auth = request.authorization
-        if not auth or not authenticate(auth.username, auth.password):
-            return response_401()
-
-        g.user = auth.username
-        # Establish single source of truth for group identifier
-        g.group = request.args.get("group") or request.view_args.get("group")
-        return f(*args, **kwargs)
-    return decorated_basic_auth
-
-
-def check_group_membership_v2(f):
-    """
-    Checks group membership using g.group from global context.
-
-    Relies on basic_auth_v2 decorator to populate g.group with the
-    canonical group identifier for consistent authorization checks.
-    """
-    @wraps(f)
-    def decorated_check_group_membership(*args, **kwargs):
-        if g.get("group", None) and not is_group_member(g.user, g.group):
-            return "Forbidden: not a member of the requested group", 403
-
-        return f(*args, **kwargs)
-    return decorated_check_group_membership
 ```
 <details>
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/authz-binding/example15
+@base = http://localhost:8000/ii/authz-binding/example3
 
 ### The group authorization check prevents Plankton from accessing the Krusty Krab's messages:
 GET {{base}}/groups/staff@krusty-krab.sea/messages
@@ -447,7 +363,7 @@ The purest form of authorization binding drift: the application correctly authen
 
 This demonstrates post-authentication identity rebinding, where users can impersonate others by controlling identity fields in request data.
 
-### Example 16: Classic Authorization Binding Drift - User Identity Rebinding <a id="ex-16"></a>
+### Example 4: Classic Authorization Binding Drift - User Identity Rebinding <a id="ex-4"></a>
 
 This demonstrates the most straightforward form of authorization binding drift: the application authenticates WHO the user is, verifies they have access to a resource, but then trusts a user-controlled parameter to determine which identity to ACT AS.
 
@@ -469,10 +385,10 @@ Attack scenario:
 
 Impact: Squidward can impersonate SpongeBob and manipulate the vote!
 ```python
-@bp.post("/example16/groups/<group>/messages")
+@bp.post("/example4/groups/<group>/messages")
 @basic_auth
 @check_group_membership
-def example16_post_message(group):
+def example4_post_message(group):
     """
     Posts a message to a group.
 
@@ -501,10 +417,10 @@ def example16_post_message(group):
     return {"status": "success", "from": from_user, "to_group": group}
 
 
-@bp.get("/example16/groups/<group>/messages")
+@bp.get("/example4/groups/<group>/messages")
 @basic_auth
 @check_group_membership
-def example16_get_messages(group):
+def example4_get_messages(group):
     """Retrieves all messages from a group."""
     return get_group_messages(group)
 ```
@@ -515,7 +431,7 @@ def example16_get_messages(group):
 @base = http://localhost:8000/ii/r03-authz-binding
 
 ### First, let's see the current state of messages in the Krusty Krab staff group
-GET {{base}}/example16/groups/staff@krusty-krab.sea/messages
+GET {{base}}/example4/groups/staff@krusty-krab.sea/messages
 Authorization: Basic squidward@krusty-krab.sea:clarinet-master
 
 # Results in 200 OK - Mr. Krabs has announced Employee of the Month voting:
@@ -530,7 +446,7 @@ Authorization: Basic squidward@krusty-krab.sea:clarinet-master
 
 ### Squidward is a member of the staff group, so he can legitimately post messages
 ### Here he posts his own vote (as himself) first
-POST {{base}}/example16/groups/staff@krusty-krab.sea/messages
+POST {{base}}/example4/groups/staff@krusty-krab.sea/messages
 Authorization: Basic squidward@krusty-krab.sea:clarinet-master
 Content-Type: application/json
 
@@ -554,7 +470,7 @@ Content-Type: application/json
 ###
 ### Notice how the message is written in Squidward's pompous style, not SpongeBob's enthusiastic tone.
 ### SpongeBob would never say "sophisticated" or "refined artistic sensibility"!
-POST {{base}}/example16/groups/staff@krusty-krab.sea/messages
+POST {{base}}/example4/groups/staff@krusty-krab.sea/messages
 Authorization: Basic squidward@krusty-krab.sea:clarinet-master
 Content-Type: application/json
 
@@ -573,7 +489,7 @@ Content-Type: application/json
 ###
 
 ### Verify the impersonation worked - check the thread
-GET {{base}}/example16/groups/staff@krusty-krab.sea/messages
+GET {{base}}/example4/groups/staff@krusty-krab.sea/messages
 Authorization: Basic squidward@krusty-krab.sea:clarinet-master
 
 # Results in 200 OK - the fake vote appears to be from SpongeBob!

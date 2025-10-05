@@ -41,7 +41,7 @@ outline:
       data access. No user-controlled parameters can rebind resources after
       authorization succeeds.
     examples:
-      - 13
+      - 1
   - title: Path-Query Confusion Leading to Binding Drift
     description: |
       Authorization binding drift caused by decorators that merge path and query
@@ -54,8 +54,8 @@ outline:
       between the authorization check (WHICH resource is authorized) and the
       action (WHICH resource is accessed).
     examples:
-      - 14
-      - 15
+      - 2
+      - 3
   - title: Classic Identity Rebinding
     description: |
       The purest form of authorization binding drift: the application correctly
@@ -66,4 +66,4 @@ outline:
       This demonstrates post-authentication identity rebinding, where users can
       impersonate others by controlling identity fields in request data.
     examples:
-      - 16
+      - 4

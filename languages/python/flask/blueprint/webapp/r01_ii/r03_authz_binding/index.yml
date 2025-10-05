@@ -3,8 +3,8 @@ root: .
 category: ii.r03-authz-binding
 namespace: flask-ii-r03-authz-binding
 examples:
-  13:
-    id: 13
+  1:
+    id: 1
     kind: block
     title: Secure Authorization Binding Baseline [Not Vulnerable]
     notes: >-
@@ -41,16 +41,11 @@ examples:
       file: r01_baseline/routes.py
       code_start_line: 28
       code_end_line: 58
-    - part: 2
-      file: r01_baseline/decorator.py
-      code_start_line: 20
-      code_end_line: 36
     file_hashes:
-      r01_baseline/decorator.py: 8b681ce69fafe2466d6980fd3567d52452842e936238402fae306655d919583d
-      r01_baseline/routes.py: c116af9d41261679fb4cfe4395f4e239369657307063ea9c54f7a6bd02e9d37a
-    fingerprint: fc70e90041ba3b01c684ac0ebf9514e874f516430a77cee9156a371bf8954112
-  14:
-    id: 14
+      r01_baseline/routes.py: 5f671caa90a924061941f71f9e508519ff84e306865fb6ddefb99f85a26c2207
+    fingerprint: 4005aa378fdf52a2624f8537118dbe95608dac27b0b6788ad8354d6c10808fb7
+  2:
+    id: 2
     kind: block
     title: Authorization Binding Drift via Path-Query Confusion
     notes: >-
@@ -89,16 +84,11 @@ examples:
       file: r02_path_query_confusion/routes.py
       code_start_line: 35
       code_end_line: 50
-    - part: 2
-      file: r02_path_query_confusion/decorator.py
-      code_start_line: 21
-      code_end_line: 50
     file_hashes:
-      r02_path_query_confusion/decorator.py: 32a3e8ade10bcca35dfc72824a86a68329bdbb61891fd23ac26bf61fcf152214
-      r02_path_query_confusion/routes.py: b49036438aa2b904a5cee4fb571e762dd5e4b061b1cea767a76f628b42cd0025
-    fingerprint: 50daa38ee0f83cad147e9e7f759c11181c034d5dabf91d7a8267e7cc97633b84
-  15:
-    id: 15
+      r02_path_query_confusion/routes.py: 340e8de944fa34db6fe8ff8e79d0bab99654e8a7bddec5ab7dbb1cb0fdf530af
+    fingerprint: d2a8205376fa9dd9ce445495606c3b98db4ed3624af05463eddde9dea5e44bc1
+  3:
+    id: 3
     kind: block
     title: Authorization Binding Drift Despite Global Source of Truth
     notes: >-
@@ -126,7 +116,7 @@ examples:
       2. Some code paths ignore the source and use raw request data
 
 
-      Attack flow (same as Example 14):
+      Attack flow (same as Example 2):
 
       1. Plankton authenticates as himself ✓
 
@@ -146,16 +136,11 @@ examples:
       file: r02_path_query_confusion/routes.py
       code_start_line: 82
       code_end_line: 97
-    - part: 2
-      file: r02_path_query_confusion/decorator.py
-      code_start_line: 59
-      code_end_line: 92
     file_hashes:
-      r02_path_query_confusion/decorator.py: 32a3e8ade10bcca35dfc72824a86a68329bdbb61891fd23ac26bf61fcf152214
-      r02_path_query_confusion/routes.py: b49036438aa2b904a5cee4fb571e762dd5e4b061b1cea767a76f628b42cd0025
-    fingerprint: 53663bca75af46586bbe7b898c43789a31f29024dfd9de52c746949a2bc9b4ed
-  16:
-    id: 16
+      r02_path_query_confusion/routes.py: 340e8de944fa34db6fe8ff8e79d0bab99654e8a7bddec5ab7dbb1cb0fdf530af
+    fingerprint: 695f807cb798e0c4f7174bc27e3f8549f4f1034d744aadbc4b5f48038c0e41db
+  4:
+    id: 4
     kind: block
     title: Classic Authorization Binding Drift - User Identity Rebinding
     notes: >-
@@ -204,12 +189,57 @@ examples:
       code_start_line: 39
       code_end_line: 76
     file_hashes:
-      r03_simple_rebinding/routes.py: 8460cd403cec22442190be0d869ef230effab224fb8e9d961ba0f8a500cb0473
-    fingerprint: 8de6f86a0a9513d8a45ad2faf1cb460b7e88c60578ea929ffb2112e061d59484
+      r03_simple_rebinding/routes.py: 9717ac94f8b5082bc0654fbba25c79420b6edd295ec1ea29608023adba8bff84
+    fingerprint: a9c14168a31c5075013ba1e0009b9ba9b20907111e248ccbb65399c9a1cea313
+  13:
+    id: 13
+    kind: block
+    title: null
+    notes: null
+    http: null
+    language: python
+    parts:
+    - part: 2
+      file: r01_baseline/decorator.py
+      code_start_line: 20
+      code_end_line: 36
+    file_hashes:
+      r01_baseline/decorator.py: 8b681ce69fafe2466d6980fd3567d52452842e936238402fae306655d919583d
+    fingerprint: 1af00a9e12f69d4b9f54c4a960c60e7f63d109f3b85ea3ffa6815d193f5c8adb
+  14:
+    id: 14
+    kind: block
+    title: null
+    notes: null
+    http: null
+    language: python
+    parts:
+    - part: 2
+      file: r02_path_query_confusion/decorator.py
+      code_start_line: 21
+      code_end_line: 50
+    file_hashes:
+      r02_path_query_confusion/decorator.py: 32a3e8ade10bcca35dfc72824a86a68329bdbb61891fd23ac26bf61fcf152214
+    fingerprint: cdf60a2a236775d760db7afb19925e39baafafed4ae34be03ec09da1adecd1d6
+  15:
+    id: 15
+    kind: block
+    title: null
+    notes: null
+    http: null
+    language: python
+    parts:
+    - part: 2
+      file: r02_path_query_confusion/decorator.py
+      code_start_line: 59
+      code_end_line: 92
+    file_hashes:
+      r02_path_query_confusion/decorator.py: 32a3e8ade10bcca35dfc72824a86a68329bdbb61891fd23ac26bf61fcf152214
+    fingerprint: 2c4e7305eabdcc7837671be88295ff33f6d64b87c1c033783ca3f600cff2da71
 attachments:
-  http/exploit-13.http: 705851661eb343598b3fcb937a9dd0408a304e19b48c812412522f2e8f6c1875
-  http/exploit-14.http: 0cf49be054acff47dcd8c256d339928fd95f5c257889f620a665913684b6a513
-  http/exploit-15.http: 377ce6d14c09e5013fa40f4690b2c0de7db56aa98529b25af8ea281fabd38585
-  http/exploit-16.http: 1bb938674dd60eaca6ea0df08238e637eae2868fc7c13adca3722357d8ae17ee
-build_signature: 0d2a49df1d3de1c7a2cb8e5c4f257f5f80a2eda2ae41d8aa46603d0a2ff9ede7
-last_readme_fingerprint: c7d3db738d25e151c67a9e4969a7ef1d4feefca1c11bea1fd054ec55cbcd5683
+  http/exploit-1.http: e097a7fe9c9d94974e5707d78b8dc74ee77eb53b27c239e80365a4496919a48c
+  http/exploit-2.http: 0d0baef8a76d4f626944d9512ff14712a895e30156d620acb44f8442f7d75c9c
+  http/exploit-3.http: 4df1dfed244b6dcc9e538905445f8d5246f6ab7ea3647878ea803233f1bb1bb4
+  http/exploit-4.http: bcea218359dbc7834edabf86e73cc5b56ce9f09918a5e1e4e80906848f132cb1
+build_signature: c653bcaa20d51d997b6972a778f8f267a0b760449a514ce2abd9b03dfbce9cae
+last_readme_fingerprint: cc32f9fd4dd93aadd355776023eaf2ff250a174248e3aa05e5eaebe6c1a68588

@@ -7,7 +7,7 @@ bp = Blueprint("authz_simple_rebinding", __name__)
 
 
 # @unsafe[block]
-# id: 16
+# id: 4
 # title: "Classic Authorization Binding Drift - User Identity Rebinding"
 # notes: |
 #   This demonstrates the most straightforward form of authorization binding drift:
@@ -36,10 +36,10 @@ bp = Blueprint("authz_simple_rebinding", __name__)
 #
 #   Impact: Squidward can impersonate SpongeBob and manipulate the vote!
 # @/unsafe
-@bp.post("/example16/groups/<group>/messages")
+@bp.post("/example4/groups/<group>/messages")
 @basic_auth
 @check_group_membership
-def example16_post_message(group):
+def example4_post_message(group):
     """
     Posts a message to a group.
 
@@ -68,10 +68,10 @@ def example16_post_message(group):
     return {"status": "success", "from": from_user, "to_group": group}
 
 
-@bp.get("/example16/groups/<group>/messages")
+@bp.get("/example4/groups/<group>/messages")
 @basic_auth
 @check_group_membership
-def example16_get_messages(group):
+def example4_get_messages(group):
     """Retrieves all messages from a group."""
     return get_group_messages(group)
 # @/unsafe[block]

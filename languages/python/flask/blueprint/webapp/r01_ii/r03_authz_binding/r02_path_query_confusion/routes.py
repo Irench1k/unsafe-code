@@ -9,7 +9,7 @@ bp = Blueprint("authz_path_query_confusion", __name__)
 
 
 # @unsafe[block]
-# id: 14
+# id: 2
 # title: "Authorization Binding Drift via Path-Query Confusion"
 # notes: |
 #   This example demonstrates authorization binding drift caused by a decorator
@@ -32,18 +32,18 @@ bp = Blueprint("authz_path_query_confusion", __name__)
 #   This is binding drift because the authenticated identity is correct, but
 #   the resource identifier gets rebound between authorization and action.
 # @/unsafe
-@bp.get("/example14/groups/<group>/messages")
+@bp.get("/example2/groups/<group>/messages")
 @basic_auth_v1
 @check_group_membership_v1
-def example14_group_messages(group):
+def example2_group_messages(group):
     """Returns messages from a specified group."""
     return get_group_messages(group)
 
 
-@bp.get("/example14/user/messages")
+@bp.get("/example2/user/messages")
 @basic_auth_v1
 @check_group_membership_v1
-def example14_user_messages():
+def example2_user_messages():
     """Returns user's private messages, or group messages if specified."""
     if 'group' in request.args:
         return get_group_messages(request.args.get("group"))
@@ -52,7 +52,7 @@ def example14_user_messages():
 
 
 # @unsafe[block]
-# id: 15
+# id: 3
 # title: "Authorization Binding Drift Despite Global Source of Truth"
 # notes: |
 #   This example attempts to fix the binding drift by introducing a single
@@ -69,7 +69,7 @@ def example14_user_messages():
 #   1. The source is populated with user-controlled priority logic
 #   2. Some code paths ignore the source and use raw request data
 #
-#   Attack flow (same as Example 14):
+#   Attack flow (same as Example 2):
 #   1. Plankton authenticates as himself ✓
 #   2. Decorator sets g.group = "staff@chum-bucket.sea" (query param) ✓
 #   3. Authorization checks membership in g.group ✓
@@ -79,18 +79,18 @@ def example14_user_messages():
 #   a) Always use g.group in handlers (never path params directly), OR
 #   b) Don't set g.group with merging logic - use path param directly everywhere
 # @/unsafe
-@bp.get("/example15/groups/<group>/messages")
+@bp.get("/example3/groups/<group>/messages")
 @basic_auth_v2
 @check_group_membership_v2
-def example15_group_messages(group):
+def example3_group_messages(group):
     """Returns messages from a specified group."""
     return get_group_messages(group)
 
 
-@bp.get("/example15/user/messages")
+@bp.get("/example3/user/messages")
 @basic_auth_v2
 @check_group_membership_v2
-def example15_user_messages():
+def example3_user_messages():
     """Returns user's private messages, or group messages if specified."""
     if 'group' in request.args:
         return get_group_messages(g.group)
