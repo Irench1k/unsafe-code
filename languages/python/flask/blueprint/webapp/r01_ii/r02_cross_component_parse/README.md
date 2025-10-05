@@ -203,7 +203,7 @@ GET {{base}}/example2?user=spongebob&password=bikinibottom
 
 ###
 
-### Attack: Decorator authenticates using query params, handler uses form data
+### Attack: Plankton exploits decorator/handler parameter source mismatch
 GET {{base}}/example2?user=spongebob&password=bikinibottom
 Content-Type: application/x-www-form-urlencoded
 
@@ -224,6 +224,13 @@ user=squidward
 #     }
 #   ]
 # }
+#
+# IMPACT: Plankton has stolen the safe combination AND discovered that Squidward
+# is being solicited to betray Mr. Krabs! The decorator reads credentials from
+# query parameters (authenticating as SpongeBob) while the handler reads the
+# target user from form data (Squidward). This cross-component parsing
+# inconsistency lets attackers authenticate as one user while accessing
+# another's data.
 ```
 
 </details>
@@ -286,7 +293,7 @@ GET {{base}}/example3?user=spongebob&password=bikinibottom
 
 ###
 
-### Attack: Middleware authenticates using query params, handler uses form data
+### Attack: Plankton exploits middleware/handler parameter source mismatch
 GET {{base}}/example3?user=spongebob&password=bikinibottom
 Content-Type: application/x-www-form-urlencoded
 
@@ -307,6 +314,13 @@ user=squidward
 #     }
 #   ]
 # }
+#
+# IMPACT: Plankton steals the safe combination AND uncovers Squidward's
+# vulnerability to bribery! The middleware layer authenticates using query
+# parameters (SpongeBob) while the handler layer reads from form data (Squidward).
+# This demonstrates that cross-layer parsing inconsistencies are particularly
+# dangerous because security logic and business logic execute in different
+# components, making the vulnerability harder to spot during code review.
 ```
 
 </details>

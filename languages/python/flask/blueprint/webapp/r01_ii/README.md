@@ -10,10 +10,9 @@ Inconsistent interpretation happens when code that should be working with **one 
 - Verify **ordering**: do guards run before or after inputs are finalized, merged, or normalized? Are defaults or fallbacks introduced after the security check?
 
 ## Subcategories
-- [Source Precedence](source_precedence/) — Different components pull the "same" logical parameter from different places (path vs. query vs. body vs. headers vs. cookies), leading to precedence conflicts, merging issues, or source pollution.
-- [Normalization & Canonicalization](normalization_canonicalization/) — Case folding, whitespace stripping, URL decoding, or path normalization makes "equal" values diverge when checked versus used.
-- [Multi-Value Semantics](multi_value_semantics/) — One component treats a parameter as a list while another grabs only the first value, or `.get()` vs `.getlist()` disagreements create different effective values.
-- [Cross-Component Parse](cross_component_parse/) — Middleware, decorators, or framework helpers parse or reshape inputs in ways that differ from what the view sees.
-- [Behavior Order](behavior_order/) — Guards run before inputs are fully merged, normalized, or before critical context (like `g.user`) is established.
-- [HTTP Semantics](http_semantics/) — Wrong assumptions about HTTP methods or content types (e.g., GET with body, form vs. JSON) cause components to read different sources.
-- [Authorization Binding](authz_binding/) — Authorization checks identity or value X, but the handler acts on identity or value Y.
+1. [Source Precedence](r01_source_precedence/README.md) — Different components pull the "same" logical parameter from different places (path vs. query vs. body vs. headers vs. cookies), leading to precedence conflicts, merging issues, or source pollution.
+2. [Cross-Component Parse](r02_cross_component_parse/README.md) — Middleware, decorators, or framework helpers parse or reshape inputs in ways that differ from what the view sees.
+3. [Authorization Binding](r03_authz_binding/README.md) — Authorization checks identity or value X, but the handler acts on identity or value Y.
+4. [HTTP Semantics](r04_http_semantics/README.md) — Wrong assumptions about HTTP methods or content types (e.g., GET with body, form vs. JSON) cause components to read different sources.
+5. [Multi-Value Semantics](r05_multi_value_semantics/README.md) — One component treats a parameter as a list while another grabs only the first value, or `.get()` vs `.getlist()` disagreements create different effective values.
+6. [Normalization & Canonicalization](r06_normalization_canonicalization/README.md) — Case folding, whitespace stripping, URL decoding, or path normalization makes "equal" values diverge when checked versus used.

@@ -1,6 +1,6 @@
 # Flask Blueprint Example
 
-A Flask application demonstrating hierarchical routing with [Blueprints](https://flask.palletsprojects.com/en/stable/api/#flask.Blueprint) - organized, scalable, and beginner-friendly.
+A Flask application demonstrating hierarchical routing with [Blueprints](https://flask.palletsprojects.com/en/stable/api/#flask.Blueprint) for vulnerability research and education.
 
 ## Quick Start
 
@@ -19,75 +19,57 @@ docker compose down
 
 ```
 run.py              # Application entry point
-webapp/             # Main application package (standardized name)
-├── __init__.py     # App factory with main blueprint registration
-# Removed utils.py - explicit Blueprint() calls are clearer
-├── demo/           # Demo examples section
-│   ├── routes.py   # Demo section blueprint
-│   ├── routing/
-│   │   ├── routes.py          # Routing examples blueprint
-│   │   ├── basic_routes/      # Basic routing examples
-│   │   ├── parametric_routes/ # URL parameter examples
-│   │   └── route_constraints/ # Route constraint examples
-│   ├── request_handling/      # Request handling examples
-│   └── response_handling/     # Response handling examples
-└── r01_ii/           # Vulnerability examples section
-    ├── routes.py   # Vulnerability section blueprint
-    ├── r01_source_precedence/  # Confusion-based vulnerabilities
-    ├── r02_cross_component_parse/ # Type-related vulnerabilities
-    ├── r03_authz_binding/ # State management issues
-    ├── r04_multi_value_semantics/ # State management issues
-    ├── r05_http_semantics/ # State management issues
-    └── r06_normalization_canonicalization/ # State management issues
+webapp/             # Main application package
+├── __init__.py     # App factory
+├── routes.py       # Root blueprint registration
+└── r01_ii/         # Inconsistent Interpretation (II) vulnerabilities
+    ├── routes.py   # II section blueprint
+    ├── r01_source_precedence/           # Source precedence confusion
+    ├── r02_cross_component_parse/       # Cross-component parsing issues
+    ├── r03_authz_binding/               # Authorization binding vulnerabilities
+    ├── r04_http_semantics/              # HTTP semantics confusion
+    ├── r05_multi_value_semantics/       # Multi-value handling issues
+    └── r06_normalization_canonicalization/  # Normalization mismatches
 ```
 
 ## Blueprint Pattern
 
-Each route module follows a simple, consistent pattern:
+Each vulnerability example follows a consistent pattern:
 
 ```python
-# webapp/demo/routing/basic_routes/routes.py
+# webapp/r01_ii/r01_source_precedence/routes.py
 from flask import Blueprint
 
-# Create blueprint - explicit and clear
-bp = Blueprint("basic_routes", __name__)
+bp = Blueprint("source_precedence", __name__)
 
 @bp.route("/")
 def index():
-    return "Basic routing examples\n"
+    return "Source precedence examples\n"
 
-# Add your routes
-@bp.route("/example")
-def example_route():
-    return "Example response"
+@bp.route("/example-1")
+def example_1():
+    # Vulnerable code demonstrating the issue
+    pass
 ```
 
-For blueprints with children:
+Parent blueprints register children:
 
 ```python
-# webapp/demo/routes.py
+# webapp/r01_ii/routes.py
 from flask import Blueprint
-from .routing.routes import bp as routing_bp
-from .request_handling.routes import bp as request_handling_bp
+from .r01_source_precedence.routes import bp as source_precedence_bp
 
-# Create parent blueprint
-bp = Blueprint("demo", __name__)
+bp = Blueprint("ii", __name__)
 
 @bp.route("/")
 def index():
-    return "Demo examples - try /routing, /request-handling\n"
+    return "Inconsistent Interpretation (II) examples\n"
 
-# Register children - explicit and clear
-bp.register_blueprint(routing_bp, url_prefix="/routing")
-bp.register_blueprint(request_handling_bp, url_prefix="/request-handling")
+bp.register_blueprint(source_precedence_bp, url_prefix="/source-precedence")
 ```
 
 ## Adding New Examples
 
-Adding new examples is straightforward:
-
-1. **Create directory**: `webapp/demo/new_feature/`
-2. **Add routes.py**: `bp = Blueprint("new_feature", __name__)`
-3. **Update parent**: Add import and registration in parent's `routes.py`
-
-The explicit pattern scales easily to hundreds of examples while staying readable and debuggable.
+1. **Create directory**: `webapp/r01_ii/new_category/`
+2. **Add routes.py**: `bp = Blueprint("new_category", __name__)`
+3. **Update parent**: Import and register in `webapp/r01_ii/routes.py`

@@ -16,9 +16,9 @@ Use `rXX_` prefixes to indicate progressive complexity and learning order:
 
 **Category level** (main vulnerability types):
 ```
-ii/r01_source_precedence/          # Simplest: parameter source confusion
-ii/r02_cross_component_parse/      # Medium: layer-to-layer drift
-ii/r03_authz_binding/              # Complex: post-auth resource/identity rebinding
+r01_ii/r01_source_precedence/          # Simplest: parameter source confusion
+r01_ii/r02_cross_component_parse/      # Medium: layer-to-layer drift
+r01_ii/r03_authz_binding/              # Complex: post-auth resource/identity rebinding
 ```
 
 **Subcategory level** (variations within a category):
@@ -61,7 +61,7 @@ Each name should tell students what they'll learn before they open the directory
 **Example IDs are unique per subcategory only**, starting from 1:
 
 ```yaml
-# ii/r03_authz_binding/readme.yml
+# r01_ii/r03_authz_binding/readme.yml
 outline:
   - title: Secure Authorization Baseline
     examples:

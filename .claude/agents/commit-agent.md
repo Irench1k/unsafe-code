@@ -4,7 +4,6 @@ description: >
   Git commit and verification agent for Unsafe Code Lab. Distinguishes between documentation tool changes
   (tools/ directory) and vulnerable code examples (languages/ directory), applying appropriate quality
   checks for each. Runs tests/linters for tools/ code and verifies docs generation for vulnerable examples.
-tools: Bash, Read
 model: sonnet
 ---
 

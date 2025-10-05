@@ -77,14 +77,20 @@ def check_group_membership_v2(f):
 ```shell
 @base = http://localhost:8000/policy-composition-and-precedence/merge-order-and-short-circuit/example1
 
-###
-# The group authorization is completely ineffective because \`@check_group_membership_v2\`
-# is applied too early, and \`g.group\` is not set yet.
-#
-# As a result, Plankton can access the Krusty Krab's messages without any tricks:
+### First, verify that Plankton should NOT be able to access Krusty Krab messages
+### This would normally fail with proper authorization:
 GET {{base}}/groups/staff@krusty-krab.sea/messages
 Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
-# Results in the sensitive data disclosure:
+
+# Expected: 403 Forbidden: not a member of the requested group
+# Actual: 200 OK with sensitive data!
+
+###
+
+### EXPLOIT: Plankton accesses the Krusty Krab's messages WITHOUT any parameter tricks!
+GET {{base}}/groups/staff@krusty-krab.sea/messages
+Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
+# Results in sensitive data disclosure:
 #
 # [
 #   {
@@ -92,6 +98,17 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 #     "message": "I am updating the safe password to '123456'. Do not tell anyone!"
 #   }
 # ]
+#
+# IMPACT: Plankton has stolen the safe password with the simplest possible attack -
+# a straightforward GET request! The authorization is completely ineffective because
+# of decorator composition order. The @check_group_membership_v2 decorator executes
+# BEFORE @basic_auth_v2, so when it checks g.group, that variable hasn't been set
+# yet (g.group is None). The authorization check passes vacuously, allowing Plankton
+# unrestricted access. This demonstrates that decorator order matters critically for
+# security - even with correct authorization logic, wrong composition order creates
+# a complete bypass. This is more dangerous than parameter confusion because there's
+# no subtle attack vector to detect; the authorization simply doesn't execute at the
+# right time in the request lifecycle.
 ```
 
 </details>

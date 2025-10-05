@@ -1,8 +1,8 @@
 from flask import Blueprint
 
 # from .confusion.routes import bp as confusion_bp
-from .ii.routes import bp as ii_bp
-from .policy_composition_and_precedence.routes import bp as policy_bp
+from .r01_ii.routes import bp as ii_bp
+from .r02_policy_composition_and_precedence.routes import bp as policy_bp
 
 # Create vulnerability examples blueprint
 bp = Blueprint("vuln", __name__)

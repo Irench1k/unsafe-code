@@ -1,5 +1,6 @@
 from flask import Blueprint
-from .merge_order_and_short_circuit.routes import bp as merge_order_bp
+
+from .r01_merge_order_and_short_circuit.routes import bp as merge_order_bp
 
 # Policy Composition and Precedence vulnerability examples
 bp = Blueprint("policy_composition_and_precedence", __name__)
