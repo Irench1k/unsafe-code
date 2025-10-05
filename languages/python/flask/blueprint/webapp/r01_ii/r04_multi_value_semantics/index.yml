@@ -3,8 +3,8 @@ root: .
 category: ii.multi-value-semantics
 namespace: flask-ii-multi-value-semantics
 examples:
-  10:
-    id: 10
+  1:
+    id: 1
     kind: block
     title: '[Not Vulnerable] First Item Checked, First Item Used'
     notes: >-
@@ -26,11 +26,11 @@ examples:
       code_start_line: 24
       code_end_line: 33
     file_hashes:
-      decorator.py: 5b9dc1d870580b8529d9914a2f8578385f14f3d3fe51d35f2320028ad773765a
-      routes.py: e1dd25f8826c3ac3f78c3589641ebd8b6bebf3d3610171a546287169c8a4bcb6
-    fingerprint: 05de248ceddd68b9e9e44a5eaa9ee35928539d45fa79e0cac3a4091c7a408f9c
-  11:
-    id: 11
+      decorator.py: 0fcb817592c2f9a8297d2698259a06e2b82efc47cad7d438e3a80291f01bb6c4
+      routes.py: ecd6e8b1ea2cbd1419fa23d5f97b6a046dbeb2b0178f5cce00d2f415a82866d8
+    fingerprint: a5946e19f21abfd0c945f6d7c5f8067e755bd6dd4c9a61f6e9e90092abec5881
+  2:
+    id: 2
     kind: block
     title: Utility Reuse Mismatch — .get vs .getlist
     notes: >-
@@ -53,10 +53,10 @@ examples:
       code_start_line: 41
       code_end_line: 49
     file_hashes:
-      routes.py: e1dd25f8826c3ac3f78c3589641ebd8b6bebf3d3610171a546287169c8a4bcb6
-    fingerprint: 2e9274c4ce51839cb460eded35820cca0fc74170cbc865d7863ac226e70c3ac1
-  12:
-    id: 12
+      routes.py: ecd6e8b1ea2cbd1419fa23d5f97b6a046dbeb2b0178f5cce00d2f415a82866d8
+    fingerprint: 3cb759deb88ab3c5a4ae5eb20dc513b214e01b3b0cf6a18a2f71767d1ecf0107
+  3:
+    id: 3
     kind: block
     title: Any vs All — Fail-Open Authorization for Batch Actions
     notes: >-
@@ -75,12 +75,12 @@ examples:
       code_start_line: 41
       code_end_line: 50
     file_hashes:
-      decorator.py: 5b9dc1d870580b8529d9914a2f8578385f14f3d3fe51d35f2320028ad773765a
-      routes.py: e1dd25f8826c3ac3f78c3589641ebd8b6bebf3d3610171a546287169c8a4bcb6
-    fingerprint: 97a9abdc2867f8ac1c5ca57efa0fc020503ca02271301cebb32924c776cba143
+      decorator.py: 0fcb817592c2f9a8297d2698259a06e2b82efc47cad7d438e3a80291f01bb6c4
+      routes.py: ecd6e8b1ea2cbd1419fa23d5f97b6a046dbeb2b0178f5cce00d2f415a82866d8
+    fingerprint: a384e62c644ebeaba838bf67d4baac7b8d2ad2e749112ebbf7c9d29061fe7565
 attachments:
-  http/exploit-10.http: d86f6d1cd67232549d0a7788d4ad941a67e5a5918896d20e58ce2ecc51430b73
-  http/exploit-11.http: b1d5f6a6fb4269f768ede287500c31261d9a44d71e7e8cf5fe6d0b2636b8013b
-  http/exploit-12.http: 62434ff6fb11bb543c81f427239428d3af84e67ec3d0826c4eb5765d6e9e8100
-build_signature: a9d52abe11c8e6339e5b189c7bef69a4be7611c20246e7aa398b28421a8c7cd8
-last_readme_fingerprint: 425b7cf41af60cb9de58d3a43e1e0cac659b9dd7b21427d7b87bce21b5c2d8b3
+  http/exploit-1.http: ff671b54599ebdd0b3f9875af3ea31465cdd7da3ba93356ae6eb0b1c5c0151e8
+  http/exploit-2.http: e89de4ce6db581951251e389c1842fc555e68c97d00af8a22a39e8e2c7210891
+  http/exploit-3.http: 2e185b45a76175de4aad3daf978db32376aad992de22827e0d07e7e9756e0162
+build_signature: 2b91e81afc9583b504f7da1322804eafc8041df398ad8b116c09e3491c039bb9
+last_readme_fingerprint: f0d1f2ac2faa5627394e7b435a49fcc3ba1120d8a303b7b4c2677ad5514af7a6

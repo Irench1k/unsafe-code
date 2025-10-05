@@ -18,14 +18,14 @@ outline:
     description: |
       Baseline flows that accept the first value only - and how they miss the repeated parameter attack.
     examples:
-      - 10
+      - 1
   - title: Shared Utilities with Divergent Expectations
     description: |
       Helpers reuse inconsistent getters, causing the guard and action to disagree about the caller's privileges.
     examples:
-      - 11
+      - 2
   - title: Batching & Quantifier Pitfalls
     description: |
       `any()` vs `all()` and similar logic slips that turn a single bad entry into a successful bypass.
     examples:
-      - 12
+      - 3

@@ -18,7 +18,7 @@ def authentication_required(f):
 
 
 # @unsafe[block]
-# id: 10
+# id: 1
 # part: 2
 # @/unsafe
 def check_group_membership(f):
@@ -35,7 +35,7 @@ def check_group_membership(f):
 
 
 # @unsafe[block]
-# id: 12
+# id: 3
 # part: 2
 # @/unsafe
 def check_multi_group_membership(f):

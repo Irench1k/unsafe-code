@@ -15,24 +15,24 @@ Web forms and query strings support repeated keys: `role=admin&role=auditor`. Fl
 
 | Category | Example | File |
 |:---:|:---:|:---:|
-| Simple List vs Scalar Checks | [Example 10: [Not Vulnerable] First Item Checked, First Item Used](#ex-10) | [routes.py](routes.py#L18-L23) |
-| Shared Utilities with Divergent Expectations | [Example 11: Utility Reuse Mismatch — .get vs .getlist](#ex-11) | [routes.py](routes.py#L41-L49) |
-| Batching & Quantifier Pitfalls | [Example 12: Any vs All — Fail-Open Authorization for Batch Actions](#ex-12) | [routes.py](routes.py#L61-L68) |
+| Simple List vs Scalar Checks | [Example 1: [Not Vulnerable] First Item Checked, First Item Used](#ex-1) | [routes.py](routes.py#L18-L23) |
+| Shared Utilities with Divergent Expectations | [Example 2: Utility Reuse Mismatch — .get vs .getlist](#ex-2) | [routes.py](routes.py#L41-L49) |
+| Batching & Quantifier Pitfalls | [Example 3: Any vs All — Fail-Open Authorization for Batch Actions](#ex-3) | [routes.py](routes.py#L61-L68) |
 
 ## Simple List vs Scalar Checks
 
 Baseline flows that accept the first value only - and how they miss the repeated parameter attack.
 
-### Example 10: [Not Vulnerable] First Item Checked, First Item Used <a id="ex-10"></a>
+### Example 1: [Not Vulnerable] First Item Checked, First Item Used <a id="ex-1"></a>
 
 This example is not vulnerable and is meant to demonstrate how the vulnerability could realistically get added to the codebase during refactoring.
 
 We start by implementing a helper function `@check_group_membership` that checks that the user is a member of the group which messages are being accessed.
 ```python
-@bp.post("/example10")
+@bp.post("/example1")
 @authentication_required
 @check_group_membership
-def example10():
+def example1():
     """Admin-level endpoint to access user's messages."""
     return get_group_messages(request.form.get("group", None))
 
@@ -53,19 +53,19 @@ def check_group_membership(f):
 ```shell
 @base = http://localhost:8000/ii/multi-value-semantics
 ### Expected usage: Mr. Krabs is an admin of the staff group and should be able to access the group messages
-POST {{base}}/example10
+POST {{base}}/example1
 Content-Type: application/x-www-form-urlencoded
 
 user=mr.krabs@krusty-krab.sea&password=$$$money$$$&group=staff@krusty-krab.sea
 ###
 # Plankton is able to access his own group's messages
-POST {{base}}/example10
+POST {{base}}/example1
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea
 ###
 # But Plankton is not able to access the Krusty Krab's messages
-POST {{base}}/example10
+POST {{base}}/example1
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea&group=staff@krusty-krab.sea
@@ -77,7 +77,7 @@ user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket
 
 Helpers reuse inconsistent getters, causing the guard and action to disagree about the caller's privileges.
 
-### Example 11: Utility Reuse Mismatch — .get vs .getlist <a id="ex-11"></a>
+### Example 2: Utility Reuse Mismatch — .get vs .getlist <a id="ex-2"></a>
 
 Builds upon the previous example. Consider that we need to add a new API endpoint that allows the user to access the messages of multiple groups in a single request.
 
@@ -85,10 +85,10 @@ We start by copying the previous implementation and changing the function body t
 
 The code looks clean and works nicely for the "happy path", but it is vulnerable as the function body now acts on the unverified data – remember that `@check_group_membership` only checks the first group in the request.
 ```python
-@bp.post("/example11")
+@bp.post("/example2")
 @authentication_required
 @check_group_membership
-def example11():
+def example2():
     """Admin-level endpoint to access user's messages."""
     messages = {}
     for group in request.form.getlist("group"):
@@ -101,19 +101,19 @@ def example11():
 ```shell
 @base = http://localhost:8000/ii/multi-value-semantics
 ### Expected usage: Mr. Krabs is an admin of the staff group and should be able to access the group messages
-POST {{base}}/example11
+POST {{base}}/example2
 Content-Type: application/x-www-form-urlencoded
 
 user=mr.krabs@krusty-krab.sea&password=$$$money$$$&group=staff@krusty-krab.sea&group=managers@krusty-krab.sea
 ###
 # Plankton is able to access his own group's messages
-POST {{base}}/example11
+POST {{base}}/example2
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea
 ###
 # But now Plankton is able to access the Krusty Krab's messages
-POST {{base}}/example11
+POST {{base}}/example2
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea&group=staff@krusty-krab.sea&group=managers@krusty-krab.sea
@@ -125,14 +125,14 @@ user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket
 
 `any()` vs `all()` and similar logic slips that turn a single bad entry into a successful bypass.
 
-### Example 12: Any vs All — Fail-Open Authorization for Batch Actions <a id="ex-12"></a>
+### Example 3: Any vs All — Fail-Open Authorization for Batch Actions <a id="ex-3"></a>
 
 Authorization incorrectly uses `any()` over the requested groups, allowing a user who is an admin of one group to grant membership for additional groups in the same request. The action then applies to every provided group. Correct behavior would require `all()`.
 ```python
-@bp.post("/example12")
+@bp.post("/example3")
 @authentication_required
 @check_multi_group_membership
-def example12():
+def example3():
     messages = {}
     for group in request.form.getlist("group"):
         messages[group] = get_group_messages(group)
@@ -155,19 +155,19 @@ def check_multi_group_membership(f):
 ```shell
 @base = http://localhost:8000/ii/multi-value-semantics
 ### Expected usage: Mr. Krabs is an admin of the staff group and should be able to access the group messages
-POST {{base}}/example12
+POST {{base}}/example3
 Content-Type: application/x-www-form-urlencoded
 
 user=mr.krabs@krusty-krab.sea&password=$$$money$$$&group=staff@krusty-krab.sea&group=managers@krusty-krab.sea
 ###
 # Plankton is able to access his own group's messages
-POST {{base}}/example12
+POST {{base}}/example3
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea
 ###
 # But now Plankton is able to access the Krusty Krab's messages
-POST {{base}}/example12
+POST {{base}}/example3
 Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&password=burgers-are-yummy&group=staff@chum-bucket.sea&group=staff@krusty-krab.sea&group=managers@krusty-krab.sea
