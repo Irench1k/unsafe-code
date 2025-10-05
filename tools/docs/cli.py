@@ -1,29 +1,27 @@
 """CLI for the docs generator."""
 
 from pathlib import Path
-from typing import List, Optional
 
 import typer
 from rich import print
 from rich.console import Console
 from rich.table import Table
 
-from .fs_utils import backup_file, find_files_by_name, write_text, sha256_file, compute_fingerprint
+from .fs_utils import backup_file, compute_fingerprint, find_files_by_name, sha256_file, write_text
 from .indexer import (
     build_directory_index,
     read_existing_index,
     write_index,
 )
+from .languages import assemble_code_from_parts
 from .markdown_generator import generate_readme
 from .readme_spec import load_readme_spec
-from .languages import assemble_code_from_parts
-
 
 app = typer.Typer(add_completion=True, help="Docs generator for Unsafe Code")
 console = Console()
 
 
-def _find_readme_yml_paths(root: Path) -> List[Path]:
+def _find_readme_yml_paths(root: Path) -> list[Path]:
     return find_files_by_name(root, "readme.yml")
 
 
@@ -52,7 +50,7 @@ def list_cmd(
 @app.command(name="index")
 def index_cmd(
     root: str = typer.Argument(str(Path.cwd())),
-    target: Optional[str] = typer.Option(None, help="Path to a specific readme.yml or its directory"),
+    target: str | None = typer.Option(None, help="Path to a specific readme.yml or its directory"),
     write: bool = typer.Option(True, help="Write index.yml to target directory"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Do not write any files"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
@@ -102,7 +100,7 @@ def index_cmd(
 @app.command(name="generate")
 def generate_cmd(
     root: str = typer.Argument(str(Path.cwd())),
-    target: Optional[str] = typer.Option(None, help="Path to a specific readme.yml or its directory"),
+    target: str | None = typer.Option(None, help="Path to a specific readme.yml or its directory"),
     force: bool = typer.Option(False, help="Force README.md regeneration even if cache matches"),
     backup: bool = typer.Option(True, help="Backup README.md before overwriting"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Do not write any files"),
@@ -211,7 +209,7 @@ def all_cmd(
 @app.command(name="watch")
 def watch_cmd(
     root: str = typer.Argument(str(Path.cwd())),
-    target: Optional[str] = typer.Option(None, help="Path to a specific readme.yml or its directory"),
+    target: str | None = typer.Option(None, help="Path to a specific readme.yml or its directory"),
     interval: float = typer.Option(1.0, help="Polling interval in seconds"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
 ):
@@ -343,7 +341,7 @@ def verify_cmd(
 def show_cmd(
     example_id: int = typer.Argument(..., help="Example id to preview"),
     root: str = typer.Argument(str(Path.cwd())),
-    target: Optional[str] = typer.Option(None, help="Path to a specific readme.yml or its directory"),
+    target: str | None = typer.Option(None, help="Path to a specific readme.yml or its directory"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
 ):
     """Preview a single example: metadata, parts, and assembled code."""
@@ -395,7 +393,7 @@ def show_cmd(
         if verbose:
             import traceback
             traceback.print_exc()
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 def docs_main() -> None:
     app()

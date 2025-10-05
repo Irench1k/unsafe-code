@@ -1,7 +1,6 @@
 """Indexer: builds index.yml from annotations and filesystem."""
 
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from .annotation_parser import discover_annotations, find_block_end_marker
 from .fs_utils import compute_fingerprint, sha256_file
@@ -11,12 +10,12 @@ from .readme_spec import ReadmeSpec
 from .yaml_io import read_yaml, write_yaml
 
 
-def find_source_files(root: Path) -> List[Path]:
+def find_source_files(root: Path) -> list[Path]:
     supported_exts = get_supported_extensions()
     return [p for p in root.rglob("*") if p.is_file() and p.suffix.lower() in supported_exts]
 
 
-def calculate_code_boundaries(annotation, file_lines: List[str]) -> tuple[int, int]:
+def calculate_code_boundaries(annotation, file_lines: list[str]) -> tuple[int, int]:
     """Calculate (start,end) lines for the annotated code (1-based)."""
     code_start = annotation.end_line + 1
 
@@ -39,11 +38,11 @@ def calculate_code_boundaries(annotation, file_lines: List[str]) -> tuple[int, i
     return code_start, code_end
 
 
-def build_examples_from_annotations(source_files: List[Path]) -> Dict[int, Example]:
+def build_examples_from_annotations(source_files: list[Path]) -> dict[int, Example]:
     raw_annotations = discover_annotations(source_files)
-    examples: Dict[int, Example] = {}
+    examples: dict[int, Example] = {}
 
-    grouped: Dict[int, List] = {}
+    grouped: dict[int, list] = {}
     for ann in raw_annotations:
         ex_id = ann.metadata['id']
         grouped.setdefault(ex_id, []).append(ann)
@@ -67,7 +66,7 @@ def build_examples_from_annotations(source_files: List[Path]) -> Dict[int, Examp
         parts = []
         for ann in annotations:
             try:
-                with open(ann.file_path, 'r', encoding='utf-8') as f:
+                with open(ann.file_path, encoding='utf-8') as f:
                     file_lines = [line.rstrip('\n\r') for line in f.readlines()]
                 start, end = calculate_code_boundaries(ann, file_lines)
                 parts.append(
@@ -80,7 +79,7 @@ def build_examples_from_annotations(source_files: List[Path]) -> Dict[int, Examp
                     )
                 )
             except Exception as e:
-                raise ValueError(f"Failed to process annotation in {ann.file_path}: {e}")
+                raise ValueError(f"Failed to process annotation in {ann.file_path}: {e}") from e
 
         if kind == 'block' and len(parts) > 1:
             expected = list(range(1, len(parts) + 1))
@@ -107,8 +106,8 @@ def build_examples_from_annotations(source_files: List[Path]) -> Dict[int, Examp
     return examples
 
 
-def collect_attachments(root: Path) -> Dict[str, str]:
-    attachments: Dict[str, str] = {}
+def collect_attachments(root: Path) -> dict[str, str]:
+    attachments: dict[str, str] = {}
     for dir_name in ("images", "http"):
         attach_dir = root / dir_name
         if attach_dir.exists() and attach_dir.is_dir():
@@ -119,7 +118,7 @@ def collect_attachments(root: Path) -> Dict[str, str]:
     return attachments
 
 
-def compute_example_hashes_and_fingerprints(examples: Dict[int, Example], root: Path) -> None:
+def compute_example_hashes_and_fingerprints(examples: dict[int, Example], root: Path) -> None:
     for example in examples.values():
         files = {part.file_path for part in example.parts}
         # Store file hashes with keys relative to the index root for stability across environments
@@ -151,14 +150,14 @@ def build_directory_index(root: Path, spec: ReadmeSpec) -> DirectoryIndex:
         attachments=attachments,
     )
 
-    sig_data: List[str] = []
+    sig_data: list[str] = []
     sig_data.extend(ex.fingerprint or "" for ex in sorted(examples.values(), key=lambda e: e.id))
     sig_data.extend(f"{p}:{h}" for p, h in sorted(attachments.items()))
     index.build_signature = compute_fingerprint(sig_data)
     return index
 
 
-def read_existing_index(index_path: Path) -> Optional[DirectoryIndex]:
+def read_existing_index(index_path: Path) -> DirectoryIndex | None:
     if not index_path.exists():
         return None
     try:

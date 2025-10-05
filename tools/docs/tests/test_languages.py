@@ -4,15 +4,15 @@ import unittest
 from pathlib import Path
 
 from tools.docs.languages import (
-    get_language_for_file,
-    get_supported_extensions, 
-    PythonFunctionParser,
     JavaScriptFunctionParser,
+    PythonFunctionParser,
+    get_language_for_file,
+    get_supported_extensions,
 )
 
 
 class TestLanguages(unittest.TestCase):
-    
+
     def test_get_language_for_file(self):
         lang = get_language_for_file(Path("test.py"))
         self.assertIsNotNone(lang)
@@ -28,7 +28,7 @@ class TestLanguages(unittest.TestCase):
 
         lang = get_language_for_file(Path("test.txt"))
         self.assertIsNone(lang)
-    
+
     def test_get_supported_extensions(self):
         extensions = get_supported_extensions()
         expected = {'.py', '.js', '.jsx', '.ts', '.tsx'}
@@ -36,10 +36,10 @@ class TestLanguages(unittest.TestCase):
 
 
 class TestPythonFunctionParser(unittest.TestCase):
-    
+
     def setUp(self):
         self.parser = PythonFunctionParser()
-    
+
     def test_simple_function(self):
         lines = [
             "",
@@ -50,7 +50,7 @@ class TestPythonFunctionParser(unittest.TestCase):
         ]
         end_line = self.parser.find_function_end(lines, 2)
         self.assertEqual(end_line, 3)
-    
+
     def test_function_with_decorator(self):
         lines = [
             "",
@@ -63,7 +63,7 @@ class TestPythonFunctionParser(unittest.TestCase):
         ]
         end_line = self.parser.find_function_end(lines, 2)
         self.assertEqual(end_line, 5)
-    
+
     def test_async_function(self):
         lines = [
             "",
@@ -75,7 +75,7 @@ class TestPythonFunctionParser(unittest.TestCase):
         ]
         end_line = self.parser.find_function_end(lines, 2)
         self.assertEqual(end_line, 4)
-    
+
     def test_nested_function(self):
         lines = [
             "",
@@ -92,10 +92,10 @@ class TestPythonFunctionParser(unittest.TestCase):
 
 
 class TestJavaScriptFunctionParser(unittest.TestCase):
-    
+
     def setUp(self):
         self.parser = JavaScriptFunctionParser()
-    
+
     def test_function_declaration(self):
         lines = [
             "",
@@ -107,7 +107,7 @@ class TestJavaScriptFunctionParser(unittest.TestCase):
         ]
         end_line = self.parser.find_function_end(lines, 2)
         self.assertEqual(end_line, 4)
-    
+
     def test_arrow_function(self):
         lines = [
             "",
@@ -119,7 +119,7 @@ class TestJavaScriptFunctionParser(unittest.TestCase):
         ]
         end_line = self.parser.find_function_end(lines, 2)
         self.assertEqual(end_line, 5)
-    
+
     def test_nested_braces(self):
         lines = [
             "",

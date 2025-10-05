@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Literal, Optional
-
+from typing import Literal
 
 AnnotationKind = Literal["function", "block"]
 
@@ -19,28 +18,28 @@ class ExamplePart:
 class Example:
     id: int
     kind: AnnotationKind
-    title: Optional[str] = None
-    notes: Optional[str] = None
-    http: Optional[str] = None  # "open" | "closed" | None
+    title: str | None = None
+    notes: str | None = None
+    http: str | None = None  # "open" | "closed" | None
     # Language hint for syntax highlighting (e.g., 'python', 'javascript')
-    language: Optional[str] = None
-    parts: List[ExamplePart] = field(default_factory=list)
+    language: str | None = None
+    parts: list[ExamplePart] = field(default_factory=list)
 
     # Caching/hashes
-    file_hashes: Dict[str, str] = field(default_factory=dict)
-    fingerprint: Optional[str] = None
+    file_hashes: dict[str, str] = field(default_factory=dict)
+    fingerprint: str | None = None
 
 
 @dataclass
 class DirectoryIndex:
     version: str
     root: Path
-    category: Optional[str]
-    namespace: Optional[str]
-    examples: Dict[int, Example] = field(default_factory=dict)
-    attachments: Dict[str, str] = field(default_factory=dict)  # relative path -> sha256
-    build_signature: Optional[str] = None  # hash over examples + attachments
-    last_readme_fingerprint: Optional[str] = None
+    category: str | None
+    namespace: str | None
+    examples: dict[int, Example] = field(default_factory=dict)
+    attachments: dict[str, str] = field(default_factory=dict)  # relative path -> sha256
+    build_signature: str | None = None  # hash over examples + attachments
+    last_readme_fingerprint: str | None = None
 
     def to_dict(self) -> dict:
         def ex_to_dict(ex: Example) -> dict:

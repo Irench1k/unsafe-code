@@ -5,17 +5,17 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from tools.docs.annotation_parser import (
+    extract_yaml_content,
     find_annotation_boundaries,
     find_closing_marker,
-    extract_yaml_content,
-    remove_comment_prefix,
     parse_annotation_metadata,
     parse_file_annotations,
+    remove_comment_prefix,
 )
 
 
 class TestAnnotationParser(unittest.TestCase):
-    
+
     def test_find_annotation_boundaries(self):
         result = find_annotation_boundaries("# @unsafe[function]")
         self.assertEqual(result, ("function", 0))
@@ -28,7 +28,7 @@ class TestAnnotationParser(unittest.TestCase):
 
         result = find_annotation_boundaries("# This is just a comment")
         self.assertIsNone(result)
-    
+
     def test_find_closing_marker(self):
         lines = [
             "# @unsafe[function]",
@@ -46,7 +46,7 @@ class TestAnnotationParser(unittest.TestCase):
         ]
         result = find_closing_marker(lines_no_close, 0, 0)
         self.assertIsNone(result)
-    
+
     def test_extract_yaml_content(self):
         lines = [
             "# @unsafe[function]",
@@ -57,7 +57,7 @@ class TestAnnotationParser(unittest.TestCase):
         result = extract_yaml_content(lines, 0, 3)
         expected = "id: 1\ntitle: Test Function"
         self.assertEqual(result, expected)
-    
+
     def test_remove_comment_prefix(self):
         result = remove_comment_prefix("# content here")
         self.assertEqual(result, " content here")
@@ -70,7 +70,7 @@ class TestAnnotationParser(unittest.TestCase):
 
         result = remove_comment_prefix("just text")
         self.assertEqual(result, "just text")
-    
+
     def test_parse_annotation_metadata(self):
         yaml_content = """
 id: 1
@@ -92,7 +92,7 @@ http: open
         invalid_yaml = "title: Test"
         with self.assertRaises(ValueError):
             parse_annotation_metadata(invalid_yaml)
-    
+
     def test_parse_file_annotations(self):
         content = """# Example Python file
 # @unsafe[function]
@@ -103,7 +103,7 @@ def test_function():
     \"\"\"A test function.\"\"\"
     return \"hello\"
 
-# @unsafe[block] 
+# @unsafe[block]
 # id: 2
 # title: Test Block
 # part: 1

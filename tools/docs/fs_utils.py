@@ -1,7 +1,6 @@
 import hashlib
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
-
 
 BUFFER_SIZE = 1024 * 1024
 
@@ -25,11 +24,11 @@ def compute_fingerprint(strings: Iterable[str]) -> str:
     return h.hexdigest()
 
 
-def find_files_by_name(root: Path, name: str) -> List[Path]:
+def find_files_by_name(root: Path, name: str) -> list[Path]:
     return [p for p in root.rglob(name) if p.is_file()]
 
 
-def read_text_lines(path: Path) -> List[str]:
+def read_text_lines(path: Path) -> list[str]:
     with path.open("r", encoding="utf-8") as f:
         return f.read().splitlines()
 
@@ -40,7 +39,7 @@ def write_text(path: Path, content: str) -> None:
         f.write(content)
 
 
-def backup_file(path: Path, suffix: str = ".bak") -> Optional[Path]:
+def backup_file(path: Path, suffix: str = ".bak") -> Path | None:
     if not path.exists():
         return None
     idx = 1

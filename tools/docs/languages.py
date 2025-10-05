@@ -1,10 +1,9 @@
 """Language-specific parsing and configuration."""
 
+import ast
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Set
-import ast
 
 try:
     import esprima  # type: ignore
@@ -18,21 +17,21 @@ from .models import ExamplePart
 class LanguageConfig:
     """Configuration for a supported language."""
     name: str
-    extensions: Set[str]
+    extensions: set[str]
     function_parser: 'FunctionParser'
 
 
 class FunctionParser(ABC):
     """Abstract base class for language-specific function boundary detection."""
-    
+
     @abstractmethod
-    def find_function_end(self, lines: List[str], start_line_1b: int) -> int:
+    def find_function_end(self, lines: list[str], start_line_1b: int) -> int:
         """Find the end line of a function starting at start_line_1b (1-based).
-        
+
         Args:
             lines: File content as list of lines
             start_line_1b: Starting line number (1-based) right after @/unsafe marker
-            
+
         Returns:
             End line number (1-based, inclusive) of the function
         """
@@ -42,15 +41,14 @@ class FunctionParser(ABC):
 class PythonFunctionParser(FunctionParser):
     """Parser for Python function boundaries using AST with indentation fallback."""
 
-    def _find_function_end_ast(self, lines: List[str], start_line_1b: int) -> int | None:
+    def _find_function_end_ast(self, lines: list[str], start_line_1b: int) -> int | None:
         try:
             source = "\n".join(lines)
             tree = ast.parse(source)
-            candidates: List[ast.AST] = []
+            candidates: list[ast.AST] = []
             for node in ast.walk(tree):
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    if getattr(node, "lineno", 0) >= start_line_1b:
-                        candidates.append(node)
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and getattr(node, "lineno", 0) >= start_line_1b:
+                    candidates.append(node)
             if not candidates:
                 return None
             # Choose the earliest function starting at or after start_line
@@ -62,7 +60,7 @@ class PythonFunctionParser(FunctionParser):
         except (SyntaxError, ValueError):
             return None
 
-    def _find_function_end_indentation(self, lines: List[str], start_line_1b: int) -> int:
+    def _find_function_end_indentation(self, lines: list[str], start_line_1b: int) -> int:
         n = len(lines)
         i = max(0, start_line_1b - 1)
         # Find the next 'def' or 'async def'
@@ -89,7 +87,7 @@ class PythonFunctionParser(FunctionParser):
             j += 1
         return last_content + 1
 
-    def find_function_end(self, lines: List[str], start_line_1b: int) -> int:
+    def find_function_end(self, lines: list[str], start_line_1b: int) -> int:
         end_ast = self._find_function_end_ast(lines, start_line_1b)
         if end_ast is not None:
             return end_ast
@@ -102,7 +100,7 @@ class JavaScriptFunctionParser(FunctionParser):
     def _walk_js_ast(self, node):
         if hasattr(node, 'type'):
             yield node
-        for key, value in vars(node).items():
+        for _key, value in vars(node).items():
             if isinstance(value, list):
                 for item in value:
                     if hasattr(item, 'type'):
@@ -110,7 +108,7 @@ class JavaScriptFunctionParser(FunctionParser):
             elif hasattr(value, 'type'):
                 yield from self._walk_js_ast(value)
 
-    def _find_function_end_esprima(self, lines: List[str], start_line_1b: int) -> int | None:
+    def _find_function_end_esprima(self, lines: list[str], start_line_1b: int) -> int | None:
         if esprima is None:
             return None
         try:
@@ -120,9 +118,8 @@ class JavaScriptFunctionParser(FunctionParser):
             for node in self._walk_js_ast(tree):
                 if getattr(node, 'type', None) in (
                     'FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression', 'MethodDefinition'
-                ):
-                    if hasattr(node, 'loc') and getattr(node.loc.start, 'line', 10**9) >= start_line_1b:
-                        candidates.append(node)
+                ) and hasattr(node, 'loc') and getattr(node.loc.start, 'line', 10**9) >= start_line_1b:
+                    candidates.append(node)
             if not candidates:
                 return None
             target = min(candidates, key=lambda n: n.loc.start.line)
@@ -130,7 +127,7 @@ class JavaScriptFunctionParser(FunctionParser):
         except Exception:
             return None
 
-    def _find_js_function_end_braces(self, lines: List[str], start_line_1b: int) -> int:
+    def _find_js_function_end_braces(self, lines: list[str], start_line_1b: int) -> int:
         n = len(lines)
         i = max(0, start_line_1b - 1)
         # Find likely function starting brace
@@ -153,7 +150,7 @@ class JavaScriptFunctionParser(FunctionParser):
                         return j + 1
         return min(i + 10, n)
 
-    def find_function_end(self, lines: List[str], start_line_1b: int) -> int:
+    def find_function_end(self, lines: list[str], start_line_1b: int) -> int:
         end_ast = self._find_function_end_esprima(lines, start_line_1b)
         if end_ast is not None:
             return end_ast
@@ -161,14 +158,14 @@ class JavaScriptFunctionParser(FunctionParser):
 
 
 # Language registry
-LANGUAGES: Dict[str, LanguageConfig] = {
+LANGUAGES: dict[str, LanguageConfig] = {
     'python': LanguageConfig(
         name='python',
         extensions={'.py'},
         function_parser=PythonFunctionParser()
     ),
     'javascript': LanguageConfig(
-        name='javascript', 
+        name='javascript',
         extensions={'.js', '.jsx'},
         function_parser=JavaScriptFunctionParser()
     ),
@@ -189,7 +186,7 @@ def get_language_for_file(file_path: Path) -> LanguageConfig | None:
     return None
 
 
-def get_supported_extensions() -> Set[str]:
+def get_supported_extensions() -> set[str]:
     """Get all supported file extensions."""
     extensions = set()
     for lang in LANGUAGES.values():
@@ -202,7 +199,7 @@ def get_language_name_for_file(file_path: Path) -> str:
     ext = file_path.suffix.lower()
     mapping = {
         '.py': 'python',
-        '.js': 'javascript', 
+        '.js': 'javascript',
         '.jsx': 'javascript',
         '.ts': 'typescript',
         '.tsx': 'typescript',
@@ -210,16 +207,16 @@ def get_language_name_for_file(file_path: Path) -> str:
     return mapping.get(ext, '')
 
 
-def assemble_code_from_parts(parts: List[ExamplePart]) -> str:
+def assemble_code_from_parts(parts: list[ExamplePart]) -> str:
     """Read and concatenate code lines for the given parts.
 
     Each part contributes the lines [code_start_line, code_end_line] (inclusive of start, exclusive of end as stored).
     Empty line is added between parts.
     """
-    code_lines: List[str] = []
+    code_lines: list[str] = []
     for i, part in enumerate(parts):
         try:
-            with open(part.file_path, 'r', encoding='utf-8') as f:
+            with open(part.file_path, encoding='utf-8') as f:
                 file_lines = f.readlines()
             start_idx = max(0, part.code_start_line - 1)
             end_idx = min(len(file_lines), part.code_end_line)

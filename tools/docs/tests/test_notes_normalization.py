@@ -2,9 +2,9 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from tools.docs.yaml_io import parse_annotation_metadata, write_yaml, read_yaml
-from tools.docs.models import DirectoryIndex, Example
 from tools.docs.markdown_generator import generate_readme
+from tools.docs.models import DirectoryIndex, Example
+from tools.docs.yaml_io import parse_annotation_metadata, write_yaml
 
 
 class TestNotesNormalization(unittest.TestCase):

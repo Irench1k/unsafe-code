@@ -1,12 +1,10 @@
 from pathlib import Path
-from typing import Any, Dict
-
-import textwrap
+from typing import Any
 
 import yaml
 
 
-def read_yaml(path: Path) -> Dict[str, Any]:
+def read_yaml(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
 
@@ -38,7 +36,7 @@ def _deep_convert_notes_to_folded(value: Any) -> Any:
     return value
 
 
-def write_yaml(path: Path, data: Dict[str, Any]) -> None:
+def write_yaml(path: Path, data: dict[str, Any]) -> None:
     # Convert notes fields to folded scalars for nice YAML formatting
     data = _deep_convert_notes_to_folded(data)
     with path.open("w", encoding="utf-8") as f:
@@ -54,10 +52,7 @@ def _format_yaml_error(yaml_content: str, err: yaml.YAMLError) -> str:
     frame_lines = []
     try:
         mark = getattr(err, 'problem_mark', None)
-        if mark is not None and hasattr(mark, 'line'):
-            err_line = mark.line  # 0-based within yaml_content
-        else:
-            err_line = None
+        err_line = mark.line if mark is not None and hasattr(mark, 'line') else None
     except Exception:
         err_line = None
 
@@ -84,7 +79,6 @@ def _normalize_notes_markdown(text: str) -> str:
 
     lines = text.splitlines()
     out_blocks: list[str] = []
-    in_code = False
     para_acc: list[str] = []
 
     # Pattern to match list items: unordered (- or *) or ordered (digit(s) followed by .)
@@ -164,7 +158,7 @@ def _normalize_notes_markdown(text: str) -> str:
     return "\n".join(result)
 
 
-def parse_annotation_metadata(yaml_content: str) -> Dict[str, Any]:
+def parse_annotation_metadata(yaml_content: str) -> dict[str, Any]:
     """Parse YAML metadata for fenced @unsafe annotations.
 
     Strict rules:
@@ -188,7 +182,7 @@ def parse_annotation_metadata(yaml_content: str) -> Dict[str, Any]:
 
     # Enforce canonical keys only
     allowed_keys = {"id", "title", "notes", "http", "part"}
-    unknown = [k for k in data.keys() if k not in allowed_keys]
+    unknown = [k for k in data if k not in allowed_keys]
     if unknown:
         allowed_list = ", ".join(sorted(allowed_keys))
         raise ValueError(f"Unknown annotation key(s): {', '.join(sorted(unknown))}. Allowed: {allowed_list}")
@@ -200,7 +194,7 @@ def parse_annotation_metadata(yaml_content: str) -> Dict[str, Any]:
         # Collapse all whitespace (including newlines) to single spaces
         return " ".join(text.split())
 
-    result: Dict[str, Any] = {
+    result: dict[str, Any] = {
         'id': int(data['id']),
     }
     if 'title' in data and data['title'] is not None:

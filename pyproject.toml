@@ -12,6 +12,13 @@ dependencies = [
   "python-markdown-generator @ git+https://github.com/Nicceboy/python-markdown-generator",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.11.0",
+  "ruff>=0.6.0",
+  "pytest>=8.0.0",
+]
+
 [project.scripts]
 docs = "tools.docs.cli:docs_main"
 
@@ -28,3 +35,54 @@ exclude = [
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+check_untyped_defs = true
+mypy_path = "."
+explicit_package_bases = true
+files = ["tools/"]
+exclude = [
+  "^languages/",
+  "^build/",
+  "^\\.venv/",
+  "^tools/.*/tests/",
+]
+
+[[tool.mypy.overrides]]
+module = ["yaml", "markdowngenerator", "esprima"]
+ignore_missing_imports = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # pyflakes
+  "I",   # isort
+  "N",   # pep8-naming
+  "UP",  # pyupgrade
+  "B",   # flake8-bugbear
+  "C4",  # flake8-comprehensions
+  "SIM", # flake8-simplify
+]
+ignore = [
+  "E501", # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tools/**/tests/**" = ["S101"] # Allow assert in tests
+
+[tool.ruff.lint.isort]
+known-first-party = ["tools"]
+
+[tool.pytest.ini_options]
+testpaths = ["tools"]
+python_files = ["test_*.py"]
+addopts = "-v"

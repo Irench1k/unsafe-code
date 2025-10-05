@@ -3,7 +3,7 @@
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, cast
 
 from .models import AnnotationKind
 from .yaml_io import parse_annotation_metadata
@@ -16,7 +16,7 @@ class RawAnnotation:
     start_line: int  # 1-based line where @unsafe appears
     end_line: int    # 1-based line where @/unsafe appears
     kind: AnnotationKind
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
 
 
 def find_annotation_boundaries(line: str) -> tuple[str, int] | None:
@@ -29,7 +29,7 @@ def find_annotation_boundaries(line: str) -> tuple[str, int] | None:
     return None
 
 
-def find_closing_marker(lines: List[str], start_idx: int, target_indent: int) -> int | None:
+def find_closing_marker(lines: list[str], start_idx: int, target_indent: int) -> int | None:
     """Find the matching @/unsafe marker at the same indentation level."""
     for i in range(start_idx + 1, len(lines)):
         line = lines[i]
@@ -40,13 +40,13 @@ def find_closing_marker(lines: List[str], start_idx: int, target_indent: int) ->
     return None
 
 
-def extract_yaml_content(lines: List[str], start_idx: int, end_idx: int) -> str:
+def extract_yaml_content(lines: list[str], start_idx: int, end_idx: int) -> str:
     """Extract YAML content between @unsafe and @/unsafe markers.
 
     - Strips single-line comment markers while preserving spaces after them
     - Dedents by the smallest common leading whitespace across non-empty lines
     """
-    cleaned_lines: List[str] = []
+    cleaned_lines: list[str] = []
     for i in range(start_idx + 1, end_idx):
         cleaned_lines.append(remove_comment_prefix(lines[i]))
 
@@ -83,7 +83,7 @@ def remove_comment_prefix(line: str) -> str:
 # parse_annotation_metadata is now provided by tools.docs.yaml_io
 
 
-def find_block_end_marker(lines: List[str], start_line: int) -> int | None:
+def find_block_end_marker(lines: list[str], start_line: int) -> int | None:
     """Find @/unsafe[block] marker for block annotations (1-based)."""
     for i in range(start_line - 1, len(lines)):
         if '@/unsafe[block]' in lines[i]:
@@ -91,16 +91,16 @@ def find_block_end_marker(lines: List[str], start_line: int) -> int | None:
     return None
 
 
-def parse_file_annotations(file_path: Path) -> List[RawAnnotation]:
+def parse_file_annotations(file_path: Path) -> list[RawAnnotation]:
     """Parse all @unsafe annotations from a single file."""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding='utf-8') as f:
             lines = f.readlines()
     except Exception as e:
-        raise ValueError(f"Cannot read file {file_path}: {e}")
+        raise ValueError(f"Cannot read file {file_path}: {e}") from e
 
     lines = [line.rstrip('\n\r') for line in lines]
-    annotations: List[RawAnnotation] = []
+    annotations: list[RawAnnotation] = []
     i = 0
     while i < len(lines):
         boundary = find_annotation_boundaries(lines[i])
@@ -123,7 +123,7 @@ def parse_file_annotations(file_path: Path) -> List[RawAnnotation]:
                 file_path=file_path,
                 start_line=i + 1,
                 end_line=end_idx + 1,
-                kind=kind,
+                kind=cast(AnnotationKind, kind),
                 metadata=metadata,
             )
         )
@@ -132,12 +132,12 @@ def parse_file_annotations(file_path: Path) -> List[RawAnnotation]:
     return annotations
 
 
-def discover_annotations(files: List[Path]) -> List[RawAnnotation]:
+def discover_annotations(files: list[Path]) -> list[RawAnnotation]:
     """Discover all annotations across multiple files.
 
     Strict mode: any parsing error aborts with a clear exception.
     """
-    all_annotations: List[RawAnnotation] = []
+    all_annotations: list[RawAnnotation] = []
     for file_path in files:
         all_annotations.extend(parse_file_annotations(file_path))
     return all_annotations

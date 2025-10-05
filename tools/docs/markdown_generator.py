@@ -2,8 +2,6 @@
 
 import io
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Dict, List
 
 from markdowngenerator import MarkdownGenerator
 
@@ -20,7 +18,7 @@ class TocEntry:
     file_label: str
     file_link: str
 
-    def row(self, doc: MarkdownGenerator) -> List[str]:
+    def row(self, doc: MarkdownGenerator) -> list[str]:
         return [
             self.category,
             doc.generateHrefNotation(self.section_label, self.section_link),
@@ -29,7 +27,7 @@ class TocEntry:
 
 
 class MarkdownBuilder:
-    def __init__(self, index: DirectoryIndex, title: str, summary: str, description: str, sections: List[Dict], toc: bool):
+    def __init__(self, index: DirectoryIndex, title: str, summary: str, description: str, sections: list[dict], toc: bool):
         self.index = index
         self.title = title
         self.summary = summary
@@ -58,8 +56,8 @@ class MarkdownBuilder:
         if self.description:
             doc.writeTextLine(self.description, html_escape=False)
 
-    def _collect_toc_entries(self) -> List[TocEntry]:
-        entries: List[TocEntry] = []
+    def _collect_toc_entries(self) -> list[TocEntry]:
+        entries: list[TocEntry] = []
         for entry in self.sections:
             section_name = entry.get("title", "")
             for ex_id in entry.get("examples", []):
@@ -85,7 +83,7 @@ class MarkdownBuilder:
                     )
         return entries
 
-    def _add_table_of_contents(self, doc: MarkdownGenerator, entries: List[TocEntry]) -> None:
+    def _add_table_of_contents(self, doc: MarkdownGenerator, entries: list[TocEntry]) -> None:
         doc.addHeader(2, "Table of Contents")
         rows = [e.row(doc) for e in entries]
         doc.addTable(
@@ -95,7 +93,7 @@ class MarkdownBuilder:
             html_escape=False,
         )
 
-    def _render_structure(self, doc: MarkdownGenerator, toc_entries: List[TocEntry]) -> None:
+    def _render_structure(self, doc: MarkdownGenerator, toc_entries: list[TocEntry]) -> None:
         for entry in self.sections:
             section_title = entry.get("title", "")
             if section_title:
@@ -227,6 +225,6 @@ class MarkdownBuilder:
         return "\n".join(out) + ("\n" if md.endswith("\n") else "")
 
 
-def generate_readme(index: DirectoryIndex, title: str, summary: str, description: str, sections: List[Dict], toc: bool) -> str:
+def generate_readme(index: DirectoryIndex, title: str, summary: str, description: str, sections: list[dict], toc: bool) -> str:
     """Public API for README generation."""
     return MarkdownBuilder(index, title, summary, description, sections, toc).generate()

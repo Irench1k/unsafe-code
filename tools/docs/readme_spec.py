@@ -1,16 +1,15 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
 
-from .yaml_io import read_yaml
 from .yaml_io import _normalize_notes_markdown as _normalize_markdown
+from .yaml_io import read_yaml
 
 
 @dataclass
 class ReadmeSpecSection:
     title: str
-    description: Optional[str]
-    examples: List[int]
+    description: str | None
+    examples: list[int]
 
 
 @dataclass
@@ -18,9 +17,9 @@ class ReadmeSpec:
     title: str
     summary: str
     description: str
-    category: Optional[str]
-    namespace: Optional[str]
-    sections: List[ReadmeSpecSection]
+    category: str | None
+    namespace: str | None
+    sections: list[ReadmeSpecSection]
     toc: bool
 
 
@@ -29,7 +28,7 @@ def load_readme_spec(path: Path) -> ReadmeSpec:
 
     # Validate top-level keys
     allowed_top = {"title", "summary", "description", "category", "namespace", "outline", "toc"}
-    unknown_top = [k for k in data.keys() if k not in allowed_top]
+    unknown_top = [k for k in data if k not in allowed_top]
     if unknown_top:
         allowed_list = ", ".join(sorted(allowed_top))
         raise ValueError(f"Unknown readme.yml key(s): {', '.join(sorted(unknown_top))}. Allowed: {allowed_list}")
@@ -44,11 +43,11 @@ def load_readme_spec(path: Path) -> ReadmeSpec:
     outline = data.get("outline", [])
     toc = bool(data.get("toc", False))
 
-    sections: List[ReadmeSpecSection] = []
+    sections: list[ReadmeSpecSection] = []
     for entry in outline:
         # Validate entry keys
         allowed_entry = {"title", "description", "examples"}
-        unknown_entry = [k for k in entry.keys() if k not in allowed_entry]
+        unknown_entry = [k for k in entry if k not in allowed_entry]
         if unknown_entry:
             allowed_entry_list = ", ".join(sorted(allowed_entry))
             raise ValueError(

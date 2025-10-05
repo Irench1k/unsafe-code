@@ -1,15 +1,16 @@
 import unittest
 from pathlib import Path
 
-from tools.docs.readme_spec import load_readme_spec
 from tools.docs.markdown_generator import generate_readme
 from tools.docs.models import DirectoryIndex, Example
+from tools.docs.readme_spec import load_readme_spec
 
 
 class TestSpecNormalization(unittest.TestCase):
     def test_summary_and_description_normalization(self):
         # Prepare a synthetic spec as dict written to a temp file
         from tempfile import TemporaryDirectory
+
         import yaml
 
         spec_data = {
