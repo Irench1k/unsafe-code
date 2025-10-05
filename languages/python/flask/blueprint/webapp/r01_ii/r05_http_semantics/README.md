@@ -15,13 +15,13 @@ REST conventions say "GET requests have no body" and "POST carries form data." F
 
 | Category | Example | File |
 |:---:|:---:|:---:|
-| Method-Body Assumption Bypass | [Example 17: HTTP Method Confusion — GET With Body Triggers Update Without Auth](#ex-17) | [routes.py](routes.py#L31-L64) |
+| Method-Body Assumption Bypass | [Example 1: HTTP Method Confusion — GET With Body Triggers Update Without Auth](#ex-1) | [routes.py](routes.py#L31-L64) |
 
 ## Method-Body Assumption Bypass
 
 A combined GET/POST controller assumes each method uses distinct parameter sources, letting a crafted GET body post messages as another user.
 
-### Example 17: HTTP Method Confusion — GET With Body Triggers Update Without Auth <a id="ex-17"></a>
+### Example 1: HTTP Method Confusion — GET With Body Triggers Update Without Auth <a id="ex-1"></a>
 
 A complicated controller for a groups API. Lists groups, returns group messages and posts new messages to a group.
 
@@ -33,10 +33,10 @@ However, since the code does not enforce this and lacks explicit method checks, 
 
 At the same time, `request.values` used in the `@check_group_membership` decorator ignores the form data on GET requests, leading to a confusion vulnerability.
 ```python
-@bp.route("/example17/groups", methods=["GET", "POST"])
+@bp.route("/example1/groups", methods=["GET", "POST"])
 @basic_auth
 @check_group_membership
-def example17():
+def example1():
     """
     Groups controller. Lists groups, returns group messages and posts new messages to a group.
 
@@ -54,7 +54,7 @@ def example17():
     POST /groups                             -> posts a new message to the specified group
     """
     if 'group' in request.form and 'message' in request.form:
-        # POST /example17/groups
+        # POST /example1/groups
         # Content-Type: application/x-www-form-urlencoded
         #
         # group=staff@krusty-krab.sea&message=<message text>
@@ -62,10 +62,10 @@ def example17():
         return {"status": "success"}
 
     if 'group' in request.args:
-        # GET /example17/groups?group=staff@krusty-krab.sea
+        # GET /example1/groups?group=staff@krusty-krab.sea
         return get_group_messages(request.args.get("group"))
 
-    # GET /example17/groups
+    # GET /example1/groups
     return list_user_groups(g.user)
 
 def check_group_membership(f):
@@ -83,7 +83,7 @@ def check_group_membership(f):
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/http-semantics/example17
+@base = http://localhost:8000/ii/http-semantics/example1
 
 # Without any arguments, GET request lists the groups the user is a member of
 GET {{base}}/groups

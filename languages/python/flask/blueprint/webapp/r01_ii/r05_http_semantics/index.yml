@@ -3,8 +3,8 @@ root: .
 category: ii.http-semantics
 namespace: flask-ii-http-semantics
 examples:
-  17:
-    id: 17
+  1:
+    id: 1
     kind: block
     title: HTTP Method Confusion — GET With Body Triggers Update Without Auth
     notes: >-
@@ -42,10 +42,10 @@ examples:
       code_start_line: 30
       code_end_line: 39
     file_hashes:
-      decorator.py: bed1978cd48b134793200c7783e457e47e2146741b07e7ca1e924d2d0766f469
-      routes.py: 7e21593c899b6e1c001d50981daf006ad330a14f03ec965a06a8f19256203fdd
-    fingerprint: 84c3e8f3e52de2c53df6e73f4cc5c8815f34ff6fcda1585a83f1635c4901921e
+      decorator.py: 6d1e92b0a00dee266da588e93aaaaf4ffe90ef6b2fab99f20f34168f3698a5f5
+      routes.py: 057f7eceee67c8ceb6266160f61fe63d8acb77d4459c7b0d491ad6171f73ebf1
+    fingerprint: ebedbfd695b1e64c0e8b8c1be6e10311073890220c2f03f96ee1d72b4e739d98
 attachments:
-  http/exploit-17.http: 550ba2ffa06f9780dc0aaab0b08a8ff319192737bb3e2f864ebffa35b2c25c62
-build_signature: 3cefddfeda660940cb5a55ccc67de877c954f9f809713e1edca59afb400765a7
-last_readme_fingerprint: 46164663dd5116129c8e16eb4e292925e03f3d7ddf8bae26c970a78fd8729bf1
+  http/exploit-1.http: fbb2e7bcd00deef57ec3161044c5186bb73279a8a484eb889ee869cf9ce9a094
+build_signature: a30d972c232a3dbca6c75545b610177dd9fe0500c23e9409ec483fcc17307cac
+last_readme_fingerprint: 0cd06da20f0c4234ae01dc436e45771776a8f51c0586e5ba8cdb59425c7321c2

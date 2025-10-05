@@ -6,7 +6,7 @@ bp = Blueprint("http_semantics", __name__)
 
 
 # @unsafe[block]
-# id: 17
+# id: 1
 # title: HTTP Method Confusion — GET With Body Triggers Update Without Auth
 # notes: |
 #   A complicated controller for a groups API. Lists groups, returns group messages and
@@ -28,10 +28,10 @@ bp = Blueprint("http_semantics", __name__)
 #   At the same time, `request.values` used in the `@check_group_membership` decorator
 #   ignores the form data on GET requests, leading to a confusion vulnerability.
 # @/unsafe
-@bp.route("/example17/groups", methods=["GET", "POST"])
+@bp.route("/example1/groups", methods=["GET", "POST"])
 @basic_auth
 @check_group_membership
-def example17():
+def example1():
     """
     Groups controller. Lists groups, returns group messages and posts new messages to a group.
 
@@ -49,7 +49,7 @@ def example17():
     POST /groups                             -> posts a new message to the specified group
     """
     if 'group' in request.form and 'message' in request.form:
-        # POST /example17/groups
+        # POST /example1/groups
         # Content-Type: application/x-www-form-urlencoded
         #
         # group=staff@krusty-krab.sea&message=<message text>
@@ -57,9 +57,9 @@ def example17():
         return {"status": "success"}
 
     if 'group' in request.args:
-        # GET /example17/groups?group=staff@krusty-krab.sea
+        # GET /example1/groups?group=staff@krusty-krab.sea
         return get_group_messages(request.args.get("group"))
 
-    # GET /example17/groups
+    # GET /example1/groups
     return list_user_groups(g.user)
 # @/unsafe[block]

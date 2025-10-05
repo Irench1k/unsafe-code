@@ -24,7 +24,7 @@ def basic_auth(f):
     return decorated_basic_auth
 
 # @unsafe[block]
-# id: 17
+# id: 1
 # part: 2
 # @/unsafe
 def check_group_membership(f):

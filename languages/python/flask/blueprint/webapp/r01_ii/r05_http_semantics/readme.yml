@@ -18,4 +18,4 @@ outline:
     description: |
       A combined GET/POST controller assumes each method uses distinct parameter sources, letting a crafted GET body post messages as another user.
     examples:
-      - 17
+      - 1
