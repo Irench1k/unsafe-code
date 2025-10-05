@@ -3,8 +3,8 @@ from flask import Blueprint
 from .r01_source_precedence.routes import bp as source_precedence_bp
 from .r02_cross_component_parse.routes import bp as cross_component_parse_bp
 from .r03_authz_binding.routes import bp as authz_binding_bp
-from .r04_multi_value_semantics.routes import bp as multi_value_semantics_bp
-from .r05_http_semantics.routes import bp as http_semantics_bp
+from .r04_http_semantics.routes import bp as http_semantics_bp
+from .r05_multi_value_semantics.routes import bp as multi_value_semantics_bp
 from .r06_normalization_canonicalization.routes import (
     bp as normalization_canonicalization_bp,
 )
