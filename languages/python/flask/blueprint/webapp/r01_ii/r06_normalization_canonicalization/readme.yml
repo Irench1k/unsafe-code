@@ -18,11 +18,11 @@ outline:
     description: |
       Lowercasing and case-insensitive comparisons differ depending on whether the code is validating, persisting, or authorizing access.
     examples:
-      - 18
-      - 19
+      - 1
+      - 2
   - title: Whitespace & Formatting Drift
     description: |
       Stripping spaces (or normalizing structured payloads) in only part of the stack quietly changes which record is read or updated.
     examples:
-      - 20
-      - 21
+      - 3
+      - 4

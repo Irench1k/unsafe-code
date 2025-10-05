@@ -3,8 +3,8 @@ root: .
 category: ii.normalization-canonicalization
 namespace: flask-ii-normalization-canonicalization
 examples:
-  18:
-    id: 18
+  1:
+    id: 1
     kind: block
     title: Lowercase Normalization
     notes: >-
@@ -38,10 +38,10 @@ examples:
       code_start_line: 27
       code_end_line: 40
     file_hashes:
-      r01_lowercase/routes.py: 33149d5b489ef303eb861c8a43bda969462bb1135108f5b277658d5d73cb9eff
-    fingerprint: 068171e065455ac49f23a3e59dc1bbd5d8ad5f5fb935077750b2dd88268dc9cf
-  19:
-    id: 19
+      r01_lowercase/routes.py: cdb97df7af5d72f64c5b9465262548950533b79805c94ae934cd6b33bdf806aa
+    fingerprint: 20298910f0ccadb03d881def45cc5f7930aa9819c66add1e19cccbd50acd3f38
+  2:
+    id: 2
     kind: block
     title: Case insensitive Object Retrieval
     notes: >-
@@ -75,11 +75,11 @@ examples:
       code_start_line: 87
       code_end_line: 93
     file_hashes:
-      r02_insensitive_object_retrieval/database.py: 0b20b4d64e2954e6a8a64055ad5a88e43f1e41124cfb8cdb11f77efdf58f6465
-      r02_insensitive_object_retrieval/routes.py: a8a724e8120c0ea0baadfe468a5cc3bad68ca89ff697e7b266a41bb487d8982d
-    fingerprint: 66d22b6a364135223a56805bd24f69a58b2eb3de16ae785ddf93b0f2198da013
-  20:
-    id: 20
+      r02_insensitive_object_retrieval/database.py: fcb0e76ab4fa3d2e23cad40b1f2b8829467e8eb1b62ffb262d2832c5a32ddd5d
+      r02_insensitive_object_retrieval/routes.py: cb9c82f61b5c04629a760fad7b823bda460e5b3dc416b21ca1bb0b82fc5b0d69
+    fingerprint: f7379cd3ea70ebd4739a7eb40ad51a5d3bc6d37d98262fd66e09d947a952e027
+  3:
+    id: 3
     kind: block
     title: Whitespace Canonicalization
     notes: >-
@@ -96,7 +96,7 @@ examples:
       - @check_group_membership uses strip() - sees "staff @krusty-krab.sea" and keeps the
       middle space
 
-      - example20 uses replace() - turns "staff @krusty-krab.sea" into "staff@krusty-krab.sea"
+      - example3 uses replace() - turns "staff @krusty-krab.sea" into "staff@krusty-krab.sea"
 
 
       The attack: Plankton creates "staff @krusty-krab.sea" (with space), gets authorized
@@ -106,19 +106,19 @@ examples:
     language: python
     parts:
     - part: 1
-      file: r03_whitespace/routes.py
+      file: r03_strip_replace_mismatch/routes.py
       code_start_line: 27
       code_end_line: 55
     - part: 2
-      file: r03_whitespace/decorator.py
+      file: r03_strip_replace_mismatch/decorator.py
       code_start_line: 36
       code_end_line: 49
     file_hashes:
-      r03_whitespace/decorator.py: 37ac40794a7041eb030a237e2f69cdbf77d55130d17990618869df1255b3a1fc
-      r03_whitespace/routes.py: ff5ec0370f2f1e8ad1c61c84b0f3f756d4655d83d0bd6bb219417c027944d424
-    fingerprint: 225218494373d41eb454b51b86216e47603dc2c05da288de3c8d2956ee74f409
-  21:
-    id: 21
+      r03_strip_replace_mismatch/decorator.py: 07773d7eeadd46784533ab09825e02b50884e575a5bd8acd93ac710108484560
+      r03_strip_replace_mismatch/routes.py: 62b565644e54aab48cac2968e8c6017827f538173cd07d7f6cad1afdcf62e8b1
+    fingerprint: 7f1bfcd63156b0cf4bb4a54fdf98bb8c575b7923d6115eddffcab00277d5e4eb
+  4:
+    id: 4
     kind: block
     title: Whitespace Canonicalization
     notes: >-
@@ -138,7 +138,7 @@ examples:
       or end of the group name.
 
 
-      Compare the exploit to exploit-19.http. Here the impact is much worse, because instead
+      Compare the exploit to exploit-2.http. Here the impact is much worse, because instead
       of ovewriting the existing group (and losing its message history), this time Plankton
       can simply add himself to the group admins, getting privileged access to existing group
       and its messages. This happens because DatabaseStorage.add_group_to_storage tries to
@@ -157,26 +157,26 @@ examples:
     language: python
     parts:
     - part: 1
-      file: r04_whitespace/routes.py
+      file: r04_pydantic_strip_bypass/routes.py
       code_start_line: 49
       code_end_line: 94
     - part: 2
-      file: r04_whitespace/database/models.py
+      file: r04_pydantic_strip_bypass/database/models.py
       code_start_line: 21
       code_end_line: 24
     - part: 3
-      file: r04_whitespace/database/storage.py
+      file: r04_pydantic_strip_bypass/database/storage.py
       code_start_line: 33
       code_end_line: 51
     file_hashes:
-      r04_whitespace/database/models.py: 673739cb5ef43c5a6f0c05ea2187c90b6e9ad00c6c3e8884e52a5bf47daf19bd
-      r04_whitespace/database/storage.py: bb447b07e9f1d4cc26e473861bf4bfb31ff9589220f2ed00e9244e79073a5b4d
-      r04_whitespace/routes.py: 27a4d5b79abcb702c518c22d96cd22002735e0dfff71eae67ef4560ed61c0540
-    fingerprint: 7f7e5620ddef17ccd1b104b4d507a4e0ff79619c2d776e3901ddd6f459ce7f2a
+      r04_pydantic_strip_bypass/database/models.py: 6d0308ac37f245cf26b363ee4fae7fda77a8298eff9e67e97bbd010c865a9ae6
+      r04_pydantic_strip_bypass/database/storage.py: 954ff4f533193adef53e5076b74d0ef457b8171a1609b0e7f971f0adee2ff158
+      r04_pydantic_strip_bypass/routes.py: 7bded7a662c53aeea1019493207a60af43b1a4ad2ec16c489b7a69ab10371c49
+    fingerprint: fa407a0f88a8539d044eec43b21ea73db9d7c44d3014761c45459daf32522dc6
 attachments:
-  http/exploit-18.http: e511ea0571f82540695ea14b50e80b701e4ca5b565b559a50a8054a46eb94ce3
-  http/exploit-19.http: bd36bb022f1eb94f7c6c3c9b23344ed14cb447204ec596a94ef3b8290b67b3b6
-  http/exploit-20.http: 508c18cf4477bcd798aabebcb9b50f93e86f418f93a5bd11f53d9b2708feb177
-  http/exploit-21.http: 1f6032f057eb073d7c99041b9d7aca95bd4fa4a0ffecef702c4efde89fbbdf60
-build_signature: 303c7f0b7d6b931fa64a50ef5bbffcc4fba0509a18c823a0609a13ad8f89e989
-last_readme_fingerprint: 31fd4fee58cc4f3adac45d7dd1f694a3827c661c54d4472ea1c64d9b905047c2
+  http/exploit-1.http: 32890ca135010f7083bb582a850564b53c0baf960fed279d386232133b8869a7
+  http/exploit-2.http: 07e45cbcb3d5fbee68742542733783a41b9e87a35b7fc422476defe24ae5d66c
+  http/exploit-3.http: 757a82dfc1654009c1e41494b35c1e8e5a5b2ddea69aee6663e652563d469e50
+  http/exploit-4.http: 3784dabdc8384297e834fdfb5f0d3811b60e80c9cfcc32af070a4ed7f0f2dd7e
+build_signature: ac9b410c539c9b76961af77fd99d4d7f53c22ea31120258afbefa5713864f668
+last_readme_fingerprint: 1d734c1791b5ef723d88a30cb0cb205bc18d1b990eee8b0fce6958397de47872

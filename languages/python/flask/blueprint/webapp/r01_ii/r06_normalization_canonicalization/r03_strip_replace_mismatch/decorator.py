@@ -30,7 +30,7 @@ def basic_auth(f):
     return decorated_basic_auth
 
 # @unsafe[block]
-# id: 20
+# id: 3
 # part: 2
 # @/unsafe
 def check_group_membership(f):

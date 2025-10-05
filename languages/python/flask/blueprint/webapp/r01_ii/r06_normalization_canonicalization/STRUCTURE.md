@@ -1,35 +1,35 @@
 # Normalization-Canonicalization Structure
 
-This directory contains vulnerability examples (18-21) demonstrating canonicalization and normalization issues in Flask applications.
+This directory contains vulnerability examples (1-4) demonstrating canonicalization and normalization issues in Flask applications.
 
 ## Directory Structure
 
 ```
 normalization-canonicalization/
-├── routes.py                          # Main coordinator blueprint
-├── readme.yml                         # Documentation template
-├── __init__.py                        # Python package marker
-├── http/                              # HTTP exploit demonstrations
-│   ├── exploit-18.http
-│   ├── exploit-19.http
-│   ├── exploit-20.http
-│   └── exploit-21.http
-├── r01_lowercase/                     # Example 18: Lowercase Normalization
+├── routes.py                               # Main coordinator blueprint
+├── readme.yml                              # Documentation template
+├── __init__.py                             # Python package marker
+├── http/                                   # HTTP exploit demonstrations
+│   ├── exploit-1.http
+│   ├── exploit-2.http
+│   ├── exploit-3.http
+│   └── exploit-4.http
+├── r01_lowercase/                          # Example 1: Lowercase Normalization
 │   ├── __init__.py
 │   ├── routes.py
 │   ├── decorator.py
 │   └── database.py
-├── r02_insensitive_object_retrieval/  # Example 19: Case-insensitive retrieval
+├── r02_insensitive_object_retrieval/       # Example 2: Case-insensitive retrieval
 │   ├── __init__.py
 │   ├── routes.py
 │   ├── decorator.py
 │   └── database.py
-├── r03_whitespace/                    # Example 20: Whitespace (strip vs replace)
+├── r03_strip_replace_mismatch/             # Example 3: Strip vs Replace mismatch
 │   ├── __init__.py
 │   ├── routes.py
 │   ├── decorator.py
 │   └── database/
-└── r04_whitespace/                    # Example 21: Whitespace with Pydantic
+└── r04_pydantic_strip_bypass/              # Example 4: Pydantic auto-stripping bypass
     ├── __init__.py
     ├── routes.py
     ├── decorator.py
@@ -59,7 +59,7 @@ Each subdirectory follows the Flask blueprint pattern:
 
 Examples are accessible at:
 
-- `/ii/normalization-canonicalization/example18/...`
-- `/ii/normalization-canonicalization/example19/...`
-- `/ii/normalization-canonicalization/example20/...`
-- `/ii/normalization-canonicalization/example21/...`
+- `/ii/normalization-canonicalization/example1/...`
+- `/ii/normalization-canonicalization/example2/...`
+- `/ii/normalization-canonicalization/example3/...`
+- `/ii/normalization-canonicalization/example4/...`

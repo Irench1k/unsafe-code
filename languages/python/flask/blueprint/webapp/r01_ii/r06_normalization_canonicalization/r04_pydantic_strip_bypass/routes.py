@@ -8,16 +8,16 @@ from .database.models import Group
 
 bp = Blueprint("whitespace_2", __name__)
 
-@bp.get("/example21/groups/<group>/messages")
+@bp.get("/example4/groups/<group>/messages")
 @basic_auth
 @check_group_membership
-def example21(group):
+def example4(group):
     messages = get_group_messages(group)
-    
+
     return jsonify([m.model_dump() for m in messages])
 
 # @unsafe[block]
-# id: 21
+# id: 4
 # title: Whitespace Canonicalization
 # notes: |
 #   Previously we only had 'add group' functionality. Now we add group update handler
@@ -33,7 +33,7 @@ def example21(group):
 #   attacker can bypass group uniqueness check by providing a group name with extra whitespace at the start
 #   or end of the group name.
 #
-#   Compare the exploit to exploit-19.http. Here the impact is much worse, because instead of ovewriting
+#   Compare the exploit to exploit-2.http. Here the impact is much worse, because instead of ovewriting
 #   the existing group (and losing its message history), this time Plankton can simply add himself to the
 #   group admins, getting privileged access to existing group and its messages. This happens because
 #   DatabaseStorage.add_group_to_storage tries to be idempotent and cleverly creates a new group if it
@@ -46,7 +46,7 @@ def example21(group):
 #   The root cause of the attack is again an inconsistent canonicalization: when we check for group existence,
 #   we use raw input, but when we store the group, we use canonicalized data.
 # @/unsafe
-@bp.post("/example21/groups/new")
+@bp.post("/example4/groups/new")
 @basic_auth
 def create_group():
     """Create a new group.
@@ -69,7 +69,7 @@ def create_group():
     create_new_group(group_request)
     return jsonify({"status": "ok"})
 
-@bp.post("/example21/groups/<group>")
+@bp.post("/example4/groups/<group>")
 @basic_auth
 @check_if_admin
 def update_group(group):

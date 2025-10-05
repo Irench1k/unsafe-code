@@ -15,16 +15,16 @@ Canonicalization is meant to make comparisons simple: lowercase the e-mail, stri
 
 | Category | Example | File |
 |:---:|:---:|:---:|
-| Case Canonicalization Issues | [Example 18: Lowercase Normalization](#ex-18) | [r01_lowercase/routes.py](r01_lowercase/routes.py#L27-L40) |
-| Case Canonicalization Issues | [Example 19: Case insensitive Object Retrieval](#ex-19) | [r02_insensitive_object_retrieval/routes.py](r02_insensitive_object_retrieval/routes.py#L27-L41) |
-| Whitespace & Formatting Drift | [Example 20: Whitespace Canonicalization](#ex-20) | [r03_whitespace/routes.py](r03_whitespace/routes.py#L27-L55) |
-| Whitespace & Formatting Drift | [Example 21: Whitespace Canonicalization](#ex-21) | [r04_whitespace/routes.py](r04_whitespace/routes.py#L49-L94) |
+| Case Canonicalization Issues | [Example 1: Lowercase Normalization](#ex-1) | [r01_lowercase/routes.py](r01_lowercase/routes.py#L27-L40) |
+| Case Canonicalization Issues | [Example 2: Case insensitive Object Retrieval](#ex-2) | [r02_insensitive_object_retrieval/routes.py](r02_insensitive_object_retrieval/routes.py#L27-L41) |
+| Whitespace & Formatting Drift | [Example 3: Whitespace Canonicalization](#ex-3) | [r03_strip_replace_mismatch/routes.py](r03_strip_replace_mismatch/routes.py#L27-L55) |
+| Whitespace & Formatting Drift | [Example 4: Whitespace Canonicalization](#ex-4) | [r04_pydantic_strip_bypass/routes.py](r04_pydantic_strip_bypass/routes.py#L49-L94) |
 
 ## Case Canonicalization Issues
 
 Lowercasing and case-insensitive comparisons differ depending on whether the code is validating, persisting, or authorizing access.
 
-### Example 18: Lowercase Normalization <a id="ex-18"></a>
+### Example 1: Lowercase Normalization <a id="ex-1"></a>
 
 This example demonstrates a canonicalization confusion vulnerability using inconsistent lowercase normalization.
 
@@ -38,16 +38,16 @@ The vulnerability occurs because:
 
 Attack scenario: Attacker creates a group "STAFF@KRUSTY-KRAB.SEA" (uppercase) and becomes admin. When checking membership, system looks for "STAFF@KRUSTY-KRAB.SEA" (finds attacker's group). When retrieving messages, system normalizes to "staff@krusty-krab.sea" (finds legitimate group). As a result: Attacker gains access to messages from the legitimate group they shouldn't see.
 ```python
-@bp.get("/example18/groups/<group>/messages")
+@bp.get("/example1/groups/<group>/messages")
 @basic_auth
 @check_group_membership
-def example18(group):
+def example1(group):
     return get_group_messages(group)
 
 
-@bp.post("/example18/groups")
+@bp.post("/example1/groups")
 @basic_auth
-def example18_post():
+def example1_post():
     name = request.json["name"]
     users = request.json["users"]
     add_group(name, users)
@@ -57,7 +57,7 @@ def example18_post():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/normalization-canonicalization/example18
+@base = http://localhost:8000/ii/normalization-canonicalization/example1
 
 # Here Plankton is creating a new group that has the same name which is used by Mr. Krabs,
 # but in upper case, leaving a room for lower-case exploitation.
@@ -94,7 +94,7 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
 </details>
 
-### Example 19: Case insensitive Object Retrieval <a id="ex-19"></a>
+### Example 2: Case insensitive Object Retrieval <a id="ex-2"></a>
 
 In this example we are still using case canonicalization for group retrieval, but now instead of showing the attacker the victim's group content, we are showing the attacker's newly created group content to the victim, allowing impersonation.
 
@@ -102,16 +102,16 @@ The vulnerability occurs when an attacker creates a new group with the same name
 
 This vulnerability allows the attacker to impersonate legitimate group members and post messages that appear to come from trusted colleagues or administrators, potentially leading to social engineering attacks and information disclosure.
 ```python
-@bp.get("/example19/groups/<group>/messages")
+@bp.get("/example2/groups/<group>/messages")
 @basic_auth
 @check_group_membership
-def example19(group):
+def example2(group):
     return get_group_messages(group)
 
 
-@bp.post("/example19/groups")
+@bp.post("/example2/groups")
 @basic_auth
-def example19_post():
+def example2_post():
     name = request.json["name"]
     users = request.json["users"]
     messages = request.json["messages"]
@@ -130,7 +130,7 @@ def get_group(groupname):
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/normalization-canonicalization/example19
+@base = http://localhost:8000/ii/normalization-canonicalization/example2
 
 # Before attack:
 #   When Spongebob checks his group, he accesses the real group and sees the real messages.
@@ -208,7 +208,7 @@ Authorization: Basic spongebob@krusty-krab.sea:bikinibottom
 
 Stripping spaces (or normalizing structured payloads) in only part of the stack quietly changes which record is read or updated.
 
-### Example 20: Whitespace Canonicalization <a id="ex-20"></a>
+### Example 3: Whitespace Canonicalization <a id="ex-3"></a>
 
 This is a classic whitespace confusion attack - two parts of the code handle whitespace differently:
 - strip() only removes leading/trailing whitespace
@@ -216,23 +216,23 @@ This is a classic whitespace confusion attack - two parts of the code handle whi
 
 So here's what happens:
 - @check_group_membership uses strip() - sees "staff @krusty-krab.sea" and keeps the middle space
-- example20 uses replace() - turns "staff @krusty-krab.sea" into "staff@krusty-krab.sea"
+- example3 uses replace() - turns "staff @krusty-krab.sea" into "staff@krusty-krab.sea"
 
 The attack: Plankton creates "staff @krusty-krab.sea" (with space), gets authorized for HIS group, but the code actually fetches messages from "staff@krusty-krab.sea" (Mr. Krabs' group).
 ```python
-@bp.get("/example20/groups/<group>/messages")
+@bp.get("/example3/groups/<group>/messages")
 @basic_auth
 @check_group_membership
-def example20(group):
+def example3(group):
     # Mobile users tend to send requests with whitespaces due to autocompletion.
     group_no_whitespace = group.replace(" ", "")
     messages = get_group_messages(group_no_whitespace)
-    
+
     return jsonify([m.model_dump() for m in messages])
 
-@bp.post("/example20/groups")
+@bp.post("/example3/groups")
 @basic_auth
-def example20_post():
+def example3_post():
     """Create a new group.
 
     Accepts a POST request with a JSON body:
@@ -269,7 +269,7 @@ def check_group_membership(f):
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/normalization-canonicalization/example20
+@base = http://localhost:8000/ii/normalization-canonicalization/example3
 
 # Normally:
 #   Spongebob can see Mr. Krabs messages as he is a member of the group.
@@ -317,17 +317,17 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
 </details>
 
-### Example 21: Whitespace Canonicalization <a id="ex-21"></a>
+### Example 4: Whitespace Canonicalization <a id="ex-4"></a>
 
 Previously we only had 'add group' functionality. Now we add group update handler as well. There are two distinct API endpoints now, one creates a new group (and we make sure to check that the group truly does not exist yet!), and the other endpoint updates the existing group (this is privileged operation, so we check that the user is an admin with @check_if_admin decorator).
 
 Unfortunately, the code remains vulnerable to canonicalization confusion attack. In the `create_group` handler we perform group uniqueness check on the raw group name provided by user `request.json.get("name")`. However, if the check passes, the `create_new_group` is called with the canonicalized data in the Group object. Group model uses `constr` feature from pydantic, which strips whitespace on insertion, so the attacker can bypass group uniqueness check by providing a group name with extra whitespace at the start or end of the group name.
 
-Compare the exploit to exploit-19.http. Here the impact is much worse, because instead of ovewriting the existing group (and losing its message history), this time Plankton can simply add himself to the group admins, getting privileged access to existing group and its messages. This happens because DatabaseStorage.add_group_to_storage tries to be idempotent and cleverly creates a new group if it doesn't exist yet while only updating permissions of an existing group. As a result, even though `create_group` and `update_group` are meant to be separate handlers, in fact they only differ in the security check implementations, while the downstream code path is shared. So by bypassing group uniqueness check in `create_group` Plankton in fact manages to use this handler as if it was `update_group` - while he wouldn't be able to use `update_group` directly.
+Compare the exploit to exploit-2.http. Here the impact is much worse, because instead of ovewriting the existing group (and losing its message history), this time Plankton can simply add himself to the group admins, getting privileged access to existing group and its messages. This happens because DatabaseStorage.add_group_to_storage tries to be idempotent and cleverly creates a new group if it doesn't exist yet while only updating permissions of an existing group. As a result, even though `create_group` and `update_group` are meant to be separate handlers, in fact they only differ in the security check implementations, while the downstream code path is shared. So by bypassing group uniqueness check in `create_group` Plankton in fact manages to use this handler as if it was `update_group` - while he wouldn't be able to use `update_group` directly.
 
 The root cause of the attack is again an inconsistent canonicalization: when we check for group existence, we use raw input, but when we store the group, we use canonicalized data.
 ```python
-@bp.post("/example21/groups/new")
+@bp.post("/example4/groups/new")
 @basic_auth
 def create_group():
     """Create a new group.
@@ -350,7 +350,7 @@ def create_group():
     create_new_group(group_request)
     return jsonify({"status": "ok"})
 
-@bp.post("/example21/groups/<group>")
+@bp.post("/example4/groups/<group>")
 @basic_auth
 @check_if_admin
 def update_group(group):
@@ -403,7 +403,7 @@ class Group(BaseModel):
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/normalization-canonicalization/example21
+@base = http://localhost:8000/ii/normalization-canonicalization/example4
 
 # We start with the same setup as previously, Plankton is unable to access Mr. Krabs group.
 GET {{base}}/groups/staff@krusty-krab.sea/messages

@@ -10,7 +10,7 @@ bp = Blueprint("whitespace", __name__)
 
 
 # @unsafe[block]
-# id: 20
+# id: 3
 # title: Whitespace Canonicalization
 # notes: |
 #   This is a classic whitespace confusion attack - two parts of the code handle whitespace differently:
@@ -19,24 +19,24 @@ bp = Blueprint("whitespace", __name__)
 #
 #   So here's what happens:
 #   - @check_group_membership uses strip() - sees "staff @krusty-krab.sea" and keeps the middle space
-#   - example20 uses replace() - turns "staff @krusty-krab.sea" into "staff@krusty-krab.sea"
+#   - example3 uses replace() - turns "staff @krusty-krab.sea" into "staff@krusty-krab.sea"
 #
 #   The attack: Plankton creates "staff @krusty-krab.sea" (with space), gets authorized for HIS group,
 #   but the code actually fetches messages from "staff@krusty-krab.sea" (Mr. Krabs' group).
 # @/unsafe
-@bp.get("/example20/groups/<group>/messages")
+@bp.get("/example3/groups/<group>/messages")
 @basic_auth
 @check_group_membership
-def example20(group):
+def example3(group):
     # Mobile users tend to send requests with whitespaces due to autocompletion.
     group_no_whitespace = group.replace(" ", "")
     messages = get_group_messages(group_no_whitespace)
-    
+
     return jsonify([m.model_dump() for m in messages])
 
-@bp.post("/example20/groups")
+@bp.post("/example3/groups")
 @basic_auth
-def example20_post():
+def example3_post():
     """Create a new group.
 
     Accepts a POST request with a JSON body:

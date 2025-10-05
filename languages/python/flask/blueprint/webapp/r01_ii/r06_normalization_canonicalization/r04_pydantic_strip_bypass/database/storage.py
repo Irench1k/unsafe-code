@@ -27,7 +27,7 @@ class DatabaseStorage:
         return None
 
     # @unsafe[block]
-    # id: 21
+    # id: 4
     # part: 3
     # @/unsafe
     def add_group_to_storage(self, new_group):
