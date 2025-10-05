@@ -196,6 +196,15 @@ uv run docs test -v
 # Verify that README/index are up-to-date (CI-friendly)
 uv run docs verify -v
 
+# Run type checker (mypy) on tools/ directory
+uv run mypy
+
+# Run linter (ruff) on tools/ directory
+uv run ruff check tools/
+
+# Auto-fix linting issues where possible
+uv run ruff check tools/ --fix
+
 Tip: Enable shell completion for `docs` (optional):
 
 uv run docs --install-completion
