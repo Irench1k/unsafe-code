@@ -17,13 +17,13 @@ Security controls in Flask—decorators, blueprints, before_request hooks—exec
 
 | Category | Example | File |
 |:---:|:---:|:---:|
-| Decorator Execution Order Bypasses | [Example 16: Authorization Bypass via Decorator Execution Order](#ex-16) | [routes.py](routes.py#L25-L30) |
+| Decorator Execution Order Bypasses | [Example 1: Authorization Bypass via Decorator Execution Order](#ex-1) | [routes.py](routes.py#L25-L30) |
 
 ## Decorator Execution Order Bypasses
 
 Guards that run before authentication or state preparation become no-ops, allowing unauthorized access.
 
-### Example 16: Authorization Bypass via Decorator Execution Order <a id="ex-16"></a>
+### Example 1: Authorization Bypass via Decorator Execution Order <a id="ex-1"></a>
 
 We try to fix the root cause of the vulnerability here by enforcing correct merging order – view args take precedence over query args. Additionally, we enforce that only one of the two can be present.
 
@@ -31,10 +31,10 @@ The code, however, remains vulnerable despite these efforts! This time, the prob
 
 This is a pure policy composition issue: the guard decorator executes before the authentication decorator prepares the state it depends on. Flask applies decorators bottom-up (outer decorator runs first), so @check_group_membership_v2 sees g.group = None and passes all requests.
 ```python
-@bp.get("/example16/groups/<group>/messages")
+@bp.get("/example1/groups/<group>/messages")
 @check_group_membership_v2
 @basic_auth_v3
-def example16_group_messages(group):
+def example1_group_messages(group):
     """Returns group's messages, if the user is a member of the group."""
     return get_group_messages(group)
 
@@ -75,7 +75,7 @@ def check_group_membership_v2(f):
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/policy-composition-and-precedence/merge-order-and-short-circuit/example16
+@base = http://localhost:8000/policy-composition-and-precedence/merge-order-and-short-circuit/example1
 
 ###
 # The group authorization is completely ineffective because \`@check_group_membership_v2\`

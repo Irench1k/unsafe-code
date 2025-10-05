@@ -20,4 +20,4 @@ outline:
     description: |
       Guards that run before authentication or state preparation become no-ops, allowing unauthorized access.
     examples:
-      - 16
+      - 1

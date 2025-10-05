@@ -5,7 +5,7 @@ from .database import get_group_messages
 bp = Blueprint("merge_order_and_short_circuit", __name__)
 
 # @unsafe[block]
-# id: 16
+# id: 1
 # title: "Authorization Bypass via Decorator Execution Order"
 # notes: |
 #   We try to fix the root cause of the vulnerability here by enforcing correct
@@ -22,10 +22,10 @@ bp = Blueprint("merge_order_and_short_circuit", __name__)
 #   decorators bottom-up (outer decorator runs first), so @check_group_membership_v2
 #   sees g.group = None and passes all requests.
 # @/unsafe
-@bp.get("/example16/groups/<group>/messages")
+@bp.get("/example1/groups/<group>/messages")
 @check_group_membership_v2
 @basic_auth_v3
-def example16_group_messages(group):
+def example1_group_messages(group):
     """Returns group's messages, if the user is a member of the group."""
     return get_group_messages(group)
 # @/unsafe[block]
