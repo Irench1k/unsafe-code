@@ -9,8 +9,7 @@ cd languages/python/flask/blueprint
 docker compose up -d
 
 # Test the hierarchical structure
-curl http://localhost:8000/demo/routing/basic-routes/
-curl http://localhost:8000/vuln/type-issues/
+curl http://localhost:8000/ii/
 
 # Stop and clean up
 docker compose down
@@ -32,11 +31,14 @@ webapp/             # Main application package (standardized name)
 │   │   └── route_constraints/ # Route constraint examples
 │   ├── request_handling/      # Request handling examples
 │   └── response_handling/     # Response handling examples
-└── vuln/           # Vulnerability examples section
+└── r01_ii/           # Vulnerability examples section
     ├── routes.py   # Vulnerability section blueprint
-    ├── confusion/  # Confusion-based vulnerabilities
-    ├── type_issues/ # Type-related vulnerabilities
-    └── state_management/ # State management issues
+    ├── r01_source_precedence/  # Confusion-based vulnerabilities
+    ├── r02_cross_component_parse/ # Type-related vulnerabilities
+    ├── r03_authz_binding/ # State management issues
+    ├── r04_multi_value_semantics/ # State management issues
+    ├── r05_http_semantics/ # State management issues
+    └── r06_normalization_canonicalization/ # State management issues
 ```
 
 ## Blueprint Pattern

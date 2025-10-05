@@ -23,23 +23,23 @@ outline:
     description: |
       Consistent usage keeps authentication and data access aligned - use these to understand the intended flow before exploring the vulnerable variants.
     examples:
-      - 0
+      - 1
   - title: Straightforward Source Drift
     description: |
       Simple handlers where the guard inspects query parameters but the action trusts form data or vice versa.
     examples:
-      - 1
       - 2
       - 3
+      - 4
   - title: Helper-Induced Mixing
     description: |
       Utility functions that merge sources (or hide precedence rules) create subtle inconsistencies developers rarely spot in review.
     examples:
-      - 4
       - 5
+      - 6
   - title: request.values Footguns
     description: |
       `request.values` promises convenience but applies its own precedence rules, leading to silent bypasses when paired with explicit `.args` or `.form` lookups.
     examples:
-      - 6
       - 7
+      - 8

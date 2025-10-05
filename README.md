@@ -185,7 +185,7 @@ uv run docs all -v
 
 # Generate for a specific target
 uv run docs generate \
-  --target languages/python/flask/blueprint/webapp/vuln/confusion/parameter_source/
+  --target languages/python/flask/blueprint/webapp/r01_ii/r01_source_precedence/
 
 # Dry run (no file writes) and verbose logging
 uv run docs generate --dry-run -v --target <path/to/target>
