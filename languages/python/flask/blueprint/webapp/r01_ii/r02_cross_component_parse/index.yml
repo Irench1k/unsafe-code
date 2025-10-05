@@ -3,8 +3,50 @@ root: .
 category: ii.cross-component-parse
 namespace: flask-ii-cross-component-parse
 examples:
-  8:
-    id: 8
+  1:
+    id: 1
+    kind: block
+    title: Consistent Parameter Sourcing [Not Vulnerable]
+    notes: >-
+      This baseline demonstrates the secure pattern for handling authentication when decorators
+      and handlers need to access the same user identity.
+
+
+      THE SECURE PATTERN: Consistent parameter sourcing across all layers.
+
+      - Authentication decorator validates credentials from request.args
+
+      - Handler retrieves user identity from the SAME source (request.args)
+
+      - Both layers use identical logic: request.args.get("user")
+
+      - Result: Authentication and data access work on the same identity
+
+
+      This prevents authentication bypass by ensuring that the identity validated during authentication
+      is the exact same identity used for data access. There is no confusion between different
+      request data sources.
+
+
+      Compare this to the vulnerable examples that follow, where different layers source the
+      user identity from different request properties, creating authentication bypass vulnerabilities.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: r01_baseline/routes.py
+      code_start_line: 28
+      code_end_line: 41
+    - part: 2
+      file: r01_baseline/decorator.py
+      code_start_line: 9
+      code_end_line: 26
+    file_hashes:
+      r01_baseline/decorator.py: 3351dc3ce99d5430d79ff87aac7851c9682675da2c7816f326b7eea0e274caab
+      r01_baseline/routes.py: c6a4f807eac665058e67eddcf04f380fd17c3717ce72cf73d002847a799b45a5
+    fingerprint: 62504fe09de2bd5c8467271af12b55b14fd03469aebc37aaa01027b124b1ae22
+  2:
+    id: 2
     kind: block
     title: Decorator-based Authentication with Parsing Drift
     notes: >-
@@ -12,7 +54,7 @@ examples:
       bypass.
 
 
-      Example 8 is functionally equivalent to Example 4 from the source precedence examples,
+      Example 2 is functionally equivalent to Example 4 from the source precedence examples,
       but it may be harder to spot the vulnerability when using decorators because the parameter
       source logic is split across multiple layers.
 
@@ -21,11 +63,12 @@ examples:
 
       - Authentication decorator validates credentials from request.args (query string)
 
-      - Handler retrieves user identity from get_user_ex8(), which prioritizes request.form
+      - Handler retrieves user identity from get_user_ex2(), which prioritizes request.form
 
-      - Attack: Provide Alice's credentials in query string, Bob's name in form body
+      - Attack: Provide SpongeBob's credentials in query string, Squidward's name in form
+      body
 
-      - Result: Authenticate as Alice, but access Bob's messages
+      - Result: Authenticate as SpongeBob, but access Squidward's messages
 
 
       This is NOT authorization binding drift - it's authentication bypass because the authenticated
@@ -42,24 +85,25 @@ examples:
       code_start_line: 9
       code_end_line: 23
     file_hashes:
-      r02_decorator_drift/decorator.py: ff55e702086945517e9b98782453610fdbd3e66759fe17dba3eacc197d67af3e
-      r02_decorator_drift/routes.py: e9bf0a6a26bb1c4f5884a3bd0bdf2ecc3815fa868633430e37989988fb09a9f4
-    fingerprint: fbf2a7c864b89e78dba9bf9e2b2b1eec3e0c8ec82399b6f94983bf7f390369fb
-  9:
-    id: 9
+      r02_decorator_drift/decorator.py: 21a90057887ec40d0fbacde26110d5f9f796399ddd8c30cb12bcb8c41e150a2f
+      r02_decorator_drift/routes.py: 79a8960009f60d49b07decedfcc7ec2a70b872ff344b12b76e9a168fdd665760
+    fingerprint: 83f184011ab24961f94b9d68e0332f47533ce22c258b74ff8783ce5f9e3bf570
+  3:
+    id: 3
     kind: block
     title: Middleware-based Authentication with Parsing Drift
     notes: >-
       Demonstrates how Flask's middleware system can contribute to parameter source confusion.
 
 
-      Example 9 is functionally equivalent to Example 4 from the old parameter source confusion
+      Example 3 is functionally equivalent to Example 4 from the old parameter source confusion
       examples, but it may be harder to spot the vulnerability while using middleware.
 
 
       The before_request middleware authenticates using request.args.get("user"), but the
       handler retrieves the user via get_user(request) which prioritizes request.form over
-      request.args. This allows an attacker to authenticate as Alice but access Bob's messages.
+      request.args. This allows an attacker to authenticate as SpongeBob but access Squidward's
+      messages.
     http: null
     language: python
     parts:
@@ -72,53 +116,15 @@ examples:
       code_start_line: 9
       code_end_line: 22
     file_hashes:
-      r03_middleware_drift/middleware.py: 7be8f54cda7ee73c500580ef9b605340802d6bfcdca640d15a4c00e95ef50c11
-      r03_middleware_drift/routes.py: 99d0558951828b7f9ce2894752b55e35606c73920f3cfde5bda83a4fec1934f3
-    fingerprint: 9cb66884c99b44cd43726316c6518fd1a894454c56e5948d47d98a43fe4aeedd
-  13:
-    id: 13
-    kind: block
-    title: Shared Contract Baseline [Not Vulnerable]
-    notes: >-
-      We move to authorization rather than authentication vulnerabilities, so for the following
-      examples the authentication will be done reliably and safely, via the `Authorization`
-      header (based on Basic Auth and handled in the `@basic_auth_v1` decorator). We also
-      follow the best practices by storing the authenticated user in the global context (`g.user`).
-
-
-      Imagine that at this point we have many `/groups/` and `/user/` endpoints for creating,
-      updating and deleting groups, users and messages.
-
-
-      When the endpoint needs to work with a specific group, this could be passed as a query/form
-      argument as in the previous examples, but if the `group` argument is required, it might
-      be more idiomatic to make it a path parameter instead.
-
-
-      Here we will work with two endpoints, the `/groups/<group>/messages` which will return
-      the messages from a specific group (taking the `group` from the path) and the `/user/messages`
-      which will return the user's private messages by default, but also supporting an optional
-      `group` query argument.
-    http: null
-    language: python
-    parts:
-    - part: 1
-      file: r01_baseline/routes.py
-      code_start_line: 31
-      code_end_line: 57
-    - part: 2
-      file: r01_baseline/decorator.py
-      code_start_line: 15
-      code_end_line: 28
-    file_hashes:
-      r01_baseline/decorator.py: 5e07e4bafb8fdb2db0445812fc93687ba0688c956389cba3a18aafb8cb73b3c3
-      r01_baseline/routes.py: 5fab6fc5c1161d08af87cf4cbac2609dda6e4913552c67fbd26c592b5bb19794
-    fingerprint: 48fbea82a28e446b9ea5907423a132ce62d840d61932ec8419a1326a0482ad24
+      r03_middleware_drift/middleware.py: e426011539f8710630f460fdcf1c5778b68a4ad7e4ca4c159f9831240f814f6c
+      r03_middleware_drift/routes.py: aed01c24c03a314dfd53aa1e2a622bffc1cfaebd5818a0f1ebf7edfa70602cad
+    fingerprint: 243c309ecebdd3c45597a90df4fe3a4a337796f3be9c57d5b940152452794833
 attachments:
+  http/exploit-1.http: 3d79c1ba3b691c62c0f1dc6961dc6732da910996c0b06d07d8d3e415fd910557
   http/exploit-13.http: ca171f22412131fdbc7c6415bc442588203ce656b02f9a4166de15936ce635e8
   http/exploit-14.http: 857966815992cd56bec25e836b622be2c4cbfe1a568307f951dbae57ab670d1e
   http/exploit-15.http: 3174bd27bdac5c8bdac2cb07ace72e5e95b9fc48c4300f2c72648dc693f03f09
-  http/exploit-8.http: 7b78352d75ccdeef67f8aec67bab26103de649f228ca99999e655317fcbb7916
-  http/exploit-9.http: 09d2949ef97219ecd62728fcb4d43d222af1b514e727043d12d41f6f21feb39d
-build_signature: ceedb835472c208fcac37ef4c85e53bccc8d38a4c8e9e32df6df190a4e892e89
-last_readme_fingerprint: cadc3ae309479041eaa679fd4887cafefd65c7fc6d33cd754600abc5af7d6965
+  http/exploit-2.http: d9e53dccf68062a95e0289a0c08001c2c149457448d7f46b5dc8b7c6792b4c76
+  http/exploit-3.http: 4591e76d8e84ccd3ce0a0f855fdefa938c353e18c5ddc201bf5d7ebd04f716ce
+build_signature: 54d6a89ae4c175510a5d12d9b8163965db3cf558e0747554f3dc3efbe6b0a8bc
+last_readme_fingerprint: 8fe81776dbd0aeed391540a2d03de0c63851d56455ec354904121af4d768bef6

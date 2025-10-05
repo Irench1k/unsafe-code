@@ -1,29 +1,27 @@
-from flask import request, Response, g
+from flask import request
 from functools import wraps
 from .database import authenticate
 
-def response_401():
-    """Sends a 401 response, asking for authentication."""
-    res = Response("Authentication required", 401,
-                    headers={"WWW-Authenticate": "Basic realm='Authentication required'"})
-    return res
-
 # @unsafe[block]
-# id: 13
+# id: 1
 # part: 2
 # @/unsafe
-def basic_auth_v1(f):
-    """Authenticates the user via Basic Auth. Stores the authenticated user in `g.user`."""
-    @wraps(f)
-    def decorated_basic_auth(*args, **kwargs):
-        # request.authorization extracts the username and password from the Authorization header (Basic Auth)
-        auth = request.authorization
-        if not auth or not authenticate(auth.username, auth.password):
-            return response_401()
+def authentication_required(f):
+    """
+    Authenticates the user via query parameters.
 
-        # Store the user in the global context
-        g.user = auth.username
+    This decorator consistently sources both username and password from
+    request.args, matching the source used by the handler.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user = request.args.get("user")
+        password = request.args.get("password")
+
+        if not authenticate(user, password):
+            return "Authentication required", 401
+
         return f(*args, **kwargs)
 
-    return decorated_basic_auth
+    return decorated_function
 # @/unsafe[block]

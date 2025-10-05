@@ -14,7 +14,7 @@ description: |
   **The vulnerability pattern:**
   1. Decorator/middleware authenticates user credentials from one source (e.g., `request.args`)
   2. Handler retrieves identity from different source (e.g., `request.form`)
-  3. Authentication validates Alice's password, but handler acts as Bob
+  3. Authentication validates SpongeBob's password, but handler acts as Squidward
 
   **Spotting the issue:**
   - Audit every decorator or middleware applied to a route and see which request APIs they touch (`request.args` vs `request.form` vs `request.values`).
@@ -30,17 +30,25 @@ category: ii.cross-component-parse
 namespace: flask-ii-cross-component-parse
 toc: true
 outline:
-  - title: Decorators That Drift
+  - title: Secure Baseline
+    description: |
+      The correct pattern for handling authentication across decorator and handler
+      layers: consistently use the same parameter source (request.args) in both the
+      authentication decorator and the handler. This prevents confusion about which
+      user identity is being validated versus acted upon.
+    examples:
+      - 1
+  - title: Decorator Drift
     description: |
       Authentication guards implemented as decorators read user credentials from one
       source (query parameters), while the view retrieves the user identity from a
       different source (form data), enabling authentication bypass.
     examples:
-      - 8
-  - title: Middleware Short-Circuiting Views
+      - 2
+  - title: Middleware Drift
     description: |
       Before-request hooks authenticate using query parameters only, while views
       consume form data for the actual operation, creating the same authentication
       bypass but at the middleware layer.
     examples:
-      - 9
+      - 3

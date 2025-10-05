@@ -3,7 +3,7 @@ from .database import authenticate
 
 
 # @unsafe[block]
-# id: 9
+# id: 3
 # part: 2
 # @/unsafe
 def register_middleware(app):

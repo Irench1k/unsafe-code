@@ -1,17 +1,17 @@
 db = {
-    "passwords": {"alice": "123456", "bob": "mypassword"},
+    "passwords": {"spongebob": "bikinibottom", "squidward": "clarinet123"},
     "messages": {
-        "alice": [
-            {"from": "kevin", "message": "Hi Alice, you're fired!"},
+        "spongebob": [
+            {"from": "patrick", "message": "Hey SpongeBob, wanna go jellyfishing?"},
         ],
-        "bob": [
+        "squidward": [
             {
-                "from": "kevin",
-                "message": "Hi Bob, here is the password you asked for: P@ssw0rd!",
+                "from": "plankton",
+                "message": "Squidward, I'll pay you handsomely to 'accidentally' share the secret formula. You deserve better than that dead-end cashier job!",
             },
             {
-                "from": "michael",
-                "message": "Hi Bob, come to my party on Friday! The secret passphrase is 'no-one-knows-it'!",
+                "from": "mr.krabs",
+                "message": "Squidward, the new safe combination is 4-2-0-6-9. Don't write it down anywhere!",
             },
         ],
     },

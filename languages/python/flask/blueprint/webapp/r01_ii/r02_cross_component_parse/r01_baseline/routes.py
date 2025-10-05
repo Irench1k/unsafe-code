@@ -1,58 +1,42 @@
-from flask import Blueprint, request, g
-from .decorator import basic_auth_v1
-from .database import get_user_messages, get_group_messages, is_group_member
+from flask import Blueprint, request
+from .decorator import authentication_required
+from .database import get_messages, authenticate
 
 bp = Blueprint("baseline", __name__)
 
 # @unsafe[block]
-# id: 13
-# title: "Shared Contract Baseline [Not Vulnerable]"
+# id: 1
+# title: "Consistent Parameter Sourcing [Not Vulnerable]"
 # notes: |
-#   We move to authorization rather than authentication vulnerabilities, so
-#   for the following examples the authentication will be done reliably and
-#   safely, via the `Authorization` header (based on Basic Auth and handled
-#   in the `@basic_auth_v1` decorator). We also follow the best practices by
-#   storing the authenticated user in the global context (`g.user`).
+#   This baseline demonstrates the secure pattern for handling authentication
+#   when decorators and handlers need to access the same user identity.
 #
-#   Imagine that at this point we have many `/groups/` and `/user/` endpoints
-#   for creating, updating and deleting groups, users and messages.
+#   THE SECURE PATTERN: Consistent parameter sourcing across all layers.
+#   - Authentication decorator validates credentials from request.args
+#   - Handler retrieves user identity from the SAME source (request.args)
+#   - Both layers use identical logic: request.args.get("user")
+#   - Result: Authentication and data access work on the same identity
 #
-#   When the endpoint needs to work with a specific group, this could be
-#   passed as a query/form argument as in the previous examples, but if
-#   the `group` argument is required, it might be more idiomatic to make
-#   it a path parameter instead.
+#   This prevents authentication bypass by ensuring that the identity
+#   validated during authentication is the exact same identity used for
+#   data access. There is no confusion between different request data sources.
 #
-#   Here we will work with two endpoints, the `/groups/<group>/messages` which
-#   will return the messages from a specific group (taking the `group` from
-#   the path) and the `/user/messages` which will return the user's private
-#   messages by default, but also supporting an optional `group` query
-#   argument.
+#   Compare this to the vulnerable examples that follow, where different
+#   layers source the user identity from different request properties,
+#   creating authentication bypass vulnerabilities.
 # @/unsafe
-@bp.get("/example13/groups/<group>/messages")
-@basic_auth_v1
-def example13_group_messages(group):
-    """Returns group's messages, if the user is a member of the group."""
-    if not is_group_member(g.user, group):
-        return "Forbidden: not an member for the requested group", 403
-    return get_group_messages(group)
-
-@bp.get("/example13/user/messages")
-@basic_auth_v1
-def example13_user_messages():
+@bp.route("/example1", methods=["GET", "POST"])
+@authentication_required
+def example1():
     """
-    Returns user's messages: private or from a group.
+    Returns user's messages after authentication.
 
-    By default provides the user's private messages, but if a `group` query
-    argument is provided, it will return the messages from the specified group:
-
-    /user/messages                              -> private messages of the logged in user
-    /user/messages?group=staff@krusty-krab.sea  -> messages from the staff group, if the user is a member of the group
+    Securely retrieves user identity from the same source used for
+    authentication (query parameters), preventing any confusion.
     """
-    if 'group' not in request.args:
-        return get_user_messages(g.user)
-
-    group = request.args.get("group")
-    if not is_group_member(g.user, group):
-        return "Forbidden: not an member for the requested group", 403
-    return get_group_messages(group)
+    user = request.args.get("user")
+    messages = get_messages(user)
+    if messages is None:
+        return "No messages found", 404
+    return messages
 # @/unsafe[block]

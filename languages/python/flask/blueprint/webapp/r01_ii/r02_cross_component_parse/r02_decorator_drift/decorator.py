@@ -1,9 +1,9 @@
 from functools import wraps
-from .database import authenticate_ex8
+from .database import authenticate_ex2
 
-# Example 8 decorator
+# Example 2 decorator
 # @unsafe[block]
-# id: 8
+# id: 2
 # part: 2
 # @/unsafe
 def authentication_required(f):
@@ -15,10 +15,10 @@ def authentication_required(f):
     creating an authentication bypass via source precedence confusion.
     """
     @wraps(f)
-    def decorated_example8(*args, **kwargs):
-        if not authenticate_ex8():
+    def decorated_example2(*args, **kwargs):
+        if not authenticate_ex2():
             return "Invalid user or password", 401
         return f(*args, **kwargs)
 
-    return decorated_example8
+    return decorated_example2
 # @/unsafe[block]

@@ -14,7 +14,7 @@ Flask's architecture allows each layer (decorators, middleware, before-request h
 **The vulnerability pattern:**
 1. Decorator/middleware authenticates user credentials from one source (e.g., `request.args`)
 2. Handler retrieves identity from different source (e.g., `request.form`)
-3. Authentication validates Alice's password, but handler acts as Bob
+3. Authentication validates SpongeBob's password, but handler acts as Squidward
 
 **Spotting the issue:**
 - Audit every decorator or middleware applied to a route and see which request APIs they touch (`request.args` vs `request.form` vs `request.values`).
@@ -31,31 +31,134 @@ Flask's architecture allows each layer (decorators, middleware, before-request h
 
 | Category | Example | File |
 |:---:|:---:|:---:|
-| Decorators That Drift | [Example 8: Decorator-based Authentication with Parsing Drift](#ex-8) | [r02_decorator_drift/routes.py](r02_decorator_drift/routes.py#L28-L34) |
-| Middleware Short-Circuiting Views | [Example 9: Middleware-based Authentication with Parsing Drift](#ex-9) | [r03_middleware_drift/routes.py](r03_middleware_drift/routes.py#L22-L27) |
+| Secure Baseline | [Example 1: Consistent Parameter Sourcing [Not Vulnerable]](#ex-1) | [r01_baseline/routes.py](r01_baseline/routes.py#L28-L41) |
+| Decorator Drift | [Example 2: Decorator-based Authentication with Parsing Drift](#ex-2) | [r02_decorator_drift/routes.py](r02_decorator_drift/routes.py#L28-L34) |
+| Middleware Drift | [Example 3: Middleware-based Authentication with Parsing Drift](#ex-3) | [r03_middleware_drift/routes.py](r03_middleware_drift/routes.py#L22-L27) |
 
-## Decorators That Drift
+## Secure Baseline
+
+The correct pattern for handling authentication across decorator and handler layers: consistently use the same parameter source (request.args) in both the authentication decorator and the handler. This prevents confusion about which user identity is being validated versus acted upon.
+
+### Example 1: Consistent Parameter Sourcing [Not Vulnerable] <a id="ex-1"></a>
+
+This baseline demonstrates the secure pattern for handling authentication when decorators and handlers need to access the same user identity.
+
+THE SECURE PATTERN: Consistent parameter sourcing across all layers.
+- Authentication decorator validates credentials from request.args
+- Handler retrieves user identity from the SAME source (request.args)
+- Both layers use identical logic: request.args.get("user")
+- Result: Authentication and data access work on the same identity
+
+This prevents authentication bypass by ensuring that the identity validated during authentication is the exact same identity used for data access. There is no confusion between different request data sources.
+
+Compare this to the vulnerable examples that follow, where different layers source the user identity from different request properties, creating authentication bypass vulnerabilities.
+```python
+@bp.route("/example1", methods=["GET", "POST"])
+@authentication_required
+def example1():
+    """
+    Returns user's messages after authentication.
+
+    Securely retrieves user identity from the same source used for
+    authentication (query parameters), preventing any confusion.
+    """
+    user = request.args.get("user")
+    messages = get_messages(user)
+    if messages is None:
+        return "No messages found", 404
+    return messages
+
+def authentication_required(f):
+    """
+    Authenticates the user via query parameters.
+
+    This decorator consistently sources both username and password from
+    request.args, matching the source used by the handler.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user = request.args.get("user")
+        password = request.args.get("password")
+
+        if not authenticate(user, password):
+            return "Authentication required", 401
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+```
+<details>
+<summary><b>See HTTP Request</b></summary>
+
+```shell
+@base = http://localhost:8000/ii/cross-component-parse
+
+### Expected Usage: Secure baseline showing correct authentication
+GET {{base}}/example1?user=spongebob&password=bikinibottom
+#
+# SpongeBob authenticates and gets his own messages:
+#
+# {
+#   "owner": "spongebob",
+#   "messages": [
+#     {
+#       "from": "patrick",
+#       "message": "Hey SpongeBob, wanna go jellyfishing?"
+#     }
+#   ]
+# }
+#
+
+###
+
+### Attempted Attack: Try to authenticate as SpongeBob but access Squidward's messages
+GET {{base}}/example1?user=spongebob&password=bikinibottom
+Content-Type: application/x-www-form-urlencoded
+
+user=squidward
+#
+# This FAILS to bypass authentication because both the decorator and handler
+# consistently use request.args.get("user"). The form data is ignored by both layers.
+#
+# SpongeBob still gets his own messages, NOT Squidward's:
+#
+# {
+#   "owner": "spongebob",
+#   "messages": [
+#     {
+#       "from": "patrick",
+#       "message": "Hey SpongeBob, wanna go jellyfishing?"
+#     }
+#   ]
+# }
+#
+# SECURE: The consistent parameter sourcing prevents authentication bypass.
+```
+
+</details>
+
+## Decorator Drift
 
 Authentication guards implemented as decorators read user credentials from one source (query parameters), while the view retrieves the user identity from a different source (form data), enabling authentication bypass.
 
-### Example 8: Decorator-based Authentication with Parsing Drift <a id="ex-8"></a>
+### Example 2: Decorator-based Authentication with Parsing Drift <a id="ex-2"></a>
 
 Shows how using decorators can obscure parameter source confusion, leading to authentication bypass.
 
-Example 8 is functionally equivalent to Example 4 from the source precedence examples, but it may be harder to spot the vulnerability when using decorators because the parameter source logic is split across multiple layers.
+Example 2 is functionally equivalent to Example 4 from the source precedence examples, but it may be harder to spot the vulnerability when using decorators because the parameter source logic is split across multiple layers.
 
 THE VULNERABILITY: Authentication bypass via source precedence confusion.
 - Authentication decorator validates credentials from request.args (query string)
-- Handler retrieves user identity from get_user_ex8(), which prioritizes request.form
-- Attack: Provide Alice's credentials in query string, Bob's name in form body
-- Result: Authenticate as Alice, but access Bob's messages
+- Handler retrieves user identity from get_user_ex2(), which prioritizes request.form
+- Attack: Provide SpongeBob's credentials in query string, Squidward's name in form body
+- Result: Authenticate as SpongeBob, but access Squidward's messages
 
 This is NOT authorization binding drift - it's authentication bypass because the authenticated identity itself gets confused between authentication check and data access.
 ```python
-@bp.route("/example8", methods=["GET", "POST"])
+@bp.route("/example2", methods=["GET", "POST"])
 @authentication_required
-def example8():
-    messages = get_messages_ex8(get_user_ex8())
+def example2():
+    messages = get_messages_ex2(get_user_ex2())
     if messages is None:
         return "No messages found", 404
     return messages
@@ -69,12 +172,12 @@ def authentication_required(f):
     creating an authentication bypass via source precedence confusion.
     """
     @wraps(f)
-    def decorated_example8(*args, **kwargs):
-        if not authenticate_ex8():
+    def decorated_example2(*args, **kwargs):
+        if not authenticate_ex2():
             return "Invalid user or password", 401
         return f(*args, **kwargs)
 
-    return decorated_example8
+    return decorated_example2
 ```
 <details>
 <summary><b>See HTTP Request</b></summary>
@@ -83,16 +186,16 @@ def authentication_required(f):
 @base = http://localhost:8000/ii/cross-component-parse
 
 ### Expected Usage:
-GET {{base}}/example8?user=alice&password=123456
+GET {{base}}/example2?user=spongebob&password=bikinibottom
 #
-# Normally, Alice would get her *own* messages:
+# Normally, SpongeBob would get his *own* messages:
 #
 # {
-#   "owner": "alice",
+#   "owner": "spongebob",
 #   "messages": [
 #     {
-#       "from": "kevin",
-#       "message": "Hi Alice, you're fired!"
+#       "from": "patrick",
+#       "message": "Hey SpongeBob, wanna go jellyfishing?"
 #     }
 #   ]
 # }
@@ -101,23 +204,23 @@ GET {{base}}/example8?user=alice&password=123456
 ###
 
 ### Attack: Decorator authenticates using query params, handler uses form data
-GET {{base}}/example8?user=alice&password=123456
+GET {{base}}/example2?user=spongebob&password=bikinibottom
 Content-Type: application/x-www-form-urlencoded
 
-user=bob
+user=squidward
 #
-# Alice gets Bob's messages, even though she provided her own password!
+# SpongeBob gets Squidward's messages, even though he provided his own password!
 #
 # {
-#   "owner": "bob",
+#   "owner": "squidward",
 #   "messages": [
 #     {
-#       "from": "kevin",
-#       "message": "Hi Bob, here is the password you asked for: P@ssw0rd!"
+#       "from": "plankton",
+#       "message": "Squidward, I'll pay you handsomely to 'accidentally' share the secret formula. You deserve better than that dead-end cashier job!"
 #     },
 #     {
-#       "from": "michael",
-#       "message": "Hi Bob, come to my party on Friday! The secret passphrase is 'no-one-knows-it'!"
+#       "from": "mr.krabs",
+#       "message": "Squidward, the new safe combination is 4-2-0-6-9. Don't write it down anywhere!"
 #     }
 #   ]
 # }
@@ -125,20 +228,20 @@ user=bob
 
 </details>
 
-## Middleware Short-Circuiting Views
+## Middleware Drift
 
 Before-request hooks authenticate using query parameters only, while views consume form data for the actual operation, creating the same authentication bypass but at the middleware layer.
 
-### Example 9: Middleware-based Authentication with Parsing Drift <a id="ex-9"></a>
+### Example 3: Middleware-based Authentication with Parsing Drift <a id="ex-3"></a>
 
 Demonstrates how Flask's middleware system can contribute to parameter source confusion.
 
-Example 9 is functionally equivalent to Example 4 from the old parameter source confusion examples, but it may be harder to spot the vulnerability while using middleware.
+Example 3 is functionally equivalent to Example 4 from the old parameter source confusion examples, but it may be harder to spot the vulnerability while using middleware.
 
-The before_request middleware authenticates using request.args.get("user"), but the handler retrieves the user via get_user(request) which prioritizes request.form over request.args. This allows an attacker to authenticate as Alice but access Bob's messages.
+The before_request middleware authenticates using request.args.get("user"), but the handler retrieves the user via get_user(request) which prioritizes request.form over request.args. This allows an attacker to authenticate as SpongeBob but access Squidward's messages.
 ```python
-@bp.route("/example9", methods=["GET", "POST"])
-def example9():
+@bp.route("/example3", methods=["GET", "POST"])
+def example3():
     messages = get_messages(get_user(request))
     if messages is None:
         return "No messages found", 404
@@ -166,16 +269,16 @@ def register_middleware(app):
 @base = http://localhost:8000/ii/cross-component-parse
 
 ### Expected Usage:
-GET {{base}}/example9?user=alice&password=123456
+GET {{base}}/example3?user=spongebob&password=bikinibottom
 #
-# Normally, Alice would get her *own* messages:
+# Normally, SpongeBob would get his *own* messages:
 #
 # {
-#   "owner": "alice",
+#   "owner": "spongebob",
 #   "messages": [
 #     {
-#       "from": "kevin",
-#       "message": "Hi Alice, you're fired!"
+#       "from": "patrick",
+#       "message": "Hey SpongeBob, wanna go jellyfishing?"
 #     }
 #   ]
 # }
@@ -184,23 +287,23 @@ GET {{base}}/example9?user=alice&password=123456
 ###
 
 ### Attack: Middleware authenticates using query params, handler uses form data
-GET {{base}}/example9?user=alice&password=123456
+GET {{base}}/example3?user=spongebob&password=bikinibottom
 Content-Type: application/x-www-form-urlencoded
 
-user=bob
+user=squidward
 #
-# Alice gets Bob's messages, even though she provided her own password!
+# SpongeBob gets Squidward's messages, even though he provided his own password!
 #
 # {
-#   "owner": "bob",
+#   "owner": "squidward",
 #   "messages": [
 #     {
-#       "from": "kevin",
-#       "message": "Hi Bob, here is the password you asked for: P@ssw0rd!"
+#       "from": "plankton",
+#       "message": "Squidward, I'll pay you handsomely to 'accidentally' share the secret formula. You deserve better than that dead-end cashier job!"
 #     },
 #     {
-#       "from": "michael",
-#       "message": "Hi Bob, come to my party on Friday! The secret passphrase is 'no-one-knows-it'!"
+#       "from": "mr.krabs",
+#       "message": "Squidward, the new safe combination is 4-2-0-6-9. Don't write it down anywhere!"
 #     }
 #   ]
 # }

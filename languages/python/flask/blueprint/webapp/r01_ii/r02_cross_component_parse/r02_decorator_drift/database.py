@@ -3,22 +3,22 @@ from flask import request
 # Simulated database - simple authentication bypass examples
 db = {
     "users": {
-        "alice": {
-            "password": "123456",
+        "spongebob": {
+            "password": "bikinibottom",
             "messages": [
-                {"from": "kevin", "message": "Hi Alice, you're fired!"},
+                {"from": "patrick", "message": "Hey SpongeBob, wanna go jellyfishing?"},
             ],
         },
-        "bob": {
-            "password": "mypassword",
+        "squidward": {
+            "password": "clarinet123",
             "messages": [
                 {
-                    "from": "kevin",
-                    "message": "Hi Bob, here is the password you asked for: P@ssw0rd!",
+                    "from": "plankton",
+                    "message": "Squidward, I'll pay you handsomely to 'accidentally' share the secret formula. You deserve better than that dead-end cashier job!",
                 },
                 {
-                    "from": "michael",
-                    "message": "Hi Bob, come to my party on Friday! The secret passphrase is 'no-one-knows-it'!",
+                    "from": "mr.krabs",
+                    "message": "Squidward, the new safe combination is 4-2-0-6-9. Don't write it down anywhere!",
                 },
             ],
         },
@@ -26,8 +26,8 @@ db = {
 }
 
 
-# Example 8 helpers
-def get_messages_ex8(user):
+# Example 2 helpers
+def get_messages_ex2(user):
     """Retrieve messages for a user."""
     messages = db["users"].get(user, {}).get("messages", None)
     if messages is None:
@@ -35,7 +35,7 @@ def get_messages_ex8(user):
     return {"owner": user, "messages": messages}
 
 
-def authenticate_ex8():
+def authenticate_ex2():
     """
     Authenticate the user based solely on the request query string.
 
@@ -50,12 +50,12 @@ def authenticate_ex8():
     return True
 
 
-def get_user_ex8():
+def get_user_ex2():
     """
     Get the user identity from request data.
 
     VULNERABILITY: Prioritizes form data over query parameters, creating
-    a source precedence confusion with authenticate_ex8().
+    a source precedence confusion with authenticate_ex2().
     """
     user_from_form = request.form.get("user", None)
     user_from_args = request.args.get("user", None)
