@@ -49,19 +49,4 @@ These examples use the same development environment as the main project. Refer t
 
 | Framework | Examples | Details |
 |-----------|----------|---------|
-| **[Flask](python/flask/)** | Blueprint route precedence vulnerabilities | [→ View Examples](python/flask/README.md) |
-| **[Django](python/django/)** | Basic setup with potential security misconfigurations | [→ View Examples](python/django/README.md) |
-| **[FastAPI](python/fastapi/)** | Basic setup with security considerations | [→ View Examples](python/fastapi/README.md) |
-| **[CherryPy](python/cherrypy/)** | Dispatch and REST API security issues | [→ View Examples](python/cherrypy/README.md) |
-| **[Bottle](python/bottle/)** | Minimal framework security patterns | [→ View Examples](python/bottle/README.md) |
-| **[Pyramid](python/pyramid/)** | Web framework security patterns | [→ View Examples](python/pyramid/README.md) |
-
-### JavaScript
-
-| Framework | Examples | Details |
-|-----------|----------|---------|
-| **[Express.js](javascript/expressjs/)** | Basic setup with common security pitfalls | [→ View Examples](javascript/expressjs/README.md) |
-| **[Next.js](javascript/nextjs/)** | Framework-specific security considerations | [→ View Examples](javascript/nextjs/README.md) |
-| **[Koa](javascript/koa/)** | Middleware security patterns | [→ View Examples](javascript/koa/README.md) |
-| **[Meteor.js](javascript/meteorjs/)** | Full-stack security scenarios | [→ View Examples](javascript/meteorjs/README.md) |
-| **[Nest.js](javascript/nestjs/)** | Enterprise framework security issues | [→ View Examples](javascript/nestjs/README.md) |
+| **[Flask](/vulnerabilities/python/flask/)** | Blueprint route precedence vulnerabilities | [→ View Examples](/vulnerabilities/python/flask/README.md) |
