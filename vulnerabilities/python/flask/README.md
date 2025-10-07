@@ -56,6 +56,16 @@ The `basic` directory contains a minimal Flask application that demonstrates fun
 
 The application will be available at `http://localhost:5000`.
 
+## How to navigate
+- [Inconsistent Interpretation (ii)](r01_ii/README.md) - Different parts of the code interpret the same input in incompatible ways.
+- [Policy Composition and Precedence](r02_policy_composition_and_precedence/README.md) - Multiple guards combine so that the weakest one wins.
+- [Trust Boundary Errors](trust_boundary_errors/README.md) - We believe headers or hosts that should only be accepted from trusted proxies.
+- [Cross-Component Semantics](cross_component_semantics/README.md) - Proxies, CDNs, and Flask disagree about what the request actually contains.
+- [Unsafe Defaults and Misconfiguration](unsafe_defaults_and_misconfiguration/README.md) - Development settings and sample secrets that leak into production.
+- [Type Coercion](type_coercion/README.md) - Implicit casting changes the meaning of security checks.
+- [Temporal Inconsistency](temporal_inconsistency/README.md) - Time-of-check versus time-of-use, race conditions, and replay issues.
+
+
 ## Security Considerations
 
 This Flask application is part of the Unsafe Code Lab project, designed to demonstrate various security concepts and potential vulnerabilities. Please refer to the main project README for more information about the security research aspects.
