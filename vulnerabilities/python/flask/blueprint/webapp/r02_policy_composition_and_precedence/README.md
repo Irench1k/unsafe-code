@@ -8,6 +8,6 @@ Modern applications use multiple layers of security controls: blueprints, decora
 - Check whether nested resources inherit stricter policies from their parents or bypass them.
 
 ## Subcategories
-- [Merge Order & Short-Circuit](merge_order_and_short_circuit/) - Combining permissive or caching layers with stronger guards in the wrong order.
+- [Merge Order & Short-Circuit](r01_merge_order_and_short_circuit/README.md) - Combining permissive or caching layers with stronger guards in the wrong order.
 - [Default-Allow Gaps](default_allow_gaps/) - New routes or feature toggles that are deployed without security protection.
 - [Scope Mismatch](scope_mismatch/) - Policies applied at one routing layer but not at the handler that modifies data.
