@@ -6,7 +6,7 @@ Configuration enables proxy header trust globally or without IP restrictions, al
 
 This is a **configuration mistake**: enabling `ProxyFix` globally, setting it without IP allowlists, or leaving `trusted_hosts` wide open makes the framework trust forwarding headers from any source. The misconfiguration **enables** the code-level trust boundary errors (like reading `request.host` for security decisions) by telling the framework to accept attacker-controlled headers as if they came from infrastructure. The result: password reset links pointing to malicious domains, CSRF tokens scoped to attacker hosts, incorrect rate limiting.
 
-**Contrast with [Trust Boundary > Header Authority](../../trust-boundary-errors/header-authority/)**: That category covers the **code pattern** of reading and trusting headers. This category covers the **config mistakes** that make those headers attacker-controllable instead of infrastructure-controlled.
+**Contrast with [Trust Boundary > Header Authority](../../trust_boundary_errors/header_authority/)**: That category covers the **code pattern** of reading and trusting headers. This category covers the **config mistakes** that make those headers attacker-controllable instead of infrastructure-controlled.
 
 **Practice tips:**
 - Configure proxy trust middleware with explicit IP allowlists for each environment.
