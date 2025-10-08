@@ -61,7 +61,7 @@ def example1():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/source-precedence/example1
+@base = http://localhost:8000/confusion/source-precedence/example1
 
 ### SpongeBob can access his own messages
 GET {{base}}?user=spongebob&password=bikinibottom
@@ -141,7 +141,7 @@ def example2():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/source-precedence/example2
+@base = http://localhost:8000/confusion/source-precedence/example2
 
 ### SpongeBob can authenticate and retrieve his own messages using consistent parameters
 GET {{base}}?user=spongebob&password=bikinibottom
@@ -228,7 +228,7 @@ def example3():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/source-precedence/example3
+@base = http://localhost:8000/confusion/source-precedence/example3
 
 ### SpongeBob authenticates and retrieves his own messages
 GET {{base}}?user=spongebob&password=bikinibottom
@@ -318,7 +318,7 @@ def example4():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/source-precedence/example4
+@base = http://localhost:8000/confusion/source-precedence/example4
 
 ### SpongeBob authenticates and retrieves his own messages using query parameters
 GET {{base}}?user=spongebob&password=bikinibottom
@@ -409,7 +409,7 @@ def example5():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/source-precedence/example5
+@base = http://localhost:8000/confusion/source-precedence/example5
 
 ### SpongeBob authenticates and retrieves his messages normally
 GET {{base}}?user=spongebob&password=bikinibottom
@@ -494,7 +494,7 @@ def example6():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/source-precedence/example6
+@base = http://localhost:8000/confusion/source-precedence/example6
 
 ### SpongeBob authenticates with form data and retrieves his messages
 GET {{base}}?user=spongebob&password=bikinibottom
@@ -598,7 +598,7 @@ def example7():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/source-precedence/example7
+@base = http://localhost:8000/confusion/source-precedence/example7
 
 ### SpongeBob authenticates via form body and retrieves his messages
 POST {{base}}
@@ -693,7 +693,7 @@ def example8():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/source-precedence/example8
+@base = http://localhost:8000/confusion/source-precedence/example8
 
 ### SpongeBob authenticates and retrieves his messages using POST body
 POST {{base}}

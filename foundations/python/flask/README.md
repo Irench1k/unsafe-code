@@ -21,13 +21,15 @@ flask/
 │   ├── requirements.txt
 │   ├── run.py
 │   └── webapp/            # Application with manual route registration
-└── routing-multifile-autodiscovery/
-    ├── compose.dev.yml
-    ├── compose.yml
-    ├── Dockerfile
-    ├── requirements.txt
-    ├── run.py
-    └── webapp/            # Application with automatic route discovery
+├── routing-multifile-autodiscovery/
+│   ├── compose.dev.yml
+│   ├── compose.yml
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── run.py
+│   └── webapp/            # Application with automatic route discovery
+└── blueprints/
+    └── README.md          # Blueprint patterns guide (no runnable code)
 ```
 
 ## Examples Overview
@@ -40,6 +42,9 @@ Demonstrates manual route organization across multiple files using explicit regi
 
 ### [routing-multifile-autodiscovery](routing-multifile-autodiscovery/)
 Showcases automated route discovery and registration using convention-based patterns. Demonstrates advanced architectural patterns for scalable application structure.
+
+### [blueprints](blueprints/)
+Comprehensive guide to Flask blueprints for hierarchical application organization. Covers blueprint creation, nested registration, and patterns for structuring large applications. References working examples in the vulnerabilities section.
 
 ## Getting Started
 
@@ -81,6 +86,7 @@ We recommend exploring these examples in this order:
 1. **Start with `basic`** - Understand Flask fundamentals and clean application structure
 2. **Explore `routing-multifile-register`** - Learn manual route organization patterns
 3. **Study `routing-multifile-autodiscovery`** - Understand automated, convention-based patterns
+4. **Review `blueprints`** - Learn blueprint patterns for hierarchical, modular organization
 
 ## Additional Resources
 

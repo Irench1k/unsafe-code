@@ -38,11 +38,11 @@ examples:
     language: python
     parts:
     - part: 1
-      file: r01_baseline/routes.py
+      file: e01_baseline/routes.py
       code_start_line: 28
       code_end_line: 58
     file_hashes:
-      r01_baseline/routes.py: 5f671caa90a924061941f71f9e508519ff84e306865fb6ddefb99f85a26c2207
+      e01_baseline/routes.py: 5f671caa90a924061941f71f9e508519ff84e306865fb6ddefb99f85a26c2207
     fingerprint: 4005aa378fdf52a2624f8537118dbe95608dac27b0b6788ad8354d6c10808fb7
   2:
     id: 2
@@ -81,11 +81,11 @@ examples:
     language: python
     parts:
     - part: 1
-      file: r02_path_query_confusion/routes.py
+      file: e02_path_query_confusion/routes.py
       code_start_line: 35
       code_end_line: 50
     file_hashes:
-      r02_path_query_confusion/routes.py: 340e8de944fa34db6fe8ff8e79d0bab99654e8a7bddec5ab7dbb1cb0fdf530af
+      e02_path_query_confusion/routes.py: 340e8de944fa34db6fe8ff8e79d0bab99654e8a7bddec5ab7dbb1cb0fdf530af
     fingerprint: d2a8205376fa9dd9ce445495606c3b98db4ed3624af05463eddde9dea5e44bc1
   3:
     id: 3
@@ -133,11 +133,11 @@ examples:
     language: python
     parts:
     - part: 1
-      file: r02_path_query_confusion/routes.py
+      file: e02_path_query_confusion/routes.py
       code_start_line: 82
       code_end_line: 97
     file_hashes:
-      r02_path_query_confusion/routes.py: 340e8de944fa34db6fe8ff8e79d0bab99654e8a7bddec5ab7dbb1cb0fdf530af
+      e02_path_query_confusion/routes.py: 340e8de944fa34db6fe8ff8e79d0bab99654e8a7bddec5ab7dbb1cb0fdf530af
     fingerprint: 695f807cb798e0c4f7174bc27e3f8549f4f1034d744aadbc4b5f48038c0e41db
   4:
     id: 4
@@ -185,11 +185,11 @@ examples:
     language: python
     parts:
     - part: 1
-      file: r03_simple_rebinding/routes.py
+      file: e03_simple_rebinding/routes.py
       code_start_line: 39
       code_end_line: 76
     file_hashes:
-      r03_simple_rebinding/routes.py: 9717ac94f8b5082bc0654fbba25c79420b6edd295ec1ea29608023adba8bff84
+      e03_simple_rebinding/routes.py: 9717ac94f8b5082bc0654fbba25c79420b6edd295ec1ea29608023adba8bff84
     fingerprint: a9c14168a31c5075013ba1e0009b9ba9b20907111e248ccbb65399c9a1cea313
   13:
     id: 13
@@ -200,11 +200,11 @@ examples:
     language: python
     parts:
     - part: 2
-      file: r01_baseline/decorator.py
+      file: e01_baseline/decorator.py
       code_start_line: 20
       code_end_line: 36
     file_hashes:
-      r01_baseline/decorator.py: 8b681ce69fafe2466d6980fd3567d52452842e936238402fae306655d919583d
+      e01_baseline/decorator.py: 8b681ce69fafe2466d6980fd3567d52452842e936238402fae306655d919583d
     fingerprint: 1af00a9e12f69d4b9f54c4a960c60e7f63d109f3b85ea3ffa6815d193f5c8adb
   14:
     id: 14
@@ -215,11 +215,11 @@ examples:
     language: python
     parts:
     - part: 2
-      file: r02_path_query_confusion/decorator.py
+      file: e02_path_query_confusion/decorator.py
       code_start_line: 21
       code_end_line: 50
     file_hashes:
-      r02_path_query_confusion/decorator.py: 32a3e8ade10bcca35dfc72824a86a68329bdbb61891fd23ac26bf61fcf152214
+      e02_path_query_confusion/decorator.py: 32a3e8ade10bcca35dfc72824a86a68329bdbb61891fd23ac26bf61fcf152214
     fingerprint: cdf60a2a236775d760db7afb19925e39baafafed4ae34be03ec09da1adecd1d6
   15:
     id: 15
@@ -230,11 +230,11 @@ examples:
     language: python
     parts:
     - part: 2
-      file: r02_path_query_confusion/decorator.py
+      file: e02_path_query_confusion/decorator.py
       code_start_line: 59
       code_end_line: 92
     file_hashes:
-      r02_path_query_confusion/decorator.py: 32a3e8ade10bcca35dfc72824a86a68329bdbb61891fd23ac26bf61fcf152214
+      e02_path_query_confusion/decorator.py: 32a3e8ade10bcca35dfc72824a86a68329bdbb61891fd23ac26bf61fcf152214
     fingerprint: 2c4e7305eabdcc7837671be88295ff33f6d64b87c1c033783ca3f600cff2da71
 attachments:
   http/exploit-1.http: e097a7fe9c9d94974e5707d78b8dc74ee77eb53b27c239e80365a4496919a48c

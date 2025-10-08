@@ -14,22 +14,22 @@ normalization-canonicalization/
 │   ├── exploit-2.http
 │   ├── exploit-3.http
 │   └── exploit-4.http
-├── r01_lowercase/                          # Example 1: Lowercase Normalization
+├── e01_lowercase/                          # Example 1: Lowercase Normalization
 │   ├── __init__.py
 │   ├── routes.py
 │   ├── decorator.py
 │   └── database.py
-├── r02_insensitive_object_retrieval/       # Example 2: Case-insensitive retrieval
+├── e02_insensitive_object_retrieval/       # Example 2: Case-insensitive retrieval
 │   ├── __init__.py
 │   ├── routes.py
 │   ├── decorator.py
 │   └── database.py
-├── r03_strip_replace_mismatch/             # Example 3: Strip vs Replace mismatch
+├── e03_strip_replace_mismatch/             # Example 3: Strip vs Replace mismatch
 │   ├── __init__.py
 │   ├── routes.py
 │   ├── decorator.py
 │   └── database/
-└── r04_pydantic_strip_bypass/              # Example 4: Pydantic auto-stripping bypass
+└── e04_pydantic_strip_bypass/              # Example 4: Pydantic auto-stripping bypass
     ├── __init__.py
     ├── routes.py
     ├── decorator.py
@@ -42,10 +42,10 @@ normalization-canonicalization/
 
 The main `routes.py` creates a parent blueprint `normalization_canonicalization` and registers four child blueprints from the subdirectories:
 
-- `lowercase_bp` (r01)
-- `lowercase_2_bp` (r02)
-- `whitespace_bp` (r03)
-- `whitespace_bp_2` (r04)
+- `lowercase_bp` (e01)
+- `lowercase_2_bp` (e02)
+- `whitespace_bp` (e03)
+- `whitespace_bp_2` (e04)
 
 ### Subdirectories
 

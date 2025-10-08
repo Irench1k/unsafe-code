@@ -15,10 +15,10 @@ Canonicalization is meant to make comparisons simple: lowercase the e-mail, stri
 
 | Category | Example | File |
 |:---:|:---:|:---:|
-| Case Canonicalization Issues | [Example 1: Lowercase Normalization](#ex-1) | [r01_lowercase/routes.py](r01_lowercase/routes.py#L27-L40) |
-| Case Canonicalization Issues | [Example 2: Case insensitive Object Retrieval](#ex-2) | [r02_insensitive_object_retrieval/routes.py](r02_insensitive_object_retrieval/routes.py#L27-L41) |
-| Whitespace & Formatting Drift | [Example 3: Whitespace Canonicalization](#ex-3) | [r03_strip_replace_mismatch/routes.py](r03_strip_replace_mismatch/routes.py#L27-L55) |
-| Whitespace & Formatting Drift | [Example 4: Whitespace Canonicalization](#ex-4) | [r04_pydantic_strip_bypass/routes.py](r04_pydantic_strip_bypass/routes.py#L49-L94) |
+| Case Canonicalization Issues | [Example 1: Lowercase Normalization](#ex-1) | [e01_lowercase/routes.py](e01_lowercase/routes.py#L27-L40) |
+| Case Canonicalization Issues | [Example 2: Case insensitive Object Retrieval](#ex-2) | [e02_insensitive_object_retrieval/routes.py](e02_insensitive_object_retrieval/routes.py#L27-L41) |
+| Whitespace & Formatting Drift | [Example 3: Whitespace Canonicalization](#ex-3) | [e03_strip_replace_mismatch/routes.py](e03_strip_replace_mismatch/routes.py#L27-L55) |
+| Whitespace & Formatting Drift | [Example 4: Whitespace Canonicalization](#ex-4) | [e04_pydantic_strip_bypass/routes.py](e04_pydantic_strip_bypass/routes.py#L49-L94) |
 
 ## Case Canonicalization Issues
 
@@ -57,7 +57,7 @@ def example1_post():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/normalization-canonicalization/example1
+@base = http://localhost:8000/confusion/normalization-canonicalization/example1
 
 # Here Plankton is creating a new group that has the same name which is used by Mr. Krabs,
 # but in upper case, leaving a room for lower-case exploitation.
@@ -137,7 +137,7 @@ def get_group(groupname):
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/normalization-canonicalization/example2
+@base = http://localhost:8000/confusion/normalization-canonicalization/example2
 
 # Before attack:
 #   When Spongebob checks his group, he accesses the real group and sees the real messages.
@@ -286,7 +286,7 @@ def check_group_membership(f):
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/normalization-canonicalization/example3
+@base = http://localhost:8000/confusion/normalization-canonicalization/example3
 
 # Normally:
 #   Spongebob can see Mr. Krabs messages as he is a member of the group.
@@ -429,7 +429,7 @@ class Group(BaseModel):
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/normalization-canonicalization/example4
+@base = http://localhost:8000/confusion/normalization-canonicalization/example4
 
 # We start with the same setup as previously, Plankton is unable to access Mr. Krabs group.
 GET {{base}}/groups/staff@krusty-krab.sea/messages

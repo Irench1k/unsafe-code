@@ -51,7 +51,7 @@ def check_group_membership(f):
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/multi-value-semantics
+@base = http://localhost:8000/confusion/multi-value-semantics
 
 ### Expected usage: Mr. Krabs accesses his staff group messages
 POST {{base}}/example1
@@ -131,7 +131,7 @@ def example2():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/multi-value-semantics
+@base = http://localhost:8000/confusion/multi-value-semantics
 
 ### Expected usage: Mr. Krabs accesses multiple groups he administers
 POST {{base}}/example2
@@ -236,7 +236,7 @@ def check_multi_group_membership(f):
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/multi-value-semantics
+@base = http://localhost:8000/confusion/multi-value-semantics
 
 ### Expected usage: Mr. Krabs accesses multiple groups he administers
 POST {{base}}/example3

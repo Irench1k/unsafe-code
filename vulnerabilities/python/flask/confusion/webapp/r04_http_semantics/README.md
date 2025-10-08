@@ -83,7 +83,7 @@ def check_group_membership(f):
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/http-semantics/example1
+@base = http://localhost:8000/confusion/http-semantics/example1
 
 # Without any arguments, GET request lists the groups the user is a member of
 GET {{base}}/groups

@@ -34,11 +34,11 @@ examples:
     language: python
     parts:
     - part: 1
-      file: r01_lowercase/routes.py
+      file: e01_lowercase/routes.py
       code_start_line: 27
       code_end_line: 40
     file_hashes:
-      r01_lowercase/routes.py: cdb97df7af5d72f64c5b9465262548950533b79805c94ae934cd6b33bdf806aa
+      e01_lowercase/routes.py: cdb97df7af5d72f64c5b9465262548950533b79805c94ae934cd6b33bdf806aa
     fingerprint: 20298910f0ccadb03d881def45cc5f7930aa9819c66add1e19cccbd50acd3f38
   2:
     id: 2
@@ -67,16 +67,16 @@ examples:
     language: python
     parts:
     - part: 1
-      file: r02_insensitive_object_retrieval/routes.py
+      file: e02_insensitive_object_retrieval/routes.py
       code_start_line: 27
       code_end_line: 41
     - part: 2
-      file: r02_insensitive_object_retrieval/database.py
+      file: e02_insensitive_object_retrieval/database.py
       code_start_line: 87
       code_end_line: 93
     file_hashes:
-      r02_insensitive_object_retrieval/database.py: fcb0e76ab4fa3d2e23cad40b1f2b8829467e8eb1b62ffb262d2832c5a32ddd5d
-      r02_insensitive_object_retrieval/routes.py: cb9c82f61b5c04629a760fad7b823bda460e5b3dc416b21ca1bb0b82fc5b0d69
+      e02_insensitive_object_retrieval/database.py: fcb0e76ab4fa3d2e23cad40b1f2b8829467e8eb1b62ffb262d2832c5a32ddd5d
+      e02_insensitive_object_retrieval/routes.py: cb9c82f61b5c04629a760fad7b823bda460e5b3dc416b21ca1bb0b82fc5b0d69
     fingerprint: f7379cd3ea70ebd4739a7eb40ad51a5d3bc6d37d98262fd66e09d947a952e027
   3:
     id: 3
@@ -106,16 +106,16 @@ examples:
     language: python
     parts:
     - part: 1
-      file: r03_strip_replace_mismatch/routes.py
+      file: e03_strip_replace_mismatch/routes.py
       code_start_line: 27
       code_end_line: 55
     - part: 2
-      file: r03_strip_replace_mismatch/decorator.py
+      file: e03_strip_replace_mismatch/decorator.py
       code_start_line: 36
       code_end_line: 49
     file_hashes:
-      r03_strip_replace_mismatch/decorator.py: 07773d7eeadd46784533ab09825e02b50884e575a5bd8acd93ac710108484560
-      r03_strip_replace_mismatch/routes.py: 62b565644e54aab48cac2968e8c6017827f538173cd07d7f6cad1afdcf62e8b1
+      e03_strip_replace_mismatch/decorator.py: 07773d7eeadd46784533ab09825e02b50884e575a5bd8acd93ac710108484560
+      e03_strip_replace_mismatch/routes.py: 62b565644e54aab48cac2968e8c6017827f538173cd07d7f6cad1afdcf62e8b1
     fingerprint: 7f1bfcd63156b0cf4bb4a54fdf98bb8c575b7923d6115eddffcab00277d5e4eb
   4:
     id: 4
@@ -157,21 +157,21 @@ examples:
     language: python
     parts:
     - part: 1
-      file: r04_pydantic_strip_bypass/routes.py
+      file: e04_pydantic_strip_bypass/routes.py
       code_start_line: 49
       code_end_line: 94
     - part: 2
-      file: r04_pydantic_strip_bypass/database/models.py
+      file: e04_pydantic_strip_bypass/database/models.py
       code_start_line: 21
       code_end_line: 24
     - part: 3
-      file: r04_pydantic_strip_bypass/database/storage.py
+      file: e04_pydantic_strip_bypass/database/storage.py
       code_start_line: 33
       code_end_line: 51
     file_hashes:
-      r04_pydantic_strip_bypass/database/models.py: 6d0308ac37f245cf26b363ee4fae7fda77a8298eff9e67e97bbd010c865a9ae6
-      r04_pydantic_strip_bypass/database/storage.py: 954ff4f533193adef53e5076b74d0ef457b8171a1609b0e7f971f0adee2ff158
-      r04_pydantic_strip_bypass/routes.py: 7bded7a662c53aeea1019493207a60af43b1a4ad2ec16c489b7a69ab10371c49
+      e04_pydantic_strip_bypass/database/models.py: 6d0308ac37f245cf26b363ee4fae7fda77a8298eff9e67e97bbd010c865a9ae6
+      e04_pydantic_strip_bypass/database/storage.py: 954ff4f533193adef53e5076b74d0ef457b8171a1609b0e7f971f0adee2ff158
+      e04_pydantic_strip_bypass/routes.py: 7bded7a662c53aeea1019493207a60af43b1a4ad2ec16c489b7a69ab10371c49
     fingerprint: fa407a0f88a8539d044eec43b21ea73db9d7c44d3014761c45459daf32522dc6
 attachments:
   http/exploit-1.http: 708231ffa2de9d8eb31f34b6517f1aaa770a1fa66e19a3b09658d3c1bfa10aa6

@@ -31,9 +31,9 @@ Flask's architecture allows each layer (decorators, middleware, before-request h
 
 | Category | Example | File |
 |:---:|:---:|:---:|
-| Secure Baseline | [Example 1: Consistent Parameter Sourcing [Not Vulnerable]](#ex-1) | [r01_baseline/routes.py](r01_baseline/routes.py#L28-L41) |
-| Decorator Drift | [Example 2: Decorator-based Authentication with Parsing Drift](#ex-2) | [r02_decorator_drift/routes.py](r02_decorator_drift/routes.py#L28-L34) |
-| Middleware Drift | [Example 3: Middleware-based Authentication with Parsing Drift](#ex-3) | [r03_middleware_drift/routes.py](r03_middleware_drift/routes.py#L22-L27) |
+| Secure Baseline | [Example 1: Consistent Parameter Sourcing [Not Vulnerable]](#ex-1) | [e01_baseline/routes.py](e01_baseline/routes.py#L28-L41) |
+| Decorator Drift | [Example 2: Decorator-based Authentication with Parsing Drift](#ex-2) | [e02_decorator_drift/routes.py](e02_decorator_drift/routes.py#L28-L34) |
+| Middleware Drift | [Example 3: Middleware-based Authentication with Parsing Drift](#ex-3) | [e03_middleware_drift/routes.py](e03_middleware_drift/routes.py#L22-L27) |
 
 ## Secure Baseline
 
@@ -91,7 +91,7 @@ def authentication_required(f):
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/cross-component-parse
+@base = http://localhost:8000/confusion/cross-component-parse
 
 ### Expected Usage: Secure baseline showing correct authentication
 GET {{base}}/example1?user=spongebob&password=bikinibottom
@@ -183,7 +183,7 @@ def authentication_required(f):
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/cross-component-parse
+@base = http://localhost:8000/confusion/cross-component-parse
 
 ### Expected Usage:
 GET {{base}}/example2?user=spongebob&password=bikinibottom
@@ -273,7 +273,7 @@ def register_middleware(app):
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/cross-component-parse
+@base = http://localhost:8000/confusion/cross-component-parse
 
 ### Expected Usage:
 GET {{base}}/example3?user=spongebob&password=bikinibottom

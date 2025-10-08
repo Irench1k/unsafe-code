@@ -34,10 +34,10 @@ In multi-tenant or multi-user APIs, a common pattern is to authenticate once (se
 
 | Category | Example | File |
 |:---:|:---:|:---:|
-| Secure Authorization Baseline | [Example 1: Secure Authorization Binding Baseline [Not Vulnerable]](#ex-1) | [r01_baseline/routes.py](r01_baseline/routes.py#L28-L58) |
-| Path-Query Confusion Leading to Binding Drift | [Example 2: Authorization Binding Drift via Path-Query Confusion](#ex-2) | [r02_path_query_confusion/routes.py](r02_path_query_confusion/routes.py#L35-L50) |
-| Path-Query Confusion Leading to Binding Drift | [Example 3: Authorization Binding Drift Despite Global Source of Truth](#ex-3) | [r02_path_query_confusion/routes.py](r02_path_query_confusion/routes.py#L82-L97) |
-| Classic Identity Rebinding | [Example 4: Classic Authorization Binding Drift - User Identity Rebinding](#ex-4) | [r03_simple_rebinding/routes.py](r03_simple_rebinding/routes.py#L39-L76) |
+| Secure Authorization Baseline | [Example 1: Secure Authorization Binding Baseline [Not Vulnerable]](#ex-1) | [e01_baseline/routes.py](e01_baseline/routes.py#L28-L58) |
+| Path-Query Confusion Leading to Binding Drift | [Example 2: Authorization Binding Drift via Path-Query Confusion](#ex-2) | [e02_path_query_confusion/routes.py](e02_path_query_confusion/routes.py#L35-L50) |
+| Path-Query Confusion Leading to Binding Drift | [Example 3: Authorization Binding Drift Despite Global Source of Truth](#ex-3) | [e02_path_query_confusion/routes.py](e02_path_query_confusion/routes.py#L82-L97) |
+| Classic Identity Rebinding | [Example 4: Classic Authorization Binding Drift - User Identity Rebinding](#ex-4) | [e03_simple_rebinding/routes.py](e03_simple_rebinding/routes.py#L39-L76) |
 
 ## Secure Authorization Baseline
 
@@ -95,7 +95,7 @@ def example1_user_messages():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/authz-binding/example1
+@base = http://localhost:8000/confusion/authz-binding/example1
 
 ### Plankton can access his own group's messages
 GET {{base}}/groups/staff@chum-bucket.sea/messages
@@ -198,7 +198,7 @@ def example2_user_messages():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/authz-binding/example2
+@base = http://localhost:8000/confusion/authz-binding/example2
 
 ### The group authorization check prevents Plankton from accessing the Krusty Krab's messages:
 GET {{base}}/groups/staff@krusty-krab.sea/messages
@@ -296,7 +296,7 @@ def example3_user_messages():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/authz-binding/example3
+@base = http://localhost:8000/confusion/authz-binding/example3
 
 ### The group authorization check prevents Plankton from accessing the Krusty Krab's messages:
 GET {{base}}/groups/staff@krusty-krab.sea/messages
@@ -428,7 +428,7 @@ def example4_get_messages(group):
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/ii/r03-authz-binding
+@base = http://localhost:8000/confusion/r03-authz-binding
 
 ### First, let's see the current state of messages in the Krusty Krab staff group
 GET {{base}}/example4/groups/staff@krusty-krab.sea/messages
