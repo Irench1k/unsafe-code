@@ -29,7 +29,12 @@ flask/
 │   ├── run.py
 │   └── webapp/            # Application with automatic route discovery
 └── blueprints/
-    └── README.md          # Blueprint patterns guide (no runnable code)
+    ├── compose.dev.yml
+    ├── compose.yml
+    ├── Dockerfile
+    ├── requirements.txt
+    ├── run.py
+    └── webapp/            # Application with Flask blueprints
 ```
 
 ## Examples Overview
@@ -44,7 +49,7 @@ Demonstrates manual route organization across multiple files using explicit regi
 Showcases automated route discovery and registration using convention-based patterns. Demonstrates advanced architectural patterns for scalable application structure.
 
 ### [blueprints](blueprints/)
-Comprehensive guide to Flask blueprints for hierarchical application organization. Covers blueprint creation, nested registration, and patterns for structuring large applications. References working examples in the vulnerabilities section.
+Demonstrates Flask blueprints for modular application organization. Shows namespace isolation, URL prefixing, and the application factory pattern. Important for security auditors to understand that blueprints provide organizational structure, not security boundaries.
 
 ## Getting Started
 
