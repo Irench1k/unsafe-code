@@ -51,15 +51,15 @@ These examples use the same development environment as the main project. Refer t
 
 | Framework | Examples | Details |
 |-----------|----------|---------|
-| **[Flask](/foundations/python/flask/)** | Blueprint route precedence vulnerabilities | [→ View Examples](/foundations/python/flask/README.md) |
-| **[Django](/foundations/python/django/)** | Basic setup | [→ View Examples](/foundations/python/django/basic/README.md) |
-| **[Django REST Framework](/foundations/python/django_rest_framework/)** | Basic setup | [→ View Examples](/foundations/python/django_rest_framework/basic/README.md) |
-| **[FastAPI](/foundations/python/fastapi/)** | Basic setup with security considerations | [→ View Examples](/foundations/python/fastapi/basic/README.md) |
-| **[CherryPy](/foundations/python/cherrypy/)** | Dispatch and REST API security issues | [→ View Examples](/foundations/python/cherrypy/README.md) |
-| **[Bottle](/foundations/python/bottle/)** | Minimal framework security patterns | [→ View Examples](/foundations/python/bottle/basic/README.md) |
+| **[Flask](python/flask/)** | Blueprint route precedence vulnerabilities | [→ View Examples](python/flask/README.md) |
+| **[Django](python/django/)** | Basic setup | [→ View Examples](python/django/basic/README.md) |
+| **[Django REST Framework](python/django_rest_framework/)** | Basic setup | [→ View Examples](python/django_rest_framework/basic/README.md) |
+| **[FastAPI](python/fastapi/)** | Basic setup with security considerations | [→ View Examples](python/fastapi/basic/README.md) |
+| **[CherryPy](python/cherrypy/)** | Dispatch and REST API security issues | [→ View Examples](python/cherrypy/README.md) |
+| **[Bottle](python/bottle/)** | Minimal framework security patterns | [→ View Examples](python/bottle/basic/README.md) |
 
 ### JavaScript
 
 | Framework | Examples | Details |
 |-----------|----------|---------|
-| **[Express.js](/foundations/javascript/expressjs/)** | Basic setup with common security pitfalls | [→ View Examples](/foundations/javascript/expressjs/basic/README.md) |
+| **[Express.js](javascript/expressjs/)** | Basic setup with common security pitfalls | [→ View Examples](javascript/expressjs/basic/README.md) |

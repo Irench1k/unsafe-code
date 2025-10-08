@@ -73,23 +73,30 @@ uv run ruff check tools/ --fix
 For changes to vulnerable examples or their generated documentation:
 
 ```bash
-# Regenerate all documentation
-uv run docs all -v
+# Regenerate all documentation AND verify integrity (includes link checking)
+uv run docs verify -v
 ```
 
-**Critical**: The `docs all` command will continue even if warnings/errors occur. You **must**:
-1. Carefully review the entire output for warnings or errors
-2. Look for patterns like:
-   - "ERROR:" or "FAILED:" messages
-   - "WARNING:" messages (especially about missing files, malformed YAML, or annotation issues)
-   - Stack traces or exceptions
-   - "Failed to process annotation" messages
-3. If ANY errors or warnings are present, **do not commit**. Report them clearly to the main process with:
-   - The specific error/warning messages
-   - Which files are affected
-   - Suggestions for what might need fixing
+**Critical**: The `docs verify` command checks:
+1. **Index integrity**: All index.yml files are up-to-date with source code
+2. **README freshness**: All README.md files match current index + readme.yml
+3. **Link validity**: All internal markdown links point to existing files/directories
 
-**Quality gate**: Documentation generation must complete without any errors or warnings. Only proceed if output shows successful generation for all targets.
+You **must** carefully review the output for:
+- "ERROR:" or "FAILED:" messages
+- "WARNING:" messages (especially about missing files, malformed YAML, or annotation issues)
+- "Out of date" messages (index or README not regenerated)
+- Broken link reports
+- Stack traces or exceptions
+- "Failed to process annotation" messages
+
+If verification fails or finds issues:
+1. For out-of-date docs, regenerate them: `uv run docs all -v`
+2. For broken links, fix the links in the affected README/markdown files
+3. Rerun verification to confirm fixes
+4. If errors persist, **do not commit**. Report them clearly to the main process
+
+**Quality gate**: `uv run docs verify -v` must pass with "All targets up-to-date" and "No broken links found". Only proceed if all checks are green.
 
 #### Category C: Root Documentation Changes
 
@@ -108,9 +115,11 @@ If both Category A and Category B have changes:
    - If they pass, continue to step 2
 
 2. **Then, verify Category B** (vulnerable examples):
-   - Run `uv run docs all -v` using the newly updated tools
-   - Review output for errors/warnings
-   - If errors/warnings exist, stop and report them
+   - Run `uv run docs verify -v` using the newly updated tools
+   - This checks index integrity, README freshness, and link validity
+   - If verification fails, regenerate docs: `uv run docs all -v`
+   - Fix any broken links reported
+   - Rerun verification to confirm all checks pass
 
 3. **Only commit if both pass**: This ensures the updated docs generator works correctly before committing example changes.
 
@@ -215,16 +224,16 @@ EOF
 ```bash
 # Check what changed
 git status
-# Output shows: modified: languages/python/flask/blueprint/webapp/r02_ii/example.py
+# Output shows: modified: vulnerabilities/python/flask/confusion/webapp/r01_source_precedence/routes.py
 
-# Regenerate docs
-uv run docs all -v
-# Review output... looks for "WARNING:" or "ERROR:"
-# Output shows: "✓ Generated README for 48 targets"
+# Verify all docs are up-to-date and links are valid
+uv run docs verify -v
+# Review output carefully
+# Output shows: "All targets up-to-date" and "✓ No broken links found"
 
 # Commit
-git add languages/python/flask/blueprint/
-git commit -m "Add indirect injection example for Flask blueprints"
+git add vulnerabilities/python/flask/confusion/
+git commit -m "Add indirect injection example for Flask source precedence"
 ```
 
 ### Example 3: Mixed changes (tools + examples)
@@ -232,20 +241,34 @@ git commit -m "Add indirect injection example for Flask blueprints"
 ```bash
 # Check what changed
 git status
-# Output shows changes in both tools/ and languages/
+# Output shows changes in both tools/ and vulnerabilities/
 
 # First, verify tools changes
 uv run docs test -v && uv run mypy && uv run ruff check tools/
 # All pass ✓
 
-# Then, verify docs generation with updated tools
-uv run docs all -v
+# Then, verify docs with updated tools (includes regeneration check + link check)
+uv run docs verify -v
 # Review output carefully...
-# Output contains: "WARNING: Missing HTTP exploit file for example 5"
+# Output contains: "Found 3 broken link(s)"
 
-# ABORT - do not commit
-# Report: "Docs generation produced warning about missing HTTP file.
-# Please add the missing exploit-5.http file or update the example metadata."
+# Fix the broken links
+# (Edit the affected README files to correct the links)
+
+# Verify again
+uv run docs verify -v
+# Output shows: "All targets up-to-date" and "✓ No broken links found"
+
+# Now safe to commit
+git add tools/ vulnerabilities/
+git commit -m "$(cat <<'EOF'
+Add link validation to docs verification system
+
+- Implemented link checker module to validate all markdown links
+- Integrated link checking into 'uv run docs verify' command
+- Fixed broken links in confusion and foundation READMEs
+EOF
+)"
 ```
 
 By following this workflow, you ensure that every commit maintains the integrity of both the documentation toolchain and the vulnerable code examples in Unsafe Code Lab.

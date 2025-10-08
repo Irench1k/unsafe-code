@@ -205,7 +205,19 @@ You will receive tasks like:
    - File:line references are correct
    - Related vulnerability links are accurate
 
-6. **Verify Against @tools/docs/STYLE_GUIDE.md**:
+6. **Verify Link Integrity** (Critical after editing links):
+
+   ```bash
+   # Check for broken links in documentation
+   uv run docs check-links
+   ```
+
+   If broken links are found:
+   - Fix them immediately in the affected files
+   - Rerun link check to confirm fixes
+   - Common issues: Wrong path depth, missing webapp/ prefix, absolute vs relative paths
+
+7. **Verify Against @tools/docs/STYLE_GUIDE.md**:
    - Realism in descriptions
    - No condescending language
    - Root cause explanations
@@ -302,10 +314,22 @@ Before reporting completion:
 - [ ] Are all technical details accurate and verifiable?
 - [ ] Does the voice match project standards (accessible, not condescending)?
 - [ ] Is formatting consistent (Markdown, code blocks, lists)?
-- [ ] Are cross-references and links correct?
+- [ ] Are cross-references and links correct? (Run `uv run docs check-links` to verify)
 - [ ] Do examples follow progressive complexity?
 - [ ] Are root causes explained, not just symptoms?
 - [ ] Is the SpongeBob narrative (if present) consistent?
+
+**Link Verification** (Required after editing):
+
+If you edited any markdown files with links (README.md, readme.yml descriptions with links):
+
+```bash
+# Verify all links are valid
+uv run docs check-links
+
+# If broken links found, fix them and recheck
+# Then confirm: "✓ No broken links found"
+```
 
 ## Communication Protocol
 
@@ -331,5 +355,7 @@ Report back with:
 **Progressive complexity is sacred**: When editing example descriptions, ensure they maintain proper ordering: baseline → simple → intermediate → complex.
 
 **Annotations are curriculum**: When reviewing @unsafe notes, remember they're educational content. They should explain root causes, attack flows, and learning objectives clearly.
+
+**Link integrity is non-negotiable**: Broken links frustrate learners and damage credibility. ALWAYS run `uv run docs check-links` after editing documentation that contains links. Fix any broken links immediately before reporting completion.
 
 Your edits ensure that learners have a smooth, accurate, and engaging journey through the Unsafe Code Lab curriculum.

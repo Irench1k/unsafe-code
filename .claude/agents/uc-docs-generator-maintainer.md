@@ -24,11 +24,12 @@ Maintain the documentation generation system:
 
 **Key components**:
 
-- `cli.py` — Command-line interface (Click-based)
+- `cli.py` — Command-line interface (Typer-based)
 - `annotation_parser.py` — Parses @unsafe annotations from code
 - `markdown_generator.py` — Generates README.md content
 - `indexer.py` — Manages index.yml cache
 - `readme_spec.py` — Handles readme.yml parsing
+- `link_checker.py` — Validates markdown links (checks for broken links)
 - `models.py` — Data models (Pydantic)
 - `languages.py` — Language-specific parsing (Python, JS/TS)
 - `tests/` — Unit test suite
@@ -60,7 +61,9 @@ uv run docs --help
 uv run docs list -v
 uv run docs generate --target path/to/example/
 uv run docs all -v
-uv run docs verify -v
+uv run docs verify -v            # Checks index, README, AND links
+uv run docs check-links           # Standalone link checker
+uv run docs check-links -v        # Verbose link report
 
 # Run tests
 uv run docs test -v
@@ -384,7 +387,8 @@ Before reporting completion:
 - [ ] Does mypy pass with no errors? (`uv run mypy`)
 - [ ] Does ruff pass with no errors? (`uv run ruff check tools/`)
 - [ ] Can I generate docs for a real example? (`uv run docs generate --dry-run -v`)
-- [ ] Does `uv run docs verify -v` pass?
+- [ ] Does `uv run docs verify -v` pass? (includes index, README, and link checks)
+- [ ] Does `uv run docs check-links` pass with no broken links?
 - [ ] Are `pyproject.toml` and `uv.lock` updated if dependencies changed?
 - [ ] Have I added tests for new features?
 - [ ] Are error messages clear and actionable?

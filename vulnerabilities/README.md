@@ -49,4 +49,4 @@ These examples use the same development environment as the main project. Refer t
 
 | Framework | Examples | Details |
 |-----------|----------|---------|
-| **[Flask](/vulnerabilities/python/flask/)** | Blueprint route precedence vulnerabilities | [→ View Examples](/vulnerabilities/python/flask/README.md) |
+| **[Flask](python/flask/)** | Blueprint route precedence vulnerabilities | [→ View Examples](python/flask/README.md) |

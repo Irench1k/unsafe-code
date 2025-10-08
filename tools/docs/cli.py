@@ -14,6 +14,7 @@ from .indexer import (
     write_index,
 )
 from .languages import assemble_code_from_parts
+from .link_checker import check_all_links, find_all_readme_files
 from .markdown_generator import generate_readme
 from .readme_spec import load_readme_spec
 
@@ -283,6 +284,7 @@ def test_cmd(
 def verify_cmd(
     root: str = typer.Argument(str(Path.cwd())),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
+    skip_links: bool = typer.Option(False, "--skip-links", help="Skip link verification"),
 ):
     """Verify that index.yml and README.md are up-to-date (no writes)."""
     base = Path(root)
@@ -328,6 +330,18 @@ def verify_cmd(
                 import traceback
                 traceback.print_exc()
             mismatches += 1
+
+    # Check for broken links unless explicitly skipped
+    if not skip_links:
+        console.print("\n[cyan]Checking for broken links...[/cyan]")
+        broken_links = check_all_links(base)
+        if broken_links:
+            console.print(f"[red]Found {len(broken_links)} broken link(s).[/red]")
+            mismatches += len(broken_links)
+            if not verbose:
+                console.print("[dim]Run with -v to see details or use 'uv run docs check-links' for full report.[/dim]")
+        else:
+            console.print("[green]✓ No broken links found.[/green]")
 
     if mismatches:
         print("\n[red]Verification failed.[/red] Run: `uv run docs all -v`.")
@@ -394,6 +408,48 @@ def show_cmd(
             import traceback
             traceback.print_exc()
         raise typer.Exit(code=1) from e
+
+@app.command(name="check-links")
+def check_links_cmd(
+    root: str = typer.Argument(str(Path.cwd())),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
+):
+    """Check for broken links in all README.md files."""
+    base = Path(root)
+
+    console.print(f"[cyan]Scanning for README.md files in {base}...[/cyan]")
+    readme_files = find_all_readme_files(base)
+    console.print(f"[cyan]Found {len(readme_files)} README.md files[/cyan]\n")
+
+    broken_links = check_all_links(base)
+
+    if not broken_links:
+        console.print("[green]✓ No broken links found![/green]")
+        raise typer.Exit(code=0)
+
+    console.print(f"[red]Found {len(broken_links)} broken link(s):[/red]\n")
+    console.print("=" * 100)
+
+    # Group by README file
+    by_file: dict[Path, list] = {}
+    for link in broken_links:
+        if link.readme_path not in by_file:
+            by_file[link.readme_path] = []
+        by_file[link.readme_path].append(link)
+
+    for _readme_path, links in sorted(by_file.items()):
+        rel_path = links[0].relative_readme(base) if links else ""
+        console.print(f"\n[yellow]{rel_path}[/yellow]:")
+        for link in links:
+            console.print(f"  [red]✗[/red] [{link.link_text}]({link.link_url})")
+            if verbose:
+                console.print(f"    [dim]Resolved to: {link.resolved_path}[/dim]")
+                console.print("    [dim]Status: File does not exist[/dim]")
+
+    console.print("\n" + "=" * 100)
+    console.print(f"\n[red]Link verification failed with {len(broken_links)} broken link(s).[/red]")
+    raise typer.Exit(code=1)
+
 
 def docs_main() -> None:
     app()
