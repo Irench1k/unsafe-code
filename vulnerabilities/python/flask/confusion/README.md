@@ -21,7 +21,7 @@ The application will be available at `http://localhost:8000`.
 
 ## How to spot it
 - Pick a logical input (like `user_id` or `resource_name`) and trace its **full lifecycle**: where it enters the system, how it's merged or combined with other sources, what normalizations or casts happen, and where it's ultimately accessed.
-- Compare what the **security check** reads versus what the **business logic** uses,not just the variable name, but the actual source (path? query? body? merged dict? default value?).
+- Compare what the **security check** reads versus what the **business logic** uses, not just the variable name, but the actual source (path? query? body? merged dict? default value?).
 - Look for "smart" helpers like `request.values` or custom accessors that merge multiple sources, and check whether all consumers agree on precedence.
 - Watch for **multi-value** and **type** handling differences: does one place use `.get()` (first value) while another uses `.getlist()` (all values)? Are there implicit casts or normalization steps (case folding, URL decoding, whitespace stripping)?
 - Verify **ordering**: do guards run before or after inputs are finalized, merged, or normalized? Are defaults or fallbacks introduced after the security check?
