@@ -1,9 +1,16 @@
 from flask import Blueprint, request
 
+from .e0103_intro.routes import bp as intro_bp
+from .e04_cross_module.routes import bp as cross_module_bp
+
 bp = Blueprint("source_precedence", __name__)
 
 db = {
-    "passwords": {"spongebob": "bikinibottom", "squidward": "clarinet123"},
+    "passwords": {
+        "spongebob": "bikinibottom",
+        "squidward": "clarinet123",
+        "mr.krabs": "money",
+    },
     "messages": {
         "spongebob": [
             {"from": "patrick", "message": "SpongeBob! I'm ready! I'm ready! Let's go jellyfishing!"},
@@ -18,6 +25,12 @@ db = {
                 "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number.",
             },
         ],
+        "mr.krabs": [
+            {
+                "from": "squidward",
+                "message": "I saw Plankton buying a mechanical keyboard, he's planning to hack us!",
+            },
+        ],
     },
 }
 
@@ -27,83 +40,15 @@ def index():
     return "Source Precedence vulnerability examples\n"
 
 
-# @unsafe[function]
-# id: 1
-# title: Secure Implementation
-# http: open
-# notes: |
-#   Here you can see a secure implementation that consistently uses query string parameters
-#   for both authentication and data retrieval.
-# @/unsafe
-@bp.route("/example1", methods=["GET", "POST"])
-def example1():
-    """
-    Retrieves messages for an authenticated user.
-
-    Uses query string parameters for both authentication and message retrieval,
-    ensuring consistent parameter sourcing throughout the request lifecycle.
-    """
-    user = request.args.get("user", None)
-
-    password = db["passwords"].get(user, None)
-    if password is None or password != request.args.get("password", None):
-        return "Invalid user or password", 401
-
-    messages = db["messages"].get(user, None)
-    if messages is None:
-        return "No messages found", 404
-
-    return messages
+# Register sub-blueprints without url_prefix to preserve URLs
+bp.register_blueprint(intro_bp)
+bp.register_blueprint(cross_module_bp)
 
 
-# @unsafe[function]
-# id: 2
-# title: Basic Parameter Source Confusion
-# notes: |
-#   Demonstrates the most basic form of parameter source confusion where authentication
-#   uses **query** parameters but data retrieval uses **form** data.
-#
-#   We take the user name from the query string during the validation,
-#   but during the data retrieval another value is used, taken from the request body (form).
-#   This does not look very realistic, but it demonstrates the core of the vulnerability,
-#   we will build upon this further.
-#
-#   Here you can see if we provide squidward's name in the request body, we can access his messages without his password.
-# @/unsafe
-@bp.route("/example2", methods=["GET", "POST"])
-def example2():
-    """
-    Retrieves messages for an authenticated user.
-
-    Supports flexible parameter passing to accommodate various client implementations.
-    """
-    user = request.args.get("user", None)
-
-    password = db["passwords"].get(user, None)
-    if password is None or password != request.args.get("password", None):
-        return "Invalid user or password", 401
-
-    # Allow form data to specify the target user for message retrieval
-    user = request.form.get("user", None)
-    messages = db["messages"].get(user, None)
-    if messages is None:
-        return "No messages found", 404
-
-    return messages
-
-
-# @unsafe[block]
-# id: 3
-# title: Function-Level Parameter Source Confusion
-# http: open
-# notes: |
-#   Functionally equivalent to example 2, but shows how separating authentication and data retrieval into different functions can make the vulnerability harder to spot.
-# @/unsafe
+# Helper functions for examples 5-8
 def authenticate(user, password):
     """Validates user credentials against the database."""
-    if password is None or password != db["passwords"].get(user, None):
-        return False
-    return True
+    return password is not None and password == db["passwords"].get(user, None)
 
 
 def get_messages(user):
@@ -114,38 +59,6 @@ def get_messages(user):
     return {"owner": user, "messages": messages}
 
 
-@bp.route("/example3", methods=["GET", "POST"])
-def example3():
-    """
-    Retrieves messages for an authenticated user.
-
-    Uses modular authentication and data retrieval functions for cleaner separation of concerns.
-    """
-    if not authenticate(
-        request.args.get("user", None), request.args.get("password", None)
-    ):
-        return "Invalid user or password", 401
-
-    messages = get_messages(request.form.get("user", None))
-    if messages is None:
-        return "No messages found", 404
-
-    return messages
-
-
-# @/unsafe[block]
-
-
-# @unsafe[block]
-# id: 4
-# title: Cross-Module Parameter Source Confusion
-# notes: |
-#   In the previous example, you can still see that the `user` value gets retrieved from the
-#   `request.args` during validation but from the `request.form` during data retrieval.
-#
-#   A more subtle example, where this is not immediately obvious (imagine, `authenticate_user`
-#   is defined in an another file altogether):
-# @/unsafe
 def authenticate_user():
     """
     Authenticates the current user using query string credentials.
@@ -157,34 +70,13 @@ def authenticate_user():
     )
 
 
-@bp.route("/example4", methods=["GET", "POST"])
-def example4():
-    """
-    Retrieves messages for an authenticated user.
-
-    Delegates authentication to a shared utility function while handling
-    message retrieval directly in the endpoint.
-    """
-    if not authenticate_user():
-        return "Invalid user or password", 401
-
-    messages = get_messages(request.form.get("user", None))
-    if messages is None:
-        return "No messages found", 404
-
-    return messages
-
-
-# @/unsafe[block]
-
-
 # @unsafe[block]
 # id: 5
-# title: Form-Query Priority Resolution
+# title: Mixed-Source Authentication
 # notes: |
-#   Shows how a helper function that implements source prioritization can create vulnerabilities.
+#   Shows how authentication and data access can use different combinations of sources.
 #
-#   In Example 5 we don't need to specify body parameters to get a result (which is now more realistic!), but if we want, we can still access squidward's messages by passing his user name in the request body:
+#   This one is interesting, because you can access Squidward's messages by providing his username and SpongeBob's password in the request query, while providing SpongeBob's username in the request body:
 # @/unsafe
 def get_user():
     """
@@ -199,34 +91,7 @@ def get_user():
     return user_from_form or user_from_args
 
 
-@bp.route("/example5", methods=["GET", "POST"])
-def example5():
-    """
-    Retrieves messages for an authenticated user.
-
-    Uses a flexible user resolution strategy that accommodates multiple parameter sources.
-    """
-    if not authenticate_user():
-        return "Invalid user or password", 401
-
-    messages = get_messages(get_user())
-    if messages is None:
-        return "No messages found", 404
-    return messages
-
-
-# @/unsafe[block]
-
-
-# @unsafe[block]
-# id: 6
-# title: Mixed-Source Authentication
-# notes: |
-#   Shows how authentication and data access can use different combinations of sources.
-#
-#   This one is interesting, because you can access Squidward's messages by providing his username and SpongeBob's password in the request query, while providing SpongeBob's username in the request body:
-# @/unsafe
-def authenticate_user_example6():
+def authenticate_user_example5():
     """
     Authenticates the current user with flexible parameter resolution.
 
@@ -237,14 +102,14 @@ def authenticate_user_example6():
     return authenticate(user, password)
 
 
-@bp.route("/example6", methods=["GET", "POST"])
-def example6():
+@bp.route("/example5", methods=["GET", "POST"])
+def example5():
     """
     Retrieves messages for an authenticated user.
 
     Combines flexible authentication with query-based message retrieval.
     """
-    if not authenticate_user_example6():
+    if not authenticate_user_example5():
         return "Invalid user or password", 401
 
     messages = get_messages(request.args.get("user", None))
@@ -254,6 +119,56 @@ def example6():
 
 
 # @/unsafe[block]
+
+
+def reset_password(user, new_password):
+    """Updates the user's password in the database."""
+    if user not in db["passwords"]:
+        return False
+    db["passwords"][user] = new_password
+    return True
+
+
+def delete_message(user, index):
+    """Removes a message from the specified user's inbox."""
+    messages = db["messages"].get(user, None)
+    if messages is None or index < 0 or index >= len(messages):
+        return False
+    del messages[index]
+    return True
+
+
+# @unsafe[function]
+# id: 6
+# title: Destructive Parameter Source Confusion
+# notes: |
+#   Demonstrates parameter source confusion with a DELETE operation. Same root cause as
+#   Examples 2-5, but now enabling destructive operations instead of just data disclosure.
+#   Authentication uses query parameters while deletion target uses form body.
+# @/unsafe
+@bp.route("/example6", methods=["DELETE", "GET"])
+def example6():
+    """Manages user messages with list and delete operations."""
+    if not authenticate_user():
+        return "Invalid user or password", 401
+
+    action = request.args.get("action", "delete")
+
+    if action == "list":
+        user = request.args.get("user")
+        messages = get_messages(user)
+        if messages is None:
+            return "No messages found", 404
+        return messages
+
+    # Delete message - target user from form body (VULNERABILITY)
+    target_user = request.form.get("user")
+    message_index = int(request.args.get("index", 0))
+
+    if delete_message(target_user, message_index):
+        return {"status": "deleted", "user": target_user, "index": message_index}
+    else:
+        return "Message not found", 404
 
 
 # @unsafe[block]
@@ -306,21 +221,16 @@ def example7():
 # @/unsafe[block]
 
 
-# @unsafe[function]
-# id: 8
-# title: Request.Values in Authentication
-# notes: |
-#   Demonstrates how using request.values in authentication while using form data for access creates vulnerabilities.
-#
-#   This is an example of a varient of example 7, as we do the similar thing, but now we can pass Squidward's username in the request body with SpongeBob's password, while passing SpongeBob's username in the request query. Note that this example does not work with GET request, use POST.
-# @/unsafe
+# Note: This endpoint was FIXED by using request.values consistently for both authentication
+# and message retrieval. This is the correct pattern - no parameter source confusion.
+# However, see the password_reset endpoint below where the same developers made a mistake...
 @bp.route("/example8", methods=["GET", "POST"])
 def example8():
     """
     Retrieves messages for an authenticated user.
 
-    Uses unified parameter resolution for authentication to support flexible client implementations,
-    while retrieving messages based on form data.
+    Uses unified parameter resolution for both authentication and message retrieval,
+    ensuring consistent parameter sourcing throughout the request lifecycle.
     """
     # Authenticate using merged values from both query and form data
     if not authenticate(
@@ -328,9 +238,48 @@ def example8():
     ):
         return "Invalid user or password", 401
 
-    # Retrieve messages using form data
-    messages = get_messages(request.form.get("user", None))
+    # Retrieve messages using consistent request.values
+    messages = get_messages(request.values.get("user", None))
     if messages is None:
         return "No messages found", 404
 
     return messages
+
+
+# @unsafe[function]
+# id: 8
+# title: Password Reset Parameter Confusion
+# notes: |
+#   Developers "fixed" the messages endpoint but introduced a NEW vulnerability when adding
+#   password reset functionality. Authentication uses request.values to verify WHO is making
+#   the request, but the target user whose password gets reset comes from request.form only.
+#
+#   An attacker can authenticate with their own credentials in the query string while
+#   specifying a victim's username in the form body, resetting the victim's password to
+#   one they control. This enables full account takeover.
+#
+#   LESSON: This demonstrates how "apparent fixes" create false security. Same root cause
+#   as Examples 2-7, but now enabling account takeover instead of just data disclosure.
+#   The partial fix made developers careless when adding new features.
+# @/unsafe
+@bp.route("/example8/password_reset", methods=["POST"])
+def example8_password_reset():
+    """Resets a user's password after authentication."""
+    # Authenticate using merged values (who's making the request)
+    auth_user = request.values.get("user", None)
+    auth_password = request.values.get("password", None)
+
+    if not authenticate(auth_user, auth_password):
+        return "Invalid user or password", 401
+
+    # Target user and new password from form data (VULNERABILITY)
+    target_user = request.form.get("user", None)
+    new_password = request.form.get("new_password", None)
+
+    if target_user is None or new_password is None:
+        return "Missing required parameters", 400
+
+    if reset_password(target_user, new_password):
+        return {"status": "success", "user": target_user, "message": "Password updated"}
+    else:
+        return "User not found", 404

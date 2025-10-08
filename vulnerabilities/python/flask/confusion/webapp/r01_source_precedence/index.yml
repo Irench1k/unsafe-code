@@ -14,12 +14,12 @@ examples:
     language: python
     parts:
     - part: 1
-      file: routes.py
-      code_start_line: 38
-      code_end_line: 56
+      file: e0103_intro/routes.py
+      code_start_line: 33
+      code_end_line: 51
     file_hashes:
-      routes.py: a26e77e5ccf6d7a8922ee8ffea9a48fbafaabea3607dd5fdec7824610200d441
-    fingerprint: 4116309554df717a886ba85c9199b957d6915233353a81664b686d5590623573
+      e0103_intro/routes.py: 49e732e2a49c23cf62186e995151e86f4ded16a296be1eadf682dd15c009939b
+    fingerprint: bf2c552e61e747697aa9f2d1908cf5756bd22f4964a4635134494587bd30e288
   2:
     id: 2
     kind: function
@@ -41,12 +41,12 @@ examples:
     language: python
     parts:
     - part: 1
-      file: routes.py
-      code_start_line: 73
-      code_end_line: 92
+      file: e0103_intro/routes.py
+      code_start_line: 68
+      code_end_line: 87
     file_hashes:
-      routes.py: a26e77e5ccf6d7a8922ee8ffea9a48fbafaabea3607dd5fdec7824610200d441
-    fingerprint: ffebbc17156717b5b448c2d84293aba7e2943420c7695ab28b03b865155adf72
+      e0103_intro/routes.py: 49e732e2a49c23cf62186e995151e86f4ded16a296be1eadf682dd15c009939b
+    fingerprint: d7838fdd422904bc22e11c7f6c6da382df561d7ee44ccb18773db33ed0832bda
   3:
     id: 3
     kind: block
@@ -58,12 +58,12 @@ examples:
     language: python
     parts:
     - part: 1
-      file: routes.py
-      code_start_line: 102
-      code_end_line: 133
+      file: e0103_intro/routes.py
+      code_start_line: 97
+      code_end_line: 128
     file_hashes:
-      routes.py: a26e77e5ccf6d7a8922ee8ffea9a48fbafaabea3607dd5fdec7824610200d441
-    fingerprint: d3b0bcac352cd4e4c5737e6adb4fd243cb6d99add9e182264ea66ceb6a9b6389
+      e0103_intro/routes.py: 49e732e2a49c23cf62186e995151e86f4ded16a296be1eadf682dd15c009939b
+    fingerprint: 132174e1692c758c7fcaebafed98401e5fddddd2d314738af031fe4858128e5d
   4:
     id: 4
     kind: block
@@ -79,35 +79,19 @@ examples:
     language: python
     parts:
     - part: 1
-      file: routes.py
-      code_start_line: 149
-      code_end_line: 175
+      file: e04_cross_module/db.py
+      code_start_line: 50
+      code_end_line: 71
+    - part: 2
+      file: e04_cross_module/routes.py
+      code_start_line: 12
+      code_end_line: 27
     file_hashes:
-      routes.py: a26e77e5ccf6d7a8922ee8ffea9a48fbafaabea3607dd5fdec7824610200d441
-    fingerprint: 113c4856ad6c7963aad5cc63d6502aabdc4ffee3c92d257e8e15c17648bc49a9
+      e04_cross_module/db.py: 85956819c259975983778239ecd055b130937a0c5923b7f4a6f8188b80165771
+      e04_cross_module/routes.py: 6ffffe4b4ea079a72d45479582346808c853a6cd3cf5e4a0d737b0cf930c9e99
+    fingerprint: fd43d0708fc7b250539180909af9aa40b338a1fd5da4013c29c5d33c4dd029ec
   5:
     id: 5
-    kind: block
-    title: Form-Query Priority Resolution
-    notes: >-
-      Shows how a helper function that implements source prioritization can create vulnerabilities.
-
-
-      In Example 5 we don't need to specify body parameters to get a result (which is now
-      more realistic!), but if we want, we can still access squidward's messages by passing
-      his user name in the request body:
-    http: null
-    language: python
-    parts:
-    - part: 1
-      file: routes.py
-      code_start_line: 189
-      code_end_line: 215
-    file_hashes:
-      routes.py: a26e77e5ccf6d7a8922ee8ffea9a48fbafaabea3607dd5fdec7824610200d441
-    fingerprint: ce150622af11deb0769a0c7bbd0cc0e0e321d5aa0b0309e0a782ca61c4167b69
-  6:
-    id: 6
     kind: block
     title: Mixed-Source Authentication
     notes: >-
@@ -122,11 +106,29 @@ examples:
     parts:
     - part: 1
       file: routes.py
-      code_start_line: 229
-      code_end_line: 253
+      code_start_line: 81
+      code_end_line: 118
     file_hashes:
-      routes.py: a26e77e5ccf6d7a8922ee8ffea9a48fbafaabea3607dd5fdec7824610200d441
-    fingerprint: adf36b2e5bd6951c2410fba9ab986c1952c26d7ee5eebb5e20781df52be1f041
+      routes.py: fffcc35b5c91a9643da4fdbc7f1a4b0840f83a1bb2c2d740bdce9bef8d3370f7
+    fingerprint: 2ac03a3f2ff24f38a11f7a6030fe1dbf3fbd42e3a153954e377cf3908acbd5a3
+  6:
+    id: 6
+    kind: function
+    title: Destructive Parameter Source Confusion
+    notes: >-
+      Demonstrates parameter source confusion with a DELETE operation. Same root cause as
+      Examples 2-5, but now enabling destructive operations instead of just data disclosure.
+      Authentication uses query parameters while deletion target uses form body.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: routes.py
+      code_start_line: 149
+      code_end_line: 171
+    file_hashes:
+      routes.py: fffcc35b5c91a9643da4fdbc7f1a4b0840f83a1bb2c2d740bdce9bef8d3370f7
+    fingerprint: 3db69e55e13e127fdf4370c9ae52d54233882edbbf7884dd8b3a6d4580663bb5
   7:
     id: 7
     kind: block
@@ -164,42 +166,47 @@ examples:
     parts:
     - part: 1
       file: routes.py
-      code_start_line: 277
-      code_end_line: 303
+      code_start_line: 192
+      code_end_line: 218
     file_hashes:
-      routes.py: a26e77e5ccf6d7a8922ee8ffea9a48fbafaabea3607dd5fdec7824610200d441
-    fingerprint: 0bfe100601f6d2114dbf86d26bfd35defeb280ae7738544ff89fa9b39fa951a4
+      routes.py: fffcc35b5c91a9643da4fdbc7f1a4b0840f83a1bb2c2d740bdce9bef8d3370f7
+    fingerprint: 937fc872c4b10f8cd4b5e9a5f665583274a7100bc6a4cb8bf7f8bfc6cc102cf8
   8:
     id: 8
     kind: function
-    title: Request.Values in Authentication
+    title: Password Reset Parameter Confusion
     notes: >-
-      Demonstrates how using request.values in authentication while using form data for access
-      creates vulnerabilities.
+      Developers "fixed" the messages endpoint but introduced a NEW vulnerability when adding
+      password reset functionality. Authentication uses request.values to verify WHO is making
+      the request, but the target user whose password gets reset comes from request.form only.
 
 
-      This is an example of a varient of example 7, as we do the similar thing, but now we
-      can pass Squidward's username in the request body with SpongeBob's password, while passing
-      SpongeBob's username in the request query. Note that this example does not work with
-      GET request, use POST.
+      An attacker can authenticate with their own credentials in the query string while specifying
+      a victim's username in the form body, resetting the victim's password to one they control.
+      This enables full account takeover.
+
+
+      LESSON: This demonstrates how "apparent fixes" create false security. Same root cause
+      as Examples 2-7, but now enabling account takeover instead of just data disclosure.
+      The partial fix made developers careless when adding new features.
     http: null
     language: python
     parts:
     - part: 1
       file: routes.py
-      code_start_line: 317
-      code_end_line: 336
+      code_start_line: 265
+      code_end_line: 285
     file_hashes:
-      routes.py: a26e77e5ccf6d7a8922ee8ffea9a48fbafaabea3607dd5fdec7824610200d441
-    fingerprint: b429086d384ce6e03a4989d5f36277a79a89da393b4ca4a2543a0963c062b6eb
+      routes.py: fffcc35b5c91a9643da4fdbc7f1a4b0840f83a1bb2c2d740bdce9bef8d3370f7
+    fingerprint: 1323dbedb73c5365a6664cdbfcc98ec2eefaaffb2a1100a30de106fb7b4d65a8
 attachments:
-  http/exploit-1.http: 4522e674d263809ae7a971cbab3d9ebe864ea890f1a716a2550778ea4cf5d944
-  http/exploit-2.http: b723d6bfd8637ff1bccab7b8675fd3b9d1bc4e7574d356992d0d8c3f0c564d51
-  http/exploit-3.http: f7c4418c9e62ed60ef552f300dae2e57bcd758ebc6279586be10479113bfde4e
-  http/exploit-4.http: a153c38ff885850977a9881f3fe2e40a7372a9004e3531430733aa72a958b8d8
-  http/exploit-5.http: 03d889739e84d2c7f1beabd5371951c3bc182f8456bab26bc0a531adc55623b2
-  http/exploit-6.http: 9186c05c647140cdff0bb94f347b3dc5b72d2734635ab81a9557ca4e74dd9def
-  http/exploit-7.http: 97ae879501cad426e5fd6a50a7e2db1fcadcccc0ea12d80ba026f4ba385d2e5d
-  http/exploit-8.http: 58b50c192b5d9624e7cb84e1a85d6fa119060db1866df1d7cf4a85b01642d07a
-build_signature: c1bf2b28b9ece0e7416d33e33ea9c45aea14efd842e92cdc08fe88eca4b493d2
-last_readme_fingerprint: 69a245961ea3ac46c20be7b1d3f0586f36ea3310571b1de73f03198446c80be6
+  http/exploit-1.http: 50f85726ba27321f7a75e2f075a6ce5e73cd554912c8941c3f9809d438e71eaa
+  http/exploit-2.http: e2811e1f074cdb4b8589caaf500af2f6ea10ba93468c2e92b231666ebbd8670b
+  http/exploit-3.http: 885d1ed34ceafe5645ea80d29585573774a7dc8f0a0ec58fd0503e81de6bf477
+  http/exploit-4.http: 6369d3570fb27203bbe27ab575d18863d59a2990d6ae91c2e2982bdeb132dd71
+  http/exploit-5.http: 513883f3ffbf2d536d25c3e2934a08cb5fedfa2c845b7398e93043720f616f39
+  http/exploit-6.http: d8bc1262fd1bfe71b70d4e81cd14bea3c6512a777372b9b4cdd15003009e392b
+  http/exploit-7.http: 46cdf284dbd8aad41106b40791ba6d27414e9909951f242094bdcf9437e9b5f8
+  http/exploit-8.http: 58c71d9d06c734261fed5d126a7d6cf22dcc17dba323d82242efa3daaeeba5c9
+build_signature: 1aff67defb3fd653b285e376fb9cadae53f783a49ed3610a7997f06f68e333ff
+last_readme_fingerprint: e2a48b99c5def18c34c49d33ccfd4a6a77a948f18db657bd1a3b789158e474ee
