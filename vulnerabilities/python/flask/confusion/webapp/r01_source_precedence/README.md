@@ -22,12 +22,12 @@ Source precedence bugs creep in when two parts of the stack read the "same" inpu
 |:---:|:---:|:---:|
 | Secure Baselines | [Example 1: Secure Implementation](#ex-1) | [e0103_intro/routes.py](e0103_intro/routes.py#L33-L51) |
 | Straightforward Source Drift | [Example 2: Basic Parameter Source Confusion](#ex-2) | [e0103_intro/routes.py](e0103_intro/routes.py#L68-L87) |
-| Straightforward Source Drift | [Example 3: Function-Level Parameter Source Confusion](#ex-3) | [e0103_intro/routes.py](e0103_intro/routes.py#L97-L128) |
+| Straightforward Source Drift | [Example 3: Function-Level Parameter Source Confusion](#ex-3) | [e0103_intro/routes.py](e0103_intro/routes.py#L97-L126) |
 | Straightforward Source Drift | [Example 4: Cross-Module Parameter Source Confusion](#ex-4) | [e04_cross_module/db.py](e04_cross_module/db.py#L50-L71) |
-| Helper-Induced Mixing | [Example 5: Mixed-Source Authentication](#ex-5) | [routes.py](routes.py#L81-L118) |
-| Helper-Induced Mixing | [Example 6: Destructive Parameter Source Confusion](#ex-6) | [routes.py](routes.py#L149-L171) |
-| request.values Footguns | [Example 7: Form Authentication Bypass](#ex-7) | [routes.py](routes.py#L192-L218) |
-| request.values Footguns | [Example 8: Password Reset Parameter Confusion](#ex-8) | [routes.py](routes.py#L265-L285) |
+| Helper-Induced Mixing | [Example 5: Mixed-Source Authentication](#ex-5) | [e0506_variations/routes.py](e0506_variations/routes.py#L69-L106) |
+| Helper-Induced Mixing | [Example 6: Destructive Parameter Source Confusion](#ex-6) | [e0506_variations/routes.py](e0506_variations/routes.py#L129-L151) |
+| request.values Footguns | [Example 7: Form Authentication Bypass](#ex-7) | [e0708_apparent_fix/routes.py](e0708_apparent_fix/routes.py#L77-L103) |
+| request.values Footguns | [Example 8: Password Reset Parameter Confusion](#ex-8) | [e0708_apparent_fix/routes.py](e0708_apparent_fix/routes.py#L150-L170) |
 
 ## Secure Baselines
 
@@ -186,9 +186,7 @@ Functionally equivalent to example 2, but shows how separating authentication an
 ```python
 def authenticate(user, password):
     """Validates user credentials against the database."""
-    if password is None or password != db["passwords"].get(user, None):
-        return False
-    return True
+    return password is not None and password == db["passwords"].get(user, None)
 
 
 def get_messages(user):

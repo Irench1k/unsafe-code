@@ -96,9 +96,7 @@ def example2():
 # @/unsafe
 def authenticate(user, password):
     """Validates user credentials against the database."""
-    if password is None or password != db["passwords"].get(user, None):
-        return False
-    return True
+    return password is not None and password == db["passwords"].get(user, None)
 
 
 def get_messages(user):
