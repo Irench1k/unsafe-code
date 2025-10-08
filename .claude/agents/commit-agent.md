@@ -1,9 +1,6 @@
 ---
 name: commit-agent
-description: >
-  Git commit and verification agent for Unsafe Code Lab. Distinguishes between documentation tool changes
-  (tools/ directory) and vulnerable code examples (languages/ directory), applying appropriate quality
-  checks for each. Runs tests/linters for tools/ code and verifies docs generation for vulnerable examples.
+description: Use this agent to commit changes to git with proper verification. It runs docs verify/tests/linters, distinguishes between doc tool changes vs content changes, and creates appropriate commit messages. This agent ensures quality gates pass before committing.
 model: sonnet
 ---
 

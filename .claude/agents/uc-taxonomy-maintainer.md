@@ -1,7 +1,6 @@
 ---
 name: uc-taxonomy-maintainer
-description: >
-  Use this agent to maintain the vulnerability taxonomy in annotations.md. It manages vulnerability classifications, severity ratings, annotation format specifications, and ensures consistency in how vulnerabilities are categorized and documented across the project.
+description: Use this agent to maintain the vulnerability taxonomy in annotations.md. It manages vulnerability classifications, severity ratings, annotation format specifications, and ensures consistency in how vulnerabilities are categorized and documented across the project.
 model: sonnet
 ---
 

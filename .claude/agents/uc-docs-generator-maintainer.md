@@ -1,7 +1,6 @@
 ---
 name: uc-docs-generator-maintainer
-description: >
-  Use this agent to maintain the Python-based documentation generation system (uv run docs). It fixes bugs, adds features, runs tests, and ensures the tool reliably parses @unsafe annotations and generates high-quality README.md files. This agent works exclusively on the tooling, not the content.
+description: Use this agent to maintain the Python-based documentation generation system (uv run docs). It fixes bugs, adds features, runs tests, and ensures the tool reliably parses @unsafe annotations and generates high-quality README.md files. This agent works exclusively on the tooling, not the content.
 model: sonnet
 ---
 
