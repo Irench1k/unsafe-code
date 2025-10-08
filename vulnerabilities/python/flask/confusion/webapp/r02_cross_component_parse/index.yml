@@ -44,7 +44,7 @@ examples:
     file_hashes:
       e01_baseline/decorator.py: 3351dc3ce99d5430d79ff87aac7851c9682675da2c7816f326b7eea0e274caab
       e01_baseline/routes.py: c6a4f807eac665058e67eddcf04f380fd17c3717ce72cf73d002847a799b45a5
-    fingerprint: 62504fe09de2bd5c8467271af12b55b14fd03469aebc37aaa01027b124b1ae22
+    fingerprint: cc9722cb1e6ca6ebe365f24c71956d75bd54db3b5a2485be490355428798eebe
   2:
     id: 2
     kind: block
@@ -87,7 +87,7 @@ examples:
     file_hashes:
       e02_decorator_drift/decorator.py: 21a90057887ec40d0fbacde26110d5f9f796399ddd8c30cb12bcb8c41e150a2f
       e02_decorator_drift/routes.py: 79a8960009f60d49b07decedfcc7ec2a70b872ff344b12b76e9a168fdd665760
-    fingerprint: 83f184011ab24961f94b9d68e0332f47533ce22c258b74ff8783ce5f9e3bf570
+    fingerprint: 0c04433c784dae80fee6e88bec81902c05ac0489791fab9382dc9822e6035fb3
   3:
     id: 3
     kind: block
@@ -118,10 +118,10 @@ examples:
     file_hashes:
       e03_middleware_drift/middleware.py: e426011539f8710630f460fdcf1c5778b68a4ad7e4ca4c159f9831240f814f6c
       e03_middleware_drift/routes.py: aed01c24c03a314dfd53aa1e2a622bffc1cfaebd5818a0f1ebf7edfa70602cad
-    fingerprint: 243c309ecebdd3c45597a90df4fe3a4a337796f3be9c57d5b940152452794833
+    fingerprint: 85d0ae1fe7c9dc15963ba38ad93c7aaa6b0a77f8624e507f4b1a73e301a6dba5
 attachments:
-  http/exploit-1.http: 3d79c1ba3b691c62c0f1dc6961dc6732da910996c0b06d07d8d3e415fd910557
-  http/exploit-2.http: 7400c5be3a7dd66c7bdd1330e60f7b18d109508ba1c3a7c1ec0bc50d8d9db620
-  http/exploit-3.http: be70214e060b832ae8a69fa0ff5a57fe24b9649b87fcaa6a82ccb0f5776066e6
-build_signature: e5ac941638605e69a15aafc12da24a61d954cdff02ea5becffb18ac0ea144c27
-last_readme_fingerprint: e01c82219d5058756172fba5c40a5d7eddc1d9a776b348e4327c4d33b274eb9c
+  http/exploit-1.http: afc84bb67132164bc40dcd2c850beb21c894358ded6cc2859dc369442e764a2a
+  http/exploit-2.http: c233ae057f1910328bf16d63176e9aef93579e0fdb54c77b7e9ae140d5945cda
+  http/exploit-3.http: 6238c7915d2cc6c5d773bfe174a647e912f7a35d3d906d545969cc457716a0c0
+build_signature: b36090941771417e7a9b76285c3a8074a769db088192c4b02b66963579e7440b
+last_readme_fingerprint: 464d47c57855cc31ef97bbd24b0bba1bba7c5b3daca13435105f5bcf3b1aae65

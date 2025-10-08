@@ -43,7 +43,7 @@ examples:
       code_end_line: 58
     file_hashes:
       e01_baseline/routes.py: 5f671caa90a924061941f71f9e508519ff84e306865fb6ddefb99f85a26c2207
-    fingerprint: 4005aa378fdf52a2624f8537118dbe95608dac27b0b6788ad8354d6c10808fb7
+    fingerprint: 5c53c7215d6cd1e8afec9cf2f91620ee105a4e033b52f8afa563627e7149f40b
   2:
     id: 2
     kind: block
@@ -86,7 +86,7 @@ examples:
       code_end_line: 50
     file_hashes:
       e02_path_query_confusion/routes.py: 340e8de944fa34db6fe8ff8e79d0bab99654e8a7bddec5ab7dbb1cb0fdf530af
-    fingerprint: d2a8205376fa9dd9ce445495606c3b98db4ed3624af05463eddde9dea5e44bc1
+    fingerprint: 196a9acfcfe429a21484374f90d95d3b996a3df5b56cd4e6bceb0b2d768ff43f
   3:
     id: 3
     kind: block
@@ -138,7 +138,7 @@ examples:
       code_end_line: 97
     file_hashes:
       e02_path_query_confusion/routes.py: 340e8de944fa34db6fe8ff8e79d0bab99654e8a7bddec5ab7dbb1cb0fdf530af
-    fingerprint: 695f807cb798e0c4f7174bc27e3f8549f4f1034d744aadbc4b5f48038c0e41db
+    fingerprint: c8923084b869726579dca2e85259006fd1d1a58d13c3b2b38ae70921b5cc5e6e
   4:
     id: 4
     kind: block
@@ -190,7 +190,7 @@ examples:
       code_end_line: 76
     file_hashes:
       e03_simple_rebinding/routes.py: 9717ac94f8b5082bc0654fbba25c79420b6edd295ec1ea29608023adba8bff84
-    fingerprint: a9c14168a31c5075013ba1e0009b9ba9b20907111e248ccbb65399c9a1cea313
+    fingerprint: 0da3c12f4f9868f914db00fd09872ec897a04fe0c19469d268e8878f4d6e6902
   13:
     id: 13
     kind: block
@@ -205,7 +205,7 @@ examples:
       code_end_line: 36
     file_hashes:
       e01_baseline/decorator.py: 8b681ce69fafe2466d6980fd3567d52452842e936238402fae306655d919583d
-    fingerprint: 1af00a9e12f69d4b9f54c4a960c60e7f63d109f3b85ea3ffa6815d193f5c8adb
+    fingerprint: 0d2dc73df2479b718730e57fa2d079096c6f374dd15ebb93b23670e6629fb00f
   14:
     id: 14
     kind: block
@@ -220,7 +220,7 @@ examples:
       code_end_line: 50
     file_hashes:
       e02_path_query_confusion/decorator.py: 32a3e8ade10bcca35dfc72824a86a68329bdbb61891fd23ac26bf61fcf152214
-    fingerprint: cdf60a2a236775d760db7afb19925e39baafafed4ae34be03ec09da1adecd1d6
+    fingerprint: c7d5bacb6a22918b1d4ba26e0f8209388a804fc44ead3e891c493085b2eeca30
   15:
     id: 15
     kind: block
@@ -235,11 +235,11 @@ examples:
       code_end_line: 92
     file_hashes:
       e02_path_query_confusion/decorator.py: 32a3e8ade10bcca35dfc72824a86a68329bdbb61891fd23ac26bf61fcf152214
-    fingerprint: 2c4e7305eabdcc7837671be88295ff33f6d64b87c1c033783ca3f600cff2da71
+    fingerprint: 1f913a207d57aae50e6a95dd83f80f0ab87004de4f62576e9dc9e2c8395d67e5
 attachments:
-  http/exploit-1.http: e097a7fe9c9d94974e5707d78b8dc74ee77eb53b27c239e80365a4496919a48c
-  http/exploit-2.http: 0d0baef8a76d4f626944d9512ff14712a895e30156d620acb44f8442f7d75c9c
-  http/exploit-3.http: 4df1dfed244b6dcc9e538905445f8d5246f6ab7ea3647878ea803233f1bb1bb4
-  http/exploit-4.http: bcea218359dbc7834edabf86e73cc5b56ce9f09918a5e1e4e80906848f132cb1
-build_signature: c653bcaa20d51d997b6972a778f8f267a0b760449a514ce2abd9b03dfbce9cae
-last_readme_fingerprint: cc32f9fd4dd93aadd355776023eaf2ff250a174248e3aa05e5eaebe6c1a68588
+  http/exploit-1.http: 77bc81050ebdbc3adfc49c0c3a5ca3ca7bfce0704e59188365721cd164a4166c
+  http/exploit-2.http: 8a4f38f146750b0f86cf4506bcf8e404084d3ca6de90d7a2d9376e6e6373c1ad
+  http/exploit-3.http: 2fcb8ab484c3d6d390a8d245105961d71ba4fc88f14c1218e44461fad8ce12eb
+  http/exploit-4.http: 3714f6759a61e296218d5ab3545a140d25eca48f0dacd2d777428d12a74fb832
+build_signature: e3c2f20c3debfe710047a1315b35480b9a449d62d453bf77a6d2b222cc5eb299
+last_readme_fingerprint: d0e5b6f73d67cb86357dd7b72bf819c09fa9961db1b460bcc6a8ada4cba99e19

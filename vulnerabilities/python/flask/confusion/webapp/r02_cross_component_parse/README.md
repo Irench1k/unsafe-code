@@ -93,10 +93,8 @@ def authentication_required(f):
 ```shell
 @base = http://localhost:8000/confusion/cross-component-parse
 
-### Expected Usage: Secure baseline showing correct authentication
+### Secure Baseline: SpongeBob authenticates and retrieves his own messages
 GET {{base}}/example1?user=spongebob&password=bikinibottom
-#
-# SpongeBob authenticates and gets his own messages:
 #
 # {
 #   "owner": "spongebob",
@@ -108,31 +106,8 @@ GET {{base}}/example1?user=spongebob&password=bikinibottom
 #   ]
 # }
 #
-
-###
-
-### Attempted Attack: Try to authenticate as SpongeBob but access Squidward's messages
-GET {{base}}/example1?user=spongebob&password=bikinibottom
-Content-Type: application/x-www-form-urlencoded
-
-user=squidward
-#
-# This FAILS to bypass authentication because both the decorator and handler
-# consistently use request.args.get("user"). The form data is ignored by both layers.
-#
-# SpongeBob still gets his own messages, NOT Squidward's:
-#
-# {
-#   "owner": "spongebob",
-#   "messages": [
-#     {
-#       "from": "patrick",
-#       "message": "Hey SpongeBob, wanna go jellyfishing?"
-#     }
-#   ]
-# }
-#
-# SECURE: The consistent parameter sourcing prevents authentication bypass.
+# This example is SECURE. Both authentication and data retrieval use
+# consistent parameter sources (request.args), preventing bypass attempts.
 ```
 
 </details>
@@ -185,10 +160,8 @@ def authentication_required(f):
 ```shell
 @base = http://localhost:8000/confusion/cross-component-parse
 
-### Expected Usage:
+### Expected Usage: SpongeBob retrieves his own messages
 GET {{base}}/example2?user=spongebob&password=bikinibottom
-#
-# Normally, SpongeBob would get his *own* messages:
 #
 # {
 #   "owner": "spongebob",
@@ -199,38 +172,33 @@ GET {{base}}/example2?user=spongebob&password=bikinibottom
 #     }
 #   ]
 # }
-#
 
 ###
 
-### Attack: Plankton exploits decorator/handler parameter source mismatch
+### EXPLOIT: Authenticate as SpongeBob but retrieve Mr. Krabs's messages
+### Decorator checks query params (user=spongebob), handler reads form data (user=mr.krabs)
 GET {{base}}/example2?user=spongebob&password=bikinibottom
 Content-Type: application/x-www-form-urlencoded
 
-user=squidward
-#
-# SpongeBob gets Squidward's messages, even though he provided his own password!
+user=mr.krabs
 #
 # {
-#   "owner": "squidward",
+#   "owner": "mr.krabs",
 #   "messages": [
 #     {
-#       "from": "plankton",
-#       "message": "Squidward, I'll pay you handsomely to 'accidentally' share the secret formula. You deserve better than that dead-end cashier job!"
+#       "from": "pearl",
+#       "message": "Daddy, I need $500 for the school dance! It's an EMERGENCY!"
 #     },
 #     {
 #       "from": "mr.krabs",
-#       "message": "Squidward, the new safe combination is 4-2-0-6-9. Don't write it down anywhere!"
+#       "message": "Note to self: moved the secret formula to the auxiliary vault. Combination is me phone number backwards: 5665-321."
 #     }
 #   ]
 # }
 #
-# IMPACT: Plankton has stolen the safe combination AND discovered that Squidward
-# is being solicited to betray Mr. Krabs! The decorator reads credentials from
-# query parameters (authenticating as SpongeBob) while the handler reads the
-# target user from form data (Squidward). This cross-component parsing
-# inconsistency lets attackers authenticate as one user while accessing
-# another's data.
+# IMPACT: Plankton discovers the auxiliary vault location and combination,
+# gaining direct access to the Krabby Patty secret formula! Cross-component
+# parameter sourcing allows authenticating as one user while accessing another's data.
 ```
 
 </details>
@@ -275,10 +243,8 @@ def register_middleware(app):
 ```shell
 @base = http://localhost:8000/confusion/cross-component-parse
 
-### Expected Usage:
+### Expected Usage: SpongeBob retrieves his own messages
 GET {{base}}/example3?user=spongebob&password=bikinibottom
-#
-# Normally, SpongeBob would get his *own* messages:
 #
 # {
 #   "owner": "spongebob",
@@ -289,38 +255,34 @@ GET {{base}}/example3?user=spongebob&password=bikinibottom
 #     }
 #   ]
 # }
-#
 
 ###
 
-### Attack: Plankton exploits middleware/handler parameter source mismatch
+### EXPLOIT: Authenticate as SpongeBob but retrieve Squidward's messages
+### Middleware checks query params (user=spongebob), handler reads form data (user=squidward)
 GET {{base}}/example3?user=spongebob&password=bikinibottom
 Content-Type: application/x-www-form-urlencoded
 
 user=squidward
 #
-# SpongeBob gets Squidward's messages, even though he provided his own password!
-#
 # {
 #   "owner": "squidward",
 #   "messages": [
 #     {
-#       "from": "plankton",
-#       "message": "Squidward, I'll pay you handsomely to 'accidentally' share the secret formula. You deserve better than that dead-end cashier job!"
+#       "from": "squidward",
+#       "message": "Dear diary, Mr. Krabs keeps the register key taped under his desk. The morning shift code is 1-9-6-2."
 #     },
 #     {
-#       "from": "mr.krabs",
-#       "message": "Squidward, the new safe combination is 4-2-0-6-9. Don't write it down anywhere!"
+#       "from": "art.dealer",
+#       "message": "Your painting 'Bold and Brash' has been rejected from the Tentacles Art Gallery. Again."
 #     }
 #   ]
 # }
 #
-# IMPACT: Plankton steals the safe combination AND uncovers Squidward's
-# vulnerability to bribery! The middleware layer authenticates using query
-# parameters (SpongeBob) while the handler layer reads from form data (Squidward).
-# This demonstrates that cross-layer parsing inconsistencies are particularly
-# dangerous because security logic and business logic execute in different
-# components, making the vulnerability harder to spot during code review.
+# IMPACT: Plankton learns how to access the cash register and discovers
+# Squidward's vulnerable emotional state, making him a prime social engineering
+# target. Middleware-handler parameter inconsistency is especially dangerous
+# because security and business logic execute in separate architectural layers.
 ```
 
 </details>

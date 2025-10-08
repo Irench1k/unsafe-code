@@ -39,7 +39,7 @@ examples:
       code_end_line: 40
     file_hashes:
       e01_lowercase/routes.py: cdb97df7af5d72f64c5b9465262548950533b79805c94ae934cd6b33bdf806aa
-    fingerprint: 20298910f0ccadb03d881def45cc5f7930aa9819c66add1e19cccbd50acd3f38
+    fingerprint: dc18920515f1c1e7b3fe9d0ea2cfaeef6b0056d5721561ea6a499b5b7e45bb4d
   2:
     id: 2
     kind: block
@@ -77,7 +77,7 @@ examples:
     file_hashes:
       e02_insensitive_object_retrieval/database.py: fcb0e76ab4fa3d2e23cad40b1f2b8829467e8eb1b62ffb262d2832c5a32ddd5d
       e02_insensitive_object_retrieval/routes.py: cb9c82f61b5c04629a760fad7b823bda460e5b3dc416b21ca1bb0b82fc5b0d69
-    fingerprint: f7379cd3ea70ebd4739a7eb40ad51a5d3bc6d37d98262fd66e09d947a952e027
+    fingerprint: fcc5200c5ae8ee1d5571667838f0153c05d20b8187b08de68edb77b6aeaeda01
   3:
     id: 3
     kind: block
@@ -116,7 +116,7 @@ examples:
     file_hashes:
       e03_strip_replace_mismatch/decorator.py: 07773d7eeadd46784533ab09825e02b50884e575a5bd8acd93ac710108484560
       e03_strip_replace_mismatch/routes.py: 62b565644e54aab48cac2968e8c6017827f538173cd07d7f6cad1afdcf62e8b1
-    fingerprint: 7f1bfcd63156b0cf4bb4a54fdf98bb8c575b7923d6115eddffcab00277d5e4eb
+    fingerprint: db12008d6271c1fba3cb03846f52737d3054a05164872828add2515709d0b0a6
   4:
     id: 4
     kind: block
@@ -172,11 +172,11 @@ examples:
       e04_pydantic_strip_bypass/database/models.py: 6d0308ac37f245cf26b363ee4fae7fda77a8298eff9e67e97bbd010c865a9ae6
       e04_pydantic_strip_bypass/database/storage.py: 954ff4f533193adef53e5076b74d0ef457b8171a1609b0e7f971f0adee2ff158
       e04_pydantic_strip_bypass/routes.py: 7bded7a662c53aeea1019493207a60af43b1a4ad2ec16c489b7a69ab10371c49
-    fingerprint: fa407a0f88a8539d044eec43b21ea73db9d7c44d3014761c45459daf32522dc6
+    fingerprint: f231cf50c9ee0a4a4f8ccaf2673780fe6c600cf62331195ef76e7f6cb344c451
 attachments:
-  http/exploit-1.http: 708231ffa2de9d8eb31f34b6517f1aaa770a1fa66e19a3b09658d3c1bfa10aa6
-  http/exploit-2.http: 0b90f57507196f0afbfd6292faebc6f03a7124d59d54d8b308d0914cc01f632c
-  http/exploit-3.http: 4e4ccaa0a4bc9460a4fa201abaefa0621517afef70ba089611fc7473dba450e3
-  http/exploit-4.http: fbaa20eee37f937b57e3cdb275061336f9aba8f7b19abac84083d2091638b2f4
-build_signature: 940211d4eb086f376174009e45c19ea676e40d6d4665028fe73dcec0fc87b674
-last_readme_fingerprint: 0e9c8a9adcd229c6249c4ecef70ce9d3932a64074d7e12d6ba931b7c2c9c66ce
+  http/exploit-1.http: e6763388648214bb712a7120f73328493e2f027efdcd475e5d56cb7028cae178
+  http/exploit-2.http: 3675aa10205994b17a4028b8054382171dd2bd6e61676e9ca65879d3ba8be179
+  http/exploit-3.http: 833fd0ccdbce44c80e50f151aeebcc38b5dc72133e7149551c441e0a0007e4ad
+  http/exploit-4.http: 492c0b00c30fa061b16398757d193c8a503d87d79c31a172e84b8a7781711eaa
+build_signature: b4304d009bbf53a46877d2672284e0c4b79b700e20f4e3db03197213af97d26d
+last_readme_fingerprint: e4232197a6bfe58becd0c8718b87fda608eef086f594bc4a6cd7eb3b3b68c689

@@ -77,25 +77,7 @@ GET {{base}}?user=spongebob&password=bikinibottom
 
 ###
 
-### Squidward can access his own messages
-GET {{base}}?user=squidward&password=clarinet123
-
-# Results in 200 OK:
-#
-# [
-#   {
-#     "from": "mr.krabs",
-#     "message": "Squidward, I'm switching yer shifts to Tuesday through Saturday. No complaints!"
-#   },
-#   {
-#     "from": "squidward",
-#     "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number."
-#   }
-# ]
-
-###
-
-### Plankton cannot access Squidward's messages without the correct password
+### Authentication protects messages: wrong password is rejected
 GET {{base}}?user=squidward&password=wrong-password
 
 # Results in 401 Unauthorized:
@@ -180,9 +162,7 @@ user=squidward
 #   }
 # ]
 #
-# IMPACT: Plankton has stolen Squidward's private notes, learning where Mr. Krabs
-# hides the safe key! This basic parameter source confusion allows reading any user's
-# messages by authenticating as one user while requesting another's data.
+# Plankton has stolen Squidward's private notes, learning where Mr. Krabs hides the safe key!
 ```
 
 </details>
@@ -250,33 +230,15 @@ user=spongebob
 
 ###
 
-### EXPLOIT: Plankton authenticates as SpongeBob but accesses Squidward's messages
-### The modular authentication function reads from query, but message retrieval uses form data
+### EXPLOIT: SpongeBob authenticates but retrieves Squidward's messages
+### Authentication reads username from query, but message retrieval reads from form body
 GET {{base}}?user=spongebob&password=bikinibottom
 Content-Type: application/x-www-form-urlencoded
 
 user=squidward
 
-# Results in data disclosure:
-#
-# {
-#   "owner": "squidward",
-#   "messages": [
-#     {
-#       "from": "mr.krabs",
-#       "message": "Squidward, I'm switching yer shifts to Tuesday through Saturday. No complaints!"
-#     },
-#     {
-#       "from": "squidward",
-#       "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number."
-#     }
-#   ]
-# }
-#
-# IMPACT: Despite authentication being separated into its own function (which makes
-# the code look more professional), Plankton still steals Squidward's secrets!
-# The vulnerability persists because the authenticate_user() function reads from
-# query parameters while the handler reads from form data.
+# SpongeBob has accidentally accessed Squidward's messages! The response shows
+# Squidward's private notes revealing where Mr. Krabs hides the safe key.
 ```
 </details>
 
@@ -322,6 +284,9 @@ def example4():
 
 ### SpongeBob authenticates and retrieves his own messages using query parameters
 GET {{base}}?user=spongebob&password=bikinibottom
+Content-Type: application/x-www-form-urlencoded
+
+user=spongebob
 
 # Results in 200 OK:
 #
@@ -337,32 +302,15 @@ GET {{base}}?user=spongebob&password=bikinibottom
 
 ###
 
-### EXPLOIT: Plankton discovers that even without form data, he can still attack
-### by providing Squidward's username in the request body (the get_user() helper prioritizes form over query)
-GET {{base}}?user=spongebob&password=bikinibottom
+### EXPLOIT: Plankton authenticates as SpongeBob but retrieves Squidward's messages
+### by providing Squidward's username in request body (prioritized over query string)
+GET {{base}}?user=squidward&password=clarinet123
 Content-Type: application/x-www-form-urlencoded
 
-user=squidward
+user=spongebob
 
-# Results in data disclosure:
-#
-# {
-#   "owner": "squidward",
-#   "messages": [
-#     {
-#       "from": "mr.krabs",
-#       "message": "Squidward, I'm switching yer shifts to Tuesday through Saturday. No complaints!"
-#     },
-#     {
-#       "from": "squidward",
-#       "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number."
-#     }
-#   ]
-# }
-#
-# IMPACT: The get_user() helper function looks innocuous - it just provides flexibility
-# for clients! But its form-first priority rule creates an exploitable source confusion.
-# Plankton steals Squidward's secrets again by exploiting the helper's precedence logic.
+# Plankton has stolen Squidward's private notes again! Form body username overrides
+# query string for message retrieval, while authentication still uses query parameters.
 ```
 
 </details>
@@ -428,32 +376,16 @@ GET {{base}}?user=spongebob&password=bikinibottom
 
 ###
 
-### EXPLOIT: Plankton exploits the authentication's use of get_user() while data retrieval uses query
-### Provides SpongeBob in the form body (used by auth) and Squidward in query (used by retrieval)
+### EXPLOIT: Plankton reverses the attack direction
+### Provides SpongeBob in form body (prioritized for auth) and Squidward in query (used for retrieval)
 GET {{base}}?user=squidward&password=bikinibottom
 Content-Type: application/x-www-form-urlencoded
 
 user=spongebob
 
-# Results in data disclosure:
-#
-# {
-#   "owner": "squidward",
-#   "messages": [
-#     {
-#       "from": "mr.krabs",
-#       "message": "Squidward, I'm switching yer shifts to Tuesday through Saturday. No complaints!"
-#     },
-#     {
-#       "from": "squidward",
-#       "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number."
-#     }
-#   ]
-# }
-#
-# IMPACT: This variant reverses the attack! Now Plankton authenticates with SpongeBob's
-# credentials (username from form, password from query) while retrieving Squidward's messages
-# (username from query). The mixed-source authentication creates a cross-over vulnerability.
+# Plankton discovers the vulnerability works in reverse! By putting SpongeBob's username
+# in the form body and Squidward's in the query string, he authenticates as SpongeBob but
+# retrieves Squidward's messages.
 ```
 
 </details>
@@ -502,46 +434,17 @@ Content-Type: application/x-www-form-urlencoded
 
 user=spongebob
 
-# Results in 200 OK:
-#
-# {
-#   "owner": "spongebob",
-#   "messages": [
-#     {
-#       "from": "patrick",
-#       "message": "SpongeBob! I'm ready! I'm ready! Let's go jellyfishing!"
-#     }
-#   ]
-# }
-
 ###
 
-### EXPLOIT: Plankton exploits mixed-source authentication with reversed parameters
-### Authentication uses get_user() (form-first) while data retrieval uses query parameters
+### EXPLOIT: Plankton exploits the same precedence mismatch pattern
+### Form body prioritized for auth, query string used for retrieval
 GET {{base}}?user=squidward&password=bikinibottom
 Content-Type: application/x-www-form-urlencoded
 
 user=spongebob
 
-# Results in data disclosure:
-#
-# {
-#   "owner": "squidward",
-#   "messages": [
-#     {
-#       "from": "mr.krabs",
-#       "message": "Squidward, I'm switching yer shifts to Tuesday through Saturday. No complaints!"
-#     },
-#     {
-#       "from": "squidward",
-#       "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number."
-#     }
-#   ]
-# }
-#
-# IMPACT: Plankton authenticates as SpongeBob (username from form via get_user(), password from query)
-# but retrieves Squidward's data (username from query)! This demonstrates how authentication
-# that uses a flexible helper while data access uses a fixed source creates exploitable drift.
+# Same vulnerability, same result: Plankton authenticates as SpongeBob but accesses
+# Squidward's messages by exploiting parameter source precedence.
 ```
 
 </details>
@@ -620,44 +523,15 @@ user=spongebob&password=bikinibottom
 
 ###
 
-### EXPLOIT: Plankton discovers request.values merges query and form data
-### Authentication uses form-only, but data retrieval uses request.values (query takes precedence!)
+### EXPLOIT: Plankton exploits merged parameter sources
+### Authentication uses form-only, but retrieval merges sources with query taking precedence
 POST {{base}}?user=squidward
 Content-Type: application/x-www-form-urlencoded
 
 user=spongebob&password=bikinibottom
 
-# Results in data disclosure:
-#
-# {
-#   "owner": "squidward",
-#   "messages": [
-#     {
-#       "from": "mr.krabs",
-#       "message": "Squidward, I'm switching yer shifts to Tuesday through Saturday. No complaints!"
-#     },
-#     {
-#       "from": "squidward",
-#       "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number."
-#     }
-#   ]
-# }
-
-###
-
-### The attack also works with GET (if endpoint accepts both methods):
-GET {{base}}?user=squidward
-Content-Type: application/x-www-form-urlencoded
-
-user=spongebob&password=bikinibottom
-
-# Results in data disclosure (same as above)
-#
-# IMPACT: Flask's request.values.get() merges form and query parameters with query
-# taking precedence! Plankton authenticates as SpongeBob using form credentials,
-# but request.values reads "squidward" from the query string for data retrieval.
-# This is particularly dangerous because request.values looks like a convenience
-# feature but silently introduces exploitable precedence rules.
+# Plankton authenticates as SpongeBob (form credentials) but retrieves Squidward's messages
+# (query string username). Merged parameter sources create exploitable precedence rules.
 ```
 
 </details>
@@ -715,35 +589,15 @@ user=spongebob&password=bikinibottom
 
 ###
 
-### EXPLOIT: Plankton exploits request.values in authentication with form-only retrieval
-### Provides SpongeBob username in query (used by request.values auth) and Squidward in form (used by retrieval)
+### EXPLOIT: Plankton reverses the attack with merged auth and form-only retrieval
+### SpongeBob username in query (merged for auth), Squidward in form (used for retrieval)
 POST {{base}}?user=spongebob
 Content-Type: application/x-www-form-urlencoded
 
 user=squidward&password=bikinibottom
 
-# Results in data disclosure:
-#
-# {
-#   "owner": "squidward",
-#   "messages": [
-#     {
-#       "from": "mr.krabs",
-#       "message": "Squidward, I'm switching yer shifts to Tuesday through Saturday. No complaints!"
-#     },
-#     {
-#       "from": "squidward",
-#       "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number."
-#     }
-#   ]
-# }
-#
-# IMPACT: This reverses the previous attack! Now request.values in authentication
-# reads "spongebob" from query (with password from query via request.values),
-# while message retrieval reads "squidward" from form data only. Plankton steals
-# Squidward's secrets by exploiting the asymmetry between request.values authentication
-# and form-only data access. This demonstrates that request.values is dangerous in
-# EITHER position - whether in authentication or data access.
+# The attack works in reverse! Authentication merges sources (reading SpongeBob from query),
+# while message retrieval uses form-only (reading Squidward). Same vulnerability, opposite flow.
 ```
 
 </details>

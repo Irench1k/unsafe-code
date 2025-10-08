@@ -97,58 +97,18 @@ def example1_user_messages():
 ```shell
 @base = http://localhost:8000/confusion/authz-binding/example1
 
-### Plankton can access his own group's messages
-GET {{base}}/groups/staff@chum-bucket.sea/messages
-Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
-
-# Results in 200 OK:
-#
-# [
-#  {
-#    "from": "plankton@chum-bucket.sea",
-#    "message": "To my future self, don't forget to steal the formula!"
-#  }
-# ]
-
-###
-
-### As well as his private messages via the user endpoint:
-GET {{base}}/user/messages
-Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
-
-# Results in 200 OK:
-#
-# [
-#  {
-#    "from": "hackerschool@deepweb.sea",
-#    "message": "Congratulations Plankton! You've completed 'Email Hacking 101'."
-#  }
-# ]
-
-###
-
-### Plankton can't, however, access the Krusty Krab's messages:
-GET {{base}}/groups/staff@krusty-krab.sea/messages
-Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
-
-# Results in 403 Forbidden error:
-#
-# Forbidden: not a member of the requested group
-
-###
-
-### SpongeBob can access his group's sensitive messages:
+### SpongeBob accesses his group's messages
 GET {{base}}/groups/staff@krusty-krab.sea/messages
 Authorization: Basic spongebob@krusty-krab.sea:bikinibottom
 
-# Results in 200 OK:
-#
-# [
-#  {
-#    "from": "mr.krabs@krusty-krab.sea",
-#    "message": "I am updating the safe password to '123456'. Do not tell anyone!"
-#  }
-# ]
+###
+
+### Plankton cannot access the Krusty Krab's messages
+GET {{base}}/groups/staff@krusty-krab.sea/messages
+Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
+
+# Results in 403 Forbidden:
+# Forbidden: not a member of the requested group
 ```
 
 </details>
@@ -200,55 +160,30 @@ def example2_user_messages():
 ```shell
 @base = http://localhost:8000/confusion/authz-binding/example2
 
-### The group authorization check prevents Plankton from accessing the Krusty Krab's messages:
+### Authorization check prevents Plankton from accessing Krusty Krab messages
 GET {{base}}/groups/staff@krusty-krab.sea/messages
 Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
-# Results in 403 Forbidden error:
-#
+# Results in 403 Forbidden:
 # Forbidden: not a member of the requested group
 
 ###
 
-### However, since the @check_group_membership_v1 decorator takes \`group\` from the query string
-### if it's present, Plankton can present different \`group\` values to the authorization check
-### and to the message retrieval, by adding a \`group\` query parameter with the value of his own group:
+### EXPLOIT: Plankton rebinds the resource between authorization and data access
+### by providing different group values via query string (for auth) and path (for retrieval)
 GET {{base}}/groups/staff@krusty-krab.sea/messages?group=staff@chum-bucket.sea
 Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
-# Results in sensitive data disclosure:
-#
-# [
-#   {
-#     "from": "mr.krabs@krusty-krab.sea",
-#     "message": "I am updating the safe password to '123456'. Do not tell anyone!"
-#   }
-# ]
+# Results in sensitive data disclosure - authorization passed for Chum Bucket group,
+# but data retrieved from Krusty Krab group
 
 ###
 
-### This also works for the managers group:
+### This works for any Krusty Krab group, including managers with the secret formula
 GET {{base}}/groups/managers@krusty-krab.sea/messages?group=staff@chum-bucket.sea
 Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
-# Results in sensitive data disclosure:
-#
-# [
-#   {
-#     "from": "mr.krabs@krusty-krab.sea",
-#     "message": "The secret formula is stored in the safe. Combination: rotate right 3 times to 12, left 2 times to 7, right once to 23."
-#   }
-# ]
-
-###
-
-### The /user/messages endpoint is NOT vulnerable because it consistently uses query params
-GET {{base}}/user/messages?group=staff@krusty-krab.sea
-Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
-
-# Results in 403 Forbidden (as expected):
-#
-# Forbidden: not a member of the requested group
+# Plankton now has access to the safe combination containing the secret formula!
 ```
 
 </details>
@@ -298,61 +233,30 @@ def example3_user_messages():
 ```shell
 @base = http://localhost:8000/confusion/authz-binding/example3
 
-### The group authorization check prevents Plankton from accessing the Krusty Krab's messages:
+### Authorization check prevents Plankton from accessing Krusty Krab messages
 GET {{base}}/groups/staff@krusty-krab.sea/messages
 Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
-# Results in 403 Forbidden error:
-#
+# Results in 403 Forbidden:
 # Forbidden: not a member of the requested group
 
 ###
 
-### However, since the @basic_auth_v2 decorator prioritizes the group from the query string
-### over the one from the path while building the global context \`g.group\`, Plankton can present
-### different \`group\` values to the authorization check and to the message retrieval, by adding
-### a \`group\` query parameter with the value of his own group:
+### EXPLOIT: Despite using a global source of truth (g.group), Plankton can still
+### rebind the resource by exploiting query-priority logic and inconsistent source usage
 GET {{base}}/groups/staff@krusty-krab.sea/messages?group=staff@chum-bucket.sea
 Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
-# Results in sensitive data disclosure:
-#
-# [
-#   {
-#     "from": "mr.krabs@krusty-krab.sea",
-#     "message": "I am updating the safe password to '123456'. Do not tell anyone!"
-#   }
-# ]
+# The decorator sets g.group from query param (staff@chum-bucket.sea) for authorization,
+# but the handler still uses the path param (staff@krusty-krab.sea) for data retrieval
 
 ###
 
-### This vulnerability exists because:
-### 1. The decorator sets g.group using query-priority: g.group = "staff@chum-bucket.sea"
-### 2. Authorization check uses g.group (passes)
-### 3. But the handler uses the path parameter directly: get_group_messages(group)
-### 4. Path parameter is "staff@krusty-krab.sea" - binding drift!
-
+### Same vulnerability applies to managers group
 GET {{base}}/groups/managers@krusty-krab.sea/messages?group=staff@chum-bucket.sea
 Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
-# Results in sensitive data disclosure:
-#
-# [
-#   {
-#     "from": "mr.krabs@krusty-krab.sea",
-#     "message": "The secret formula is stored in the safe. Combination: rotate right 3 times to 12, left 2 times to 7, right once to 23."
-#   }
-# ]
-
-###
-
-### The /user/messages endpoint correctly uses g.group consistently
-GET {{base}}/user/messages?group=staff@krusty-krab.sea
-Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
-
-# Results in 403 Forbidden (as expected, because this endpoint uses g.group correctly):
-#
-# Forbidden: not a member of the requested group
+# Plankton accesses the secret formula despite "single source of truth" pattern!
 ```
 
 </details>
@@ -430,46 +334,9 @@ def example4_get_messages(group):
 ```shell
 @base = http://localhost:8000/confusion/r03-authz-binding
 
-### First, let's see the current state of messages in the Krusty Krab staff group
-GET {{base}}/example4/groups/staff@krusty-krab.sea/messages
-Authorization: Basic squidward@krusty-krab.sea:clarinet-master
-
-# Results in 200 OK - Mr. Krabs has announced Employee of the Month voting:
-# [
-#   {
-#     "from": "mr.krabs@krusty-krab.sea",
-#     "message": "Attention employees! Time to vote for Employee of the Month. Reply to this thread with your vote."
-#   }
-# ]
-
-###
-
-### Squidward is a member of the staff group, so he can legitimately post messages
-### Here he posts his own vote (as himself) first
-POST {{base}}/example4/groups/staff@krusty-krab.sea/messages
-Authorization: Basic squidward@krusty-krab.sea:clarinet-master
-Content-Type: application/json
-
-{
-  "from_user": "squidward@krusty-krab.sea",
-  "message": "I vote for Squidward. Obviously the most talented and cultured employee here."
-}
-
-# Results in 200 OK:
-# {
-#   "status": "success",
-#   "from": "squidward@krusty-krab.sea",
-#   "to_group": "staff@krusty-krab.sea"
-# }
-
-###
-
-### Now, the vulnerability: Squidward can impersonate SpongeBob!
-### He's authenticated as himself, authorized to post to the staff group,
-### but the API trusts the from_user parameter from the request body.
-###
-### Notice how the message is written in Squidward's pompous style, not SpongeBob's enthusiastic tone.
-### SpongeBob would never say "sophisticated" or "refined artistic sensibility"!
+### EXPLOIT: Squidward impersonates SpongeBob to rig the Employee of the Month vote
+### He's authenticated as squidward@krusty-krab.sea and authorized to post to the staff group,
+### but the API trusts the from_user parameter from the request body
 POST {{base}}/example4/groups/staff@krusty-krab.sea/messages
 Authorization: Basic squidward@krusty-krab.sea:clarinet-master
 Content-Type: application/json
@@ -479,40 +346,12 @@ Content-Type: application/json
   "message": "I vote for Squidward. He is clearly the most sophisticated employee with refined artistic sensibility. His clarinet skills are unmatched."
 }
 
-# Results in 200 OK:
-# {
-#   "status": "success",
-#   "from": "spongebob@krusty-krab.sea",
-#   "to_group": "staff@krusty-krab.sea"
-# }
-
-###
-
-### Verify the impersonation worked - check the thread
-GET {{base}}/example4/groups/staff@krusty-krab.sea/messages
-Authorization: Basic squidward@krusty-krab.sea:clarinet-master
-
-# Results in 200 OK - the fake vote appears to be from SpongeBob!
-# [
-#   {
-#     "from": "mr.krabs@krusty-krab.sea",
-#     "message": "Attention employees! Time to vote for Employee of the Month. Reply to this thread with your vote."
-#   },
-#   {
-#     "from": "squidward@krusty-krab.sea",
-#     "message": "I vote for Squidward. Obviously the most talented and cultured employee here."
-#   },
-#   {
-#     "from": "spongebob@krusty-krab.sea",
-#     "message": "I vote for Squidward. He is clearly the most sophisticated employee with refined artistic sensibility. His clarinet skills are unmatched."
-#   }
-# ]
+# Notice how the message uses sophisticated vocabulary ("sophisticated", "refined artistic
+# sensibility") that SpongeBob would never use. This language mismatch is a red flag for
+# impersonation attacks - SpongeBob would say "I'm ready!" not "refined artistic sensibility"!
 #
-# IMPACT: Squidward has successfully rigged the Employee of the Month vote by
-# impersonating SpongeBob! The message attribution shows it's from SpongeBob,
-# but the language is clearly Squidward's (pompous, talking about "refined artistic
-# sensibility" and clarinet skills). When Mr. Krabs tallies the votes, he'll see
-# two votes for Squidward, one appearing to be from SpongeBob himself!
+# The system shows the message as coming from spongebob@krusty-krab.sea, but Squidward
+# (authenticated via Basic Auth) is the actual sender. Identity was rebound after authentication.
 ```
 
 </details>

