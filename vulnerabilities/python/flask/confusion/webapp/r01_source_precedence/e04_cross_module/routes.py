@@ -1,13 +1,14 @@
 from flask import Blueprint, request
 
-from .db import authenticate_user, get_messages
+from .auth import authenticate_user
+from .db import get_messages
 
 bp = Blueprint("source_precedence_cross_module", __name__)
 
 
 # @unsafe[block]
 # id: 4
-# part: 2
+# part: 3
 # @/unsafe
 @bp.route("/example4", methods=["GET", "POST"])
 def example4():

@@ -80,16 +80,21 @@ examples:
     parts:
     - part: 1
       file: e04_cross_module/db.py
-      code_start_line: 50
-      code_end_line: 71
+      code_start_line: 15
+      code_end_line: 25
     - part: 2
+      file: e04_cross_module/auth.py
+      code_start_line: 10
+      code_end_line: 18
+    - part: 3
       file: e04_cross_module/routes.py
-      code_start_line: 12
-      code_end_line: 27
+      code_start_line: 13
+      code_end_line: 28
     file_hashes:
-      e04_cross_module/db.py: 85956819c259975983778239ecd055b130937a0c5923b7f4a6f8188b80165771
-      e04_cross_module/routes.py: 6ffffe4b4ea079a72d45479582346808c853a6cd3cf5e4a0d737b0cf930c9e99
-    fingerprint: fd43d0708fc7b250539180909af9aa40b338a1fd5da4013c29c5d33c4dd029ec
+      e04_cross_module/auth.py: b54256b7e1d701b54d0f53f24f7064fa29bcb103f86f6569c7b8c3b6557fefe5
+      e04_cross_module/db.py: 5f9857b885fbbfb80885f6bb127ab6975d0415732da2d4eb63ff936f46ee8780
+      e04_cross_module/routes.py: d003a8f1fb5e54484ad1c3810c564c494282789c0f635f7801772e4e3df452ef
+    fingerprint: 6a7319bda92e01b3f2da5929adc34fe37a107ce3d0e033f74df4e8da09e4a559
   5:
     id: 5
     kind: block
@@ -105,12 +110,12 @@ examples:
     language: python
     parts:
     - part: 1
-      file: e0506_variations/routes.py
-      code_start_line: 69
-      code_end_line: 106
+      file: e05_mixed_source/auth.py
+      code_start_line: 12
+      code_end_line: 33
     file_hashes:
-      e0506_variations/routes.py: a3fdfa46f6b5e2b00ad3a0888ccae609f50836fc921a8f724e76add7b5ab17c1
-    fingerprint: bfb254bb40d5ab94490022fd685c4df2c2d1cd49ea0568ba07d8f77ee40a3184
+      e05_mixed_source/auth.py: c4f927876d95b95d5d28e557c8cb0d9634e629d848a711b6fa2ba29daaa6149f
+    fingerprint: d393be71849109a9db0d6eb90b5a432fe0b8e573ce51301381a8e1bd5d677d2b
   6:
     id: 6
     kind: function
@@ -123,12 +128,12 @@ examples:
     language: python
     parts:
     - part: 1
-      file: e0506_variations/routes.py
-      code_start_line: 129
-      code_end_line: 151
+      file: e06_destructive/routes.py
+      code_start_line: 17
+      code_end_line: 39
     file_hashes:
-      e0506_variations/routes.py: a3fdfa46f6b5e2b00ad3a0888ccae609f50836fc921a8f724e76add7b5ab17c1
-    fingerprint: 51cb9bceb47fe44f344f05be666fd86f72a65e06aba60e318eec9416396161d6
+      e06_destructive/routes.py: 8b47497c5168de82610466a29674ba9fd28a957c9f0193408d504e805eaa085f
+    fingerprint: 6a1067143c511c743a49ad2964d5bd13c4ae124ed00f5b239dd1354b3c58ee6e
   7:
     id: 7
     kind: block
@@ -165,12 +170,12 @@ examples:
     language: python
     parts:
     - part: 1
-      file: e0708_apparent_fix/routes.py
-      code_start_line: 77
-      code_end_line: 103
+      file: e07_form_bypass/auth.py
+      code_start_line: 24
+      code_end_line: 32
     file_hashes:
-      e0708_apparent_fix/routes.py: 5977214051f3f2909810e0944ef1e03c9ba3d70ddd443ec141567e96497d5bac
-    fingerprint: 3d3bf807c469e4c158cb1836af052191717535a9b7b034d3814178cb5414d1c2
+      e07_form_bypass/auth.py: 5f4097160d44fd557e4a68d133c1ec23ed509af822856ed59f63186b8f5fbd1d
+    fingerprint: ab53946b5c4632dc6d5699088f3b4940a28ca691308737950f3e437215a0f410
   8:
     id: 8
     kind: function
@@ -193,20 +198,20 @@ examples:
     language: python
     parts:
     - part: 1
-      file: e0708_apparent_fix/routes.py
-      code_start_line: 150
-      code_end_line: 170
+      file: e08_password_reset/routes.py
+      code_start_line: 47
+      code_end_line: 64
     file_hashes:
-      e0708_apparent_fix/routes.py: 5977214051f3f2909810e0944ef1e03c9ba3d70ddd443ec141567e96497d5bac
-    fingerprint: 8db54830a54d53e00c2f5c0516f948cc56486ae4d3d53d4d699d95ce23a686e4
+      e08_password_reset/routes.py: fbb7b2ff727fea6d3ea8441d30a094ae47275f9ea56ee6c41aa2e120eb208577
+    fingerprint: 9da6b117fc5f4b4f71b1c9dffca914ccb72a45673ebe7047dd03c9df1928ea56
 attachments:
   http/exploit-1.http: 50f85726ba27321f7a75e2f075a6ce5e73cd554912c8941c3f9809d438e71eaa
   http/exploit-2.http: e2811e1f074cdb4b8589caaf500af2f6ea10ba93468c2e92b231666ebbd8670b
   http/exploit-3.http: 885d1ed34ceafe5645ea80d29585573774a7dc8f0a0ec58fd0503e81de6bf477
   http/exploit-4.http: 6369d3570fb27203bbe27ab575d18863d59a2990d6ae91c2e2982bdeb132dd71
-  http/exploit-5.http: 513883f3ffbf2d536d25c3e2934a08cb5fedfa2c845b7398e93043720f616f39
-  http/exploit-6.http: d8bc1262fd1bfe71b70d4e81cd14bea3c6512a777372b9b4cdd15003009e392b
-  http/exploit-7.http: 46cdf284dbd8aad41106b40791ba6d27414e9909951f242094bdcf9437e9b5f8
-  http/exploit-8.http: 58c71d9d06c734261fed5d126a7d6cf22dcc17dba323d82242efa3daaeeba5c9
-build_signature: 74ed138a2bc859bf6417da3a89635efb8f5c614ffdd4a7bfebb28e15096963e5
-last_readme_fingerprint: feb9b568e0e492a077d1001a76b1f4758234ac7088fe6b9e46de1faa5f4469cc
+  http/exploit-5.http: 92472e91599a6a64344a05858e3eadbc2363e252dea8f8bfff834b69e46b0575
+  http/exploit-6.http: 28d7fc50dac6a7971985cd333b17ef5bb17f86231e2bc82fbb68877dc237326b
+  http/exploit-7.http: b6e8d399cd54bfe799c03c6ecd8ae4fc9231786135a4488c805515d8ebf876c0
+  http/exploit-8.http: 7108a192427244ee45ed2c0854e3d44e9f659a4f2780b519621cbb139599342b
+build_signature: 85f94d229b8933d3e6f6f3fd708b02e5020abd20118fec301a2558f5a5362960
+last_readme_fingerprint: 08e59dd71fd938bc6a817225c0f162bca4ea21344d1c6fa8837c4c5257ba470d

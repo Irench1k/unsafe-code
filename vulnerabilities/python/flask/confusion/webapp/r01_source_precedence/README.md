@@ -23,11 +23,11 @@ Source precedence bugs creep in when two parts of the stack read the "same" inpu
 | Secure Baselines | [Example 1: Secure Implementation](#ex-1) | [e0103_intro/routes.py](e0103_intro/routes.py#L33-L51) |
 | Straightforward Source Drift | [Example 2: Basic Parameter Source Confusion](#ex-2) | [e0103_intro/routes.py](e0103_intro/routes.py#L68-L87) |
 | Straightforward Source Drift | [Example 3: Function-Level Parameter Source Confusion](#ex-3) | [e0103_intro/routes.py](e0103_intro/routes.py#L97-L126) |
-| Straightforward Source Drift | [Example 4: Cross-Module Parameter Source Confusion](#ex-4) | [e04_cross_module/db.py](e04_cross_module/db.py#L50-L71) |
-| Helper-Induced Mixing | [Example 5: Mixed-Source Authentication](#ex-5) | [e0506_variations/routes.py](e0506_variations/routes.py#L69-L106) |
-| Helper-Induced Mixing | [Example 6: Destructive Parameter Source Confusion](#ex-6) | [e0506_variations/routes.py](e0506_variations/routes.py#L129-L151) |
-| request.values Footguns | [Example 7: Form Authentication Bypass](#ex-7) | [e0708_apparent_fix/routes.py](e0708_apparent_fix/routes.py#L77-L103) |
-| request.values Footguns | [Example 8: Password Reset Parameter Confusion](#ex-8) | [e0708_apparent_fix/routes.py](e0708_apparent_fix/routes.py#L150-L170) |
+| Straightforward Source Drift | [Example 4: Cross-Module Parameter Source Confusion](#ex-4) | [e04_cross_module/db.py](e04_cross_module/db.py#L15-L25) |
+| Helper-Induced Mixing | [Example 5: Mixed-Source Authentication](#ex-5) | [e05_mixed_source/auth.py](e05_mixed_source/auth.py#L12-L33) |
+| Helper-Induced Mixing | [Example 6: Destructive Parameter Source Confusion](#ex-6) | [e06_destructive/routes.py](e06_destructive/routes.py#L17-L39) |
+| request.values Footguns | [Example 7: Form Authentication Bypass](#ex-7) | [e07_form_bypass/auth.py](e07_form_bypass/auth.py#L24-L32) |
+| request.values Footguns | [Example 8: Password Reset Parameter Confusion](#ex-8) | [e08_password_reset/routes.py](e08_password_reset/routes.py#L47-L64) |
 
 ## Secure Baselines
 
@@ -285,7 +285,6 @@ def get_messages(user):
         return None
     return {"owner": user, "messages": messages}
 
-
 def authenticate_user():
     """
     Authenticates the current user using query string credentials.
@@ -376,44 +375,28 @@ Shows how authentication and data access can use different combinations of sourc
 
 This one is interesting, because you can access Squidward's messages by providing his username and SpongeBob's password in the request query, while providing SpongeBob's username in the request body:
 ```python
-def get_user():
+def extract_principal(request):
     """
     Retrieves the user identifier from the request.
 
     Checks form data first for POST requests, falling back to query parameters
     to support both form submissions and direct URL access.
     """
-    user_from_form = request.form.get("user", None)
-    user_from_args = request.args.get("user", None)
+    principal_from_form = request.form.get("user", None)
+    principal_from_args = request.args.get("user", None)
 
-    return user_from_form or user_from_args
+    return principal_from_form or principal_from_args
 
 
-def authenticate_user_example5():
+def authenticate_principal(request):
     """
     Authenticates the current user with flexible parameter resolution.
 
     Uses the user resolution helper for username while taking password from query string.
     """
-    user = get_user()
+    principal = extract_principal(request)
     password = request.args.get("password", None)
-    return authenticate(user, password)
-
-
-@bp.route("/example5", methods=["GET", "POST"])
-def example5():
-    """
-    Retrieves messages for an authenticated user.
-
-    Combines flexible authentication with query-based message retrieval.
-    """
-    if not authenticate_user_example5():
-        return "Invalid user or password", 401
-
-    messages = get_messages(request.args.get("user", None))
-    if messages is None:
-        return "No messages found", 404
-    return messages
+    return authenticate(principal, password)
 ```
 <details>
 <summary><b>See HTTP Request</b></summary>
@@ -422,7 +405,7 @@ def example5():
 @base = http://localhost:8000/confusion/source-precedence
 
 ### Squidward accesses his own messages
-GET {{base}}/example5?user=squidward&password=clarinet123
+GET {{base}}/example5/messages?user=squidward&password=clarinet123
 
 # Results in 200 OK:
 #
@@ -444,7 +427,7 @@ GET {{base}}/example5?user=squidward&password=clarinet123
 
 ### Remember when we sent the username twice in Example 2? This looks more secure - only one username!
 ### Hm, I wonder if the server would still accept the old trick, just reversed...
-GET {{base}}/example5?user=spongebob&password=clarinet123
+GET {{base}}/example5/messages?user=spongebob&password=clarinet123
 Content-Type: application/x-www-form-urlencoded
 
 user=squidward
@@ -470,8 +453,8 @@ user=squidward
 
 Demonstrates parameter source confusion with a DELETE operation. Same root cause as Examples 2-5, but now enabling destructive operations instead of just data disclosure. Authentication uses query parameters while deletion target uses form body.
 ```python
-@bp.route("/example6", methods=["DELETE", "GET"])
-def example6():
+@bp.route("/messages", methods=["DELETE", "GET"])
+def messages():
     """Manages user messages with list and delete operations."""
     if not authenticate_user():
         return "Invalid user or password", 401
@@ -501,7 +484,7 @@ def example6():
 @base = http://localhost:8000/confusion/source-precedence
 
 ### Mr. Krabs checks his inbox for security warnings
-GET {{base}}/example6?user=mr.krabs&password=money&action=list
+GET {{base}}/example6/messages?user=mr.krabs&password=money&action=list
 
 # Results in 200 OK:
 #
@@ -518,7 +501,7 @@ GET {{base}}/example6?user=mr.krabs&password=money&action=list
 ###
 
 ### Plankton deletes Mr. Krabs' warning message using his own credentials!
-DELETE {{base}}/example6?user=plankton&password=chumbucket&index=0
+DELETE {{base}}/example6/messages?user=plankton&password=chumbucket&index=0
 Content-Type: application/x-www-form-urlencoded
 
 user=mr.krabs
@@ -536,7 +519,7 @@ user=mr.krabs
 ###
 
 ### Mr. Krabs checks his inbox again - the warning is gone!
-GET {{base}}/example6?user=mr.krabs&password=money&action=list
+GET {{base}}/example6/messages?user=mr.krabs&password=money&action=list
 
 # Results in empty inbox:
 #
@@ -568,7 +551,7 @@ user=spongebob&password=bikinibottom
 
 However, the attacker can send both GET and POST requests (if the endpoint is configured to accept both methods).
 ```python
-def authenticate_user_example7():
+def authenticate_user():
     """
     Authenticates the user using form-based credentials.
 
@@ -577,24 +560,6 @@ def authenticate_user_example7():
     return authenticate(
         request.form.get("user", None), request.form.get("password", None)
     )
-
-
-@bp.route("/example7", methods=["GET", "POST"])
-def example7():
-    """
-    Retrieves messages for an authenticated user.
-
-    Uses form-based authentication with unified parameter resolution for message retrieval.
-    """
-    if not authenticate_user_example7():
-        return "Invalid user or password", 401
-
-    # Use request.values for flexible parameter resolution across query and form data
-    messages = get_messages(request.values.get("user", None))
-    if messages is None:
-        return "No messages found", 404
-
-    return messages
 ```
 <details>
 <summary><b>See HTTP Request</b></summary>
@@ -603,7 +568,7 @@ def example7():
 @base = http://localhost:8000/confusion/source-precedence
 
 ### Squidward logs in using form body (BEST PRACTICE - credentials not logged in URLs!)
-POST {{base}}/example7
+POST {{base}}/example7/messages
 Content-Type: application/x-www-form-urlencoded
 
 user=squidward&password=clarinet123
@@ -627,7 +592,7 @@ user=squidward&password=clarinet123
 ###
 
 ### Despite using secure form-body authentication, the endpoint is still vulnerable!
-POST {{base}}/example7?user=spongebob
+POST {{base}}/example7/messages?user=spongebob
 Content-Type: application/x-www-form-urlencoded
 
 user=squidward&password=clarinet123
@@ -658,14 +623,11 @@ An attacker can authenticate with their own credentials in the query string whil
 
 LESSON: This demonstrates how "apparent fixes" create false security. Same root cause as Examples 2-7, but now enabling account takeover instead of just data disclosure. The partial fix made developers careless when adding new features.
 ```python
-@bp.route("/example8/password_reset", methods=["POST"])
-def example8_password_reset():
+@bp.route("/password_reset", methods=["POST"])
+def password_reset():
     """Resets a user's password after authentication."""
-    # Authenticate using merged values (who's making the request)
-    auth_user = request.values.get("user", None)
-    auth_password = request.values.get("password", None)
-
-    if not authenticate(auth_user, auth_password):
+    # Use authenticate_user() instead of embedding check
+    if not authenticate_user():
         return "Invalid user or password", 401
 
     # Target user and new password from form data (VULNERABILITY)
@@ -687,7 +649,7 @@ def example8_password_reset():
 @base = http://localhost:8000/confusion/source-precedence
 
 ### Squidward checks his own messages with the FIXED endpoint
-POST {{base}}/example8
+POST {{base}}/example8/messages
 Content-Type: application/x-www-form-urlencoded
 
 user=squidward&password=clarinet123
@@ -711,7 +673,7 @@ user=squidward&password=clarinet123
 ###
 
 ### Squidward tries his old Example 7 exploit - but they fixed it!
-POST {{base}}/example8?user=spongebob
+POST {{base}}/example8/messages?user=spongebob
 Content-Type: application/x-www-form-urlencoded
 
 user=squidward&password=clarinet123
@@ -743,7 +705,7 @@ user=squidward&new_password=hacked123
 ###
 
 ### Plankton logs into Squidward's account with the new password
-POST {{base}}/example8
+POST {{base}}/example8/messages
 Content-Type: application/x-www-form-urlencoded
 
 user=squidward&password=hacked123
