@@ -52,10 +52,8 @@ def example1():
 #   Demonstrates the most basic form of parameter source confusion where authentication
 #   uses **form body** parameters but data retrieval uses **query string** parameters.
 #
-#   Authentication validates credentials from the POST body (the secure practice),
-#   but message retrieval reads the target username from the query string.
-#   An attacker can authenticate with their own credentials in the body while
-#   specifying a victim's username in the URL to access that victim's messages.
+#   An attacker authenticates with their own credentials in the body while specifying
+#   a victim's username in the URL.
 # @/unsafe
 @bp.post("/example2")
 def example2():

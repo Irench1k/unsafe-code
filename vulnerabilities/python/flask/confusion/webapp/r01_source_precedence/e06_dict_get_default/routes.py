@@ -6,6 +6,7 @@ from .messages import messages_delete, messages_get
 bp = Blueprint("source_precedence_dict_get_default", __name__, url_prefix="/example6")
 
 
+# @unsafe[block]
 # id: 6
 # title: dict.get() Default Parameter Precedence
 # part: 1
@@ -16,6 +17,7 @@ bp = Blueprint("source_precedence_dict_get_default", __name__, url_prefix="/exam
 #
 #   Note that internet browsers and many web servers refuse body parameters for GET,
 #   however Flask does support them, opening an attack vector for the attacker.
+# @/unsafe
 @bp.get("/users/me/messages")
 def list_messages():
     """
@@ -27,9 +29,7 @@ def list_messages():
         return "Invalid user or password", 401
 
     return messages_get(request.args.get("user"))
-
-
-# @/unsafe
+# @/unsafe[block]
 
 
 @bp.delete("/users/me/messages")

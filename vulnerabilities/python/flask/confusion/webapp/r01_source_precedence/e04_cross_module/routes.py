@@ -11,11 +11,13 @@ bp = Blueprint("source_precedence_cross_module", __name__, url_prefix="/example4
 # title: Cross-Module Parameter Source Confusion
 # part: 1
 # notes: |
-#   Confusion becomes even harder to detect when business logic is split into separate
-#   modules. Here the auth module uses form-based credentials which is secure on its
-#   own but inconsistent with the `messages_get` receiving a query string parameter.
+#   Confusion becomes even harder to detect when business logic splits across modules.
+#   The auth module uses form-based credentials (secure on its own) but doesn't match
+#   `messages_get` receiving a query string parameter.
 #
-#   Note that each file looks reasonable in isolation.
+#   Each file looks reasonable in isolation—authentication in `auth.py` follows best
+#   practices, route handlers in `routes.py` use standard query parameters. The
+#   vulnerability lives at the boundary between modules, where reviewers rarely look.
 # @/unsafe
 @bp.post("/users/me/messages")
 def list_messages():

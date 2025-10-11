@@ -14,6 +14,10 @@ bp = Blueprint("source_precedence_request_values", __name__, url_prefix="/exampl
 #   This example is functionally equivalent to example 5, except here we use built-in
 #   `request.values` instead of writing our own source merging function.
 #
+#   Flask's `request.values` is a `CombinedMultiDict` merging `request.args` and
+#   `request.form` with **args taking precedence** when keys collide. This means
+#   `?user=attacker` in the URL overrides `user=victim` in the POST body.
+#
 #   This version of `authenticate_user` relies on `request.form` and is secure on its own,
 #   but the vulnerability arises when `get_messages` uses `request.values` instead.
 # @/unsafe
@@ -32,8 +36,6 @@ def list_messages():
         return "Invalid user or password", 401
 
     return messages_get(request.values.get("user"))
-
-
 # @/unsafe[block]
 
 

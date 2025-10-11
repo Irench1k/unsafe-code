@@ -27,6 +27,8 @@ outline:
   - title: Straightforward Source Drift
     description: |
       Simple handlers where the guard inspects query parameters but the action trusts form data or vice versa.
+
+      **Technical note:** While query parameters are commonly associated with GET requests, POST requests can include both query strings and request bodies. Flask parses both sources regardless of HTTP method, enabling these attacks.
     examples:
       - 2
       - 3

@@ -14,6 +14,4 @@ def authenticate_user():
     Designed for POST-based form submissions where credentials are in the request body.
     """
     return authenticate(request.values.get("user"), request.values.get("password"))
-
-
 # @/unsafe[block]

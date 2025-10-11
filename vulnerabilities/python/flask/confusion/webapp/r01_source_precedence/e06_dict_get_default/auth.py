@@ -14,6 +14,4 @@ def authenticate_principal(request):
     principal = _resolve(request, "user")
     password = _resolve(request, "password")
     return authenticate(principal, password)
-
-
 # @/unsafe[block]

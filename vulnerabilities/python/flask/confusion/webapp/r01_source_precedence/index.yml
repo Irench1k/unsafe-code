@@ -18,8 +18,8 @@ examples:
       code_start_line: 32
       code_end_line: 45
     file_hashes:
-      e00_intro/routes.py: 7eea4535f675709076642c1cf8ba1c6efa32755fdbb33acce81eeea3ffd7cd2e
-    fingerprint: 108e4e8cd87aafd0de3b3b9476ef5e4feeae932829eb395508a0707beb0663b1
+      e00_intro/routes.py: ea22426fa890d53e70e9df2e8d2977af6aa0b7ad3d6f991618073067cd39c7e2
+    fingerprint: 8b7119721854fd64c30c7b757c561c1f2cbdeefd3aeda75f8d23b100a21bc1a4
   2:
     id: 2
     kind: function
@@ -29,20 +29,18 @@ examples:
       uses **form body** parameters but data retrieval uses **query string** parameters.
 
 
-      Authentication validates credentials from the POST body (the secure practice), but message
-      retrieval reads the target username from the query string. An attacker can authenticate
-      with their own credentials in the body while specifying a victim's username in the URL
-      to access that victim's messages.
+      An attacker authenticates with their own credentials in the body while specifying a
+      victim's username in the URL.
     http: null
     language: python
     parts:
     - part: 1
       file: e00_intro/routes.py
-      code_start_line: 60
-      code_end_line: 71
+      code_start_line: 58
+      code_end_line: 69
     file_hashes:
-      e00_intro/routes.py: 7eea4535f675709076642c1cf8ba1c6efa32755fdbb33acce81eeea3ffd7cd2e
-    fingerprint: fd32ad65cb1cebfb742a886e1cbdbe37142ece33ee734bc79ecf4fd778ae42db
+      e00_intro/routes.py: ea22426fa890d53e70e9df2e8d2977af6aa0b7ad3d6f991618073067cd39c7e2
+    fingerprint: 4a2d614a98423bc71ee384965e7f3d085b6870ee245dc75d9eb3356db889d9a8
   3:
     id: 3
     kind: block
@@ -55,29 +53,31 @@ examples:
     parts:
     - part: 1
       file: e00_intro/routes.py
-      code_start_line: 81
-      code_end_line: 107
+      code_start_line: 79
+      code_end_line: 105
     file_hashes:
-      e00_intro/routes.py: 7eea4535f675709076642c1cf8ba1c6efa32755fdbb33acce81eeea3ffd7cd2e
-    fingerprint: b90cfdc6b2acf1f7b936dc0147d8a9a6ce6f4f5c4351ee6dfd2d375a9cbe9b48
+      e00_intro/routes.py: ea22426fa890d53e70e9df2e8d2977af6aa0b7ad3d6f991618073067cd39c7e2
+    fingerprint: c4e4fa83bf3e7f86c67295e7ab808298a90d0bc1426132684e0a03202f5ddfc3
   4:
     id: 4
     kind: block
     title: Cross-Module Parameter Source Confusion
     notes: >-
-      Confusion becomes even harder to detect when business logic is split into separate modules.
-      Here the auth module uses form-based credentials which is secure on its own but inconsistent
-      with the `messages_get` receiving a query string parameter.
+      Confusion becomes even harder to detect when business logic splits across modules. The
+      auth module uses form-based credentials (secure on its own) but doesn't match `messages_get`
+      receiving a query string parameter.
 
 
-      Note that each file looks reasonable in isolation.
+      Each file looks reasonable in isolation—authentication in `auth.py` follows best practices,
+      route handlers in `routes.py` use standard query parameters. The vulnerability lives
+      at the boundary between modules, where reviewers rarely look.
     http: null
     language: python
     parts:
     - part: 1
       file: e04_cross_module/routes.py
-      code_start_line: 20
-      code_end_line: 31
+      code_start_line: 22
+      code_end_line: 33
     - part: 2
       file: e04_cross_module/auth.py
       code_start_line: 10
@@ -89,8 +89,8 @@ examples:
     file_hashes:
       e04_cross_module/auth.py: 67d483a100c41992ab94bf5e5361b61df5e56fbc865d942857c624ebcd219505
       e04_cross_module/db.py: 11d44dbeda8a5b978bd18daeb182b4d69ccc843e118572dc51936850d8fbc375
-      e04_cross_module/routes.py: 7303f1c12e146c3209de7c16eb7a71fe16a6af92f25a09d0b6e8d93b7ace556c
-    fingerprint: 80a5ee411ac8fe1ca68d066bfdbeef13817c42eef77aa1552855a7248e518487
+      e04_cross_module/routes.py: 6790b1dd4344850f05539b5cb22df3c647f37a886d27b3b695b4dea19ba35c81
+    fingerprint: 187c5b72565b1c4fb95435918303558997fa3ff1f01125b1f1c45689276ae863
   5:
     id: 5
     kind: block
@@ -101,8 +101,8 @@ examples:
       checks query parameters.
 
 
-      Note that due to the nature of the endpoint, the business impact here is DoS not a regular
-      data leak.
+      This DELETE endpoint demonstrates message destruction rather than unauthorized reading—attackers
+      can erase evidence or disrupt communications.
     http: null
     language: python
     parts:
@@ -116,23 +116,35 @@ examples:
       code_end_line: 15
     file_hashes:
       e05_truthy_or/auth.py: 6c37fd85dc2d993bdc171828d6031b7c0810a4b10ffa3a40c8dd07bb31ddd279
-      e05_truthy_or/routes.py: b50020d4bf8bc3991747f97135666c0dd94168edc9f22191a0bb71fed5a38934
-    fingerprint: 32b1dcbce8dd414ab64aa3443a8b5edeee32a5c1a9c114ebb473e293e648eff7
+      e05_truthy_or/routes.py: 7637d15297470b97e52084dc29d276d9b4cc9b6a47d24b397c7db88ec2285d73
+    fingerprint: d406d863accc1d7f3cd6ef38c3c09f236eb274e935de2cefcfa74283c4263cb2
   6:
     id: 6
     kind: block
-    title: null
-    notes: null
+    title: dict.get() Default Parameter Precedence
+    notes: >-
+      The vulnerability shown in example 5 was fixed by reversing priority of parameters in
+      the merge function `_resolve`. However, this introduces a new vulnerability in the message
+      retrieval function.
+
+
+      Note that internet browsers and many web servers refuse body parameters for GET, however
+      Flask does support them, opening an attack vector for the attacker.
     http: null
     language: python
     parts:
+    - part: 1
+      file: e06_dict_get_default/routes.py
+      code_start_line: 21
+      code_end_line: 31
     - part: 2
       file: e06_dict_get_default/auth.py
       code_start_line: 8
       code_end_line: 16
     file_hashes:
-      e06_dict_get_default/auth.py: f34471e6f747eece3d63cfb4686ad07e2a473cb76520a4db3d035bc789a8c148
-    fingerprint: 3a95d894862c4c65f41f034053abe7ed725d8c9782f9d1050f768a971c7a45d0
+      e06_dict_get_default/auth.py: 71c24b46dc6d6d7d7bcd7892c8d635e9ea783192ecfe049d6bb8740d55ec4800
+      e06_dict_get_default/routes.py: 154442e971146863eaaa0cb18bb711aa1f409cb32827e01569a83b65562cd357
+    fingerprint: ef9410e71aa758a8ebab57e89effef467b69b08ae354e376a32468f5980d5685
   7:
     id: 7
     kind: block
@@ -142,6 +154,11 @@ examples:
       instead of writing our own source merging function.
 
 
+      Flask's `request.values` is a `CombinedMultiDict` merging `request.args` and `request.form`
+      with **args taking precedence** when keys collide. This means `?user=attacker` in the
+      URL overrides `user=victim` in the POST body.
+
+
       This version of `authenticate_user` relies on `request.form` and is secure on its own,
       but the vulnerability arises when `get_messages` uses `request.values` instead.
     http: null
@@ -149,16 +166,16 @@ examples:
     parts:
     - part: 1
       file: e07_request_values/routes.py
-      code_start_line: 20
-      code_end_line: 34
+      code_start_line: 24
+      code_end_line: 38
     - part: 2
       file: e07_request_values/auth.py
       code_start_line: 10
       code_end_line: 16
     file_hashes:
-      e07_request_values/auth.py: 6eb261ef832a2d5e89fe7778a7adbe0cafe7d59da0d3fbed6075ccced4f5d818
-      e07_request_values/routes.py: ee52b0128eef375ac0817c482f63bca8a3efe543e6111a49a5c1afa18d6666e5
-    fingerprint: 8b7bf008b46606a7cca35fd4ad72539bfcedca0523ad08105c91d7bf9eefa5e6
+      e07_request_values/auth.py: 8c65942b4895f65f7c62ca62fee946f310128eb8ddb0322c300e6d3d0cd39d51
+      e07_request_values/routes.py: 648d5b297580a5a45681d2e63409002fd2f1d13577fb6cc38ea45989fcda9c59
+    fingerprint: 064fc60338049755dc3c75f7cb946a7946940e56ceb8f870cb3c3b5932e7bd1f
   8:
     id: 8
     kind: block
@@ -182,17 +199,17 @@ examples:
       code_start_line: 10
       code_end_line: 16
     file_hashes:
-      e08_inconsistent_adoption/auth.py: 05691983635e81cbd7e1b7212fccbc014a7bf2fc40687309a0e554de8f9d6b3c
+      e08_inconsistent_adoption/auth.py: e3481a68a0bc6c75d58ce5340e575386e2141a1ebe9b1a1dce7fc050dd60e814
       e08_inconsistent_adoption/routes.py: 5de7cb86f5a9fbe4c0c53bfc3516749be4bed869943f4e4a2e7c5e4f5f1b5fef
-    fingerprint: 5bab94babb73a83883256c1bc31fb5e7d393edbb9e842dbe8ba83d03bffa7ee2
+    fingerprint: 8aac683efa85ece8031e044b228151e79277959c351f202c45be08ae9220a37c
 attachments:
   http/exploit-1.http: 7713414ae250462e4ba2c8b096a7b7aa64fe151cb67a11bd1f215ed196b5d3b4
   http/exploit-2.http: 126e26ce2c04adaf7f91403fa8e79647a6675c050ef55181c60d8a3a27e90a24
   http/exploit-3.http: 12930529388dcc4af6265724b583469c071c5afb07795b9be52cd63d0d71a64f
-  http/exploit-4.http: 0e76c3b1b2e1e11cb9a7166c8148a870962632f6e22473a58f2ac8407dc7eadd
-  http/exploit-5.http: 4cc0dffe357b29c98f1752e7d45597394a2755b8a65f35132a54597aea7bcbc7
+  http/exploit-4.http: e7393cec959dd3dbb38db3d77c18f30dd079bf8b4b80134162fc3bffc92282ab
+  http/exploit-5.http: 01f80a0f20c23be559b174885b0965f6171a51c303e69a05a3983c6ab50a8a92
   http/exploit-6.http: 325a17126db3691dd744812fac2990835ebfaaa6189162fccd1d7095e023ea7b
   http/exploit-7.http: 1c9f40f3ec3cbd739269a7c511ca388bed906200fb99d40c6f701d48b0817604
-  http/exploit-8.http: 38bf4588c8c2d26aecadc9763417f08dff1a7b9e9b669a4873717543dd0fc46e
-build_signature: 3bc7a0a0428d367aafe77c4199a25e6ff41b34c4e33081cf1dd1e0c47d26d66a
-last_readme_fingerprint: c6fcedced9b20f70e3a5b98368cbd62831f4ca3d1f024d2372ee6e5f9fa5ca53
+  http/exploit-8.http: d6138633790a593621dfa4956156ea09a044f288b037a7a17b229139f5a23348
+build_signature: 28d1028fd91150741c227d160fe0af7bbb0d98427261c46a34417ab0c22b70e1
+last_readme_fingerprint: 96d34098db144e0ae407e11182fb1dbc008b7704c3e2ba321f9fae7804e1eff1

@@ -28,8 +28,8 @@ def list_messages():
 #   function resolves credentials via flexible fallback logic. Meanwhile, message
 #   retrieval only checks query parameters.
 #
-#   Note that due to the nature of the endpoint, the business impact here is DoS not
-#   a regular data leak.
+#   This DELETE endpoint demonstrates message destruction rather than unauthorized
+#   reading—attackers can erase evidence or disrupt communications.
 # @/unsafe
 @bp.delete("/users/me/messages")
 def delete_messages():
@@ -48,6 +48,4 @@ def delete_messages():
 
     deleted_messages_count = messages_delete(user, index, count)
     return {"status": "deleted", "user": user, "index": index, "count": deleted_messages_count}
-
-
 # @/unsafe[block]

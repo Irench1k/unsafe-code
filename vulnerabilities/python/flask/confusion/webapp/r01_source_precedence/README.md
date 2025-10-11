@@ -21,12 +21,12 @@ Source precedence bugs creep in when two parts of the stack read the "same" inpu
 | Category | Example | File |
 |:---:|:---:|:---:|
 | Secure Baselines | [Example 1: Secure Implementation](#ex-1) | [e00_intro/routes.py](e00_intro/routes.py#L32-L45) |
-| Straightforward Source Drift | [Example 2: Inline request.form vs request.args Confusion](#ex-2) | [e00_intro/routes.py](e00_intro/routes.py#L60-L71) |
-| Straightforward Source Drift | [Example 3: Function-Level Parameter Source Confusion](#ex-3) | [e00_intro/routes.py](e00_intro/routes.py#L81-L107) |
-| Straightforward Source Drift | [Example 4: Cross-Module Parameter Source Confusion](#ex-4) | [e04_cross_module/routes.py](e04_cross_module/routes.py#L20-L31) |
+| Straightforward Source Drift | [Example 2: Inline request.form vs request.args Confusion](#ex-2) | [e00_intro/routes.py](e00_intro/routes.py#L58-L69) |
+| Straightforward Source Drift | [Example 3: Function-Level Parameter Source Confusion](#ex-3) | [e00_intro/routes.py](e00_intro/routes.py#L79-L105) |
+| Straightforward Source Drift | [Example 4: Cross-Module Parameter Source Confusion](#ex-4) | [e04_cross_module/routes.py](e04_cross_module/routes.py#L22-L33) |
 | Helper-Induced Mixing | [Example 5: Truthy-OR Parameter Precedence](#ex-5) | [e05_truthy_or/routes.py](e05_truthy_or/routes.py#L34-L50) |
-| Helper-Induced Mixing | [Example 6](#ex-6) | [e06_dict_get_default/auth.py](e06_dict_get_default/auth.py#L8-L16) |
-| request.values Footguns | [Example 7: Flask's request.values Precedence Rules](#ex-7) | [e07_request_values/routes.py](e07_request_values/routes.py#L20-L34) |
+| Helper-Induced Mixing | [Example 6: dict.get() Default Parameter Precedence](#ex-6) | [e06_dict_get_default/routes.py](e06_dict_get_default/routes.py#L21-L31) |
+| request.values Footguns | [Example 7: Flask's request.values Precedence Rules](#ex-7) | [e07_request_values/routes.py](e07_request_values/routes.py#L24-L38) |
 | request.values Footguns | [Example 8: Inconsistent request.values Adoption](#ex-8) | [e08_inconsistent_adoption/routes.py](e08_inconsistent_adoption/routes.py#L37-L60) |
 
 ## Secure Baselines
@@ -111,11 +111,13 @@ user=spongebob&password=wrong-password
 
 Simple handlers where the guard inspects query parameters but the action trusts form data or vice versa.
 
+**Technical note:** While query parameters are commonly associated with GET requests, POST requests can include both query strings and request bodies. Flask parses both sources regardless of HTTP method, enabling these attacks.
+
 ### Example 2: Inline request.form vs request.args Confusion <a id="ex-2"></a>
 
 Demonstrates the most basic form of parameter source confusion where authentication uses **form body** parameters but data retrieval uses **query string** parameters.
 
-Authentication validates credentials from the POST body (the secure practice), but message retrieval reads the target username from the query string. An attacker can authenticate with their own credentials in the body while specifying a victim's username in the URL to access that victim's messages.
+An attacker authenticates with their own credentials in the body while specifying a victim's username in the URL.
 ```python
 @bp.post("/example2")
 def example2():
@@ -252,9 +254,9 @@ user=spongebob&password=clarinet123
 
 ### Example 4: Cross-Module Parameter Source Confusion <a id="ex-4"></a>
 
-Confusion becomes even harder to detect when business logic is split into separate modules. Here the auth module uses form-based credentials which is secure on its own but inconsistent with the `messages_get` receiving a query string parameter.
+Confusion becomes even harder to detect when business logic splits across modules. The auth module uses form-based credentials (secure on its own) but doesn't match `messages_get` receiving a query string parameter.
 
-Note that each file looks reasonable in isolation.
+Each file looks reasonable in isolation—authentication in `auth.py` follows best practices, route handlers in `routes.py` use standard query parameters. The vulnerability lives at the boundary between modules, where reviewers rarely look.
 ```python
 @bp.post("/users/me/messages")
 def list_messages():
@@ -312,7 +314,7 @@ user=plankton&password=chumbucket
 #   ]
 # }
 
-### What if we change one of the usernames to Mr. Krabs?
+### What if we change one of the usernames to Squidward?
 POST {{base}}/users/me/messages?user=squidward
 Content-Type: application/x-www-form-urlencoded
 
@@ -343,7 +345,7 @@ Utility functions that merge sources (or hide precedence rules) create subtle in
 
 Demonstrates a subtle vulnerability in "flexible" parameter resolution. The auth function resolves credentials via flexible fallback logic. Meanwhile, message retrieval only checks query parameters.
 
-Note that due to the nature of the endpoint, the business impact here is DoS not a regular data leak.
+This DELETE endpoint demonstrates message destruction rather than unauthorized reading—attackers can erase evidence or disrupt communications.
 ```python
 @bp.delete("/users/me/messages")
 def delete_messages():
@@ -406,16 +408,31 @@ user=mr.krabs&index=0&count=10
 ### By the time Mr. Krabs refreshes the page the message is gone!
 GET {{base}}/users/me/messages?user=mr.krabs&password=money
 # {
-#   "owner": "mr.krabs",
+#   "mailbox": "mr.krabs",
 #   "messages": []
 # }
 ```
 
 </details>
 
-### Example 6 <a id="ex-6"></a>
+### Example 6: dict.get() Default Parameter Precedence <a id="ex-6"></a>
 
+The vulnerability shown in example 5 was fixed by reversing priority of parameters in the merge function `_resolve`. However, this introduces a new vulnerability in the message retrieval function.
+
+Note that internet browsers and many web servers refuse body parameters for GET, however Flask does support them, opening an attack vector for the attacker.
 ```python
+@bp.get("/users/me/messages")
+def list_messages():
+    """
+    Retrieves messages for an authenticated user.
+
+    GET /messages?user=mr.krabs&password=money
+    """
+    if not authenticate_principal(request):
+        return "Invalid user or password", 401
+
+    return messages_get(request.args.get("user"))
+
 def _resolve(request, key):
     return request.form.get(key, request.args.get(key))
 
@@ -465,6 +482,8 @@ user=squidward&password=clarinet123
 ### Example 7: Flask's request.values Precedence Rules <a id="ex-7"></a>
 
 This example is functionally equivalent to example 5, except here we use built-in `request.values` instead of writing our own source merging function.
+
+Flask's `request.values` is a `CombinedMultiDict` merging `request.args` and `request.form` with **args taking precedence** when keys collide. This means `?user=attacker` in the URL overrides `user=victim` in the POST body.
 
 This version of `authenticate_user` relies on `request.form` and is secure on its own, but the vulnerability arises when `get_messages` uses `request.values` instead.
 ```python
@@ -613,17 +632,12 @@ POST {{base}}/users/me/messages
 Content-Type: application/x-www-form-urlencoded
 
 user=mr.krabs&password=pl4nkt0nd4b3st
-
 # {
-#   "owner": "squidward",
+#   "mailbox": "mr.krabs",
 #   "messages": [
 #     {
-#       "from": "mr.krabs",
-#       "message": "Squidward, I'm switching yer shifts to Tuesday through Saturday. No complaints!"
-#     },
-#     {
 #       "from": "squidward",
-#       "message": "Note to self: Mr. Krabs hides the safe key under the register. Combination is his first dime's serial number."
+#       "message": "I saw Plankton buying a mechanical keyboard, he's planning to hack us!"
 #     }
 #   ]
 # }
