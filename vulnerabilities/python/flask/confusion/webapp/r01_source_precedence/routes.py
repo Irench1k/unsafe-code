@@ -1,11 +1,11 @@
 from flask import Blueprint
 
-from .e0103_intro.routes import bp as intro_bp
+from .e00_intro.routes import bp as intro_bp
 from .e04_cross_module.routes import bp as cross_module_bp
-from .e05_mixed_source.routes import bp as mixed_source_bp
-from .e06_destructive.routes import bp as destructive_bp
-from .e07_form_bypass.routes import bp as form_bypass_bp
-from .e08_password_reset.routes import bp as password_reset_bp
+from .e05_truthy_or.routes import bp as truthy_or_bp
+from .e06_dict_get_default.routes import bp as dict_get_default_bp
+from .e07_request_values.routes import bp as request_values_bp
+from .e08_inconsistent_adoption.routes import bp as inconsistent_adoption_bp
 
 bp = Blueprint("source_precedence", __name__)
 
@@ -18,7 +18,7 @@ def index():
 # Register sub-blueprints
 bp.register_blueprint(intro_bp)
 bp.register_blueprint(cross_module_bp)
-bp.register_blueprint(mixed_source_bp)
-bp.register_blueprint(destructive_bp)
-bp.register_blueprint(form_bypass_bp)
-bp.register_blueprint(password_reset_bp)
+bp.register_blueprint(truthy_or_bp)
+bp.register_blueprint(dict_get_default_bp)
+bp.register_blueprint(request_values_bp)
+bp.register_blueprint(inconsistent_adoption_bp)

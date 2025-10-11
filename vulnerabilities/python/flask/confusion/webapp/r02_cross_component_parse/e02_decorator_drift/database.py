@@ -32,7 +32,7 @@ def get_messages_ex2(user):
     messages = db["users"].get(user, {}).get("messages", None)
     if messages is None:
         return None
-    return {"owner": user, "messages": messages}
+    return {"mailbox": user, "messages": messages}
 
 
 def authenticate_ex2():

@@ -8,210 +8,191 @@ examples:
     kind: function
     title: Secure Implementation
     notes: >-
-      Here you can see a secure implementation that consistently uses query string parameters
+      Here you can see a secure implementation that consistently uses form body parameters
       for both authentication and data retrieval.
-    http: open
-    language: python
-    parts:
-    - part: 1
-      file: e0103_intro/routes.py
-      code_start_line: 33
-      code_end_line: 51
-    file_hashes:
-      e0103_intro/routes.py: 0c79b1b3b6a3cd05cab7511b401d31430d94421fdc6b0c261fd2f83e03ebc3fa
-    fingerprint: 8cf16c2d3e2e200c825f69a1b659d0c00bfaa62a91914b31d3526c02cd9ab089
-  2:
-    id: 2
-    kind: function
-    title: Basic Parameter Source Confusion
-    notes: >-
-      Demonstrates the most basic form of parameter source confusion where authentication
-      uses **query** parameters but data retrieval uses **form** data.
-
-
-      We take the user name from the query string during the validation, but during the data
-      retrieval another value is used, taken from the request body (form). This does not look
-      very realistic, but it demonstrates the core of the vulnerability, we will build upon
-      this further.
-
-
-      Here you can see if we provide squidward's name in the request body, we can access his
-      messages without his password.
     http: null
     language: python
     parts:
     - part: 1
-      file: e0103_intro/routes.py
-      code_start_line: 68
-      code_end_line: 87
+      file: e00_intro/routes.py
+      code_start_line: 32
+      code_end_line: 45
     file_hashes:
-      e0103_intro/routes.py: 0c79b1b3b6a3cd05cab7511b401d31430d94421fdc6b0c261fd2f83e03ebc3fa
-    fingerprint: 8dfc5d0228b2122282ab60ada964fdb824a1325ad311c560ce948ea98e7cb3f4
+      e00_intro/routes.py: 7eea4535f675709076642c1cf8ba1c6efa32755fdbb33acce81eeea3ffd7cd2e
+    fingerprint: 108e4e8cd87aafd0de3b3b9476ef5e4feeae932829eb395508a0707beb0663b1
+  2:
+    id: 2
+    kind: function
+    title: Inline request.form vs request.args Confusion
+    notes: >-
+      Demonstrates the most basic form of parameter source confusion where authentication
+      uses **form body** parameters but data retrieval uses **query string** parameters.
+
+
+      Authentication validates credentials from the POST body (the secure practice), but message
+      retrieval reads the target username from the query string. An attacker can authenticate
+      with their own credentials in the body while specifying a victim's username in the URL
+      to access that victim's messages.
+    http: null
+    language: python
+    parts:
+    - part: 1
+      file: e00_intro/routes.py
+      code_start_line: 60
+      code_end_line: 71
+    file_hashes:
+      e00_intro/routes.py: 7eea4535f675709076642c1cf8ba1c6efa32755fdbb33acce81eeea3ffd7cd2e
+    fingerprint: fd32ad65cb1cebfb742a886e1cbdbe37142ece33ee734bc79ecf4fd778ae42db
   3:
     id: 3
     kind: block
     title: Function-Level Parameter Source Confusion
     notes: >-
-      Functionally equivalent to example 2, but shows how separating authentication and data
-      retrieval into different functions can make the vulnerability harder to spot.
-    http: open
+      Separating authentication and data retrieval into different functions can make the vulnerability
+      harder to spot.
+    http: null
     language: python
     parts:
     - part: 1
-      file: e0103_intro/routes.py
-      code_start_line: 97
-      code_end_line: 126
+      file: e00_intro/routes.py
+      code_start_line: 81
+      code_end_line: 107
     file_hashes:
-      e0103_intro/routes.py: 0c79b1b3b6a3cd05cab7511b401d31430d94421fdc6b0c261fd2f83e03ebc3fa
-    fingerprint: d32f522671f640b75bd6dc2866d18abc95aaa0448241e9c9885de15edd245a92
+      e00_intro/routes.py: 7eea4535f675709076642c1cf8ba1c6efa32755fdbb33acce81eeea3ffd7cd2e
+    fingerprint: b90cfdc6b2acf1f7b936dc0147d8a9a6ce6f4f5c4351ee6dfd2d375a9cbe9b48
   4:
     id: 4
     kind: block
     title: Cross-Module Parameter Source Confusion
     notes: >-
-      In the previous example, you can still see that the `user` value gets retrieved from
-      the `request.args` during validation but from the `request.form` during data retrieval.
+      Confusion becomes even harder to detect when business logic is split into separate modules.
+      Here the auth module uses form-based credentials which is secure on its own but inconsistent
+      with the `messages_get` receiving a query string parameter.
 
 
-      A more subtle example, where this is not immediately obvious (imagine, `authenticate_user`
-      is defined in an another file altogether):
+      Note that each file looks reasonable in isolation.
     http: null
     language: python
     parts:
     - part: 1
-      file: e04_cross_module/db.py
-      code_start_line: 15
-      code_end_line: 25
+      file: e04_cross_module/routes.py
+      code_start_line: 20
+      code_end_line: 31
     - part: 2
       file: e04_cross_module/auth.py
       code_start_line: 10
-      code_end_line: 18
+      code_end_line: 17
     - part: 3
-      file: e04_cross_module/routes.py
-      code_start_line: 13
-      code_end_line: 28
+      file: e04_cross_module/db.py
+      code_start_line: 8
+      code_end_line: 16
     file_hashes:
-      e04_cross_module/auth.py: b54256b7e1d701b54d0f53f24f7064fa29bcb103f86f6569c7b8c3b6557fefe5
-      e04_cross_module/db.py: 5f9857b885fbbfb80885f6bb127ab6975d0415732da2d4eb63ff936f46ee8780
-      e04_cross_module/routes.py: d003a8f1fb5e54484ad1c3810c564c494282789c0f635f7801772e4e3df452ef
-    fingerprint: 6a7319bda92e01b3f2da5929adc34fe37a107ce3d0e033f74df4e8da09e4a559
+      e04_cross_module/auth.py: 67d483a100c41992ab94bf5e5361b61df5e56fbc865d942857c624ebcd219505
+      e04_cross_module/db.py: 11d44dbeda8a5b978bd18daeb182b4d69ccc843e118572dc51936850d8fbc375
+      e04_cross_module/routes.py: 7303f1c12e146c3209de7c16eb7a71fe16a6af92f25a09d0b6e8d93b7ace556c
+    fingerprint: 80a5ee411ac8fe1ca68d066bfdbeef13817c42eef77aa1552855a7248e518487
   5:
     id: 5
     kind: block
-    title: Mixed-Source Authentication
+    title: Truthy-OR Parameter Precedence
     notes: >-
-      Shows how authentication and data access can use different combinations of sources.
+      Demonstrates a subtle vulnerability in "flexible" parameter resolution. The auth function
+      resolves credentials via flexible fallback logic. Meanwhile, message retrieval only
+      checks query parameters.
 
 
-      This one is interesting, because you can access Squidward's messages by providing his
-      username and SpongeBob's password in the request query, while providing SpongeBob's
-      username in the request body:
+      Note that due to the nature of the endpoint, the business impact here is DoS not a regular
+      data leak.
     http: null
     language: python
     parts:
     - part: 1
-      file: e05_mixed_source/auth.py
-      code_start_line: 12
-      code_end_line: 33
+      file: e05_truthy_or/routes.py
+      code_start_line: 34
+      code_end_line: 50
+    - part: 2
+      file: e05_truthy_or/auth.py
+      code_start_line: 8
+      code_end_line: 15
     file_hashes:
-      e05_mixed_source/auth.py: c4f927876d95b95d5d28e557c8cb0d9634e629d848a711b6fa2ba29daaa6149f
-    fingerprint: d393be71849109a9db0d6eb90b5a432fe0b8e573ce51301381a8e1bd5d677d2b
+      e05_truthy_or/auth.py: 6c37fd85dc2d993bdc171828d6031b7c0810a4b10ffa3a40c8dd07bb31ddd279
+      e05_truthy_or/routes.py: b50020d4bf8bc3991747f97135666c0dd94168edc9f22191a0bb71fed5a38934
+    fingerprint: 32b1dcbce8dd414ab64aa3443a8b5edeee32a5c1a9c114ebb473e293e648eff7
   6:
     id: 6
-    kind: function
-    title: Destructive Parameter Source Confusion
-    notes: >-
-      Demonstrates parameter source confusion with a DELETE operation. Same root cause as
-      Examples 2-5, but now enabling destructive operations instead of just data disclosure.
-      Authentication uses query parameters while deletion target uses form body.
+    kind: block
+    title: null
+    notes: null
     http: null
     language: python
     parts:
-    - part: 1
-      file: e06_destructive/routes.py
-      code_start_line: 17
-      code_end_line: 39
+    - part: 2
+      file: e06_dict_get_default/auth.py
+      code_start_line: 8
+      code_end_line: 16
     file_hashes:
-      e06_destructive/routes.py: 8b47497c5168de82610466a29674ba9fd28a957c9f0193408d504e805eaa085f
-    fingerprint: 6a1067143c511c743a49ad2964d5bd13c4ae124ed00f5b239dd1354b3c58ee6e
+      e06_dict_get_default/auth.py: f34471e6f747eece3d63cfb4686ad07e2a473cb76520a4db3d035bc789a8c148
+    fingerprint: 3a95d894862c4c65f41f034053abe7ed725d8c9782f9d1050f768a971c7a45d0
   7:
     id: 7
     kind: block
-    title: Form Authentication Bypass
+    title: Flask's request.values Precedence Rules
     notes: >-
-      The endpoint uses form data for authentication, but request.values.get() allows query
-      parameters to override form values, creating a vulnerability. Although designed for
-      POST requests, the endpoint accepts both GET and POST methods, enabling the attack.
+      This example is functionally equivalent to example 5, except here we use built-in `request.values`
+      instead of writing our own source merging function.
 
 
-      Note that although the regular usage would rely on POST request (or PUT, PATCH, etc.),
-      and wouldn't work with GET (because flask's request.values ignores form data in GET
-      requests), the attacker can send both GET and POST requests (if the endpoint is configured
-      to accept both methods).
-
-
-      ```http
-
-      POST /ii/source-precedence/example7? HTTP/1.1
-
-      Content-Type: application/x-www-form-urlencoded
-
-      Content-Length: 35
-
-
-      user=spongebob&password=bikinibottom
-
-      ```
-
-
-      However, the attacker can send both GET and POST requests (if the endpoint is configured
-      to accept both methods).
+      This version of `authenticate_user` relies on `request.form` and is secure on its own,
+      but the vulnerability arises when `get_messages` uses `request.values` instead.
     http: null
     language: python
     parts:
     - part: 1
-      file: e07_form_bypass/auth.py
-      code_start_line: 24
-      code_end_line: 32
+      file: e07_request_values/routes.py
+      code_start_line: 20
+      code_end_line: 34
+    - part: 2
+      file: e07_request_values/auth.py
+      code_start_line: 10
+      code_end_line: 16
     file_hashes:
-      e07_form_bypass/auth.py: 5f4097160d44fd557e4a68d133c1ec23ed509af822856ed59f63186b8f5fbd1d
-    fingerprint: ab53946b5c4632dc6d5699088f3b4940a28ca691308737950f3e437215a0f410
+      e07_request_values/auth.py: 6eb261ef832a2d5e89fe7778a7adbe0cafe7d59da0d3fbed6075ccced4f5d818
+      e07_request_values/routes.py: ee52b0128eef375ac0817c482f63bca8a3efe543e6111a49a5c1afa18d6666e5
+    fingerprint: 8b7bf008b46606a7cca35fd4ad72539bfcedca0523ad08105c91d7bf9eefa5e6
   8:
     id: 8
-    kind: function
-    title: Password Reset Parameter Confusion
+    kind: block
+    title: Inconsistent request.values Adoption
     notes: >-
-      Developers "fixed" the messages endpoint but introduced a NEW vulnerability when adding
-      password reset functionality. Authentication uses request.values to verify WHO is making
-      the request, but the target user whose password gets reset comes from request.form only.
+      Developers "fixed" the vulnerability in example 7, but introduced a NEW vulnerability
+      when adding password update functionality.
 
 
-      An attacker can authenticate with their own credentials in the query string while specifying
-      a victim's username in the form body, resetting the victim's password to one they control.
-      This enables full account takeover.
-
-
-      LESSON: This demonstrates how "apparent fixes" create false security. Same root cause
-      as Examples 2-7, but now enabling account takeover instead of just data disclosure.
-      The partial fix made developers careless when adding new features.
+      Updated authentication function uses `request.values` to verify WHO is making the request,
+      but the target user whose password gets updated comes from `request.form` only.
     http: null
     language: python
     parts:
     - part: 1
-      file: e08_password_reset/routes.py
-      code_start_line: 47
-      code_end_line: 64
+      file: e08_inconsistent_adoption/routes.py
+      code_start_line: 37
+      code_end_line: 60
+    - part: 2
+      file: e08_inconsistent_adoption/auth.py
+      code_start_line: 10
+      code_end_line: 16
     file_hashes:
-      e08_password_reset/routes.py: fbb7b2ff727fea6d3ea8441d30a094ae47275f9ea56ee6c41aa2e120eb208577
-    fingerprint: 9da6b117fc5f4b4f71b1c9dffca914ccb72a45673ebe7047dd03c9df1928ea56
+      e08_inconsistent_adoption/auth.py: 05691983635e81cbd7e1b7212fccbc014a7bf2fc40687309a0e554de8f9d6b3c
+      e08_inconsistent_adoption/routes.py: 5de7cb86f5a9fbe4c0c53bfc3516749be4bed869943f4e4a2e7c5e4f5f1b5fef
+    fingerprint: 5bab94babb73a83883256c1bc31fb5e7d393edbb9e842dbe8ba83d03bffa7ee2
 attachments:
-  http/exploit-1.http: 50f85726ba27321f7a75e2f075a6ce5e73cd554912c8941c3f9809d438e71eaa
-  http/exploit-2.http: e2811e1f074cdb4b8589caaf500af2f6ea10ba93468c2e92b231666ebbd8670b
-  http/exploit-3.http: 885d1ed34ceafe5645ea80d29585573774a7dc8f0a0ec58fd0503e81de6bf477
-  http/exploit-4.http: 6369d3570fb27203bbe27ab575d18863d59a2990d6ae91c2e2982bdeb132dd71
-  http/exploit-5.http: 92472e91599a6a64344a05858e3eadbc2363e252dea8f8bfff834b69e46b0575
-  http/exploit-6.http: 28d7fc50dac6a7971985cd333b17ef5bb17f86231e2bc82fbb68877dc237326b
-  http/exploit-7.http: b6e8d399cd54bfe799c03c6ecd8ae4fc9231786135a4488c805515d8ebf876c0
-  http/exploit-8.http: 7108a192427244ee45ed2c0854e3d44e9f659a4f2780b519621cbb139599342b
-build_signature: 85f94d229b8933d3e6f6f3fd708b02e5020abd20118fec301a2558f5a5362960
-last_readme_fingerprint: 08e59dd71fd938bc6a817225c0f162bca4ea21344d1c6fa8837c4c5257ba470d
+  http/exploit-1.http: 7713414ae250462e4ba2c8b096a7b7aa64fe151cb67a11bd1f215ed196b5d3b4
+  http/exploit-2.http: 126e26ce2c04adaf7f91403fa8e79647a6675c050ef55181c60d8a3a27e90a24
+  http/exploit-3.http: 12930529388dcc4af6265724b583469c071c5afb07795b9be52cd63d0d71a64f
+  http/exploit-4.http: 0e76c3b1b2e1e11cb9a7166c8148a870962632f6e22473a58f2ac8407dc7eadd
+  http/exploit-5.http: 4cc0dffe357b29c98f1752e7d45597394a2755b8a65f35132a54597aea7bcbc7
+  http/exploit-6.http: 325a17126db3691dd744812fac2990835ebfaaa6189162fccd1d7095e023ea7b
+  http/exploit-7.http: 1c9f40f3ec3cbd739269a7c511ca388bed906200fb99d40c6f701d48b0817604
+  http/exploit-8.http: 38bf4588c8c2d26aecadc9763417f08dff1a7b9e9b669a4873717543dd0fc46e
+build_signature: 3bc7a0a0428d367aafe77c4199a25e6ff41b34c4e33081cf1dd1e0c47d26d66a
+last_readme_fingerprint: c6fcedced9b20f70e3a5b98368cbd62831f4ca3d1f024d2372ee6e5f9fa5ca53

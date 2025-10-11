@@ -3,18 +3,16 @@ from ..db import db
 
 def authenticate(user, password):
     """Validates user credentials against the database."""
-    return password is not None and password == db["passwords"].get(user, None)
+    return password and password == db["passwords"].get(user)
 
 
-def get_messages(user):
+def messages_get(user):
     """Retrieves all messages for the specified user."""
-    messages = db["messages"].get(user, None)
-    if messages is None:
-        return None
-    return {"owner": user, "messages": messages}
+    messages = db["messages"].get(user, [])
+    return {"mailbox": user, "messages": messages}
 
 
-def reset_password(user, new_password):
+def password_update(user, new_password):
     """Updates the user's password in the database."""
     if user not in db["passwords"]:
         return False

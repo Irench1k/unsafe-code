@@ -27,4 +27,4 @@ def get_messages(user):
     messages = db["messages"].get(user, None)
     if messages is None:
         return None
-    return {"owner": user, "messages": messages}
+    return {"mailbox": user, "messages": messages}

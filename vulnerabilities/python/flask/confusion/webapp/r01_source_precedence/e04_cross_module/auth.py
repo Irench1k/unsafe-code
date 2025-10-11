@@ -9,12 +9,10 @@ from .db import authenticate
 # @/unsafe
 def authenticate_user():
     """
-    Authenticates the current user using query string credentials.
+    Authenticates the current user using form body credentials.
 
-    Designed for GET-based authentication flows where credentials are passed in the URL.
+    Designed for POST-based authentication flows where credentials are in the request body,
+    following security best practices to keep passwords out of URL logs.
     """
-    return authenticate(
-        request.args.get("user", None), request.args.get("password", None)
-    )
-
+    return authenticate(request.form.get("user"), request.form.get("password"))
 # @/unsafe[block]
