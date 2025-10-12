@@ -130,6 +130,9 @@ class MarkdownBuilder:
         # HTTP request (details/summary)
         self._add_http_request(doc, example)
 
+        # Add source code link
+        self._add_source_code_link(doc, example)
+
         # Image if exists
         self._add_image(doc, example)
 
@@ -172,6 +175,18 @@ class MarkdownBuilder:
             return
         relative_path = f"images/image-{example.id}.png"
         doc.writeTextLine(doc.generateImageHrefNotation(relative_path, "alt text"), html_escape=False)
+
+    def _add_source_code_link(self, doc: MarkdownGenerator, example: Example) -> None:
+        """Add a link to the source code file after the example."""
+        if not example.parts:
+            return
+        
+        file_label = self._get_file_label(example)
+        code_link = self._get_code_link(example)
+        
+        if file_label and code_link:
+            doc.writeTextLine(f"See the code here: [{file_label}]({code_link})", html_escape=False)
+            doc.writeTextLine()  # Blank line after source code link
 
     def _get_code_link(self, example: Example) -> str:
         if not example.parts:
