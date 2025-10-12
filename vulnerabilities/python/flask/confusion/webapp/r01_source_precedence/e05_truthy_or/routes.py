@@ -25,8 +25,15 @@ def list_messages():
 # part: 1
 # notes: |
 #   Demonstrates a subtle vulnerability in "flexible" parameter resolution. The auth
-#   function resolves credentials via flexible fallback logic. Meanwhile, message
-#   retrieval only checks query parameters.
+#   function resolves credentials via flexible fallback logic. Meanwhile, the message 
+#   deletion function only checks the form parameters (the request body).
+#
+#   The main function here is `_resolve`, which merges parameter sources with a
+#   specific priority: it first checks the URL query string (`request.args`) and only
+#   falls back to the request body (`request.form`) if the parameter is not in the URL.
+#   This allows an attacker to craft a request where the `user` parameter in the URL
+#   is their own (to pass authentication), while the `user` parameter in the body
+#   belongs to the victim (to target the action).
 #
 #   This DELETE endpoint demonstrates message destruction rather than unauthorized
 #   reading—attackers can erase evidence or disrupt communications.
