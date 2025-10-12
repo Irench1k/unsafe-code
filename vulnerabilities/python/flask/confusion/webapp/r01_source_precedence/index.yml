@@ -97,8 +97,16 @@ examples:
     title: Truthy-OR Parameter Precedence
     notes: >-
       Demonstrates a subtle vulnerability in "flexible" parameter resolution. The auth function
-      resolves credentials via flexible fallback logic. Meanwhile, message retrieval only
-      checks query parameters.
+      resolves credentials via flexible fallback logic. Meanwhile, the message deletion function
+      only checks the form parameters (the request body).
+
+
+      The main function here is `_resolve`, which merges parameter sources with a specific
+      priority: it first checks the URL query string (`request.args`) and only falls back
+      to the request body (`request.form`) if the parameter is not in the URL. This allows
+      an attacker to craft a request where the `user` parameter in the URL is their own (to
+      pass authentication), while the `user` parameter in the body belongs to the victim (to
+      target the action).
 
 
       This DELETE endpoint demonstrates message destruction rather than unauthorized reading—attackers
@@ -108,16 +116,16 @@ examples:
     parts:
     - part: 1
       file: e05_truthy_or/routes.py
-      code_start_line: 34
-      code_end_line: 50
+      code_start_line: 41
+      code_end_line: 57
     - part: 2
       file: e05_truthy_or/auth.py
       code_start_line: 8
       code_end_line: 15
     file_hashes:
       e05_truthy_or/auth.py: 6c37fd85dc2d993bdc171828d6031b7c0810a4b10ffa3a40c8dd07bb31ddd279
-      e05_truthy_or/routes.py: 7637d15297470b97e52084dc29d276d9b4cc9b6a47d24b397c7db88ec2285d73
-    fingerprint: d406d863accc1d7f3cd6ef38c3c09f236eb274e935de2cefcfa74283c4263cb2
+      e05_truthy_or/routes.py: 429dc321b7ee2f58585fec1f6876958aee4a8f3808cacf7292ff3fb302b4072c
+    fingerprint: 805715c3e5aefc64df2dd0565c375710f8903a74fe9942995c4123fcf422f517
   6:
     id: 6
     kind: block
@@ -204,12 +212,12 @@ examples:
     fingerprint: 8aac683efa85ece8031e044b228151e79277959c351f202c45be08ae9220a37c
 attachments:
   http/exploit-1.http: 7713414ae250462e4ba2c8b096a7b7aa64fe151cb67a11bd1f215ed196b5d3b4
-  http/exploit-2.http: 126e26ce2c04adaf7f91403fa8e79647a6675c050ef55181c60d8a3a27e90a24
+  http/exploit-2.http: a2e08b708653bbc122f333685c4a4253bf3dcc6f96518d8e6a3fad11be3f0aef
   http/exploit-3.http: 12930529388dcc4af6265724b583469c071c5afb07795b9be52cd63d0d71a64f
   http/exploit-4.http: e7393cec959dd3dbb38db3d77c18f30dd079bf8b4b80134162fc3bffc92282ab
   http/exploit-5.http: 01f80a0f20c23be559b174885b0965f6171a51c303e69a05a3983c6ab50a8a92
   http/exploit-6.http: 325a17126db3691dd744812fac2990835ebfaaa6189162fccd1d7095e023ea7b
   http/exploit-7.http: 1c9f40f3ec3cbd739269a7c511ca388bed906200fb99d40c6f701d48b0817604
   http/exploit-8.http: d6138633790a593621dfa4956156ea09a044f288b037a7a17b229139f5a23348
-build_signature: 28d1028fd91150741c227d160fe0af7bbb0d98427261c46a34417ab0c22b70e1
-last_readme_fingerprint: 96d34098db144e0ae407e11182fb1dbc008b7704c3e2ba321f9fae7804e1eff1
+build_signature: 8643ffcaea29e8ab29177eb7149a28ebe542c07ad8feceed7ba3edbbcd48a1b7
+last_readme_fingerprint: f7cffa191a1a2a72210eb1681078cabf50b58440aff7816b46fc2f4ab39fa6bb

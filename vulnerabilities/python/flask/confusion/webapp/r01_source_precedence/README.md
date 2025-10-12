@@ -24,7 +24,7 @@ Source precedence bugs creep in when two parts of the stack read the "same" inpu
 | Straightforward Source Drift | [Example 2: Inline request.form vs request.args Confusion](#ex-2) | [e00_intro/routes.py](e00_intro/routes.py#L58-L69) |
 | Straightforward Source Drift | [Example 3: Function-Level Parameter Source Confusion](#ex-3) | [e00_intro/routes.py](e00_intro/routes.py#L79-L105) |
 | Straightforward Source Drift | [Example 4: Cross-Module Parameter Source Confusion](#ex-4) | [e04_cross_module/routes.py](e04_cross_module/routes.py#L22-L33) |
-| Helper-Induced Mixing | [Example 5: Truthy-OR Parameter Precedence](#ex-5) | [e05_truthy_or/routes.py](e05_truthy_or/routes.py#L34-L50) |
+| Helper-Induced Mixing | [Example 5: Truthy-OR Parameter Precedence](#ex-5) | [e05_truthy_or/routes.py](e05_truthy_or/routes.py#L41-L57) |
 | Helper-Induced Mixing | [Example 6: dict.get() Default Parameter Precedence](#ex-6) | [e06_dict_get_default/routes.py](e06_dict_get_default/routes.py#L21-L31) |
 | request.values Footguns | [Example 7: Flask's request.values Precedence Rules](#ex-7) | [e07_request_values/routes.py](e07_request_values/routes.py#L24-L38) |
 | request.values Footguns | [Example 8: Inconsistent request.values Adoption](#ex-8) | [e08_inconsistent_adoption/routes.py](e08_inconsistent_adoption/routes.py#L37-L60) |
@@ -107,6 +107,8 @@ user=spongebob&password=wrong-password
 
 </details>
 
+See the code here: [e00_intro/routes.py](e00_intro/routes.py#L32-L45)
+
 ## Straightforward Source Drift
 
 Simple handlers where the guard inspects query parameters but the action trusts form data or vice versa.
@@ -140,6 +142,7 @@ def example2():
 POST http://localhost:8000/confusion/source-precedence/example2?user=squidward
 Content-Type: application/x-www-form-urlencoded
 
+user=squidward&password=clarinet123
 
 # Results in 200 OK:
 #
@@ -175,6 +178,8 @@ user=squidward&password=clarinet123
 ```
 
 </details>
+
+See the code here: [e00_intro/routes.py](e00_intro/routes.py#L58-L69)
 
 ### Example 3: Function-Level Parameter Source Confusion <a id="ex-3"></a>
 
@@ -251,6 +256,8 @@ user=spongebob&password=clarinet123
 ```
 
 </details>
+
+See the code here: [e00_intro/routes.py](e00_intro/routes.py#L79-L105)
 
 ### Example 4: Cross-Module Parameter Source Confusion <a id="ex-4"></a>
 
@@ -337,13 +344,17 @@ user=plankton&password=chumbucket
 
 </details>
 
+See the code here: [e04_cross_module/routes.py](e04_cross_module/routes.py#L22-L33)
+
 ## Helper-Induced Mixing
 
 Utility functions that merge sources (or hide precedence rules) create subtle inconsistencies developers rarely spot in review.
 
 ### Example 5: Truthy-OR Parameter Precedence <a id="ex-5"></a>
 
-Demonstrates a subtle vulnerability in "flexible" parameter resolution. The auth function resolves credentials via flexible fallback logic. Meanwhile, message retrieval only checks query parameters.
+Demonstrates a subtle vulnerability in "flexible" parameter resolution. The auth function resolves credentials via flexible fallback logic. Meanwhile, the message deletion function only checks the form parameters (the request body).
+
+The main function here is `_resolve`, which merges parameter sources with a specific priority: it first checks the URL query string (`request.args`) and only falls back to the request body (`request.form`) if the parameter is not in the URL. This allows an attacker to craft a request where the `user` parameter in the URL is their own (to pass authentication), while the `user` parameter in the body belongs to the victim (to target the action).
 
 This DELETE endpoint demonstrates message destruction rather than unauthorized reading—attackers can erase evidence or disrupt communications.
 ```python
@@ -415,6 +426,8 @@ GET {{base}}/users/me/messages?user=mr.krabs&password=money
 
 </details>
 
+See the code here: [e05_truthy_or/routes.py](e05_truthy_or/routes.py#L41-L57)
+
 ### Example 6: dict.get() Default Parameter Precedence <a id="ex-6"></a>
 
 The vulnerability shown in example 5 was fixed by reversing priority of parameters in the merge function `_resolve`. However, this introduces a new vulnerability in the message retrieval function.
@@ -474,6 +487,8 @@ user=squidward&password=clarinet123
 ```
 
 </details>
+
+See the code here: [e06_dict_get_default/routes.py](e06_dict_get_default/routes.py#L21-L31)
 
 ## request.values Footguns
 
@@ -555,6 +570,8 @@ user=squidward&password=clarinet123
 ```
 
 </details>
+
+See the code here: [e07_request_values/routes.py](e07_request_values/routes.py#L24-L38)
 
 ### Example 8: Inconsistent request.values Adoption <a id="ex-8"></a>
 
@@ -644,4 +661,6 @@ user=mr.krabs&password=pl4nkt0nd4b3st
 ```
 
 </details>
+
+See the code here: [e08_inconsistent_adoption/routes.py](e08_inconsistent_adoption/routes.py#L37-L60)
 

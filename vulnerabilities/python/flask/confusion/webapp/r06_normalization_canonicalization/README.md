@@ -92,6 +92,8 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
 </details>
 
+See the code here: [e01_lowercase/routes.py](e01_lowercase/routes.py#L27-L40)
+
 ### Example 2: Case insensitive Object Retrieval <a id="ex-2"></a>
 
 In this example we are still using case canonicalization for group retrieval, but now instead of showing the attacker the victim's group content, we are showing the attacker's newly created group content to the victim, allowing impersonation.
@@ -170,6 +172,8 @@ Authorization: Basic spongebob@krusty-krab.sea:bikinibottom
 ```
 
 </details>
+
+See the code here: [e02_insensitive_object_retrieval/routes.py](e02_insensitive_object_retrieval/routes.py#L27-L41)
 
 ## Whitespace &amp; Formatting Drift
 
@@ -271,6 +275,8 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 ```
 
 </details>
+
+See the code here: [e03_strip_replace_mismatch/routes.py](e03_strip_replace_mismatch/routes.py#L27-L55)
 
 ### Example 4: Whitespace Canonicalization <a id="ex-4"></a>
 
@@ -411,4 +417,6 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 ```
 
 </details>
+
+See the code here: [e04_pydantic_strip_bypass/routes.py](e04_pydantic_strip_bypass/routes.py#L49-L94)
 

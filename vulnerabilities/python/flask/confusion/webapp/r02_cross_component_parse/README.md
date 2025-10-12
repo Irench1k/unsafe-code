@@ -112,6 +112,8 @@ GET {{base}}/example1?user=spongebob&password=bikinibottom
 
 </details>
 
+See the code here: [e01_baseline/routes.py](e01_baseline/routes.py#L28-L41)
+
 ## Decorator Drift
 
 Authentication guards implemented as decorators read user credentials from one source (query parameters), while the view retrieves the user identity from a different source (form data), enabling authentication bypass.
@@ -175,33 +177,31 @@ GET {{base}}/example2?user=spongebob&password=bikinibottom
 
 ###
 
-### EXPLOIT: Authenticate as SpongeBob but retrieve Mr. Krabs's messages
-### Decorator checks query params (user=spongebob), handler reads form data (user=mr.krabs)
+### EXPLOIT: Authenticate as SpongeBob but retrieve Squidward's messages
+### Decorator checks query params (user=spongebob), handler reads form data (user=squidward)
 GET {{base}}/example2?user=spongebob&password=bikinibottom
 Content-Type: application/x-www-form-urlencoded
 
-user=mr.krabs
+user=squidward
 #
 # {
-#   "owner": "mr.krabs",
+#   "mailbox": "squidward",
 #   "messages": [
 #     {
-#       "from": "pearl",
-#       "message": "Daddy, I need $500 for the school dance! It's an EMERGENCY!"
+#       "from": "plankton",
+#       "message": "Squidward, I'll pay you handsomely to 'accidentally' share the secret formula. You deserve better than that dead-end cashier job!"
 #     },
 #     {
 #       "from": "mr.krabs",
-#       "message": "Note to self: moved the secret formula to the auxiliary vault. Combination is me phone number backwards: 5665-321."
+#       "message": "Squidward, the new safe combination is 4-2-0-6-9. Don't write it down anywhere!"
 #     }
 #   ]
 # }
-#
-# IMPACT: Plankton discovers the auxiliary vault location and combination,
-# gaining direct access to the Krabby Patty secret formula! Cross-component
-# parameter sourcing allows authenticating as one user while accessing another's data.
 ```
 
 </details>
+
+See the code here: [e02_decorator_drift/routes.py](e02_decorator_drift/routes.py#L28-L34)
 
 ## Middleware Drift
 
@@ -266,24 +266,12 @@ Content-Type: application/x-www-form-urlencoded
 user=squidward
 #
 # {
-#   "owner": "squidward",
-#   "messages": [
-#     {
-#       "from": "squidward",
-#       "message": "Dear diary, Mr. Krabs keeps the register key taped under his desk. The morning shift code is 1-9-6-2."
-#     },
-#     {
-#       "from": "art.dealer",
-#       "message": "Your painting 'Bold and Brash' has been rejected from the Tentacles Art Gallery. Again."
-#     }
-#   ]
+#   "mailbox": "squidward",
+#   "messages": [ ... ]
 # }
-#
-# IMPACT: Plankton learns how to access the cash register and discovers
-# Squidward's vulnerable emotional state, making him a prime social engineering
-# target. Middleware-handler parameter inconsistency is especially dangerous
-# because security and business logic execute in separate architectural layers.
 ```
 
 </details>
+
+See the code here: [e03_middleware_drift/routes.py](e03_middleware_drift/routes.py#L22-L27)
 

@@ -113,6 +113,8 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
 </details>
 
+See the code here: [e01_baseline/routes.py](e01_baseline/routes.py#L28-L58)
+
 ## Path-Query Confusion Leading to Binding Drift
 
 Authorization binding drift caused by decorators that merge path and query parameters with inconsistent priority. The decorator checks authorization using one source (query parameters), but the handler accesses data using another source (path parameters), creating binding drift even though the authenticated identity is correct.
@@ -188,6 +190,8 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 
 </details>
 
+See the code here: [e02_path_query_confusion/routes.py](e02_path_query_confusion/routes.py#L35-L50)
+
 ### Example 3: Authorization Binding Drift Despite Global Source of Truth <a id="ex-3"></a>
 
 This example attempts to fix the binding drift by introducing a single source of truth (g.group), but the vulnerability persists because handlers still use path parameters directly.
@@ -260,6 +264,8 @@ Authorization: Basic plankton@chum-bucket.sea:burgers-are-yummy
 ```
 
 </details>
+
+See the code here: [e02_path_query_confusion/routes.py](e02_path_query_confusion/routes.py#L82-L97)
 
 ## Classic Identity Rebinding
 
@@ -355,4 +361,6 @@ Content-Type: application/json
 ```
 
 </details>
+
+See the code here: [e03_simple_rebinding/routes.py](e03_simple_rebinding/routes.py#L39-L76)
 
