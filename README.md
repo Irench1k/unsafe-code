@@ -16,25 +16,18 @@ This project provides a streamlined way to understand the security landscape of 
 - **Focus on API Design:** See firsthand how framework API design can either create security traps or completely prevent mistakes that are common elsewhere.
 - **Research Harness:** Use the runnable scenarios as a harness for advanced vulnerability research and exploit development.
 
-## Use Cases
-
-You can use Unsafe Code Lab to:
-
-- **Onboard Quickly:** Get up to speed on the security nuances of an unfamiliar framework or tech stack.
-- **Perform Better Code Reviews:** Run targeted secure code reviews by using these examples as a reference for what to look for.
-- **Conduct Security Research:** Analyze how different frameworks handle security-sensitive operations and discover new vulnerabilities.
-- **Learn & Teach:** Demonstrate common security pitfalls to your team in a practical, hands-on way.
-
 ## Supported Frameworks
 
-Our first public release covers ten modern frameworks across Python and JavaScript. Each framework lives in its own directory in this repository.
+**Flask** is our model framework with complete vulnerability coverage. [**Start here with Flask confusion examples →**](vulnerabilities/python/flask/confusion/webapp/README.md)
 
-| Language       | Frameworks                                                      |
+We're actively expanding coverage to include:
+
+| Language       | Planned Frameworks                                              |
 | -------------- | --------------------------------------------------------------- |
-| **Python**     | Django, Django REST Framework, FastAPI, Flask, CherryPy, Bottle |
-| **JavaScript** | Next.js, Express.js, Koa, Meteor.js, Nest.js                    |
+| **Python**     | Django, Django REST Framework, FastAPI, CherryPy, Bottle       |
+| **JavaScript** | Next.js, Express.js, Koa, Meteor.js, Nest.js                   |
 
-_...and more coming soon!_
+**Want to help?** We're looking for contributors to help build vulnerability examples for these frameworks. Each framework needs runnable applications demonstrating security pitfalls in production-quality code. Check out the Flask examples to see what we're aiming for, then open an issue or PR!
 
 ## Prerequisites and Setup
 
@@ -49,7 +42,7 @@ git clone https://github.com/Irench1k/unsafe-code
 cd unsafe-code
 ```
 
-## Development Setup (Recommended)
+## Development Setup
 
 For the best development experience with instant code reload and debug-level logs, set up your environment to use the development Docker Compose configuration:
 
@@ -142,18 +135,6 @@ docker compose -p python-fastapi-basic logs -f
 docker compose -p python-fastapi-basic down -v
 ```
 
-## Legacy Docker Commands
-
-For simple examples without Docker Compose, you can use Docker directly:
-
-```bash
-cd languages/python/fastapi/basic
-docker build -t unsafe-fastapi-basic .
-docker run --rm -p 8000:8000 --name fastapi-basic unsafe-fastapi-basic
-```
-
-**Note:** This approach doesn't provide the development benefits (code reload, debug logs) and requires manual container management.
-
 ## Using uv (Project Python)
 
 We use uv to manage Python and project dependencies. uv creates and syncs a `.venv/` automatically and maintains a cross‑platform lockfile `uv.lock` for reproducible installs.
@@ -172,7 +153,7 @@ uv sync
 uv run docs --help
 ```
 
-### Documentation Generation (with uv)
+### Documentation Generation
 
 This repo includes a documentation generator that scans for `@unsafe` annotations and produces README files.
 
@@ -216,33 +197,3 @@ alias docs='uv run docs'
 
 uv will ensure the environment matches `pyproject.toml` and `uv.lock` before each run. No need to activate a virtualenv.
 
-### Managing dependencies (maintainers)
-
-- Add packages: `uv add <package>`
-- Remove packages: `uv remove <package>`
-- Update lock (selective): `uv lock --upgrade-package <package>`
-
-Note: This project depends on the upstream Git repository for Markdown generation: `python-markdown-generator @ git+https://github.com/Nicceboy/python-markdown-generator`. Do not replace it with any PyPI alternative; it provides the `markdowngenerator` module used by the generator.
-CI (GitHub Actions)
-
-Add a simple workflow to verify docs stay in sync:
-
-```yaml
-name: Docs
-
-on:
-  push:
-  pull_request:
-
-jobs:
-  verify:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
-      - name: Verify docs
-        run: |
-          ~/.local/bin/uv --version
-          ~/.local/bin/uv run docs verify -v
-```
