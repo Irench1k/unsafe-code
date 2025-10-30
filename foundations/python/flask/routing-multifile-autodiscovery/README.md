@@ -5,7 +5,7 @@ A Flask application demonstrating **automatic route discovery** using `importlib
 ## Quick Start
 
 ```bash
-cd languages/python/flask/routing-multifile-autodiscovery
+cd foundations/python/flask/routing-multifile-autodiscovery
 docker compose up -d
 
 # View logs to see auto-discovery in action

@@ -27,14 +27,12 @@ We're actively expanding coverage to include:
 | **Python**     | Django, Django REST Framework, FastAPI, CherryPy, Bottle       |
 | **JavaScript** | Next.js, Express.js, Koa, Meteor.js, Nest.js                   |
 
-**Want to help?** We're looking for contributors to help build vulnerability examples for these frameworks. Each framework needs runnable applications demonstrating security pitfalls in production-quality code. Check out the Flask examples to see what we're aiming for, then open an issue or PR!
+**Want to help?** We're looking for contributors to help build vulnerability examples for these frameworks. Each framework needs runnable applications demonstrating security pitfalls in production-quality code. Check out the Flask examples to see what we're aiming for, then see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute!
 
 ## Prerequisites and Setup
 
 - Install Docker (Docker Desktop or Docker Engine with Compose v2)
-- Install uv (https://docs.astral.sh/uv/). On macOS with Homebrew: `brew install uv`.
-- Install REST Client extension for VS Code to execute exploit examples (like `exploit-19.http`) found in `/http/` directories
-(https://marketplace.visualstudio.com/items?itemName=humao.rest-client)
+- Install REST Client extension for VS Code to execute exploit examples (like `exploit-19.http`) found in `/http/` directories (https://marketplace.visualstudio.com/items?itemName=humao.rest-client)
 - Clone this repository:
 
 ```bash
@@ -42,28 +40,7 @@ git clone https://github.com/Irench1k/unsafe-code
 cd unsafe-code
 ```
 
-## Development Setup
-
-For the best development experience with instant code reload and debug-level logs, set up your environment to use the development Docker Compose configuration:
-
-### Option 1: Environment Variable
-
-Set this in your shell before running any examples:
-
-```bash
-export COMPOSE_FILE=compose.yml:compose.dev.yml
-```
-
-### Option 2: .envrc with direnv (Recommended)
-
-If you use [direnv](https://direnv.net/) (requires additional setup but provides automatic environment configuration):
-
-```bash
-echo "export COMPOSE_FILE=compose.yml:compose.dev.yml" > .envrc
-direnv allow
-```
-
-**Note:** The development configuration (`compose.dev.yml`) is only meant for development and provides instant code reload and debug-level logs.
+**Contributors:** See [CONTRIBUTING.md](CONTRIBUTING.md) for additional setup including `uv` and the documentation generator.
 
 ## Quick Start
 
@@ -72,7 +49,7 @@ The most convenient way to run examples is using Docker Compose:
 ### 1. Navigate to an example directory
 
 ```bash
-cd languages/python/fastapi/basic
+cd vulnerabilities/python/flask/confusion
 ```
 
 ### 2. Start the application
@@ -119,10 +96,10 @@ You can run examples from anywhere using the full path:
 
 ```bash
 # From repo root
-docker compose -f languages/python/fastapi/basic/compose.yml up -d
+docker compose -f vulnerabilities/python/flask/confusion/compose.yml up -d
 
 # Override host port (by default every container will bind to port 8000)
-PORT=8005 docker compose -f languages/python/fastapi/basic/compose.yml up -d
+PORT=8005 docker compose -f vulnerabilities/python/flask/confusion/compose.yml up -d
 ```
 
 ### Using Project Names
@@ -130,70 +107,8 @@ PORT=8005 docker compose -f languages/python/fastapi/basic/compose.yml up -d
 Manage containers from anywhere using the project name:
 
 ```bash
-docker compose -p python-fastapi-basic ps
-docker compose -p python-fastapi-basic logs -f
-docker compose -p python-fastapi-basic down -v
+docker compose -p python-flask-confusion ps
+docker compose -p python-flask-confusion logs -f
+docker compose -p python-flask-confusion down -v
 ```
-
-## Using uv (Project Python)
-
-We use uv to manage Python and project dependencies. uv creates and syncs a `.venv/` automatically and maintains a cross‑platform lockfile `uv.lock` for reproducible installs.
-
-- Python version: pinned via `.python-version` to `3.12`. uv will download it if missing.
-- Project metadata: see `pyproject.toml`.
-- Lockfile: `uv.lock` (commit this file).
-
-Common commands:
-
-```bash
-# First time (optional; uv run also auto-syncs)
-uv sync
-
-# Run the docs CLI (concise alias)
-uv run docs --help
-```
-
-### Documentation Generation
-
-This repo includes a documentation generator that scans for `@unsafe` annotations and produces README files.
-
-```bash
-# List all documentation targets
-uv run docs list -v
-
-# Generate documentation for all targets
-uv run docs all -v
-
-# Generate for a specific target
-uv run docs generate \
-  --target languages/python/flask/blueprint/webapp/r01_ii/r01_source_precedence/
-
-# Dry run (no file writes) and verbose logging
-uv run docs generate --dry-run -v --target <path/to/target>
-
-# Run unit tests for the docs tool
-uv run docs test -v
-
-# Verify that README/index are up-to-date (CI-friendly)
-uv run docs verify -v
-
-# Run type checker (mypy) on tools/ directory
-uv run mypy
-
-# Run linter (ruff) on tools/ directory
-uv run ruff check tools/
-
-# Auto-fix linting issues where possible
-uv run ruff check tools/ --fix
-
-Tip: Enable shell completion for `docs` (optional):
-
-uv run docs --install-completion
-
-Or add an alias for even shorter commands:
-
-alias docs='uv run docs'
-```
-
-uv will ensure the environment matches `pyproject.toml` and `uv.lock` before each run. No need to activate a virtualenv.
 

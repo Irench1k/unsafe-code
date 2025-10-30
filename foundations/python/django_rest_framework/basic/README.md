@@ -5,7 +5,7 @@ A basic Django REST Framework application demonstrating common web API patterns 
 ## Quick Start
 
 ```bash
-cd languages/python/django_rest_framework/basic
+cd foundations/python/django_rest_framework/basic
 docker compose up -d
 
 # View logs

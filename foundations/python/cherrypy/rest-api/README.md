@@ -5,7 +5,7 @@ A CherryPy application demonstrating RESTful web services using HTTP method disp
 ## Quick Start
 
 ```bash
-cd languages/python/cherrypy/rest-api
+cd foundations/python/cherrypy/rest-api
 docker compose up -d
 
 # Test the REST API endpoints

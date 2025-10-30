@@ -5,7 +5,7 @@ A Flask application demonstrating different approaches to organizing routes acro
 ## Quick Start
 
 ```bash
-cd languages/python/flask/routing-multifile-register
+cd foundations/python/flask/routing-multifile-register
 docker compose up -d
 
 # View logs

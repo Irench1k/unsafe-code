@@ -5,7 +5,7 @@ A basic Flask application demonstrating common web API patterns and security vul
 ## Quick Start
 
 ```bash
-cd languages/python/flask/basic
+cd foundations/python/flask/basic
 docker compose up -d
 
 # View logs

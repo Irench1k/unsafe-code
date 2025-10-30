@@ -5,7 +5,7 @@ A CherryPy application demonstrating advanced routing with custom dispatch metho
 ## Quick Start
 
 ```bash
-cd languages/python/cherrypy/dispatch
+cd foundations/python/cherrypy/dispatch
 docker compose up -d
 
 # Test the custom routing patterns

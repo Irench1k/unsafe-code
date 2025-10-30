@@ -5,7 +5,7 @@ A basic Bottle application demonstrating common web API patterns and security vu
 ## Quick Start
 
 ```bash
-cd languages/python/bottle/basic
+cd foundations/python/bottle/basic
 docker compose up -d
 
 # View logs

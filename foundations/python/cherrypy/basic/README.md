@@ -5,7 +5,7 @@ A basic CherryPy application demonstrating common web API patterns and security 
 ## Quick Start
 
 ```bash
-cd languages/python/cherrypy/basic
+cd foundations/python/cherrypy/basic
 docker compose up -d
 
 # View logs

@@ -1,0 +1,126 @@
+# Contributing to Unsafe Code Lab
+
+Thank you for your interest in contributing! Unsafe Code Lab demonstrates security vulnerabilities through production-quality, runnable code examples.
+
+## What Makes a Good Example
+
+We create **realistic vulnerabilities** that emerge from natural coding patterns:
+- Refactoring drift (decorator reads different source than handler)
+- Feature additions that introduce edge cases
+- Framework helper functions with subtle precedence rules
+
+**Avoid:**
+- CTF-style puzzles or contrived code
+- Obvious markers like `# VULNERABILITY HERE` or `vulnerable_handler()`
+- Code that would fail a normal code review for non-security reasons
+
+## Development Setup
+
+For the best development experience with instant code reload and debug-level logs, configure your environment to use the development Docker Compose setup:
+
+### Option 1: Environment Variable
+
+Set this in your shell before running examples:
+
+```bash
+export COMPOSE_FILE=compose.yml:compose.dev.yml
+```
+
+### Option 2: .envrc with direnv (Recommended)
+
+If you use [direnv](https://direnv.net/):
+
+```bash
+echo "export COMPOSE_FILE=compose.yml:compose.dev.yml" > .envrc
+direnv allow
+```
+
+The development configuration (`compose.dev.yml`) provides instant code reload and debug-level logs.
+
+## Using uv (Project Python)
+
+We use uv to manage Python and project dependencies. uv creates and syncs a `.venv/` automatically and maintains a cross‑platform lockfile `uv.lock` for reproducible installs.
+
+- Python version: pinned via `.python-version` to `3.12`. uv will download it if missing.
+- Project metadata: see `pyproject.toml`.
+- Lockfile: `uv.lock` (commit this file).
+
+Install uv: https://docs.astral.sh/uv/
+On macOS with Homebrew: `brew install uv`
+
+Common commands:
+
+```bash
+# First time (optional; uv run also auto-syncs)
+uv sync
+
+# Run the docs CLI
+uv run docs --help
+```
+
+## Documentation Generation
+
+The repo includes a documentation generator that scans for `@unsafe` annotations and produces README files. See [docs/ANNOTATION_FORMAT.md](docs/ANNOTATION_FORMAT.md) for the annotation format specification.
+
+```bash
+# List all documentation targets
+uv run docs list -v
+
+# Generate documentation for all targets
+uv run docs all -v
+
+# Generate for a specific target
+uv run docs generate --target vulnerabilities/python/flask/confusion/webapp/r01_source_precedence/
+
+# Verify that README/index are up-to-date (run before committing)
+uv run docs verify -v
+
+# Run unit tests for the docs tool
+uv run docs test -v
+```
+
+**Tip:** Enable shell completion or add an alias:
+```bash
+uv run docs --install-completion
+# or
+alias docs='uv run docs'
+```
+
+## Code Quality
+
+Before committing, run:
+
+```bash
+# Verify documentation is up-to-date
+uv run docs verify -v
+
+# Run type checker (mypy)
+uv run mypy
+
+# Run linter (ruff)
+uv run ruff check tools/
+
+# Auto-fix linting issues where possible
+uv run ruff check tools/ --fix
+```
+
+## Adding New Examples
+
+1. Study existing examples in `vulnerabilities/python/flask/confusion/webapp/` to understand the approach
+2. Add `@unsafe[function]` or `@unsafe[block]` annotations to your code (see [docs/ANNOTATION_FORMAT.md](docs/ANNOTATION_FORMAT.md))
+3. Create `.http` files demonstrating the exploit in the `http/` subdirectory
+4. Generate documentation: `uv run docs generate --target <your-path>`
+5. Verify: `uv run docs verify -v`
+6. Test the examples work correctly via Docker Compose
+
+## Submitting Changes
+
+1. Ensure your code runs correctly in Docker
+2. Test the exploitation examples work as documented
+3. Run `uv run docs verify -v` to ensure documentation is current
+4. Run linters and type checkers
+5. Open a pull request with a clear description
+
+## Questions?
+
+Open an issue for discussion before starting major new categories or framework implementations.

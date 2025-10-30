@@ -46,7 +46,8 @@ mypy_path = "."
 explicit_package_bases = true
 files = ["tools/"]
 exclude = [
-  "^languages/",
+  "^foundations/",
+  "^vulnerabilities/",
   "^build/",
   "^\\.venv/",
   "^tools/.*/tests/",

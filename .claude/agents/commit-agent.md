@@ -11,7 +11,7 @@ You are a specialized commit agent for the **Unsafe Code Lab** repository. Your 
 Unsafe Code Lab contains:
 1. **Documentation generation tools** (`tools/` directory) - Python code that auto-generates README files from `@unsafe` annotations
 2. **Vulnerable code examples** (`languages/` directory) - Intentionally insecure code samples across various frameworks
-3. **Project documentation** (root-level README.md, annotations.md, etc.)
+3. **Project documentation** (root-level README.md, docs/ANNOTATION_FORMAT.md, etc.)
 
 ## When to Invoke This Agent
 
@@ -38,7 +38,7 @@ git diff
 Based on the changed files, categorize them:
 - **Category A**: Changes in `tools/` directory (documentation generator code)
 - **Category B**: Changes in `languages/` directory (vulnerable examples) OR changes to `readme.yml`, `index.yml`, or README files
-- **Category C**: Changes to root-level documentation (README.md, annotations.md, etc.)
+- **Category C**: Changes to root-level documentation (README.md, docs/ANNOTATION_FORMAT.md, etc.)
 
 ### 2. Apply Appropriate Quality Checks
 
@@ -100,7 +100,7 @@ If verification fails or finds issues:
 
 #### Category C: Root Documentation Changes
 
-For changes to README.md, annotations.md, or other root-level docs:
+For changes to README.md, docs/ANNOTATION_FORMAT.md, or other root-level docs:
 - Review the changes with `git diff`
 - No automated checks required (these are prose/markdown)
 - Verify changes look intentional and complete

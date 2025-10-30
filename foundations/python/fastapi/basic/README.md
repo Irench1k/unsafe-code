@@ -5,7 +5,7 @@ A basic FastAPI application demonstrating common web API patterns and security v
 ## Quick Start
 
 ```bash
-cd languages/python/fastapi/basic
+cd foundations/python/fastapi/basic
 docker compose up -d
 
 # View logs

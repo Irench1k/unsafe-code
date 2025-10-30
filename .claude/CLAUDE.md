@@ -29,7 +29,7 @@ Vulnerabilities emerge from **production-quality code** through natural patterns
 
 **Documentation**:
 - `uc-docs-editor`: Edits READMEs, reviews for behavioral language + character logic
-- `uc-taxonomy-maintainer`: Maintains annotations.md classifications
+- `uc-taxonomy-maintainer`: Maintains docs/ANNOTATION_FORMAT.md classifications
 - `uc-curriculum-strategist`: Analyzes gaps, evaluates pedagogical flow
 
 **Infrastructure**:
