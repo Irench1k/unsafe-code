@@ -8,6 +8,10 @@ def sanitize_profile(profile):
     return safe_profile
 
 
+# @unsafe[block]
+# id: 6
+# part: 5
+# @/unsafe
 def sanitize_username(username):
     """Normalize and remove all suspicious characters from the username."""
     import re
@@ -16,3 +20,6 @@ def sanitize_username(username):
         raise ValueError("Username required")
 
     return re.sub(r"[^a-zA-Z0-9]", "", username.lower())
+
+
+# @/unsafe[block]

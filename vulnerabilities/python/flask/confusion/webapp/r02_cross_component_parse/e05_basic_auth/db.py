@@ -48,7 +48,7 @@ def get_profile(internal=False):
     user = sanitize_username(request.view_args.get("username") or g.user)
 
     raw_profile = db["profiles"].get(user)
-    if internal:
+    if internal or raw_profile is None:
         return raw_profile
 
     profile = raw_profile.copy()
