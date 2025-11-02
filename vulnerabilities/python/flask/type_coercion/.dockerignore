@@ -1,9 +1,11 @@
-.venv
-venv
 __pycache__
-*.pyc
-.pytest_cache
-node_modules
+**/*.pyc
 .DS_Store
 .env
 
+# PoC files
+**/*.http
+# Auto-generated docs
+**/README.md
+**/readme.yml
+**/index.yml
