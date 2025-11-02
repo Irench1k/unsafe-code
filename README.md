@@ -4,9 +4,18 @@
 
 ## The Problem: Hidden Risks in Modern Frameworks
 
-The security of a web application depends on more than just the framework's built-in protections; it's also shaped by the subtle ways developers can misuse framework APIs. While frameworks like **Next.js**, **Django**, and **FastAPI** provide strong security foundations, they can't prevent all misconfigurations or logical flaws.
+The security of a web application depends on more than just the framework's built-in protections; it's also shaped by the subtle ways developers can misuse framework APIs. While frameworks like **Nest.js**, **Django**, and **FastAPI** provide strong security foundations, they can't prevent all misconfigurations or logical flaws.
 
 **Unsafe Code Lab was created to address this gap.**
+
+To get an idea of what this project is all about, we recommend to start with the [Confusion vulnerabilities](vulnerabilities/python/flask/confusion/webapp/README.md) in Flask:
+
+1. [Source Precedence](r01_source_precedence/README.md) — Different components pull the "same" logical parameter from different places (path vs. query vs. body vs. headers vs. cookies), leading to precedence conflicts, merging issues, or source pollution.
+2. [Cross-Component Parse](r02_cross_component_parse/README.md) — Middleware, decorators, or framework helpers parse or reshape inputs in ways that differ from what the view sees.
+3. [Authorization Binding](r03_authz_binding/README.md) — Authorization checks identity or value X, but the handler acts on identity or value Y.
+4. [HTTP Semantics](r04_http_semantics/README.md) — Wrong assumptions about HTTP methods or content types (e.g., GET with body, form vs. JSON) cause components to read different sources.
+5. [Multi-Value Semantics](r05_multi_value_semantics/README.md) — One component treats a parameter as a list while another grabs only the first value, or `.get()` vs `.getlist()` disagreements create different effective values.
+6. [Normalization & Canonicalization](r06_normalization_canonicalization/README.md) — Case folding, whitespace stripping, URL decoding, or path normalization makes "equal" values diverge when checked versus used.
 
 ## What You'll Find Inside
 
@@ -18,14 +27,14 @@ This project provides a streamlined way to understand the security landscape of 
 
 ## Supported Frameworks
 
-**Flask** is our model framework with complete vulnerability coverage. [**Start here with Flask confusion examples →**](vulnerabilities/python/flask/confusion/webapp/README.md)
+**Flask** is our model framework with complete vulnerability coverage.
 
 We're actively expanding coverage to include:
 
 | Language       | Planned Frameworks                                              |
 | -------------- | --------------------------------------------------------------- |
 | **Python**     | Django, Django REST Framework, FastAPI, CherryPy, Bottle       |
-| **JavaScript** | Next.js, Express.js, Koa, Meteor.js, Nest.js                   |
+| **JavaScript** | Express.js, Koa, Meteor.js, Nest.js                   |
 
 **Want to help?** We're looking for contributors to help build vulnerability examples for these frameworks. Each framework needs runnable applications demonstrating security pitfalls in production-quality code. Check out the Flask examples to see what we're aiming for, then see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute!
 
