@@ -37,7 +37,7 @@ def create_message(sender, recipient, text):
 
 # @unsafe[block]
 # id: 5
-# part: 2
+# part: 3
 # @/unsafe
 def get_profile(internal=False):
     """Gets a user's profile."""

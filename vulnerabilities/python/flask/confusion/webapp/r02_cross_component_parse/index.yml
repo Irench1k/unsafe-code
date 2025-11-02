@@ -9,128 +9,263 @@ examples:
     title: Secure Baseline with Verbose Inline Authentication
     notes: >-
       Demonstrates secure but repetitive authentication. Every endpoint validates credentials
-      inline with 4-6 lines of identical logic before executing business operations. This
-      verbose pattern creates pressure to refactor into middleware or decorators, as shown
-      in subsequent examples.
+      inline with 4 lines of identical logic before executing business operations. This verbose
+      pattern creates pressure to refactor into middleware or decorators, as shown in subsequent
+      examples.
+
+
+      Check out the full routes.py file to see all four endpoints defined there and how much
+      code is duplicated here. Pay attention to lack of standardization – even the user identity
+      gets extracted in multiple ways:
+
+
+      - request.form.get("user")
+
+      - request.form.get("sender")
+
+      - request.view_args("username")
+
+
+      There are no vulnerabilities here, and the code is relatively straightforward to review,
+      but the large amount of repetition and inconsistencies make it hard to maintain, which
+      typically gets addressed by refactoring into middleware or decorators.
     http: null
     language: python
     parts:
     - part: 1
       file: e01_baseline/routes.py
-      code_start_line: 26
-      code_end_line: 147
+      code_start_line: 33
+      code_end_line: 57
     file_hashes:
-      e01_baseline/routes.py: cf1195689a089b57d12387b9c22937299cba377b7e2ada4867303fd4464535c0
-    fingerprint: f9d3fe74e12e31898efec2c81d2083b4b6669462ca5f0f3edce3f0b7a2809a70
+      e01_baseline/routes.py: 377224a3930c4e3944001638b44d0d9dca871f3255187234daedd7924c15aeff
+    fingerprint: 9beda3b94d420865461a1608133080225beb9f080fcd5fdf7525665d49dceb20
   2:
     id: 2
     kind: block
     title: Middleware with Source Precedence Bug
     notes: >-
-      Blueprint middleware validates credentials and stores the authenticated user in g.user.
-      Most endpoints correctly use g.user, but profile/view accidentally reads profile_owner
-      from request.args (query string) while middleware authenticates from request.form (body).
+      This example introduces Flask blueprint middleware to reduce authentication boilerplate.
+      The @bp.before_request decorator runs before every endpoint, validates credentials,
+      and stores the authenticated user in g.user.
+
+
+      Note that due to lack of standardization, in the e01_baseline we accessed user identity
+      in multiple ways. As we replace the inline authentication with middleware, we standardize
+      on a single way to access the user identity.
+
+
+      While refactoring, developers need to remove previous authentication logic and replace
+      the user identity with g.user. However, the `/profile/<username>/view` endpoint accepted
+      two usernames - one for authentication (`request.form`) and one for viewing the profile
+      (`request.view_args`). This endpoint was refactored correctly - by just removing the
+      authentication and keeping the `<username>` for profile access. But then the same method
+      was used to refactor the sibling endpoint `/profile/<username>/edit` - introducing a
+      source precedence vulnerability.
 
 
       An attacker authenticates with their credentials in the form body, then specifies a
-      victim's username in the query string to view their profile.
+      victim's username in the path to edit their profile.
     http: null
     language: python
     parts:
     - part: 1
       file: e02_middleware/routes.py
-      code_start_line: 39
-      code_end_line: 108
+      code_start_line: 60
+      code_end_line: 72
+    - part: 2
+      file: e02_middleware/routes.py
+      code_start_line: 122
+      code_end_line: 142
+    - part: 3
+      file: e02_middleware/routes.py
+      code_start_line: 16
+      code_end_line: 31
     file_hashes:
-      e02_middleware/routes.py: 89609e1aade5993864296fe37a07a95cc7e42dceac655956bd67a0afa4c1e4ee
-    fingerprint: f714da48dd4f6bfb1380f824b2167941e18a18e22763fd8d1739589f1e3143ca
+      e02_middleware/routes.py: 512f8bee9aafffa995b7fb5ca3187ab3af74dac79594218acca1385edfce3e71
+    fingerprint: fe1b5978b7b12c95ea61c100f66b3d4e6f585d3963a59c8d61c66a076a88f668
   3:
     id: 3
     kind: block
-    title: Decorator with request.values Confusion
+    title: Decorator with `request.values` Confusion
     notes: >-
-      Authentication decorator uses request.values for "flexibility", which combines args
-      and form with args taking precedence. Middleware sets g.user from request.form only.
+      Middleware executes on each request within app / blueprint. Real-world apps often need
+      different authentication methods, such as having some endpoints unauthenticated or having
+      some endpoints authenticated with API keys / service-to-service authn.
 
 
-      Attack: Provide credentials in query string (args), victim's name in form body. Decorator
-      authenticates attacker via request.values (finds args first), middleware sets g.user
-      from form (victim's name), handler operates on g.user (victim).
+      In this example, we move authentication logic to a decorator `@require_auth` - it only
+      applies to functions that are explicitly marked with it.
+
+
+      Decorator uses `request.values` during authentication, which merges user input from
+      query string and form body. However, in the `/messages/new` endpoint, the `create_message()`
+      function is provided with the sender identity that comes explicitly from `request.form`
+      method. Thus, attacker can **impersonate other users** by providing attacker's username
+      in the query string, but victim's username and attacker's password in the form body.
     http: null
     language: python
     parts:
     - part: 1
       file: e03_decorator/routes.py
-      code_start_line: 50
-      code_end_line: 79
+      code_start_line: 30
+      code_end_line: 43
+    - part: 2
+      file: e03_decorator/auth.py
+      code_start_line: 12
+      code_end_line: 28
     file_hashes:
-      e03_decorator/routes.py: cf0edecab4bfa953ce763e949836419a68aa5a53cda557a3e594f41677578d33
-    fingerprint: 5b38dfd45151f331dec49154663d3705c4f1b637dfdb69aa5c8a42f39e75901a
+      e03_decorator/auth.py: 6220f63b7c6f0545d3294eacdaf1921a733599b9830c979b8bf707ebccfede12
+      e03_decorator/routes.py: 4df573b3e3cb24252ef14c701b84ecf0d2b75d088ecc140135e53b8ff3077c7c
+    fingerprint: d8d8e45d466a0d306fef439b6d8087e38e96407d1ee2de41337ed0d97bda6ad1
   4:
     id: 4
     kind: block
-    title: Handler Copies Old Decorator Logic
+    title: Decorator with Incomplete Fix
     notes: >-
-      The decorator was fixed to reuse g.user from middleware, eliminating precedence confusion.
-      However, when adding delete_messages, a developer copied the OLD decorator's logic directly
-      into the handler for "flexibility", reading credentials from request.args while middleware
-      sets g.user from request.form.
+      In this example we attempted to fix the vulnerability by replacing the `request.values`
+      method in the decorator with the `request.form` method.
+
+
+      When we test the previous vulnerability, we see that now it is fixed, which is good
+      news.
+
+
+      However, the fix inadvertently introduced a new vulnerability because the existing code
+      in the `/message/list` endpoint accesses the `user` from the combined dictionary `request.values`.
+      The attacker can now view victim's messages by sending attacker's credentials via the
+      body form (used in `@require_auth`), and the victim's username via the query string
+      (used to access the messages).
     http: null
     language: python
     parts:
     - part: 1
-      file: e04_decorator_reuses_g/routes.py
-      code_start_line: 45
-      code_end_line: 82
+      file: e04_decorator_2/routes.py
+      code_start_line: 27
+      code_end_line: 40
+    - part: 2
+      file: e04_decorator_2/auth.py
+      code_start_line: 12
+      code_end_line: 29
     file_hashes:
-      e04_decorator_reuses_g/routes.py: f2c06b67248696c5881391b5f21f5e839499bc64b97acf67699c533f49a1db45
-    fingerprint: 6da810fd9bd53945479d59f7ee22f8100d5807ed7c554b3440cccdf14c8fc88f
+      e04_decorator_2/auth.py: 813600fa6d226b44cb4018c86398c2e257ab0c8e9c857fbbf692088e6f77e62e
+      e04_decorator_2/routes.py: 03008bec0a9b361ebf9a3635e57dadfc77ec6729e75652754df41ffe5eb074e2
+    fingerprint: 199435685021f8410bc6c6d27a53e37e5c410c8327c13861de0387fee5f8c8a4
   5:
     id: 5
     kind: block
-    title: Fail-Open Error Handler Leaks Passwords
+    title: Basic Authentication with Query Parameter Bug
     notes: >-
-      Error handler maps known exceptions to safe messages but fails open for unexpected exceptions,
-      revealing full error details. The validate_username_format function includes the full
-      profile (with password) in RuntimeError exceptions.
+      Modernized authentication using HTTP Basic Auth via Authorization header. User identity
+      is now extracted into `g.user` from this header.
 
 
-      When an attacker provides a username with suspicious characters, it triggers an unknown
-      exception type that leaks the password in the error response.
+      Now the clients won't be sending credentials via the form parameters (HTTP request body)
+      anymore. It means:
+
+
+      1. We are free to use GET method.
+
+      2. We remove a footgun by enforcing a single source of truth for identity.
+
+      Credentials are not mixed with other user input anymore, making it *almost* impossible
+      to introduce source confusion bugs.
+
+
+      Despite this, the endpoint `/profile/<username>/edit` is vulnerable because the profile
+      it modifies comes from the path argument without verifying that it matches the authenticated
+      user. The vulnerability is hard to spot because it lies deep inside the call stack.
+      `get_profile` is built for convenience: it is used both when we edit the profile and
+      when we view the profile of other users.
     http: null
     language: python
     parts:
     - part: 1
-      file: e05_error_handler/routes.py
-      code_start_line: 71
-      code_end_line: 90
+      file: e05_basic_auth/routes.py
+      code_start_line: 91
+      code_end_line: 112
+    - part: 2
+      file: e05_basic_auth/auth.py
+      code_start_line: 12
+      code_end_line: 34
+    - part: 3
+      file: e05_basic_auth/db.py
+      code_start_line: 42
+      code_end_line: 68
     file_hashes:
-      e05_error_handler/routes.py: 884245e370aaa47809f45549ba0370533ee1855fe85c393fa8e2e11b27d3a74b
-    fingerprint: caea18d6f820f4f12559ec0912a4e1488a428a67a94d002b2bcd71e81da988bb
+      e05_basic_auth/auth.py: 3dafa3d3cde0848e2cca83b43a0a4e70016a971ac60e12fe90a3d3d481019418
+      e05_basic_auth/db.py: c24178fc9f52e806800381d1f74803d3efac913f00ab8cba2359dd073e42c04d
+      e05_basic_auth/routes.py: 6330fe7d9ebec102d02405e8ee30bba95d3bfe4cb23ac27ed47dff3ecfb2e7c1
+    fingerprint: 6a0c9b167b2c94beb3ff95c86226c04d37df332c78b9d73f4a6f55d4385dc9a5
   6:
     id: 6
     kind: block
-    title: Basic Authentication with Query Parameter Bug
+    title: Error Handler with Fail-Open Vulnerability
     notes: >-
-      Modernized authentication using HTTP Basic Auth via Authorization header. Most endpoints
-      correctly use g.user, but profile/view reads username from query string instead, enabling
-      authenticated users to view any profile by specifying a different username in the URL.
+      In this example we showcase two important Flask features: error handler and `after_request`
+      middleware. They allow us to remove large amount of code duplication. Compare routes.py
+      in this example with the previous example e05.
+
+
+      The weakness lies withing the `handle_error` function which is meant to sanitize error
+      messages to prevent leaking sensitive data. However, when the `error_type` does not
+      correspond to any of the keys in the `ERROR_MESSAGES` dictionary, the handler fails
+      open and leaks the full exception.
+
+
+      What goes wrong:
+
+      1. The `profile_is_active` function receives `username` and `profile` parameters, but
+      what exactly does it get?
+
+      2. The `username` argument is the verbatim user input from the path, but the `profile`
+      is
+
+      the result of `get_profile()` which uses the same `username` input from the path - but
+      this time it is sanitized using `sanitize_username()`.
+
+      3. As a result, an attacker can craft a malicious `<username>` which would match existing
+      user
+
+      when processed by `sanitize_username()`, but would cause a catastrophic error message
+      being logged due to an unhandled exception in `profile_is_active()` function.
+
+
+      This vulnerability has several layers of weaknesses which when overlap break user's
+      confidentiality.
     http: null
     language: python
     parts:
     - part: 1
-      file: e06_basic_auth/routes.py
-      code_start_line: 50
-      code_end_line: 94
+      file: e06_error_handler/routes.py
+      code_start_line: 99
+      code_end_line: 109
+    - part: 2
+      file: e06_error_handler/routes.py
+      code_start_line: 24
+      code_end_line: 44
+    - part: 3
+      file: e06_error_handler/db.py
+      code_start_line: 78
+      code_end_line: 99
+    - part: 4
+      file: e06_error_handler/db.py
+      code_start_line: 42
+      code_end_line: 56
+    - part: 5
+      file: e06_error_handler/security.py
+      code_start_line: 15
+      code_end_line: 22
     file_hashes:
-      e06_basic_auth/routes.py: 784dd769d9f8b3e2d771f67fee88e0a261b8cb262d9285f1cfb1156286d74506
-    fingerprint: 3ad2dd621350afd2807069f2a31f142f8d24ccc3f6d62e0630399de48dba17e0
+      e06_error_handler/db.py: 2ed13bf215ae0e4dd0894f94c7420d378759d93a8e58b31ca2652fbaf266ef39
+      e06_error_handler/routes.py: de6dc4ab7a635944c41fafe47d1c76821cd6a13db02494e2a0ab8df64867a8c3
+      e06_error_handler/security.py: df00362f16c1d6b02215bd3da209aee0f37c493d72fe36bbcbcb97f019e157cd
+    fingerprint: 472cfe7208296b7233bab6269e6f4984efdc26de403849c6e9d7664d8cf9d873
 attachments:
-  http/exploit-1.http: 92eb21911119576859205564f04392f403846ef24bcdd7080a29ec2fd0f0db0a
-  http/exploit-2.http: b2fbde9d9d998251002f825b04e0cab7c114fda2cde32fce3b0ec34f8043021e
-  http/exploit-3.http: f3131dafa00296c7eacde13f9988ba566fef842f615e053daa11cfdba3b89f6c
-  http/exploit-4.http: d26251fdde6d5f1554b053efee6ffd34e3019604d188594bc14974600400c5af
-  http/exploit-5.http: 17b30cb68e38179e12a0282b56b14fba952b207d94d3a510c54b634f16a8091f
-  http/exploit-6.http: 2d29a8961ef55b76e3afbb8c8c0b0e6cb12fa8fe087a9084cdd890ce519de930
-build_signature: bd87037a6264f67d6dad850183ab0f98ca5b630ede16100cdf0f32d1103b98c9
-last_readme_fingerprint: 5e0c7c49bf262d97735534e2775f0ea2a1e4825ce5ffee2049883db5e795b811
+  http/exploit-1.http: d58c8471fb5a25ce7a138ef80db30a3d70c664e51d79e2560a1f5263a7233cc0
+  http/exploit-2.http: dbaae4a4d2e5585e72e16ea39f173ac51d6f2ca7dccf530613c9ab84595a792c
+  http/exploit-3.http: 19d080c12c1cac41896ddb79ec0985a617b776ab66b6a31a62b32f99486f84c5
+  http/exploit-4.http: f1c3617a40636af418f09badc22209140d41d69412630640335e206a6d1afbcc
+  http/exploit-5.http: fa014fbd0ad12700637869b3326646725e561002c6a5f4e4129cff7d306e9bdf
+  http/exploit-6.http: 81b4e2b25c542dd8dcd2e0a98758b33ac5bb173e5860f98031b2b40043665873
+build_signature: 573c722d65d9e60a5ea44e176679d8abb4c37cca1e427d9084709affb74cc282
+last_readme_fingerprint: 0c481f15fade953baf9f01fadcb4ad736ebf7e61ccd27fd916b70936f014f0f8

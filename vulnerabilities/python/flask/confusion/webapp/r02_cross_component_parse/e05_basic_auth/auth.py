@@ -1,6 +1,6 @@
 from functools import wraps
 
-from flask import g, jsonify, request
+from flask import g, request
 
 from .db import authenticate, get_profile, profile_is_active
 
@@ -32,7 +32,6 @@ def require_auth(f):
         return f(*args, **kwargs)
 
     return decorated
-
 
 
 # @/unsafe[block]
