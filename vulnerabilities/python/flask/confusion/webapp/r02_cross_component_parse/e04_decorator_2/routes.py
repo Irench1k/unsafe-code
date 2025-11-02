@@ -11,9 +11,18 @@ bp = Blueprint("decorator_2", __name__, url_prefix="/example4")
 
 # @unsafe[block]
 # id: 4
-# title: TODO
+# title: Decorator with Incomplete Fix
 # notes: |
-#   TODO
+#   In this example we attempted to fix the vulnerability by replacing the 
+#   `request.values` method in the decorator with the `request.form` method.
+#
+#   When we test the previous vulnerability, we see that now it is fixed, which is good news.
+#
+#   However, the fix inadvertently introduced a new vulnerability because the existing code in 
+#   the `/message/list` endpoint accesses the `user` from the combined dictionary `request.values`. 
+#   The attacker can now view victim's messages by sending attacker's credentials via
+#   the body form (used in `@require_auth`), and the victim's username via the query string 
+#   (used to access the messages).
 # @/unsafe
 @bp.post("/messages/list")
 @require_auth
