@@ -1,4 +1,4 @@
-"""Database operations for baseline example."""
+"""Database operations for Basic Auth example."""
 
 from ..db import db
 from .security import sanitize_username
@@ -35,12 +35,8 @@ def create_message(sender, recipient, text):
     return msg_id
 
 
-# @unsafe[block]
-# id: 5
-# part: 2
-# @/unsafe
 def get_profile(internal=False):
-    """Gets a user's profile."""
+    """Gets a user's profile from DB (mutable if internal)"""
     from flask import g, request
 
     # This is meant for /profile/<username>/ endpoints which are explicitly meant
@@ -66,9 +62,6 @@ def update_profile(display_name=None, bio=None):
         profile["bio"] = bio
 
     return True
-
-
-# @/unsafe[block]
 
 
 def profile_is_active(username, profile):

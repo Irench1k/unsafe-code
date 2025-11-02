@@ -1,14 +1,10 @@
 from functools import wraps
 
-from flask import g, jsonify, request
+from flask import g, request
 
 from .db import authenticate, get_profile, profile_is_active
 
 
-# @unsafe[block]
-# id: 5
-# part: 2
-# @/unsafe
 def require_auth(f):
     """
     Authentication decorator using HTTP Basic Authentication.
@@ -34,17 +30,13 @@ def require_auth(f):
     return decorated
 
 
-
-# @/unsafe[block]
-
-
 def cross_account_access_control(username):
     """Cross-account access control."""
     if not username:
         raise ValueError("Username required")
 
     # Fetch profile to verify that the user exists
-    profile = get_profile(username)
+    profile = get_profile()
     if not profile:
         raise ValueError("User not found")
 
