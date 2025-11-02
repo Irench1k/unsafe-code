@@ -1,60 +1,77 @@
 """Baseline example with verbose inline authentication."""
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
 from .auth import cross_account_access_control
 from .db import authenticate, create_message, get_messages, get_profile, update_profile
 from .security import sanitize_profile
 
-bp = Blueprint("baseline", __name__, url_prefix="/example1")
+bp = Blueprint("middleware", __name__, url_prefix="/example2")
 
 
 # @unsafe[block]
-# id: 1
-# title: Secure Baseline with Verbose Inline Authentication
+# id: 2
+# part: 3
+# @/unsafe
+@bp.before_request
+def authenticate_user():
+    """
+    Blueprint-level middleware that runs before every request.
+
+    Validates credentials from form body and stores authenticated user in Flask's g
+    object (request-scoped global storage).
+    """
+    user = request.form.get("user")
+    password = request.form.get("password")
+
+    if not authenticate(user, password):
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    # Store authenticated user for handlers to use
+    g.user = user
+
+
+# @/unsafe[block]
+
+
+# @unsafe[block]
+# id: 2
+# title: Middleware with Source Precedence Bug
 # notes: |
-#   Demonstrates secure but repetitive authentication. Every endpoint validates
-#   credentials inline with 4 lines of identical logic before executing business
-#   operations. This verbose pattern creates pressure to refactor into middleware
-#   or decorators, as shown in subsequent examples.
+#   This example introduces Flask blueprint middleware to reduce authentication
+#   boilerplate. The @bp.before_request decorator runs before every endpoint,
+#   validates credentials, and stores the authenticated user in g.user.
 #
-#   Check out the full routes.py file to see all four endpoints defined there and how
-#   much code is duplicated here. Pay attention to lack of standardization – even the
-#   user identity gets extracted in multiple ways:
+#   Note that due to lack of standardization, in the e01_baseline we accessed user
+#   identity in multiple ways. As we replace the inline authentication with middleware,
+#   we standardize on a single way to access the user identity.
 #
-#   - request.form.get("user")
-#   - request.form.get("sender")
-#   - request.view_args("username")
+#   While refactoring, developers need to remove previous authentication logic and
+#   replace the user identity with g.user. However, the `/profile/<username>/view`
+#   endpoint accepted two usernames - one for authentication (`request.form`) and
+#   one for viewing the profile (`request.view_args`). This endpoint was refactored
+#   correctly - by just removing the authentication and keeping the `<username>` for
+#   profile access. But then the same method was used to refactor the sibling endpoint
+#   `/profile/<username>/edit` - introducing a source precedence vulnerability.
 #
-#   There are no vulnerabilities here, and the code is relatively straightforward to
-#   review, but the large amount of repetition and inconsistencies make it hard to
-#   maintain, which typically gets addressed by refactoring into middleware or decorators.
+#   An attacker authenticates with their credentials in the form body, then specifies a
+#   victim's username in the path to edit their profile.
 # @/unsafe
 @bp.post("/messages/list")
 def list_messages():
     """Lists all messages for the authenticated user."""
     try:
-        # Inline authentication (repeated in all endpoints)
-        user = request.form.get("user")
-        password = request.form.get("password")
-
-        if not authenticate(user, password):
-            # Note that although Flask will automatically convert *some*
-            # data types to JSON like dictionaries, there are some other
-            # data types that don't get converted automatically, so it's
-            # best to always use jsonify() to ensure the response is a
-            # valid JSON with proper headers set.
-            return jsonify({"error": "Invalid credentials"}), 401
-
         # Business logic
-        messages = get_messages(user)
-        return jsonify({"user": user, "messages": messages}), 200
+        messages = get_messages(g.user)
+        return jsonify({"user": g.user, "messages": messages}), 200
     except KeyError:
         return jsonify({"error": "Resource not found"}), 404
     except Exception:
         # We need to catch any unhandled exceptions and map them to
         # a safe error messages to avoid leaking sensitive information
         return jsonify({"error": "Failed to retrieve messages"}), 500
+
+
 # @/unsafe[block]
 
 
@@ -62,21 +79,15 @@ def list_messages():
 def create_new_message():
     """Creates a new message from the authenticated user."""
     try:
-        sender = request.form.get("sender")
-        password = request.form.get("password")
-
-        if not authenticate(sender, password):
-            return jsonify({"error": "Invalid credentials"}), 401
-
         recipient = request.form.get("recipient")
         text = request.form.get("text", "")
 
         if not recipient:
             return jsonify({"error": "Recipient required"}), 400
 
-        msg_id = create_message(sender=sender, recipient=recipient, text=text)
+        msg_id = create_message(sender=g.user, recipient=recipient, text=text)
         return (
-            jsonify({"message_id": msg_id, "sender": sender, "recipient": recipient}),
+            jsonify({"message_id": msg_id, "sender": g.user, "recipient": recipient}),
             201,
         )
     except KeyError:
@@ -89,12 +100,6 @@ def create_new_message():
 def view_profile(username):
     """Views a user profile. We allow any authenticated user to view any other user's profile."""
     try:
-        user = request.form.get("user")
-        password = request.form.get("password")
-
-        if not authenticate(user, password):
-            return jsonify({"error": "Invalid credentials"}), 401
-
         cross_account_access_control(username)
 
         profile = get_profile(username)
@@ -110,15 +115,14 @@ def view_profile(username):
         return jsonify({"error": "Failed to retrieve profile"}), 500
 
 
+# @unsafe[block]
+# id: 2
+# part: 2
+# @/unsafe
 @bp.patch("/profile/<username>/edit")
 def edit_profile(username):
     """Edits the authenticated user's profile."""
     try:
-        password = request.form.get("password")
-
-        if not authenticate(username, password):
-            return jsonify({"error": "Invalid credentials"}), 401
-
         display_name = request.form.get("display_name")
         bio = request.form.get("bio")
 
@@ -136,3 +140,6 @@ def edit_profile(username):
         return jsonify({"error": "Invalid input provided"}), 400
     except Exception:
         return jsonify({"error": "Failed to update profile"}), 500
+
+
+# @/unsafe[block]

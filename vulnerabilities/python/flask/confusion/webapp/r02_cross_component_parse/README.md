@@ -1,277 +1,607 @@
-# Cross-Component Parsing Drift in Flask
+# Cross-Component Parsing Confusion in Flask
 
-Decorators, middleware, and helpers sometimes grab request data before the view does; if each layer resolves parameters differently, the same call holds two meanings, enabling authentication bypass.
+When middleware, decorators, and handlers parse user identity from different sources or with different precedence, authentication validates one user while business logic acts on another.
 
 ## Overview
 
-Flask's architecture allows each layer (decorators, middleware, before-request hooks, views) to independently choose how to source request data from multiple APIs: `request.args`, `request.form`, `request.values`. When layers use different APIs or apply different merging strategies (e.g., args-priority vs form-priority), the same HTTP request carries multiple semantic interpretations. The authentication check validates one user identity while the handler acts as a different user, enabling authentication bypasses even when all components execute in correct order.
+Flask applications naturally evolve from verbose inline authentication to sophisticated middleware and decorator patterns. Each refactoring step seems to improve code clarity and reduce duplication, but subtle inconsistencies at component boundaries create exploitable vulnerabilities.
 
-**Key distinction from other inconsistent interpretation bugs:**
-- **IS source precedence**: Different components read from different sources (args vs form vs values)
-- **IS authentication bypass**: The vulnerability allows acting as a different USER than the one authenticated
-- **NOT authorization binding drift**: This is about confused identity during authentication, not about rebinding resources after successful authentication
+This section demonstrates how **cross-component parsing confusion** emerges through realistic refactoring scenarios, where each component (middleware, decorator, handler) makes independent decisions about where to read user identity.
+
+**Key distinction from source precedence (r01):**
+- **r01**: Authentication and handler both in one place, but read from different sources
+- **r02**: Authentication and handler **separated** into middleware/decorator/handler layers
+- **Attack surface**: Confusion happens at component boundaries, harder to spot in code review
 
 **The vulnerability pattern:**
-1. Decorator/middleware authenticates user credentials from one source (e.g., `request.args`)
-2. Handler retrieves identity from different source (e.g., `request.form`)
-3. Authentication validates SpongeBob's password, but handler acts as Squidward
+1. Middleware extracts principal from one source and stores in `g.user`
+2. Decorator validates credentials from another source
+3. Handler uses `g.user` OR reads directly from yet another source
+4. Attacker exploits mismatches to authenticate as themselves but act on victim's data
+
+**Why developers create this pattern:**
+- Progressive refactoring seems to improve code quality
+- Each component looks reasonable in isolation
+- Testing focuses on happy path (single username in request)
+- Code review examines components separately, misses interactions
 
 **Spotting the issue:**
-- Audit every decorator or middleware applied to a route and see which request APIs they touch (`request.args` vs `request.form` vs `request.values`).
-- Check for custom merging logic that prioritizes sources differently (e.g., `user_from_form or user_from_args`).
-- Verify authentication decorators and handlers use the SAME source for user identity.
-- Look for decorators that set global state but handlers that read raw request data directly.
-
-**Real-world scenarios:**
-- Legacy authentication that reads from query string while new code expects form data
-- API refactors that move from GET to POST without updating all middleware
-- Shared decorators applied to endpoints with different expected request types
+- Trace how user identity flows: middleware → g → decorator → handler
+- Check if middleware/decorator/handler all use same source (form vs args vs values)
+- Verify precedence rules match when checking multiple sources
+- Test with username in multiple locations (query, form, headers)
+- Look for handlers that bypass g.user and read directly from request
 
 ## Table of Contents
 
 | Category | Example | File |
 |:---:|:---:|:---:|
-| Secure Baseline | [Example 1: Consistent Parameter Sourcing [Not Vulnerable]](#ex-1) | [e01_baseline/routes.py](e01_baseline/routes.py#L28-L41) |
-| Decorator Drift | [Example 2: Decorator-based Authentication with Parsing Drift](#ex-2) | [e02_decorator_drift/routes.py](e02_decorator_drift/routes.py#L28-L34) |
-| Middleware Drift | [Example 3: Middleware-based Authentication with Parsing Drift](#ex-3) | [e03_middleware_drift/routes.py](e03_middleware_drift/routes.py#L22-L27) |
+| Baseline - Verbose Inline Authentication | [Example 1: Secure Baseline with Verbose Inline Authentication](#ex-1) | [e01_baseline/routes.py](e01_baseline/routes.py#L26-L147) |
+| Middleware Introduction | [Example 2: Middleware with Source Precedence Bug](#ex-2) | [e02_middleware/routes.py](e02_middleware/routes.py#L39-L108) |
+| Decorator with request.values | [Example 3: Decorator with request.values Confusion](#ex-3) | [e03_decorator/routes.py](e03_decorator/routes.py#L50-L79) |
+| Fixed Decorator, Broken Handler | [Example 4: Handler Copies Old Decorator Logic](#ex-4) | [e04_decorator_reuses_g/routes.py](e04_decorator_reuses_g/routes.py#L45-L82) |
+| Error Handler Patterns | [Example 5: Fail-Open Error Handler Leaks Passwords](#ex-5) | [e05_error_handler/routes.py](e05_error_handler/routes.py#L71-L90) |
+| Basic Authentication Migration | [Example 6: Basic Authentication with Query Parameter Bug](#ex-6) | [e06_basic_auth/routes.py](e06_basic_auth/routes.py#L50-L94) |
 
-## Secure Baseline
+## Baseline - Verbose Inline Authentication
 
-The correct pattern for handling authentication across decorator and handler layers: consistently use the same parameter source (request.args) in both the authentication decorator and the handler. This prevents confusion about which user identity is being validated versus acted upon.
+Secure but repetitive authentication patterns that create pressure for refactoring. Every endpoint has 4-6 lines of identical authentication boilerplate:
 
-### Example 1: Consistent Parameter Sourcing [Not Vulnerable] <a id="ex-1"></a>
+1. Extract user and password from request.form
+2. Call authenticate(user, password)
+3. Return 401 if authentication fails
+4. Proceed with business logic
 
-This baseline demonstrates the secure pattern for handling authentication when decorators and handlers need to access the same user identity.
+This repetition makes code harder to maintain, increases copy-paste errors, and obscures business logic. Subsequent examples show various refactoring approaches and the subtle security issues they introduce.
 
-THE SECURE PATTERN: Consistent parameter sourcing across all layers.
-- Authentication decorator validates credentials from request.args
-- Handler retrieves user identity from the SAME source (request.args)
-- Both layers use identical logic: request.args.get("user")
-- Result: Authentication and data access work on the same identity
+### Example 1: Secure Baseline with Verbose Inline Authentication <a id="ex-1"></a>
 
-This prevents authentication bypass by ensuring that the identity validated during authentication is the exact same identity used for data access. There is no confusion between different request data sources.
-
-Compare this to the vulnerable examples that follow, where different layers source the user identity from different request properties, creating authentication bypass vulnerabilities.
+Demonstrates secure but repetitive authentication. Every endpoint validates credentials inline with 4-6 lines of identical logic before executing business operations. This verbose pattern creates pressure to refactor into middleware or decorators, as shown in subsequent examples.
 ```python
-@bp.route("/example1", methods=["GET", "POST"])
-@authentication_required
-def example1():
-    """
-    Returns user's messages after authentication.
 
-    Securely retrieves user identity from the same source used for
-    authentication (query parameters), preventing any confusion.
-    """
-    user = request.args.get("user")
-    messages = get_messages(user)
-    if messages is None:
-        return "No messages found", 404
-    return messages
 
-def authentication_required(f):
-    """
-    Authenticates the user via query parameters.
-
-    This decorator consistently sources both username and password from
-    request.args, matching the source used by the handler.
-    """
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        user = request.args.get("user")
-        password = request.args.get("password")
+@bp.post("/messages/list")
+def list_messages():
+    """Lists all messages for the authenticated user."""
+    try:
+        # Inline authentication (repeated in all endpoints)
+        user = request.form.get("user")
+        password = request.form.get("password")
 
         if not authenticate(user, password):
-            return "Authentication required", 401
+            return jsonify({"error": "Invalid credentials"}), 401
 
-        return f(*args, **kwargs)
+        # Business logic
+        messages = get_messages(user)
+        return jsonify({"user": user, "messages": messages}), 200
+    except Exception:
+        return jsonify({"error": "Failed to retrieve messages"}), 500
 
-    return decorated_function
+
+@bp.post("/messages/new")
+def create_new_message():
+    """Creates a new message from the authenticated user."""
+    try:
+        # Inline authentication (repeated)
+        user = request.form.get("user")
+        password = request.form.get("password")
+
+        if not authenticate(user, password):
+            return jsonify({"error": "Invalid credentials"}), 401
+
+        # Business logic
+        recipient = request.form.get("recipient")
+        text = request.form.get("text", "")
+
+        if not recipient:
+            return jsonify({"error": "Recipient required"}), 400
+
+        msg_id = create_message(sender=user, recipient=recipient, text=text)
+        return (
+            jsonify({"message_id": msg_id, "sender": user, "recipient": recipient}),
+            201,
+        )
+    except Exception:
+        return jsonify({"error": "Failed to create message"}), 500
+
+
+@bp.patch("/messages/mark_read")
+def mark_read():
+    """Marks a message as read for the authenticated user."""
+    try:
+        # Inline authentication (repeated)
+        user = request.form.get("user")
+        password = request.form.get("password")
+
+        if not authenticate(user, password):
+            return jsonify({"error": "Invalid credentials"}), 401
+
+        # Business logic
+        message_id = request.form.get("message_id")
+        if not message_id:
+            return jsonify({"error": "message_id required"}), 400
+
+        success = mark_message_read(int(message_id), user)
+        if not success:
+            return jsonify({"error": "Message not found or access denied"}), 404
+
+        return jsonify({"message_id": message_id, "status": "read"}), 200
+    except Exception:
+        return jsonify({"error": "Failed to mark message"}), 500
+
+
+@bp.post("/profile/view")
+def view_profile():
+    """Views a user profile (requires authentication)."""
+    try:
+        # Inline authentication (repeated)
+        user = request.form.get("user")
+        password = request.form.get("password")
+
+        if not authenticate(user, password):
+            return jsonify({"error": "Invalid credentials"}), 401
+
+        # Business logic - can view any profile once authenticated
+        profile_owner = request.form.get("profile_owner")
+        if not profile_owner:
+            return jsonify({"error": "profile_owner required"}), 400
+
+        profile = get_profile(profile_owner)
+        if not profile:
+            return jsonify({"error": "User not found"}), 404
+
+        return jsonify(profile), 200
+    except Exception:
+        return jsonify({"error": "Failed to retrieve profile"}), 500
+
+
+@bp.patch("/profile/edit")
+def edit_profile():
+    """Edits the authenticated user's profile."""
+    try:
+        # Inline authentication (repeated)
+        user = request.form.get("user")
+        password = request.form.get("password")
+
+        if not authenticate(user, password):
+            return jsonify({"error": "Invalid credentials"}), 401
+
+        # Business logic - can only edit own profile
+        display_name = request.form.get("display_name")
+        bio = request.form.get("bio")
+
+        if not display_name and not bio:
+            return jsonify({"error": "No updates provided"}), 400
+
+        success = update_profile(user, display_name=display_name, bio=bio)
+        if not success:
+            return jsonify({"error": "Update failed"}), 500
+
+        return jsonify({"status": "updated", "user": user}), 200
+    except Exception:
+        return jsonify({"error": "Failed to update profile"}), 500
 ```
 <details>
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/confusion/cross-component-parse
+### Example 1: Secure Baseline
 
-### Secure Baseline: SpongeBob authenticates and retrieves his own messages
-GET {{base}}/example1?user=spongebob&password=bikinibottom
-#
-# {
-#   "owner": "spongebob",
-#   "messages": [
-#     {
-#       "from": "patrick",
-#       "message": "Hey SpongeBob, wanna go jellyfishing?"
-#     }
-#   ]
-# }
-#
-# This example is SECURE. Both authentication and data retrieval use
-# consistent parameter sources (request.args), preventing bypass attempts.
-```
+### SpongeBob lists his messages
+POST http://localhost:8000/confusion/cross-component-parse/example1/messages/list
+Content-Type: application/x-www-form-urlencoded
 
-</details>
-
-See the code here: [e01_baseline/routes.py](e01_baseline/routes.py#L28-L41)
-
-## Decorator Drift
-
-Authentication guards implemented as decorators read user credentials from one source (query parameters), while the view retrieves the user identity from a different source (form data), enabling authentication bypass.
-
-### Example 2: Decorator-based Authentication with Parsing Drift <a id="ex-2"></a>
-
-Shows how using decorators can obscure parameter source confusion, leading to authentication bypass.
-
-Example 2 is functionally equivalent to Example 4 from the source precedence examples, but it may be harder to spot the vulnerability when using decorators because the parameter source logic is split across multiple layers.
-
-THE VULNERABILITY: Authentication bypass via source precedence confusion.
-- Authentication decorator validates credentials from request.args (query string)
-- Handler retrieves user identity from get_user_ex2(), which prioritizes request.form
-- Attack: Provide SpongeBob's credentials in query string, Squidward's name in form body
-- Result: Authenticate as SpongeBob, but access Squidward's messages
-
-This is NOT authorization binding drift - it's authentication bypass because the authenticated identity itself gets confused between authentication check and data access.
-```python
-@bp.route("/example2", methods=["GET", "POST"])
-@authentication_required
-def example2():
-    messages = get_messages_ex2(get_user_ex2())
-    if messages is None:
-        return "No messages found", 404
-    return messages
-
-def authentication_required(f):
-    """
-    Authentication decorator that validates user credentials from query parameters.
-
-    VULNERABILITY: This decorator only checks credentials from request.args,
-    but the handler may retrieve the user identity from a different source,
-    creating an authentication bypass via source precedence confusion.
-    """
-    @wraps(f)
-    def decorated_example2(*args, **kwargs):
-        if not authenticate_ex2():
-            return "Invalid user or password", 401
-        return f(*args, **kwargs)
-
-    return decorated_example2
-```
-<details>
-<summary><b>See HTTP Request</b></summary>
-
-```shell
-@base = http://localhost:8000/confusion/cross-component-parse
-
-### Expected Usage: SpongeBob retrieves his own messages
-GET {{base}}/example2?user=spongebob&password=bikinibottom
-#
-# {
-#   "owner": "spongebob",
-#   "messages": [
-#     {
-#       "from": "patrick",
-#       "message": "Hey SpongeBob, wanna go jellyfishing?"
-#     }
-#   ]
-# }
+user=spongebob&password=bikinibottom
 
 ###
 
-### EXPLOIT: Authenticate as SpongeBob but retrieve Squidward's messages
-### Decorator checks query params (user=spongebob), handler reads form data (user=squidward)
-GET {{base}}/example2?user=spongebob&password=bikinibottom
+### Squidward lists his messages
+POST http://localhost:8000/confusion/cross-component-parse/example1/messages/list
 Content-Type: application/x-www-form-urlencoded
 
-user=squidward
-#
-# {
-#   "mailbox": "squidward",
-#   "messages": [
-#     {
-#       "from": "plankton",
-#       "message": "Squidward, I'll pay you handsomely to 'accidentally' share the secret formula. You deserve better than that dead-end cashier job!"
-#     },
-#     {
-#       "from": "mr.krabs",
-#       "message": "Squidward, the new safe combination is 4-2-0-6-9. Don't write it down anywhere!"
-#     }
-#   ]
-# }
+user=squidward&password=clarinet123
+
+###
+
+### Attack fails with wrong credentials
+POST http://localhost:8000/confusion/cross-component-parse/example1/messages/list
+Content-Type: application/x-www-form-urlencoded
+
+user=spongebob&password=wrong
+
+# 401 Unauthorized
 ```
 
 </details>
 
-See the code here: [e02_decorator_drift/routes.py](e02_decorator_drift/routes.py#L28-L34)
+See the code here: [e01_baseline/routes.py](e01_baseline/routes.py#L26-L147)
 
-## Middleware Drift
+## Middleware Introduction
 
-Before-request hooks authenticate using query parameters only, while views consume form data for the actual operation, creating the same authentication bypass but at the middleware layer.
+Introduces Flask blueprint middleware to consolidate authentication into g.user. Explains Flask request lifecycle and g object. Contains source precedence bug where one handler reads from wrong source (request.args instead of request.form).
 
-### Example 3: Middleware-based Authentication with Parsing Drift <a id="ex-3"></a>
+### Example 2: Middleware with Source Precedence Bug <a id="ex-2"></a>
 
-Demonstrates how Flask's middleware system can contribute to parameter source confusion.
+Blueprint middleware validates credentials and stores the authenticated user in g.user. Most endpoints correctly use g.user, but profile/view accidentally reads profile_owner from request.args (query string) while middleware authenticates from request.form (body).
 
-Example 3 is functionally equivalent to Example 4 from the old parameter source confusion examples, but it may be harder to spot the vulnerability while using middleware.
-
-The before_request middleware authenticates using request.args.get("user"), but the handler retrieves the user via get_user(request) which prioritizes request.form over request.args. This allows an attacker to authenticate as SpongeBob but access Squidward's messages.
+An attacker authenticates with their credentials in the form body, then specifies a victim's username in the query string to view their profile.
 ```python
-@bp.route("/example3", methods=["GET", "POST"])
-def example3():
-    messages = get_messages(get_user(request))
-    if messages is None:
-        return "No messages found", 404
-    return messages
 
-def register_middleware(app):
-    @app.before_request
-    def verify_user():
-        """Authenticate the user, based solely on the request query string."""
-        if not authenticate(
-            request.args.get("user", None), request.args.get("password", None)
-        ):
-            return "Invalid user or password", 401
 
-        # In Flask, if the middleware returns non-None value, the value is handled as if it was
-        # the return value from the view, and further request handling is stopped
-        return None
+@bp.post("/messages/list")
+def list_messages():
+    """Lists messages for authenticated user from g.user."""
+    try:
+        messages = get_messages(g.user)
+        return jsonify({"user": g.user, "messages": messages}), 200
+    except Exception:
+        return jsonify({"error": "Failed to retrieve messages"}), 500
 
-    return verify_user
+
+@bp.post("/messages/new")
+def create_new_message():
+    """Creates a message using g.user as sender."""
+    try:
+        recipient = request.form.get("recipient")
+        text = request.form.get("text", "")
+
+        if not recipient:
+            return jsonify({"error": "Recipient required"}), 400
+
+        msg_id = create_message(sender=g.user, recipient=recipient, text=text)
+        return jsonify({"message_id": msg_id, "sender": g.user}), 201
+    except Exception:
+        return jsonify({"error": "Failed to create message"}), 500
+
+
+@bp.post("/profile/view")
+def view_profile():
+    """
+    Views a profile - VULNERABLE!
+
+    This endpoint was accidentally changed during refactoring. It reads profile_owner
+    from request.args instead of request.form, while middleware authenticates
+    using form data.
+    """
+    try:
+        # BUG: Should use request.form.get("profile_owner")
+        profile_owner = request.args.get("profile_owner")
+
+        if not profile_owner:
+            return jsonify({"error": "profile_owner required"}), 400
+
+        profile = get_profile(profile_owner)
+        if not profile:
+            return jsonify({"error": "User not found"}), 404
+
+        return jsonify(profile), 200
+    except Exception:
+        return jsonify({"error": "Failed to retrieve profile"}), 500
+
+
+@bp.patch("/profile/edit")
+def edit_profile():
+    """Edits authenticated user's profile using g.user."""
+    try:
+        display_name = request.form.get("display_name")
+        bio = request.form.get("bio")
+
+        if not display_name and not bio:
+            return jsonify({"error": "No updates provided"}), 400
+
+        success = update_profile(g.user, display_name=display_name, bio=bio)
+        if not success:
+            return jsonify({"error": "Update failed"}), 500
+
+        return jsonify({"status": "updated", "user": g.user}), 200
+    except Exception:
+        return jsonify({"error": "Failed to update profile"}), 500
 ```
 <details>
 <summary><b>See HTTP Request</b></summary>
 
 ```shell
-@base = http://localhost:8000/confusion/cross-component-parse
+@base = http://localhost:8000/confusion/cross-component-parse/example2
 
-### Expected Usage: SpongeBob retrieves his own messages
-GET {{base}}/example3?user=spongebob&password=bikinibottom
-#
-# {
-#   "owner": "spongebob",
-#   "messages": [
-#     {
-#       "from": "patrick",
-#       "message": "Hey SpongeBob, wanna go jellyfishing?"
-#     }
-#   ]
-# }
+### Squidward views his own profile
+POST {{base}}/profile/view
+Content-Type: application/x-www-form-urlencoded
+
+user=squidward&password=clarinet123&profile_owner=squidward
 
 ###
 
-### EXPLOIT: Authenticate as SpongeBob but retrieve Squidward's messages
-### Middleware checks query params (user=spongebob), handler reads form data (user=squidward)
-GET {{base}}/example3?user=spongebob&password=bikinibottom
+### Squidward views SpongeBob's profile via source precedence
+POST {{base}}/profile/view?profile_owner=spongebob
 Content-Type: application/x-www-form-urlencoded
 
-user=squidward
-#
-# {
-#   "mailbox": "squidward",
-#   "messages": [ ... ]
-# }
+user=squidward&password=clarinet123&profile_owner=squidward
+
+# IMPACT: Squidward views SpongeBob's profile
+# Middleware authenticates from form body, handler reads target from query string
 ```
 
 </details>
 
-See the code here: [e03_middleware_drift/routes.py](e03_middleware_drift/routes.py#L22-L27)
+See the code here: [e02_middleware/routes.py](e02_middleware/routes.py#L39-L108)
 
+## Decorator with request.values
+
+Adds authentication decorator using request.values for "flexibility", creating precedence confusion similar to r01's examples. Middleware sets g.user from request.form while decorator validates from request.values (args take precedence).
+
+### Example 3: Decorator with request.values Confusion <a id="ex-3"></a>
+
+Authentication decorator uses request.values for "flexibility", which combines args and form with args taking precedence. Middleware sets g.user from request.form only.
+
+Attack: Provide credentials in query string (args), victim's name in form body. Decorator authenticates attacker via request.values (finds args first), middleware sets g.user from form (victim's name), handler operates on g.user (victim).
+```python
+
+
+@bp.post("/messages/list")
+@require_auth
+def list_messages():
+    """Lists messages - uses g.user set by middleware."""
+    try:
+        messages = get_messages(g.user)
+        return jsonify({"user": g.user, "messages": messages}), 200
+    except Exception:
+        return jsonify({"error": "Failed"}), 500
+
+
+@bp.patch("/profile/edit")
+@require_auth
+def edit_profile():
+    """Edits profile using g.user - VULNERABLE!"""
+    try:
+        display_name = request.form.get("display_name")
+        bio = request.form.get("bio")
+
+        if not display_name and not bio:
+            return jsonify({"error": "No updates provided"}), 400
+
+        # Uses g.user which was set by middleware from request.form
+        success = update_profile(g.user, display_name=display_name, bio=bio)
+
+        return jsonify({"status": "updated", "user": g.user}), 200
+    except Exception:
+        return jsonify({"error": "Failed"}), 500
+```
+<details>
+<summary><b>See HTTP Request</b></summary>
+
+```shell
+@base = http://localhost:8000/confusion/cross-component-parse/example3
+
+### Squidward lists his messages
+POST {{base}}/messages/list
+Content-Type: application/x-www-form-urlencoded
+
+user=squidward&password=clarinet123
+
+###
+
+### Squidward edits SpongeBob's profile via request.values confusion
+PATCH {{base}}/profile/edit?user=squidward&password=clarinet123
+Content-Type: application/x-www-form-urlencoded
+
+user=spongebob&display_name=Squidward was here&bio=Hacked!
+
+# IMPACT: SpongeBob's profile defaced
+# Decorator authenticates from request.values (args), middleware sets g.user from form
+```
+
+</details>
+
+See the code here: [e03_decorator/routes.py](e03_decorator/routes.py#L50-L79)
+
+## Fixed Decorator, Broken Handler
+
+Decorator is "fixed" to reuse g.user from middleware (secure!), but a new handler copies the old decorator's buggy logic inline. Demonstrates how copy-paste programming reintroduces fixed vulnerabilities.
+
+### Example 4: Handler Copies Old Decorator Logic <a id="ex-4"></a>
+
+The decorator was fixed to reuse g.user from middleware, eliminating precedence confusion. However, when adding delete_messages, a developer copied the OLD decorator's logic directly into the handler for "flexibility", reading credentials from request.args while middleware sets g.user from request.form.
+```python
+
+
+@bp.patch("/profile/edit")
+@require_auth
+def edit_profile():
+    """Securely edits profile using fixed decorator."""
+    try:
+        display_name = request.form.get("display_name")
+        bio = request.form.get("bio")
+
+        success = update_profile(g.user, display_name=display_name, bio=bio)
+        return jsonify({"status": "updated"}), 200
+    except Exception:
+        return jsonify({"error": "Failed"}), 500
+
+
+@bp.delete("/messages/delete_all")
+def delete_all_messages():
+    """
+    Deletes all messages for a user.
+
+    VULNERABLE: Copied old authentication pattern inline instead of
+    using the fixed require_auth decorator.
+    """
+    try:
+        # Inline auth (copied from old decorator code)
+        username = request.args.get("username")  # BUG: Should use g.user
+        password = request.args.get("password")
+
+        if not authenticate(username, password):
+            return jsonify({"error": "Invalid credentials"}), 401
+
+        # Business logic uses g.user (set by middleware from form!)
+        count = delete_messages(g.user)
+
+        return jsonify({"status": "deleted", "count": count}), 200
+    except Exception:
+        return jsonify({"error": "Failed"}), 500
+```
+<details>
+<summary><b>See HTTP Request</b></summary>
+
+```shell
+@base = http://localhost:8000/confusion/cross-component-parse/example4
+
+### Plankton deletes his own messages
+DELETE {{base}}/messages/delete_all?username=plankton&password=chumbucket
+Content-Type: application/x-www-form-urlencoded
+
+username=plankton
+
+###
+
+### Plankton deletes Mr. Krabs' messages via inline auth bug
+DELETE {{base}}/messages/delete_all?username=plankton&password=chumbucket
+Content-Type: application/x-www-form-urlencoded
+
+username=mr.krabs
+
+# IMPACT: Mr. Krabs' messages deleted
+# Handler authenticates from args, middleware sets g.user from form, deletion uses g.user
+```
+
+</details>
+
+See the code here: [e04_decorator_reuses_g/routes.py](e04_decorator_reuses_g/routes.py#L45-L82)
+
+## Error Handler Patterns
+
+Introduces errorhandler with fail-open vulnerability. Known exceptions map to safe messages, but unexpected exceptions expose full details including passwords. Demonstrates information disclosure through defensive-looking error handling.
+
+### Example 5: Fail-Open Error Handler Leaks Passwords <a id="ex-5"></a>
+
+Error handler maps known exceptions to safe messages but fails open for unexpected exceptions, revealing full error details. The validate_username_format function includes the full profile (with password) in RuntimeError exceptions.
+
+When an attacker provides a username with suspicious characters, it triggers an unknown exception type that leaks the password in the error response.
+```python
+
+
+@bp.get("/profile/view")
+@require_auth
+def view_profile():
+    """
+    Views a profile - vulnerable to information disclosure via error handling.
+    """
+    profile_owner = request.args.get("username")
+    if not profile_owner:
+        return {"error": "username required"}, 400
+
+    # Validate BEFORE fetching (triggers exception with profile data)
+    validate_username_format(profile_owner)
+
+    profile = get_profile_internal(profile_owner)
+    if not profile:
+        return {"error": "User not found"}, 404
+
+    return sanitize_profile(profile), 200
+```
+<details>
+<summary><b>See HTTP Request</b></summary>
+
+```shell
+@base = http://localhost:8000/confusion/cross-component-parse/example5
+
+### Squidward views his own profile (safe)
+GET {{base}}/profile/view?username=squidward
+Content-Type: application/x-www-form-urlencoded
+
+username=squidward&password=clarinet123
+
+###
+
+### Squidward triggers password leak with special character
+GET {{base}}/profile/view?username=spongebob'
+Content-Type: application/x-www-form-urlencoded
+
+username=squidward&password=clarinet123
+
+# IMPACT: Error response leaks SpongeBob's password
+# Validation triggers RuntimeError with full profile, fail-open handler exposes details
+```
+
+</details>
+
+See the code here: [e05_error_handler/routes.py](e05_error_handler/routes.py#L71-L90)
+
+## Basic Authentication Migration
+
+Modernizes to HTTP Basic Auth via Authorization header. Most endpoints correctly use g.user, but one handler reads username from query string instead, enabling authenticated users to view any profile.
+
+### Example 6: Basic Authentication with Query Parameter Bug <a id="ex-6"></a>
+
+Modernized authentication using HTTP Basic Auth via Authorization header. Most endpoints correctly use g.user, but profile/view reads username from query string instead, enabling authenticated users to view any profile by specifying a different username in the URL.
+```python
+
+
+@bp.get("/messages/list")
+@require_auth
+def list_messages():
+    """Lists messages using g.user from decorator."""
+    messages = get_messages(g.user)
+    return {"user": g.user, "messages": messages}, 200
+
+
+@bp.patch("/profile/edit")
+@require_auth
+def edit_profile():
+    """Edits authenticated user's profile."""
+    display_name = request.form.get("display_name")
+    bio = request.form.get("bio")
+
+    if not display_name and not bio:
+        return {"error": "No updates provided"}, 400
+
+    update_profile(g.user, display_name=display_name, bio=bio)
+    return {"status": "updated", "user": g.user}, 200
+
+
+@bp.get("/profile/view")
+@require_auth
+def view_profile():
+    """
+    Views any user's profile - VULNERABLE!
+
+    Reads username from query parameter instead of using g.user or validating
+    that the requested user matches the authenticated user.
+    """
+    # BUG: Should use g.user (authenticated user can view their own)
+    # OR validate username == g.user
+    username = request.args.get("username")
+
+    if not username:
+        return {"error": "username required"}, 400
+
+    profile = get_profile(username)
+    if not profile:
+        return {"error": "User not found"}, 404
+
+    return profile, 200
+```
+<details>
+<summary><b>See HTTP Request</b></summary>
+
+```shell
+@base = http://localhost:8000/confusion/cross-component-parse/example6
+
+### Squidward views his own profile
+GET {{base}}/profile/view?username=squidward
+Authorization: Basic squidward clarinet123
+
+###
+
+### Squidward views SpongeBob's profile via query parameter
+GET {{base}}/profile/view?username=spongebob
+Authorization: Basic squidward clarinet123
+
+# IMPACT: Squidward views SpongeBob's profile
+# Authorization header authenticates Squidward, handler reads username from query string
+```
+
+</details>
+
+See the code here: [e06_basic_auth/routes.py](e06_basic_auth/routes.py#L50-L94)
