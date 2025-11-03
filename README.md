@@ -1,21 +1,27 @@
 # Unsafe Code Lab
 
-**Unsafe Code Lab** is an open-source collection of vulnerable, runnable backend applications built with modern web frameworks. It's designed for security engineers, researchers, and developers to explore how modern frameworks work, what makes them tick, how they break, and most importantly, how to fix them.
-
-## The Problem: Hidden Risks in Modern Frameworks
-
-The security of a web application depends on more than just the framework's built-in protections; it's also shaped by the subtle ways developers can misuse framework APIs. While frameworks like **Nest.js**, **Django**, and **FastAPI** provide strong security foundations, they can't prevent all misconfigurations or logical flaws.
-
-**Unsafe Code Lab was created to address this gap.**
+**Unsafe Code Lab** is a hands-on security training ground for code reviewers and penetration testers. Learn to spot                  
+  vulnerabilities in production-quality code by understanding *why* they happen—refactoring drift, framework design patterns, and     
+  subtle API misuse in modern web frameworks like Flask, Django, FastAPI, and Express.js.                                               
+                                                                                                                                        
+  **Who this is for:**                                                                                                                  
+  - *AppSec students* with CTF/bug bounty/pentesting experience who want to master secure code review of real-world web frameworks    
+  - *Senior security engineers* needing quick reference material when reviewing code in unfamiliar languages or frameworks            
 
 To get an idea of what this project is all about, we recommend to start with the [Confusion vulnerabilities](vulnerabilities/python/flask/confusion/webapp/README.md) in Flask:
 
-1. [Source Precedence](r01_source_precedence/README.md) — Different components pull the "same" logical parameter from different places (path vs. query vs. body vs. headers vs. cookies), leading to precedence conflicts, merging issues, or source pollution.
-2. [Cross-Component Parse](r02_cross_component_parse/README.md) — Middleware, decorators, or framework helpers parse or reshape inputs in ways that differ from what the view sees.
-3. [Authorization Binding](r03_authz_binding/README.md) — Authorization checks identity or value X, but the handler acts on identity or value Y.
-4. [HTTP Semantics](r04_http_semantics/README.md) — Wrong assumptions about HTTP methods or content types (e.g., GET with body, form vs. JSON) cause components to read different sources.
-5. [Multi-Value Semantics](r05_multi_value_semantics/README.md) — One component treats a parameter as a list while another grabs only the first value, or `.get()` vs `.getlist()` disagreements create different effective values.
-6. [Normalization & Canonicalization](r06_normalization_canonicalization/README.md) — Case folding, whitespace stripping, URL decoding, or path normalization makes "equal" values diverge when checked versus used.
+1. [Source Precedence](vulnerabilities/python/flask/confusion/webapp/r01_source_precedence/README.md) — Different components pull the "same" logical parameter from different places (path vs. query vs. body vs. headers vs. cookies), leading to precedence conflicts, merging issues, or source pollution.
+2. [Cross-Component Parse](vulnerabilities/python/flask/confusion/webapp/r02_cross_component_parse/README.md) — Middleware, decorators, or framework helpers parse or reshape inputs in ways that differ from what the view sees.
+3. [Authorization Binding](vulnerabilities/python/flask/confusion/webapp/r03_authz_binding/README.md) — Authorization checks identity or value X, but the handler acts on identity or value Y.
+4. [HTTP Semantics](vulnerabilities/python/flask/confusion/webapp/r04_http_semantics/README.md) — Wrong assumptions about HTTP methods or content types (e.g., GET with body, form vs. JSON) cause components to read different sources.
+5. [Multi-Value Semantics](vulnerabilities/python/flask/confusion/webapp/r05_multi_value_semantics/README.md) — One component treats a parameter as a list while another grabs only the first value, or `.get()` vs `.getlist()` disagreements create different effective values.
+6. [Normalization & Canonicalization](vulnerabilities/python/flask/confusion/webapp/r06_normalization_canonicalization/README.md) — Case folding, whitespace stripping, URL decoding, or path normalization makes "equal" values diverge when checked versus used.
+
+  **What makes this different:**                                    
+  - Real code patterns, not CTF puzzles—see how refactoring and feature additions introduce vulnerabilities
+  - Browse GitHub like a wiki with auto-generated tutorials, or run everything locally with Docker
+  - Execute exploits directly from VSCode using .http files—no Burp or ZAP required                                             
+  - Educational narrative with SpongeBob characters keeps examples engaging and memorable
 
 ## What You'll Find Inside
 
@@ -37,6 +43,16 @@ We're actively expanding coverage to include:
 | **JavaScript** | Express.js, Koa, Meteor.js, Nest.js                   |
 
 **Want to help?** We're looking for contributors to help build vulnerability examples for these frameworks. Each framework needs runnable applications demonstrating security pitfalls in production-quality code. Check out the Flask examples to see what we're aiming for, then see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute!
+
+## Two Ways to Learn
+
+  **Browse on GitHub** (no setup required)\
+  Click through the auto-generated READMEs to learn vulnerabilities, see code snippets, and read exploitation examples. The entire
+  lab works as a self-contained wiki.
+
+  **Run Locally** (Docker + VSCode)\
+  Clone the repo, start Docker Compose, and execute exploits from .http files directly in VSCode using the REST Client extension.
+  No pentesting tools required.
 
 ## Prerequisites and Setup
 
