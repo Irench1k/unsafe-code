@@ -37,6 +37,76 @@ direnv allow
 
 The development configuration (`compose.dev.yml`) provides instant code reload and debug-level logs.
 
+## Quick Start 
+
+The most convenient way to run examples is using Docker Compose:
+
+### 1. Navigate to an example directory
+
+```bash
+cd vulnerabilities/python/flask/confusion 
+```
+
+### 2. Start the application
+
+```bash
+# Run in background
+docker compose up -d
+
+# Or run in foreground to see logs directly
+docker compose up
+```
+
+### 3. Monitor and manage
+
+```bash
+# View logs (lists past logs and exits)
+docker compose logs
+
+# Follow logs in real-time (keeps monitoring until Ctrl+C)
+docker compose logs -f
+
+# Check status of the running containers
+docker compose ps
+
+# Stop and clean up
+docker compose down
+```
+
+### 4. Rebuilding
+
+```bash
+# Rebuild after dependency changes
+docker compose build
+
+# Force rebuild (no cache)
+docker compose build --no-cache
+```
+
+## Alternative Ways to Run
+
+### From Repository Root
+
+You can run examples from anywhere using the full path:
+
+```bash
+# From repo root
+docker compose -f vulnerabilities/python/flask/confusion/compose.yml up -d
+
+# Override host port (by default every container will bind to port 8000)
+PORT=8005 docker compose -f vulnerabilities/python/flask/confusion/compose.yml up -d
+```
+
+### Using Project Names
+
+Manage containers from anywhere using the project name:
+
+```bash
+docker compose -p python-flask-confusion ps
+docker compose -p python-flask-confusion logs -f
+docker compose -p python-flask-confusion down -v
+```
+
 ## Using uv (Project Python)
 
 We use uv to manage Python and project dependencies. uv creates and syncs a `.venv/` automatically and maintains a cross‑platform lockfile `uv.lock` for reproducible installs.
