@@ -1,8 +1,6 @@
 # Unsafe Code Lab
 
-**Unsafe Code Lab** is a hands-on security training ground for code reviewers and penetration testers. Learn to spot                  
-  vulnerabilities in production-quality code by understanding *why* they happen: refactoring drift, framework design patterns, and     
-  subtle API misuse in modern web frameworks like Flask, Django, FastAPI, and Express.js.                                               
+**Unsafe Code Lab** is a hands-on security training ground for code reviewers and penetration testers. Learn to spot vulnerabilities in production-quality code by understanding *why* they happen: refactoring drift, framework design patterns, and subtle API misuse in modern web frameworks like Flask, Django, FastAPI, and Express.js.                                               
                                                                                                                                         
 ## Who this is for                                                                                                     
   - *AppSec students* with CTF/bug bounty/pentesting experience who want to master secure code review of real-world web frameworks    
