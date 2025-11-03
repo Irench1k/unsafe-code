@@ -1,10 +1,10 @@
 # Unsafe Code Lab
 
 **Unsafe Code Lab** is a hands-on security training ground for code reviewers and penetration testers. Learn to spot                  
-  vulnerabilities in production-quality code by understanding *why* they happen—refactoring drift, framework design patterns, and     
+  vulnerabilities in production-quality code by understanding *why* they happen: refactoring drift, framework design patterns, and     
   subtle API misuse in modern web frameworks like Flask, Django, FastAPI, and Express.js.                                               
                                                                                                                                         
-  **Who this is for:**                                                                                                                  
+## Who this is for                                                                                                     
   - *AppSec students* with CTF/bug bounty/pentesting experience who want to master secure code review of real-world web frameworks    
   - *Senior security engineers* needing quick reference material when reviewing code in unfamiliar languages or frameworks            
 
@@ -17,19 +17,11 @@ To get an idea of what this project is all about, we recommend to start with the
 5. [Multi-Value Semantics](vulnerabilities/python/flask/confusion/webapp/r05_multi_value_semantics/README.md) — One component treats a parameter as a list while another grabs only the first value, or `.get()` vs `.getlist()` disagreements create different effective values.
 6. [Normalization & Canonicalization](vulnerabilities/python/flask/confusion/webapp/r06_normalization_canonicalization/README.md) — Case folding, whitespace stripping, URL decoding, or path normalization makes "equal" values diverge when checked versus used.
 
-  **What makes this different:**                                    
-  - Real code patterns, not CTF puzzles—see how refactoring and feature additions introduce vulnerabilities
-  - Browse GitHub like a wiki with auto-generated tutorials, or run everything locally with Docker
-  - Execute exploits directly from VSCode using .http files—no Burp or ZAP required                                             
-  - Educational narrative with SpongeBob characters keeps examples engaging and memorable
-
 ## What You'll Find Inside
 
-This project provides a streamlined way to understand the security landscape of modern web development.
-
-- **Runnable Vulnerable Apps:** Each directory contains a minimal, standalone application with a specific, documented vulnerability.
+- **Real code patterns:** See how refactoring and feature additions introduce vulnerabilities.
 - **Focus on API Design:** See firsthand how framework API design can either create security traps or completely prevent mistakes that are common elsewhere.
-- **Research Harness:** Use the runnable scenarios as a harness for advanced vulnerability research and exploit development.
+- **Easy Setup:** Execute exploits directly from VSCode using .http files with no Burp or ZAP required.
 
 ## Supported Frameworks
 
@@ -46,18 +38,18 @@ We're actively expanding coverage to include:
 
 ## Two Ways to Learn
 
-  **Browse on GitHub** (no setup required)\
-  Click through the auto-generated READMEs to learn vulnerabilities, see code snippets, and read exploitation examples. The entire
-  lab works as a self-contained wiki.
+### Browse on GitHub (no setup required)
+Click through the auto-generated READMEs to learn vulnerabilities, see code snippets, and read exploitation examples. The entire lab works as a self-contained wiki.
 
-  **Run Locally** (Docker + VSCode)\
-  Clone the repo, start Docker Compose, and execute exploits from .http files directly in VSCode using the REST Client extension.
-  No pentesting tools required.
+Not sure where to start? Go [here](vulnerabilities/python/flask/confusion/webapp/README.md).
 
-## Prerequisites and Setup
+### Run Locally (Docker + VSCode)
+Clone the repo, start Docker Compose, and execute exploits from .http files directly in VSCode using the REST Client extension. No pentesting tools required.
+
+#### Prerequisites and Setup
 
 - Install Docker (Docker Desktop or Docker Engine with Compose v2)
-- Install REST Client extension for VS Code to execute exploit examples (like `exploit-19.http`) found in `/http/` directories (https://marketplace.visualstudio.com/items?itemName=humao.rest-client)
+- Install [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) extension for VS Code to execute exploit examples (like `exploit-19.http`) found in `/http/` directories
 - Clone this repository:
 
 ```bash
@@ -67,73 +59,16 @@ cd unsafe-code
 
 **Contributors:** See [CONTRIBUTING.md](CONTRIBUTING.md) for additional setup including `uv` and the documentation generator.
 
-## Quick Start
+#### Quick Start
 
-The most convenient way to run examples is using Docker Compose:
-
-### 1. Navigate to an example directory
-
+You can easily play around with the examples using these commands:
 ```bash
 cd vulnerabilities/python/flask/confusion
+docker compose up -d   
 ```
 
-### 2. Start the application
+Open any .http file in VSCode (with [REST Client extension](https://marketplace.visualstudio.com/items?itemName=humao.rest-client)) and click "Send Request" to execute exploits.
 
-```bash
-# Run in background
-docker compose up -d
-
-# Or run in foreground to see logs directly
-docker compose up
-```
-
-### 3. Monitor and manage
-
-```bash
-# View logs (lists past logs and exits)
-docker compose logs
-
-# Follow logs in real-time (keeps monitoring until Ctrl+C)
-docker compose logs -f
-
-# Check status of the running containers
-docker compose ps
-
-# Stop and clean up
-docker compose down
-```
-
-### 4. Rebuilding
-
-```bash
-# Rebuild after dependency changes
-docker compose build
-
-# Force rebuild (no cache)
-docker compose build --no-cache
-```
-
-## Alternative Ways to Run
-
-### From Repository Root
-
-You can run examples from anywhere using the full path:
-
-```bash
-# From repo root
-docker compose -f vulnerabilities/python/flask/confusion/compose.yml up -d
-
-# Override host port (by default every container will bind to port 8000)
-PORT=8005 docker compose -f vulnerabilities/python/flask/confusion/compose.yml up -d
-```
-
-### Using Project Names
-
-Manage containers from anywhere using the project name:
-
-```bash
-docker compose -p python-flask-confusion ps
-docker compose -p python-flask-confusion logs -f
-docker compose -p python-flask-confusion down -v
-```
+- View logs: `docker compose logs -f`
+- Stop: `docker compose down`
 
