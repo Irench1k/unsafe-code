@@ -1,8 +1,0 @@
-version: '1'
-root: .
-category: policy-composition-and-precedence.default-allow-gaps
-namespace: flask-policy-default-allow
-examples: {}
-attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: 618eaa72cbfbbba651df4791c82d0aa1f429b940a09eb8428c9c1be40e205219

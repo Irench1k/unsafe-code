@@ -1,8 +1,0 @@
-version: '1'
-root: .
-category: type-coercion.booleans-and-flags
-namespace: flask-type-coercion-booleans
-examples: {}
-attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: d2348a9b90a7860abe841eda975fd89f79818a3853588937c4ac1302f758c229

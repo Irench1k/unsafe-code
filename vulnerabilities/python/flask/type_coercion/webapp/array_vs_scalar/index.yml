@@ -1,8 +1,0 @@
-version: '1'
-root: .
-category: type-coercion.array-vs-scalar
-namespace: flask-type-coercion-array-vs-scalar
-examples: {}
-attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: 56809d36802694c900d2dcd7e9516631987579d52f3475dcbcb3556de4d66265
