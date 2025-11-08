@@ -1,8 +1,0 @@
-version: '1'
-root: .
-category: trust-boundary-errors.origin-scheme-assertions
-namespace: flask-trust-boundary-origin-scheme
-examples: {}
-attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: 80c8ac1040c0be54759a3aa1afb0be3e757ce8471f93027f6915c2ef9c5c4114

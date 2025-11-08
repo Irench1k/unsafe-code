@@ -1,8 +1,0 @@
-version: '1'
-root: .
-category: trust-boundary-errors.cache-edge-trust
-namespace: flask-trust-boundary-cache-edge
-examples: {}
-attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: 50b0b2e2ac41e3bb10ccaeb2b324b03c8507e914705dcbefb240c43a3ec45c24

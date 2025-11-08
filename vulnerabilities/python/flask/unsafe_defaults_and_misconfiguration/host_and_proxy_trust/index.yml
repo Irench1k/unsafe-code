@@ -1,8 +1,0 @@
-version: '1'
-root: .
-category: unsafe-defaults-and-misconfiguration.host-and-proxy-trust
-namespace: flask-unsafe-defaults-host-proxy
-examples: {}
-attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: 4e9fde79511e0364a8777e404f714cddf3d2cd037d34864da10fb5e94d1e5349

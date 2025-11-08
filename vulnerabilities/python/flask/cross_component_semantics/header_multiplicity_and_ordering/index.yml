@@ -1,8 +1,0 @@
-version: '1'
-root: .
-category: cross-component-semantics.header-multiplicity-and-ordering
-namespace: flask-cross-component-header-multiplicity
-examples: {}
-attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: ae7468a50c342c37cc1514d9f0a5bf7f48911e278014045e0803068079cf7429

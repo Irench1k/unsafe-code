@@ -10,7 +10,7 @@
   - *AppSec students* with CTF/bug bounty/pentesting experience who want to master secure code review of real-world web frameworks    
   - *Senior security engineers* needing quick reference material when reviewing code in unfamiliar languages or frameworks            
 
-To get an idea of what this project is all about, we recommend to start with the [Confusion vulnerabilities](vulnerabilities/python/flask/confusion/webapp/README.md) in Flask:
+To get an idea of what this project is all about, we recommend to start with the [Confusion vulnerabilities](vulnerabilities/python/flask/README.md) in Flask:
 
 1. [Source Precedence](vulnerabilities/python/flask/confusion/webapp/r01_source_precedence/README.md) — Different components pull the "same" logical parameter from different places (path vs. query vs. body vs. headers vs. cookies), leading to precedence conflicts, merging issues, or source pollution.
 2. [Cross-Component Parse](vulnerabilities/python/flask/confusion/webapp/r02_cross_component_parse/README.md) — Middleware, decorators, or framework helpers parse or reshape inputs in ways that differ from what the view sees.
@@ -43,7 +43,7 @@ We're actively expanding coverage to include:
 ### Browse on GitHub (no setup required)
 Click through the auto-generated READMEs to learn vulnerabilities, see code snippets, and read exploitation examples. The entire lab works as a self-contained wiki.
 
-Not sure where to start? Go [here](vulnerabilities/python/flask/confusion/webapp/README.md).
+Not sure where to start? Go [here](vulnerabilities/python/flask/README.md).
 
 ### Run Locally (Docker + VSCode)
 Clone the repo, start Docker Compose, and execute exploits from .http files directly in VSCode using the REST Client extension. No pentesting tools required.

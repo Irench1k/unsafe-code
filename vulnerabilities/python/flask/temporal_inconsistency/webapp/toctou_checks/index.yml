@@ -1,8 +1,0 @@
-version: '1'
-root: .
-category: temporal-inconsistency.toctou-checks
-namespace: flask-temporal-toctou
-examples: {}
-attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: 9a9b387f838e35697af8df062b9542f8f55134d24e37cc229c40ce73a4701fdc
