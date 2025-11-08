@@ -1,14 +1,12 @@
 # Confusion Curriculum Blueprint for Contributors
 
-This document is the master plan for the "Confusion / Inconsistent Interpretation" tutorial (runbooks r01-r05). This tutorial serves as the primary "on-ramp" for the Unsafe Code Lab.
+This document is the master plan for the "Confusion / Inconsistent Interpretation" tutorial (runbooks r01-r05). This tutorial serves as the primary starting point for the Unsafe Code Lab.
 
 ## 1. Your Goal as a Contributor
 
 Your mission is to **translate this narrative and these vulnerability patterns** into your target framework (e.g., Nest.js, Django, FastAPI, Express).
 
 This plan exists to ensure a **consistent learning experience** across all languages. Students should be able to complete the Flask r01 tutorial and then the Nest.js r01 tutorial and feel a strong sense of familiarity. The endpoints, characters, and core vulnerability _patterns_ should be as identical as possible.
-
-The vulnerabilities described here are largely framework-agnostic and follow realistic application evolution patterns, making them ideal for onboarding both students and contributors to new codebases.
 
 ## 2. Our Guiding Philosophy
 
@@ -22,10 +20,10 @@ This is _not_ a "secure development" class. Our goal is to teach white-box code 
 ## 3. Technical & Narrative Setup
 
 - **Narrative:** "Cheeky SaaS" is an online ordering platform for restaurants.
-  - 🐿️ **Sandy Cheeks:** The developer (fast-moving, feature-focused).
+  - 🐿️ **Sandy Cheeks:** The developer.
   - 🦀 **Mr. Krabs:** The first customer (Krusty Krab).
   - 🧪 **Plankton:** The attacker (Chum Bucket).
-  - (Others: SpongeBob 🧽, Squidward 🦑, Patrick 𓇼)
+  - (Others: SpongeBob 🧽, Squidward 🦑, Patrick ⭐)
 - **Technical Base:**
   - The API runs on `api.cheeky.sea`.
   - A (hypothetical) UI runs on `app.cheeky.sea`.
@@ -70,11 +68,11 @@ But avoid:
 
 The five categories build naturally on each other, mirroring how real applications evolve:
 
-1. **r01: Input Source** → MVP with basic endpoints, multiple input formats
-2. **r02: Authentication** → Add middleware, API keys, user context
-3. **r03: Authorization** → Introduce resources, ownership, access control
-4. **r04: Cardinality** → Handle lists, bulk operations, edge cases
-5. **r05: Normalization** → String processing, database lookups, collision bugs
+1. [**r01: Input Source**](/docs/confusion_curriculum/r01_input_source_confusion.md) -> MVP with basic endpoints, multiple input formats
+2. [**r02: Authentication**](/docs/confusion_curriculum/r02_authentication_confusion.md) -> Add middleware, API keys, user context
+3. [**r03: Authorization**](/docs/confusion_curriculum/r03_authorization_confusion.md) -> Introduce resources, ownership, access control
+4. [**r04: Cardinality**](/docs/confusion_curriculum/r04_cardinality_confusion.md) -> Handle lists, bulk operations, edge cases
+5. [**r05: Normalization**](/docs/confusion_curriculum/r05_normalization_issues.md) -> String processing, database lookups, collision bugs
 
 Each stage adds one major framework feature (middleware, sessions, JSON, SQL, validation) while showcasing how those features create new confusion opportunities.
 
