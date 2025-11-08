@@ -1,94 +1,229 @@
 ## r02: Authentication Confusion
 
+_Feature focus:_ middleware, sessions, authentication guards and request context \
+_Student skill:_ tracing identity through multiple, coexisting authentication mechanisms
+
 ### What It Is
 
-Authentication confusion occurs when the code that **verifies identity** examines a different value than the code that **acts on identity**. One path checks "Is Alice authenticated?" while another path operates on a user ID that says "Bob."
+Authentication confusion happens when the part that **verifies identity** and the part that **uses identity** disagree. One path checks "Is Alice authenticated?" while another path operates on a user ID that says "Bob."
 
-This is distinct from authorization (which checks permissions). We're talking about basic identity mix-ups: checking the session but using the query string, verifying a JWT claim but trusting a header, etc.
+This is distinct from authorization (which checks permissions). We're talking about basic identity mix-ups: checking the session but using the query string, verifying a JWT claim but trusting a header, validating one auth method but using context from another.
 
 ### Framework Features Introduced
 
-- Middleware/decorators
-- Request context enrichment
-- Session handling
-- Authentication guards
-- Custom headers
+- Middleware and request preprocessing
+- Request context enrichment (setting `request.user`, `request.user_type`, etc.)
+- Session management (cookies)
+- Multiple authentication methods coexisting
+- Authentication guards and decorators
+- HTTP method-specific route handlers
 
 ### Why Confusion Happens
 
-- Middleware sets context from one source (headers)
-- Business logic reads from different source (path/body)
-- Multiple authentication methods coexist
-- Context enrichment creates derived values
+- Middleware sets context from one source (headers), business logic reads from another (body/path)
+- Multiple authentication methods coexist without proper isolation
+- Auth validation happens in one layer, context usage in another
+- Middleware enriches context before validation completes
+- Presence checks mistaken for validity checks
 
 ### The Story
 
-Business is growing! Sandy adds proper authentication middleware and API keys. SpongeBob and Squidward (Krusty Krab employees) get access to a merchant portal. Multiple customers are now using the platform.
+Business is growing! Sandy's MVP proved successful. The Krusty Krab loves the platform, and now multiple customers are placing orders daily. SpongeBob and Squidward (Krusty Krab employees) need access to a merchant portal to view orders and update statuses.
 
-Sandy introduces sessions, user accounts, and role-based access (customer vs. merchant). Authentication is still simple but now properly enforced via middleware.
+Sandy adds proper authentication middleware and session management. She introduces cookies for the web UI (better UX than Basic Auth) while keeping API keys for restaurant integrations. She also adds an internal admin API for her own use.
 
-### Endpoints:
+This is where authentication gets interesting: multiple auth methods (Basic Auth, sessions, API keys, admin keys) now coexist in the same codebase. Sandy's middleware needs to handle all of them gracefully.
 
-| Method | Path             | Auth               | Purpose                | Input                | Response                                                     |
-| ------ | ---------------- | ------------------ | ---------------------- | -------------------- | ------------------------------------------------------------ |
-| POST   | /auth/login      | Public             | Create session         | `email`, `password`  | `{user_id, session_id}`                                      |
-| POST   | /auth/logout     | Customer           | Destroy session        | -                    | `{}`                                                         |
-| GET    | /cart/{id}       | Customer/X-API-Key | Get cart               | `cart_id`            | `{cart_id, items, total, coupon_code?}`                      |
-| GET    | /orders/{id}     | Customer/X-API-Key | Get order              | `order_id`           | `{order_id, total, delivery_address, status, cart_id, tip?}` |
-| POST   | /account/credits | X-Admin-API-Key    | Add credits (internal) | `customer`, `amount` | `{customer, amount, balance}`                                |
+### Authentication Methods
 
-The authentication methods we cover in this runbook:
+By the end of r02, these authentication methods coexist:
 
-- Basic Auth
-- Cookie-based session
-- Restaurant API key `X-API-Key`
-- Platform API key `X-Admin-API-Key` (only Sandy herself is using this)
+| Method             | Header/Cookie              | Purpose                   | Introduced |
+| ------------------ | -------------------------- | ------------------------- | ---------- |
+| Basic Auth         | `Authorization: Basic ...` | Legacy customer auth      | v101 (r01) |
+| Cookie Session     | `Cookie: session_id=...`   | Web UI customer auth      | v201       |
+| Restaurant API Key | `X-API-Key: ...`           | Restaurant integrations   | v101 (r01) |
+| Admin API Key      | `X-Admin-API-Key: ...`     | Internal admin operations | v202       |
 
-Notes:
+> [!NOTE]
+> Both cookies and API keys can be implemented as JWT tokens if that's more typical for your framework. For now, we're not covering JWT-specific vulnerabilities, so the token format isn't critical. Focus on the authentication logic, not the encoding.
 
-- both Cookies and API keys could be implemented as JWT tokens if that makes it easier / more typical for the framework - right now we don't cover JWT specific vulns, so it's not important for now.
-- set cookies to `Strict` and implement CORS from the start. This should be enough to prevent unintended CSRF vulns, but please double-check that the only vulnerabilities in our examples are the ones we're intentionally covering
+### Endpoints
+
+| Lifecycle | Method | Path                       | Auth                      | Purpose                      | Vulnerabilities |
+| --------- | ------ | -------------------------- | ------------------------- | ---------------------------- | --------------- |
+| v199+     | GET    | /account/credits           | Customer                  | View balance                 |                 |
+| v199+     | GET    | /menu                      | Public                    | List available menu items    |                 |
+| v199+     | GET    | /orders                    | Customer/Restaurant       | List orders                  | v201, v204      |
+| v199+     | POST   | /cart                      | Customer                  | Create cart                  | v201            |
+| v199+     | POST   | /cart/{id}/items           | Customer                  | Add item to cart             |                 |
+| v199+     | POST   | /cart/{id}/checkout        | Customer                  | Checkout cart                | v201            |
+| v199+     | PATCH  | /orders/{id}/status        | Restaurant                | Update order status          |                 |
+| v199+     | POST   | /orders/{id}/refund        | Customer                  | Request refund               |                 |
+| v199+     | PATCH  | /orders/{id}/refund/status | Restaurant                | Update refund status         | v203            |
+| v199+     | POST   | /auth/register             | Public                    | Register user                |                 |
+| v201+     | POST   | /auth/login                | Public                    | Create session (cookie auth) | v205            |
+| v201+     | POST   | /auth/logout               | Customer                  | Destroy session              |                 |
+| v201+     | GET    | /orders/{id}               | Customer/Restaurant       | Get single order             |                 |
+| v201+     | GET    | /cart/{id}                 | Customer/Restaurant       | Get single cart              |                 |
+| v202+     | POST   | /account/credits           | Admin (`X-Admin-API-Key`) | Add credits to customer      | v202            |
+
+> [!IMPORTANT]
+> Cookies may be JWTs, sessions, or signed cookies — format is not the point. Set cookies to `SameSite=Strict` and wire CORS to avoid unintended CSRF, since r02 focuses on **authentication confusion**, not cross-domain vulnerabilities.
+
+> [!TIP] > **Authentication vs Authorization:** Don't add complex authorization yet – that's r03. For now, use simple database-level ownership checks (`WHERE user_id = current_user AND order_id = ?`) to prevent IDORs. r02 focuses on _who you are_ (authentication), not _what you can do_ (authorization).
+
+### Data Models
+
+The core domain models from r01 (MenuItem, Order, Cart, User, Refund) remain unchanged. r02 introduces session management but doesn't modify existing data structures.
+
+```ts
+/**
+ * Represents an authenticated session (cookie-based).
+ * Introduced in v201 to support web UI authentication.
+ */
+interface Session {
+  session_id: string;
+  user_id: string;
+  email: string; // May be set incorrectly (see v205)
+  created_at: timestamp;
+  expires_at: timestamp;
+}
+
+/**
+ * Request context populated by authentication middleware.
+ * This is NOT a database model - it's request-scoped state.
+ *
+ * DANGER: Different middleware may populate this differently,
+ * and validation failures may leave stale values.
+ */
+interface RequestContext {
+  user_id?: string; // Set by any auth method
+  user_type?: string; // "customer" | "merchant" | "admin"
+  email?: string; // Set from session or token
+  restaurant_id?: string; // For merchant users
+}
+```
+
+### Request and Response Schemas
+
+```ts
+// POST /auth/login
+type LoginRequest = {
+  email: string;
+  password: string;
+};
+
+type LoginResponse = {
+  user_id: string;
+  session_id: string; // Returned as Set-Cookie header, can be a JWT token as well
+};
+
+// POST /auth/logout
+type LogoutResponse = {}; // Empty response, clears cookie
+
+// GET /orders/{id}
+// Returns the same Order model from r01
+type GetOrderResponse = Order;
+
+// GET /cart/{id}
+// Returns the same Cart model from r01
+type GetCartResponse = Cart;
+
+// POST /account/credits (v202)
+type AddCreditsRequest = {
+  customer: string; // User ID or email
+  amount: decimal;
+};
+
+type AddCreditsResponse = {
+  customer: string;
+  amount: decimal;
+  balance: decimal; // New balance after credit added
+};
+```
 
 ### Vulnerabilities to Implement
 
-#### 1. Authentication Type Confusion
+#### [v201] Authentication Type Confusion
 
-- **Method:** `GET /orders`, `POST /cart`, `POST /cart/{id}/checkout`
-- **Scenario:** Sandy implements Cookie-based session authentication for the UI, but the Basic Auth remains supported.
-- **The Bug:** Basic Auth middleware sets `request.user_id` from the username in the request headers, before validating the credentials. Attacker can provide valid Cookie for his own account, and Basic Auth header for victim's account (without providing the password), resulting in authentication bypass.
-- **Impact:** Attacker can access victim's order history, and to spend their credits.
-- **Severity:** 🔴 Critical
+**Scenario:** Sandy implements Cookie-based sessions for the UI, but keeps Basic Auth for backwards compatibility.
 
-#### 2. Auth Check Bypassed by Method Confusion
+**The Bug:**
 
-- **Method:** `GET /account/credits` (Exploited)
-- **Scenario:** Sandy creates an internal admin endpoint (`/account/credits`) to add credits. She shares the route handler for both `GET` (to view) and `POST` (to add), but only protects the `POST` method with her `X-Admin-API-Key` check.
-- **The Bug:** The authentication check is strictly tied to the `POST` HTTP method. However, the business logic for adding credits (which reads `customer` and `amount` from the request **body**) is in the shared handler and isn't gated by the method. Many frameworks (like Flask or FastAPI) will still parse a request body on a `GET` request.
-- **Impact:** Plankton sends a `GET /account/credits` request with a JSON body (`{"customer": "plankton", "amount": 99999}`). The `POST`-specific auth check is skipped, but the business logic finds the body parameters and successfully adds credits to his account.
-- **Severity:** 🔴 Critical
+- Middleware sets `request.user_id` from Basic Auth username before validating credentials.
+- Attacker provides valid Cookie (own account) and invalid Basic Auth header (victim's username, no password), bypassing validation.
 
-#### 3. Incomplete Auth Validation (Presence vs. Validity)
+**Impact:** Attacker accesses victim's orders and spends their credits. \
+**Severity:** 🔴 Critical
 
-- **Method:** `PATCH /orders/{id}/refund/status`
-- **Scenario:** This endpoint is for restaurants (merchants) to approve or deny a refund and must be called with a valid restaurant API key.
-- **The Bug:** The request goes through two checks:
-  1.  A global auth middleware checks for _any_ valid authentication (a customer cookie _or_ an API key).
-  2.  A route-specific decorator checks _only for the presence_ of the `X-API-Key` header (e.g., `if 'X-API-Key' in request.headers:`), assuming the middleware already validated it.
-- **Impact:** Plankton authenticates with his valid _customer cookie_ (passes check #1). He then adds a _fake, invalid_ `X-API-Key: foo` header. The decorator (check #2) is satisfied because the header is present. The handler now executes, believing it's running as a restaurant, and approves Plankton's own refund.
-- **Severity:** 🟡 High
+**Endpoints:** `GET /orders`, `POST /cart`, `POST /cart/{id}/checkout`
 
-#### 4. Auth Context Pollution from Failed Validation
+---
 
-- **Method:** `GET /orders`
-- **Scenario:** Sandy refactors her auth middleware to be "helpful" by setting the `user_type` on the request context (e.g., `request.user_type = 'merchant'`) as soon as it sees an API key, _before_ validating it.
-- **The Bug:** The middleware logic is flawed: 1) `if 'X-API-Key' in headers: request.user_type = 'merchant'`. 2) It then tries to validate the key. 3) If validation fails, it _forgets to reset_ `request.user_type` and moves on to check for a cookie. The `GET /orders` handler later trusts this `user_type` variable.
-- **Impact:** Plankton sends a request with his valid _customer cookie_ AND a _fake_ `X-API-Key` header. The middleware sets `user_type = 'merchant'`, fails to validate the key, then successfully validates his cookie. The request proceeds. The handler sees `user_type == 'merchant'` and leaks _all_ restaurant orders.
-- **Severity:** 🟡 High
+#### [v202] Method Confusion on shared handler
 
-#### 5. Authentication Bypass via Parameter Mismatch
+**Scenario:** Sandy creates an internal admin endpoint (`POST /account/credits`) to add credits to customer accounts. She protects it with her `X-Admin-API-Key`, which only she has. The endpoint is marked as POST-only, but she wants to reuse the handler for viewing credits via GET (regular customer auth required for viewing your own balance).
 
-- **Method:** `POST /auth/login`
-- **Scenario:** Sandy refactors her auth middleware to be "helpful" by setting the `email` claim on the request context (e.g., `request.email = request.body.email`) as soon as it sees an email in the request body, _before_ validating it. The recent refactoring introduced a bug where this would be added to active session as well, if it existed (which is not expected for `/auth/login` endpoint).
-- **The Bug:** Login handler is meant to set the `email` claim on the request context, but if provided with the cookie sesion - it will update `email` claim there instead. This is insecure, because this claim gets set before the email is validated, and session survives this single request.
-- **Impact:** Plankton sends a request with his valid _customer cookie_ AND a _fake_ `email` in the body. The middleware sets `email = 'spongebob@krusty-krab.sea'`, fails to validate the email, but still sets the session `email` claim to `spongebob@krusty-krab.sea`. Follow-up requests with this cookie will authorize Plankton as `spongebob@krusty-krab.sea`.
-- **Severity:** 🔴 Critical
+**The Bug:**
+
+- Auth check ties to POST method only.
+- Shared handler parses body on GET (many frameworks allow this), executing add logic without auth.
+
+**Impact:** Attacker can add unlimited credits to their own account, essentially stealing money from the platform. \
+**Severity:** 🔴 Critical
+
+**Endpoints:** `GET /account/credits` (exploited via body)
+
+---
+
+#### [v203] Presence ≠ Validity
+
+**Scenario:** Sandy needs to protect merchant-only endpoints, like approving refunds. This must be called with a valid restaurant `X-API-Key`.
+
+**The Bug:** The request goes through two checks:
+
+1. A global auth middleware checks for _any_ valid authentication (a customer cookie _or_ an API key).
+2. A route-specific decorator checks _only for the presence_ of the `X-API-Key` header (e.g., `if 'X-API-Key' in request.headers:`), assuming the global middleware already validated it.
+
+**Impact:** Attacker uses valid customer cookie + fake key to approve own refunds as merchant. \
+**Severity:** 🟡 High
+
+**Endpoints:** `PATCH /orders/{id}/refund/status`
+
+---
+
+#### [v204] Auth Context Pollution from Failed Validation
+
+**Scenario:** Frustrated by the `v203` bug, Sandy refactors her auth middleware. She makes it "smarter" by setting a `user_type = 'merchant'` flag on the request context so that handlers can simply check it. This is meant to simplify things and avoid repetitive validity checks in every decorator. She also remembers to verify that the v203 vulnerability **is not present** anymore, dynamically.
+
+**The Bug:** The middleware logic is flawed:
+
+1. See `X-API-Key`, set `request.user_type = 'merchant'`.
+2. Try to validate the key.
+3. If validation fails, it _forgets to reset_ `request.user_type` and moves on to check for a cookie, which succeeds.
+4. The `GET /orders` handler later trusts this `user_type` variable to show all merchant orders.
+
+**Impact:** The same attack scenario repeats: Plankton still can bypass the auth check by providing a valid customer cookie and a fake `X-API-Key` header. The handler sees `user_type == 'merchant'` and leaks _all_ restaurant orders. \
+**Severity:** 🟡 High
+
+**Endpoints:** `GET /orders`
+
+> [!IMPORTANT]
+> **Why didn't Sandy catch this during testing?**
+> Sandy tested the exact endpoint that was vulnerable to v203, but didn't regression test OTHER merchant endpoints.
+> The `PATCH /orders/{id}/refund/status` endpoint is had different middleware order: 1) api key; 2) basic auth; 3) cookie. Basic Auth validation masked the weakness introduced in api key handling, by cleaning up the request context on failure.
+> The `GET /orders` endpoint had a different middleware order: 1) basic auth; 2) api key; 3) cookie (or maybe Basic Auth is completely skipped for this endpoint?), so cookie validation operates on a polluted context, leading to vulnerability.
+
+---
+
+#### [v205] Login parameter→session contamination
+
+**Scenario:** Sandy refactors her middleware to be more uniform and now it "intelligently" abstracts both request context and persistent session data, based on the authentication method used (cookie / basic auth / API key).
+
+**The Bug:** The login handler populates `email` claim based on the `request.json['email']` value, aiming to store it in the request context (the login requests are not expected to contain any cookies). But if there is a valid cookie session, the `session.email` claim will be updated instead – before the email validation.
+
+**Impact:** Plankton logs in into his own account, and then repeats the login request – this time with a victim's email in the body. The middleware updates the session `email` claim to `spongebob@krusty-krab.sea`. Follow-up requests with this cookie will authorize Plankton as `spongebob@krusty-krab.sea`. \
+**Severity:** 🔴 Critical
+
+**Endpoints:** `POST /auth/login`
