@@ -56,196 +56,175 @@ This section uses rudimentary authentication and authorization:
 > [!TIP]
 > Add a docker compose service for https://github.com/axllent/mailpit to capture verification emails sent during user registration
 
+#### Schema Evolution
+
+Track how schemas change across versions:
+
+| Model               | v101              | v102            | v103       | v104   | v105 | v106 |
+| ------------------- | ----------------- | --------------- | ---------- | ------ | ---- | ---- |
+| MenuItem            | ✅                | -               | -          | -      | -    | -    |
+| OrderItem           | ✅                | -               | -          | -      | -    | -    |
+| Order               | Base              | `+delivery_fee` | `+cart_id` | `+tip` | -    | -    |
+| CreateOrderRequest  | `item \| items[]` | `items[]` only  | -          | -      | -    | -    |
+| Cart                | -                 | -               | ✅         | -      | -    | -    |
+| CheckoutCartRequest | -                 | -               | Base       | `+tip` | -    | -    |
+| Refund              | -                 | -               | -          | -      | ✅   | -    |
+| RegisterUserRequest | -                 | -               | -          | -      | -    | ✅   |
+
 #### Data Models
 
-#### MenuItemResponse
+```ts
+/**
+ * A single item available on a restaurant's menu.
+ */
+interface MenuItem {
+  id: string;
+  name: string;
+  price: decimal;
+  available: boolean;
+}
 
-```
-Used in: GET /menu
-Version: v101+
+/**
+ * An item that has been added to an order.
+ * Note: price is copied at time of purchase.
+ */
+interface OrderItem {
+  item_id: string;
+  name: string;
+  price: decimal;
+}
 
-id: string
-name: string
-price: decimal
-available: boolean
-```
+/**
+ * Represents a customer's shopping cart.
+ */
+interface Cart {
+  cart_id: string;
+  items: string[]; // Array of item IDs
+}
 
-#### CreateOrderRequest
+/**
+ * Represents a completed Order.
+ * This model evolves throughout r01.
+ */
+interface Order {
+  order_id: string;
+  total: decimal;
+  delivery_address: string;
+  created_at: timestamp;
+  items: OrderItem[];
 
-```
-Used in: POST /orders
-Version: v101
+  // Added in v102
+  delivery_fee?: decimal;
 
-item?: decimal                      // Single item ID (initial MVP)
-items?: decimal[]                    // Array of menu item IDs (new feature in v101)
-delivery_address: string
-```
+  // Added in v103 (cart-based checkout)
+  cart_id?: string;
 
-```
-Version: v102
+  // Added in v104
+  tip?: decimal;
+}
 
-items: decimal[]
-delivery_address: string
-```
+/**
+ * Represents a refund request.
+ */
+interface Refund {
+  refund_id: string;
+  order_id: string;
+  amount: decimal;
+  reason?: string;
+  status: "pending" | "accepted" | "rejected";
+}
 
-#### CreateOrderResponse
-
-```
-Version: v101
-
-order_id: decimal
-total: decimal
-delivery_address: string
-created_at: timestamp
-items: OrderItem[]                // Full item details with prices
-```
-
-```
-Version: v102
-
-order_id: decimal
-total: decimal
-delivery_address: string
-created_at: timestamp
-items: OrderItem[]
-delivery_fee: decimal
-```
-
-#### OrderItem
-
-```
-Version: v101+
-
-item_id: string
-name: string
-price: decimal
-```
-
-#### GetOrderResponse
-
-```
-Version: v101
-
-order_id: decimal
-total: decimal
-delivery_address: string
-created_at: timestamp
-items: OrderItem[]
+/**
+ * Represents a registered user.
+ */
+interface User {
+  user_id: string;
+  email: string;
+  name: string;
+  balance: decimal;
+}
 ```
 
-```
-Version: v102
+#### Request and Response Schemas
 
-order_id: decimal
-total: decimal
-delivery_address: string
-created_at: timestamp
-items: OrderItem[]
-delivery_fee: decimal
-```
+```ts
+// GET /account/credits
+type GetCreditsResponse = {
+  balance: decimal;
+};
 
-```
-Version: v103+
+// GET /menu
+type ListMenuResponse = MenuItem[];
 
-order_id: decimal
-total: decimal
-delivery_address: string
-created_at: timestamp
-cart_id: decimal
-items: OrderItem[]
-delivery_fee: decimal
-```
+// GET /orders
+type ListOrdersResponse = Order[];
 
-#### CreateCartResponse
+// POST /orders (v101)
+type CreateOrderRequest_v101 = {
+  item?: string; // Single item ID (initial MVP)
+  items?: string[]; // Array of menu item IDs (new feature)
+  delivery_address: string;
+};
 
-```
-Used in: POST /cart
-Version: v103+
+// POST /orders (v102)
+// The 'item' parameter is deprecated and removed
+type CreateOrderRequest_v102 = {
+  items: string[];
+  delivery_address: string;
+};
 
-cart_id: decimal
-items: decimal[]
-```
+// POST /cart
+type CreateCartRequest = {
+  items: string[]; // Array of item IDs
+};
 
-#### AddItemToCartRequest
+// POST /cart/{id}/items
+type AddItemToCartRequest = {
+  items: string[]; // Array of item IDs
+};
 
-```
-Used in: POST /cart/{id}/items
-Version: v103+
+// POST /cart/{id}/checkout (v103)
+type CheckoutCartRequest_v103 = {
+  delivery_address: string;
+};
 
-cart_id: decimal
-items: decimal[]
-```
+// POST /cart/{id}/checkout (v104)
+type CheckoutCartRequest_v104 = {
+  delivery_address: string;
+  tip?: decimal; // Tip is added
+};
 
-#### CheckoutCartRequest
+// PATCH /orders/{order_id}/status
+type OrderStatusUpdateRequest = {
+  status: "preparing" | "delivering" | "finished" | "cancelled";
+};
 
-```
-Used in: POST /cart/{id}/checkout
-Version: v103
+// POST /orders/{order_id}/refund
+type RequestRefundRequest = {
+  amount?: decimal; // Defaults to 20% if not provided
+  reason?: string;
+};
 
-cart_id: decimal
-delivery_address: string
-```
+// PATCH /orders/{order_id}/refund/status
+type UpdateRefundStatusRequest = {
+  status: "accepted" | "rejected";
+  reason?: string;
+};
 
-```
-Version: v104+
+// POST /auth/register
+type RegisterUserRequest = {
+  email: string;
+  password?: string; // Optional: not needed for first step
+  token?: string; // Optional: provided in verification step
+};
 
-cart_id: decimal
-delivery_address: string
-tip?: decimal
-```
-
-#### CheckoutCartResponse
-
-```
-Version: v103
-
-order_id: decimal
-total: decimal
-delivery_address: string
-created_at: timestamp
-cart_id: decimal
-items: OrderItem[]
-delivery_fee: decimal
-```
-
-#### OrderStatusUpdateRequest
-
-```
-Used in: PATCH /orders/{order_id}/status
-Version: v103
-
-status: enum("preparing", "delivering", "finished", "cancelled")
-```
-
-#### RequestRefundRequest
-
-```
-Used in: POST /orders/{order_id}/refund
-Version: v105+
-
-amount: decimal
-reason: string
-```
-
-#### UpdateRefundStatusRequest
-
-```
-Used in: PATCH /orders/{order_id}/refund/status
-Version: v105+
-
-status: enum("accepted", "rejected")
-reason?: string
-```
-
-#### RegisterUserRequest
-
-```
-Used in: POST /auth/register
-Version: v106
-
-email: string
-password: string
-verify_token?: string   // if missing, will send verification email; if present will verify before creating the user
+// POST /auth/register
+type RegisterUserResponse = {
+  user_id: string;
+  email: string;
+  name: string;
+  balance: decimal; // New users get $2.00
+};
 ```
 
 ### Vulnerabilities to Implement
