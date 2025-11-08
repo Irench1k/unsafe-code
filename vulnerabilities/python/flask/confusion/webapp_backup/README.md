@@ -10,8 +10,9 @@ Inconsistent interpretation happens when code that should be working with **one 
 - Verify **ordering**: do guards run before or after inputs are finalized, merged, or normalized? Are defaults or fallbacks introduced after the security check?
 
 ## Subcategories
-1. [Input Source](./r01_input_source_confusion/README.md) — Source precedence bugs occur when different code paths read the "same" logical input from different locations (path vs. query vs. body vs. headers vs. cookies).
-2. [Authentication](./r02_authentication_confusion/README.md) — Authentication confusion occurs when the code that **verifies identity** examines a different value than the code that **acts on identity**.
-3. [Authorization](./r03_authorization_confusion/README.md) — Authorization confusion happens when the code that **checks permissions** examines a different resource or identity than the code that **performs the action**.
-4. [Cardinality](./r04_cardinality_confusion/README.md) — Cardinality confusion occurs when one part of the code treats a parameter as a **single value** while another treats it as a **list**. The parser, validator, and business logic disagree on whether you sent one item or many.
-5. [Normalization](./r05_normalization_issues/README.md) — Character normalization confusion happens when two code paths apply **different string transformations** to the same logical input.
+1. [Source Precedence](r01_source_precedence/README.md) — Different components pull the "same" logical parameter from different places (path vs. query vs. body vs. headers vs. cookies), leading to precedence conflicts, merging issues, or source pollution.
+2. [Cross-Component Parse](r02_cross_component_parse/README.md) — Middleware, decorators, or framework helpers parse or reshape inputs in ways that differ from what the view sees.
+3. [Authorization Binding](r03_authz_binding/README.md) — Authorization checks identity or value X, but the handler acts on identity or value Y.
+4. [HTTP Semantics](r04_http_semantics/README.md) — Wrong assumptions about HTTP methods or content types (e.g., GET with body, form vs. JSON) cause components to read different sources.
+5. [Multi-Value Semantics](r05_multi_value_semantics/README.md) — One component treats a parameter as a list while another grabs only the first value, or `.get()` vs `.getlist()` disagreements create different effective values.
+6. [Normalization & Canonicalization](r06_normalization_canonicalization/README.md) — Case folding, whitespace stripping, URL decoding, or path normalization makes "equal" values diverge when checked versus used.
