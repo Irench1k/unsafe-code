@@ -244,6 +244,8 @@ type RegisterUserResponse = {
 
 **Endpoints:** `POST /orders`
 
+---
+
 #### [v102] Delivery Fee Bypass
 
 **Scenario:** Sandy is adding a free delivery feature for orders over $25.00.
@@ -259,6 +261,8 @@ type RegisterUserResponse = {
 
 **Endpoints:** `POST /orders`
 
+---
+
 #### [v103] Order Overwrite via ID Injection
 
 **Scenario:** When introducing cart-based checkout, Sandy also added support for JSON bodies.
@@ -273,6 +277,8 @@ type RegisterUserResponse = {
 **Severity:** 🔴 Critical
 
 **Endpoints:** `POST /cart/{id}/checkout`
+
+---
 
 #### [v104] Negative Tip
 
@@ -290,6 +296,8 @@ type RegisterUserResponse = {
 
 **Endpoints:** `POST /cart/{id}/checkout`
 
+---
+
 #### [v105] Refund Fraud
 
 **Scenario:** Sandy is adding a new feature to allow customers to refund their orders. If the order gets delayed, the client app automatically requests a refund of 20% of the order total, so the backend implements logic to automatically accept refunds of up to 20% of the order total – and to wait for manual resolution for refunds over 20%.
@@ -304,6 +312,8 @@ type RegisterUserResponse = {
 **Severity:** 🔴 Critical
 
 **Endpoints:** `POST /orders/{order_id}/refund`
+
+---
 
 #### [v106] Onboarding Fraud
 
