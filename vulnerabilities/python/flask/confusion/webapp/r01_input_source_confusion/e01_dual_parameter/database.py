@@ -11,8 +11,9 @@ db = {
     "menu_items": {
         "1": MenuItem(id="1", name="Krabby Patty", price=Decimal("5.99"), available=True),
         "2": MenuItem(id="2", name="Krusty Krab Pizza", price=Decimal("12.50"), available=True),
-        "3": MenuItem(id="3", name="Side of Fries", price=Decimal("1.00"), available=False),
+        "3": MenuItem(id="3", name="Side of Fries", price=Decimal("1.00"), available=True),
         "4": MenuItem(id="4", name="Kelp Shake", price=Decimal("2.50"), available=True),
+        "5": MenuItem(id="5", name="Soda", price=Decimal("2.75"), available=False),
     },
     "users": {
         "sandy": User(

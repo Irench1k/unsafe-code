@@ -1,6 +1,7 @@
 from .database import get_menu_item
 from .models import OrderItem
 
+
 def check_price_and_availability(item_id):
     """Checks the price and availability of an item."""
     if not item_id:

@@ -1,21 +1,32 @@
 # Note: The base URL assumes that the blueprints are registered by your routing setup
 # to be accessible under /confusion/r01/e01. You may need to adjust this.
-@base = http://localhost:8000/confusion/input-source-confusion/e01-dual-parameters
+@base = http://localhost:8000/api/v101
 
 ### Legitimate Order
 POST {{base}}/orders
+Authorization: Basic sandy:testpassword
 Content-Type: application/x-www-form-urlencoded
 
-item=1&user_id=sandy
+item=4
 
 ### Legitimate Order
 POST {{base}}/orders
+Authorization: Basic sandy:testpassword
 Content-Type: application/x-www-form-urlencoded
 
-items=1&items=2&items=3&user_id=sandy
+items=2&items=3
+
+### We see that Sandy now has added two legitimate orders
+GET {{base}}/orders
+Authorization: Basic sandy:testpassword
 
 ### Vulnerable Example
 POST {{base}}/orders
+Authorization: Basic sandy:testpassword
 Content-Type: application/x-www-form-urlencoded
 
-item=3&items=1&items=2&user_id=sandy
+item=3&items=1&items=2&items=3
+
+### Here Sandy could add three expensive items, while paying for ony one of them!
+GET {{base}}/orders
+Authorization: Basic sandy:testpassword

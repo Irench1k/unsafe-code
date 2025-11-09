@@ -9,12 +9,12 @@ from .database import (
 )
 from .utils import check_price_and_availability, get_order_items
 
-bp = Blueprint("e00_baseline", __name__)
+bp = Blueprint("e01_dual_params", __name__)
 
 
 @bp.route("/")
 def index():
-    return "R01: Input Source Confusion - Baseline\n"
+    return "R01: Input Source Confusion - Dual Parameters\n"
 
 
 @bp.route("/account/credits", methods=["GET"])
@@ -59,7 +59,7 @@ def create_new_order():
     if not user:
         return jsonify({"error": "Authentication required"}), 401
 
-    total_price = check_price_and_availability(request.form.get("item"))
+    total_price = check_price_and_availability(request.form)
     if not total_price:
         return jsonify({"error": "Item not available, sorry!"}), 400
 
