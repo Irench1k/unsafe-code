@@ -26,7 +26,7 @@ def check_price_and_availability(data):
     else:
         items = data.getlist("items")
 
-    total_price = Decimal(0)
+    total_price = Decimal("0.00")
     for item in items:
         price = _check_price_and_availability_v100(item)
         if not price:
@@ -50,9 +50,9 @@ def _get_order_items_v100(item_id):
     return [OrderItem(item_id=item_id, name=menu_item.name, price=menu_item.price)]
 
 
-def get_order_items(form_data):
+def get_order_items(data):
     """Builds OrderItem list for order creation method."""
-    item_ids = form_data.getlist("items") or [form_data.get("item")]
+    item_ids = data.getlist("items") or [data.get("item")]
 
     order_items = []
     for item_id in item_ids:
