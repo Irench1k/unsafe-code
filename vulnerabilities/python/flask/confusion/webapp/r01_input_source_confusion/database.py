@@ -21,7 +21,7 @@ class OrderItem(BaseModel):
 class Order(BaseModel):
     order_id: str
     total: Decimal
-    delivery_address: str
+    user_id: str
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
     items: List[OrderItem]
 
@@ -68,6 +68,15 @@ def get_menu_item(item_id: str) -> MenuItem | None:
 
 def get_user(user_id: str) -> User | None:
     return db["users"].get(user_id)
+
+
+def charge_user(user_id: str, amount: Decimal):
+    user = get_user(user_id)
+    if not user:
+        raise ValueError(f"User '{user_id}' not found.")
+    if user.balance < amount:
+        raise ValueError("Insufficient funds.")
+    user.balance -= amount
 
 
 def create_order(order: Order):

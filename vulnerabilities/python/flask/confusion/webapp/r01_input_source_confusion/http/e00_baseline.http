@@ -1,10 +1,13 @@
 @base = http://localhost:8000/confusion/input-source-confusion/e00-baseline
 
-### Creating a New Order with a Single Item
+### Listing Sandy's Balance Before New Order
+GET {{base}}/account/credits?user_id=sandy
+
+### Place a New Order with a Single Item
 POST {{base}}/orders
 Content-Type: application/x-www-form-urlencoded
 
-item=1&delivery_address=124+Conch+Street
+item=1&user_id=sandy
 
 ### Listing Menu Items
 GET {{base}}/menu
@@ -12,5 +15,5 @@ GET {{base}}/menu
 ### Listing Existing Orders
 GET {{base}}/orders
 
-### Listing Sandy's Balance
+### Listing Sandy's Balance After New Order
 GET {{base}}/account/credits?user_id=sandy

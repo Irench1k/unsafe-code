@@ -6,16 +6,16 @@
 POST {{base}}/orders
 Content-Type: application/x-www-form-urlencoded
 
-item=1&delivery_address=124+Conch+Street
+item=1&user_id=sandy
 
 ### Legitimate Order
 POST {{base}}/orders
 Content-Type: application/x-www-form-urlencoded
 
-items=1&items=2&items=3&delivery_address=124+Conch+Street
+items=1&items=2&items=3&user_id=sandy
 
 ### Vulnerable Example
 POST {{base}}/orders
 Content-Type: application/x-www-form-urlencoded
 
-item=3&items=1&items=2&delivery_address=124+Conch+Street
+item=3&items=1&items=2&user_id=sandy

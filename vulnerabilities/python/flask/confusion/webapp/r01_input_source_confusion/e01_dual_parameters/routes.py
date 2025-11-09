@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, request
 from ..database import (
     Order,
     OrderItem,
+    charge_user,
     create_order,
     db,
     get_menu_item,
@@ -51,9 +52,9 @@ def list_orders():
 @bp.route("/orders", methods=["POST"])
 def create_new_order():
     """Creates a new order."""
-    delivery_address = request.form.get("delivery_address")
-    if not delivery_address:
-        return jsonify({"error": "Missing 'delivery_address' parameter."}), 400
+    user_id = request.form.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Missing 'user_id' parameter."}), 400
 
     try:
         total_price = order_total_price(request.form)
@@ -61,10 +62,12 @@ def create_new_order():
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
+    charge_user(user_id, total_price)
+
     new_order = Order(
         order_id=get_next_order_id(),
         total=total_price,
-        delivery_address=delivery_address,
+        user_id=user_id,
         items=items,
     )
 
