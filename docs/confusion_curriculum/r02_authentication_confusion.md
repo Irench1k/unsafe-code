@@ -28,7 +28,7 @@ This is distinct from authorization (which checks permissions). We're talking ab
 
 ### The Story
 
-Business is growing! Sandy's MVP proved successful. The Krusty Krab loves the platform, and now multiple customers are placing orders daily. SpongeBob and Squidward (Krusty Krab employees) need access to a merchant portal to view orders and update statuses.
+Business is growing! Sandy's MVP proved successful. The Krusty Krab loves the platform, and now multiple customers are placing orders daily. SpongeBob and Squidward (Krusty Krab employees) need access to a manager portal to view orders and update statuses.
 
 Sandy adds proper authentication middleware and session management. She introduces cookies for the web UI (better UX than Basic Auth) while keeping API keys for restaurant integrations. She also adds an internal admin API for her own use.
 
@@ -99,9 +99,9 @@ interface Session {
  */
 interface RequestContext {
   user_id?: string; // Set by any auth method
-  user_type?: string; // "customer" | "merchant" | "admin"
+  user_type?: string; // "customer" | "manager" | "admin"
   email?: string; // Set from session or token
-  restaurant_id?: string; // For merchant users
+  restaurant_id?: string; // For manager users
 }
 ```
 
@@ -179,14 +179,14 @@ type AddCreditsResponse = {
 
 #### [v203] Presence ≠ Validity
 
-**Scenario:** Sandy needs to protect merchant-only endpoints, like approving refunds. This must be called with a valid restaurant `X-API-Key`.
+**Scenario:** Sandy needs to protect manager-only endpoints, like approving refunds. This must be called with a valid restaurant `X-API-Key`.
 
 **The Bug:** The request goes through two checks:
 
 1. A global auth middleware checks for _any_ valid authentication (a customer cookie _or_ an API key).
 2. A route-specific decorator checks _only for the presence_ of the `X-API-Key` header (e.g., `if 'X-API-Key' in request.headers:`), assuming the global middleware already validated it.
 
-**Impact:** Attacker uses valid customer cookie + fake key to approve own refunds as merchant. \
+**Impact:** Attacker uses valid customer cookie + fake key to approve own refunds as manager. \
 **Severity:** 🟡 High
 
 **Endpoints:** `PATCH /orders/{id}/refund/status`
@@ -195,22 +195,22 @@ type AddCreditsResponse = {
 
 #### [v204] Auth Context Pollution from Failed Validation
 
-**Scenario:** Frustrated by the `v203` bug, Sandy refactors her auth middleware. She makes it "smarter" by setting a `user_type = 'merchant'` flag on the request context so that handlers can simply check it. This is meant to simplify things and avoid repetitive validity checks in every decorator. She also remembers to verify that the v203 vulnerability **is not present** anymore, dynamically.
+**Scenario:** Frustrated by the `v203` bug, Sandy refactors her auth middleware. She makes it "smarter" by setting a `user_type = 'manager'` flag on the request context so that handlers can simply check it. This is meant to simplify things and avoid repetitive validity checks in every decorator. She also remembers to verify that the v203 vulnerability **is not present** anymore, dynamically.
 
 **The Bug:** The middleware logic is flawed:
 
-1. See `X-API-Key`, set `request.user_type = 'merchant'`.
+1. See `X-API-Key`, set `request.user_type = 'manager'`.
 2. Try to validate the key.
 3. If validation fails, it _forgets to reset_ `request.user_type` and moves on to check for a cookie, which succeeds.
-4. The `GET /orders` handler later trusts this `user_type` variable to show all merchant orders.
+4. The `GET /orders` handler later trusts this `user_type` variable to show all manager orders.
 
-**Impact:** The same attack scenario repeats: Plankton still can bypass the auth check by providing a valid customer cookie and a fake `X-API-Key` header. The handler sees `user_type == 'merchant'` and leaks _all_ restaurant orders. \
+**Impact:** The same attack scenario repeats: Plankton still can bypass the auth check by providing a valid customer cookie and a fake `X-API-Key` header. The handler sees `user_type == 'manager'` and leaks _all_ restaurant orders. \
 **Severity:** 🟡 High
 
 **Endpoints:** `GET /orders`
 
 > [!IMPORTANT] > **Why didn't Sandy catch this during testing?**
-> Sandy tested the exact endpoint that was vulnerable to v203, but didn't regression test OTHER merchant endpoints.
+> Sandy tested the exact endpoint that was vulnerable to v203, but didn't regression test OTHER manager endpoints.
 > The `PATCH /orders/{id}/refund/status` endpoint is had different middleware order: 1) api key; 2) basic auth; 3) cookie. Basic Auth validation masked the weakness introduced in api key handling, by cleaning up the request context on failure.
 > The `GET /orders` endpoint had a different middleware order: 1) basic auth; 2) api key; 3) cookie (or maybe Basic Auth is completely skipped for this endpoint?), so cookie validation operates on a polluted context, leading to vulnerability.
 
