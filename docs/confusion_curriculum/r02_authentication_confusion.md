@@ -52,7 +52,7 @@ By the end of r02, these authentication methods coexist:
 
 | Lifecycle | Method | Path                       | Auth                | Purpose              | Vulnerabilities |
 | --------- | ------ | -------------------------- | ------------------- | -------------------- | --------------- |
-| v199+     | GET    | /account/credits           | Customer            | View balance         |                 |
+| v199+     | GET    | /account/credits           | Customer            | View balance         | v202            |
 | v199+     | POST   | /auth/register             | Public              | Register user        |                 |
 | v199+     | POST   | /cart                      | Customer            | Create cart          | v201            |
 | v199+     | POST   | /cart/{id}/checkout        | Customer            | Checkout cart        | v201            |
