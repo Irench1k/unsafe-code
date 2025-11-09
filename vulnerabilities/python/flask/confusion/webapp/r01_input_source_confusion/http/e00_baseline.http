@@ -1,5 +1,8 @@
 @base = http://localhost:8000/confusion/input-source-confusion/e00-baseline
 
+### Listing Menu Items
+GET {{base}}/menu
+
 ### Listing Sandy's Balance Before New Order
 GET {{base}}/account/credits?user_id=sandy
 
@@ -8,9 +11,6 @@ POST {{base}}/orders
 Content-Type: application/x-www-form-urlencoded
 
 item=1&user_id=sandy
-
-### Listing Menu Items
-GET {{base}}/menu
 
 ### Listing Existing Orders
 GET {{base}}/orders

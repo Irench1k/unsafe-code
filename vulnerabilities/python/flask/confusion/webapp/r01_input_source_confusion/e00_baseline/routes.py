@@ -48,7 +48,7 @@ def list_orders():
 
 
 @bp.route("/orders", methods=["POST"])
-def post_order():
+def create_new_order():
     """Creates a new order."""
     user_id = request.form.get("user_id")
 
