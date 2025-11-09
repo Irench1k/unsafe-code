@@ -211,7 +211,7 @@ type AddCreditsResponse = {
 
 > [!IMPORTANT] > **Why didn't Sandy catch this during testing?**
 > Sandy tested the exact endpoint that was vulnerable to v203, but didn't regression test OTHER manager endpoints.
-> The `PATCH /orders/{id}/refund/status` endpoint is had different middleware order: 1) api key; 2) basic auth; 3) cookie. Basic Auth validation masked the weakness introduced in api key handling, by cleaning up the request context on failure.
+> The `PATCH /orders/{id}/refund/status` endpoint had a different middleware order: 1) api key; 2) basic auth; 3) cookie. Basic Auth validation masked the weakness introduced in api key handling, by cleaning up the request context on failure.
 > The `GET /orders` endpoint had a different middleware order: 1) basic auth; 2) api key; 3) cookie (or maybe Basic Auth is completely skipped for this endpoint?), so cookie validation operates on a polluted context, leading to vulnerability.
 
 ---

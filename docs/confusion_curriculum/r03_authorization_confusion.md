@@ -29,7 +29,7 @@ Unlike authentication confusion (identity mix-ups), this is about access control
 
 The platform is maturing! Sandy adds multi-tenancy support: restaurants can customize menus, manage items, and update settings. Mr. Krabs wants control over his restaurant's data without Sandy's help.
 
-Squidward gets jealous of SpongeBob getting employee-of-the-month. Plankton intensifies gets signs up Chum Bucket as the next Cheeky Saas customer and intensifies his attacks, probing for ways to sabotage the Krusty Krab from within the platform.
+Squidward gets jealous of SpongeBob getting employee-of-the-month. Plankton intensifies gets signs up Chum Bucket as the next Cheeky SaaS customer and intensifies his attacks, probing for ways to sabotage the Krusty Krab from within the platform.
 
 This introduces proper authorization: ownership checks, roles (customer, manager, admin), and resource scoping. Authentication methods from r02 (cookies, API keys) remain, but now handlers must verify not just _who_ you are, but _what_ you can access.
 
