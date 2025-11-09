@@ -84,14 +84,14 @@ Track how schemas change across versions:
 
 | Model            | v299 | v301             | v302       | v303 | v304 | v305 | v306        | v307 |
 | ---------------- | ---- | ---------------- | ---------- | ---- | ---- | ---- | ----------- | ---- |
+| Cart             | Base | `+restaurant_id` | -          | -    | -    | -    | -           | -    |
+| CreateRestaurant | -    | -                | -          | -    | -    | -    | ✅          | -    |
+| MenuItem         | Base | `+restaurant_id` | -          | -    | -    | -    | -           | -    |
+| Order            | Base | `+restaurant_id` | -          | -    | -    | -    | -           | -    |
 | Restaurant       | -    | ✅               | -          | -    | -    | -    | `+verified` | -    |
 | RestaurantApiKey | -    | -                | -          | -    | -    | -    | ✅          | -    |
-| MenuItem         | Base | `+restaurant_id` | -          | -    | -    | -    | -           | -    |
-| Cart             | Base | `+restaurant_id` | -          | -    | -    | -    | -           | -    |
-| Order            | Base | `+restaurant_id` | -          | -    | -    | -    | -           | -    |
 | Session          | Base | -                | `+cart_id` | -    | -    | -    | -           | -    |
 | UpdateMenuItem   | -    | -                | -          | ✅   | -    | -    | -           | -    |
-| CreateRestaurant | -    | -                | -          | -    | -    | -    | ✅          | -    |
 | UpdateRestaurant | -    | -                | -          | -    | -    | -    | -           | ✅   |
 
 #### Data Models

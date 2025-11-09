@@ -62,12 +62,12 @@ Track how schemas change across versions:
 
 | Model               | v101              | v102            | v103       | v104   | v105 | v106 |
 | ------------------- | ----------------- | --------------- | ---------- | ------ | ---- | ---- |
-| MenuItem            | ✅                | -               | -          | -      | -    | -    |
-| OrderItem           | ✅                | -               | -          | -      | -    | -    |
-| Order               | Base              | `+delivery_fee` | `+cart_id` | `+tip` | -    | -    |
-| CreateOrderRequest  | `item \| items[]` | `items[]` only  | -          | -      | -    | -    |
 | Cart                | -                 | -               | ✅         | -      | -    | -    |
 | CheckoutCartRequest | -                 | -               | Base       | `+tip` | -    | -    |
+| CreateOrderRequest  | `item \| items[]` | `items[]` only  | -          | -      | -    | -    |
+| MenuItem            | ✅                | -               | -          | -      | -    | -    |
+| Order               | Base              | `+delivery_fee` | `+cart_id` | `+tip` | -    | -    |
+| OrderItem           | ✅                | -               | -          | -      | -    | -    |
 | Refund              | -                 | -               | -          | -      | ✅   | -    |
 | RegisterUserRequest | -                 | -               | -          | -      | -    | ✅   |
 

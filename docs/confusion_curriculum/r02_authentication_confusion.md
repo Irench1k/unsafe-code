@@ -40,33 +40,33 @@ By the end of r02, these authentication methods coexist:
 
 | Method             | Header/Cookie              | Purpose                   | Introduced |
 | ------------------ | -------------------------- | ------------------------- | ---------- |
+| Admin API Key      | `X-Admin-API-Key: ...`     | Internal admin operations | v202       |
 | Basic Auth         | `Authorization: Basic ...` | Legacy customer auth      | v101 (r01) |
 | Cookie Session     | `Cookie: session_id=...`   | Web UI customer auth      | v201       |
 | Restaurant API Key | `X-API-Key: ...`           | Restaurant integrations   | v101 (r01) |
-| Admin API Key      | `X-Admin-API-Key: ...`     | Internal admin operations | v202       |
 
 > [!NOTE]
 > Both cookies and API keys can be implemented as JWT tokens if that's more typical for your framework. For now, we're not covering JWT-specific vulnerabilities, so the token format isn't critical. Focus on the authentication logic, not the encoding.
 
 ### Endpoints
 
-| Lifecycle |  Method | Path                       | Auth                      | Purpose                      | Vulnerabilities |
-| --------- |  ------ | -------------------------- | ------------------------- | ---------------------------- | --------------- |
-| v199+     |  GET    | /account/credits           | Customer                  | View balance                 |                 |
-| v199+     |  POST   | /auth/register             | Public                    | Register user                |                 |
-| v199+     |  POST   | /cart                      | Customer                  | Create cart                  | v201            |
-| v199+     |  POST   | /cart/{id}/checkout        | Customer                  | Checkout cart                | v201            |
-| v199+     |  POST   | /cart/{id}/items           | Customer                  | Add item to cart             |                 |
-| v199+     |  GET    | /menu                      | Public                    | List available menu items    |                 |
-| v199+     |  GET    | /orders                    | Customer/Restaurant       | List orders                  | v201, v204      |
-| v199+     |  POST   | /orders/{id}/refund        | Customer                  | Request refund               |                 |
-| v199+     |  PATCH  | /orders/{id}/refund/status | Restaurant                | Update refund status         | v203            |
-| v199+     |  PATCH  | /orders/{id}/status        | Restaurant                | Update order status          |                 |
-| v201+     |  POST   | /auth/login                | Public                    | Create session (cookie auth) | v205            |
-| v201+     |  POST   | /auth/logout               | Customer                  | Destroy session              |                 |
-| v201+     |  GET    | /cart/{id}                 | Customer/Restaurant       | Get single cart              |                 |
-| v201+     |  GET    | /orders/{id}               | Customer/Restaurant       | Get single order             |                 |
-| v202+     |  POST   | /account/credits           | Admin (`X-Admin-API-Key`) | Add credits to customer      | v202            |
+| Lifecycle | Method | Path                       | Auth                | Purpose              | Vulnerabilities |
+| --------- | ------ | -------------------------- | ------------------- | -------------------- | --------------- |
+| v199+     | GET    | /account/credits           | Customer            | View balance         |                 |
+| v199+     | POST   | /auth/register             | Public              | Register user        |                 |
+| v199+     | POST   | /cart                      | Customer            | Create cart          | v201            |
+| v199+     | POST   | /cart/{id}/checkout        | Customer            | Checkout cart        | v201            |
+| v199+     | POST   | /cart/{id}/items           | Customer            | Add item to cart     |                 |
+| v199+     | GET    | /menu                      | Public              | List available items |                 |
+| v199+     | GET    | /orders                    | Customer/Restaurant | List orders          | v201, v204      |
+| v199+     | POST   | /orders/{id}/refund        | Customer            | Request refund       |                 |
+| v199+     | PATCH  | /orders/{id}/refund/status | Restaurant          | Update refund status | v203            |
+| v199+     | PATCH  | /orders/{id}/status        | Restaurant          | Update order status  |                 |
+| v201+     | POST   | /auth/login                | Public              | Create session       | v205            |
+| v201+     | POST   | /auth/logout               | Customer            | Destroy session      |                 |
+| v201+     | GET    | /cart/{id}                 | Customer/Restaurant | Get single cart      |                 |
+| v201+     | GET    | /orders/{id}               | Customer/Restaurant | Get single order     |                 |
+| v202+     | POST   | /account/credits           | Admin               | Add credits          | v202            |
 
 > [!IMPORTANT]
 > Cookies may be JWTs, sessions, or signed cookies — format is not the point. Set cookies to `SameSite=Strict` and wire CORS to avoid unintended CSRF, since r02 focuses on **authentication confusion**, not cross-domain vulnerabilities.
@@ -209,8 +209,7 @@ type AddCreditsResponse = {
 
 **Endpoints:** `GET /orders`
 
-> [!IMPORTANT]
-> **Why didn't Sandy catch this during testing?**
+> [!IMPORTANT] > **Why didn't Sandy catch this during testing?**
 > Sandy tested the exact endpoint that was vulnerable to v203, but didn't regression test OTHER merchant endpoints.
 > The `PATCH /orders/{id}/refund/status` endpoint is had different middleware order: 1) api key; 2) basic auth; 3) cookie. Basic Auth validation masked the weakness introduced in api key handling, by cleaning up the request context on failure.
 > The `GET /orders` endpoint had a different middleware order: 1) basic auth; 2) api key; 3) cookie (or maybe Basic Auth is completely skipped for this endpoint?), so cookie validation operates on a polluted context, leading to vulnerability.
