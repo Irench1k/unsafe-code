@@ -1,4 +1,4 @@
-@base = http://localhost:8000/confusion/input-source-confusion/e00-baseline
+@base = http://localhost:8000/api/v100
 
 ### Listing Menu Items
 GET {{base}}/menu

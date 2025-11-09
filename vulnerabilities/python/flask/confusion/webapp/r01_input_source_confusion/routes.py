@@ -11,5 +11,5 @@ def index():
     return "Input Source vulnerability examples\n"
 
 
-bp.register_blueprint(bp_e00, url_prefix="/e00-baseline")
-bp.register_blueprint(bp_e01, url_prefix="/e01-dual-parameters")
+bp.register_blueprint(bp_e00, url_prefix="v100")
+bp.register_blueprint(bp_e01, url_prefix="v101")
