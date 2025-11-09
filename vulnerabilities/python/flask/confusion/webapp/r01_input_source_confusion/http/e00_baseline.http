@@ -1,0 +1,16 @@
+@base = http://localhost:8000/confusion/input-source-confusion/e00-baseline
+
+### Creating a New Order with a Single Item
+POST {{base}}/orders
+Content-Type: application/x-www-form-urlencoded
+
+item=1&delivery_address=124+Conch+Street
+
+### Listing Menu Items
+GET {{base}}/menu
+
+### Listing Existing Orders
+GET {{base}}/orders
+
+### Listing Sandy's Balance
+GET {{base}}/account/credits?user_id=sandy

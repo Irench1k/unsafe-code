@@ -1,0 +1,21 @@
+# Note: The base URL assumes that the blueprints are registered by your routing setup
+# to be accessible under /confusion/r01/e01. You may need to adjust this.
+@base = http://localhost:8000/confusion/input-source-confusion/e01-dual-parameters
+
+### Legitimate Order
+POST {{base}}/orders
+Content-Type: application/x-www-form-urlencoded
+
+item=1&delivery_address=124+Conch+Street
+
+### Legitimate Order
+POST {{base}}/orders
+Content-Type: application/x-www-form-urlencoded
+
+items=1&items=2&items=3&delivery_address=124+Conch+Street
+
+### Vulnerable Example
+POST {{base}}/orders
+Content-Type: application/x-www-form-urlencoded
+
+item=3&items=1&items=2&delivery_address=124+Conch+Street
