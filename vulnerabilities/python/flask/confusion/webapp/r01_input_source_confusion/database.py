@@ -59,6 +59,7 @@ db = {
     },
     "orders": {},
     "next_order_id": 1,
+    "api_key": "key-krusty-krub-z1hu0u8o94",
 }
 
 
