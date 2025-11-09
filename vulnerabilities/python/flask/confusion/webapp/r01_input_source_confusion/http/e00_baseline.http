@@ -1,19 +1,31 @@
 @base = http://localhost:8000/api/v100
 
-### Listing Menu Items
+### Listing Menu Items (Public)
 GET {{base}}/menu
 
 ### Listing Sandy's Balance Before New Order
-GET {{base}}/account/credits?user_id=sandy
+GET {{base}}/account/credits
+Authorization: Basic sandy:testpassword
 
-### Place a New Order with a Single Item
+### Listing Existing Orders (Customer)
+GET {{base}}/orders
+Authorization: Basic sandy:testpassword
+
+### Listing All Orders (Restaurant Manager)
+GET {{base}}/orders
+X-API-Key: key-krusty-krub-z1hu0u8o94
+
+### Place a New Order for a Krabby Patty
 POST {{base}}/orders
+Authorization: Basic sandy:testpassword
 Content-Type: application/x-www-form-urlencoded
 
-item=1&user_id=sandy
+item=1
 
 ### Listing Existing Orders
 GET {{base}}/orders
+Authorization: Basic sandy:testpassword
 
 ### Listing Sandy's Balance After New Order
-GET {{base}}/account/credits?user_id=sandy
+GET {{base}}/account/credits
+Authorization: Basic sandy:testpassword

@@ -1,14 +1,11 @@
 from flask import Blueprint, jsonify, request
-
-from ..database import (
-    Order,
-    OrderItem,
-    charge_user,
-    create_order,
-    db,
-    get_menu_item,
-    get_next_order_id,
-    get_user,
+from .auth import get_authenticated_user, validate_api_key
+from .utils import check_price_and_availability, get_order_items
+from .database import (
+    create_order_and_charge_customer,
+    get_all_orders,
+    get_user_orders,
+    get_all_menu_items,
 )
 
 bp = Blueprint("e00_baseline", __name__)
@@ -16,82 +13,59 @@ bp = Blueprint("e00_baseline", __name__)
 
 @bp.route("/")
 def index():
-    return "Baseline - Example 00\n"
+    return "R01: Input Source Confusion - Baseline\n"
 
 
 @bp.route("/account/credits", methods=["GET"])
 def view_balance():
     """Views the balance for a given user."""
-    user_id = request.args.get("user_id")
-    if not user_id:
-        return jsonify({"error": "Missing 'user_id' query parameter."}), 400
-
-    user = get_user(user_id)
+    user = get_authenticated_user()
     if not user:
-        return jsonify({"error": f"User '{user_id}' not found."}), 404
+        return jsonify({"error": "Authentication required"}), 401
 
-    return jsonify({"user_id": user.user_id, "balance": str(user.balance)})
+    return jsonify({"user_id": user.user_id, "balance": str(user.balance)}), 200
 
 
 @bp.route("/menu", methods=["GET"])
 def list_menu_items():
     """Lists all available menu items."""
-    menu_list = [item.model_dump() for item in db["menu_items"].values()]
+    menu_list = [item.model_dump() for item in get_all_menu_items()]
     return jsonify(menu_list)
 
 
 @bp.route("/orders", methods=["GET"])
 def list_orders():
-    """Lists all created orders."""
-    order_list = [order.model_dump(mode="json") for order in db["orders"].values()]
-    return jsonify(order_list)
+    """Customers can list their own orders, restaurant managers can list ALL of them."""
+
+    # Customer -> List their own orders
+    user = get_authenticated_user()
+    if user:
+        orders = get_user_orders(user.user_id)
+        return jsonify([order.model_dump(mode="json") for order in orders])
+
+    # Restaurant manager -> List all orders
+    if validate_api_key():
+        orders = get_all_orders()
+        return jsonify([order.model_dump(mode="json") for order in orders])
+
+    return jsonify({"error": "Unauthorized"}), 401
 
 
 @bp.route("/orders", methods=["POST"])
 def create_new_order():
     """Creates a new order."""
-    user_id = request.form.get("user_id")
+    user = get_authenticated_user()
+    if not user:
+        return jsonify({"error": "Authentication required"}), 401
 
-    if not user_id:
-        return jsonify({"error": "Missing 'user_id'."}), 400
+    total_price = check_price_and_availability(request.form.get("item"))
+    if not total_price:
+        return jsonify({"error": "Item not available, sorry!"}), 400
 
-    try:
-        total_price = order_total_price(request.form)
-        items = get_order_items(request.form)
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+    if user.balance < total_price:
+        return jsonify({"error": "Insufficient balance"}), 400
 
-    charge_user(user_id, total_price)
+    items = get_order_items(request.form)
 
-    new_order = Order(
-        order_id=get_next_order_id(),
-        total=total_price,
-        user_id=user_id,
-        items=items,
-    )
-
-    create_order(new_order)
-
+    new_order = create_order_and_charge_customer(total_price, user.user_id, items)
     return jsonify(new_order.model_dump(mode="json")), 201
-
-
-def order_total_price(form_data):
-    """Calculates the total price of an order."""
-    item_id = form_data.get("item")
-    if not item_id:
-        raise ValueError("Pricing parameter 'item' cannot be empty.")
-
-    menu_item = get_menu_item(item_id)
-    if not menu_item:
-        raise ValueError(f"Menu item '{item_id}' for pricing not found.")
-
-    return menu_item.price
-
-
-def get_order_items(form_data):
-    """Builds the list of items for an order."""
-    item_id = form_data.get("item")
-    menu_item = get_menu_item(item_id)
-    order_items = [OrderItem(item_id=item_id, name=menu_item.name, price=menu_item.price)]
-
-    return order_items
