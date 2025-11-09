@@ -2,6 +2,7 @@ from flask import Blueprint
 
 from .e00_baseline.routes import bp as bp_e00
 from .e01_dual_parameter.routes import bp as bp_e01
+from .e02_delivery_fee.routes import bp as bp_e02
 
 bp = Blueprint("input_source_confusion", __name__)
 
@@ -13,3 +14,4 @@ def index():
 
 bp.register_blueprint(bp_e00, url_prefix="v100")
 bp.register_blueprint(bp_e01, url_prefix="v101")
+bp.register_blueprint(bp_e02, url_prefix="v102")

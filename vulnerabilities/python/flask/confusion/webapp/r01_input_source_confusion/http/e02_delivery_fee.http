@@ -1,0 +1,33 @@
+# Note: The base URL assumes that the blueprints are registered by your routing setup
+# to be accessible under /confusion/r01/e01. You may need to adjust this.
+@base = http://localhost:8000/api/v102
+
+### Legitimate Order
+# Sandy introduces an update, and she tests that previous vulnerability is fixed:
+# Now "item" parameter is ignored.
+POST {{base}}/orders
+Authorization: Basic sandy:testpassword
+Content-Type: application/x-www-form-urlencoded
+
+item=3&items=1&items=2&items=3
+
+### Legitimate Order
+POST {{base}}/orders
+Authorization: Basic sandy:testpassword
+Content-Type: application/x-www-form-urlencoded
+
+items=2&items=3
+
+### Vulnerable Order:
+# The delivery fee is calculated using both query parameters and form data, 
+# but the actual order items are taken only from the form data.
+# This allows a user to get free delivery.
+POST {{base}}/orders?items=1&items=6
+Authorization: Basic sandy:testpassword
+Content-Type: application/x-www-form-urlencoded
+
+items=1
+
+###
+GET {{base}}/orders
+Authorization: Basic sandy:testpassword
