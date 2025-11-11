@@ -3,9 +3,8 @@ from flask import Blueprint, jsonify, request
 from .auth import get_authenticated_user, validate_api_key
 from .database import (
     add_item_to_cart,
-    charge_user,
     create_cart,
-    create_order,
+    _save_order_securely,
     create_order_and_charge_customer,
     get_all_menu_items,
     get_all_orders,
@@ -177,10 +176,6 @@ def checkout_cart(cart_id):
     # Get user input - handle both JSON and form data
     user_data = request.json if request.is_json else request.form
 
-    delivery_address = user_data.get("delivery_address")
-    if not delivery_address:
-        return jsonify({"error": "delivery_address is required"}), 400
-
     # Price and delivery fee calculation is the same for both branches
     total_price, delivery_fee = check_cart_price_and_delivery_fee(cart.items)
     if not total_price:
@@ -198,10 +193,8 @@ def checkout_cart(cart_id):
         "delivery_fee": delivery_fee,
     }
 
-    order = Order.model_validate({**user_data, **safe_order_data})
+    new_order = Order.model_validate({**user_data, **safe_order_data})
 
-    # TODO: Now we need to charge the user properly (i.e. vulnerably ;) )
-    charge_user(user.user_id, (total_price + delivery_fee))
-    new_order = create_order(order)
+    _save_order_securely(new_order)
 
     return jsonify(new_order.model_dump(mode="json")), 201

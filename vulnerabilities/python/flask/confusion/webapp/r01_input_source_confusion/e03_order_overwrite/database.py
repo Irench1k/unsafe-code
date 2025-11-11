@@ -77,10 +77,20 @@ def get_api_key() -> str:
     return db["api_key"]
 
 
-def create_order(order: Order) -> Order:
-    """Creates a new order in the database and returns it."""
-    db["orders"][order.order_id] = order
-    return order
+def _save_order_securely(order: Order):
+    """Charge customer and save order in DB, now with idempotency & rollback!"""
+    charged_successfully = False
+
+    try:
+        charged_successfully = charge_user(order.user_id, order.total, order.order_id)
+        db["orders"][order.order_id] = order
+    except Exception as e:
+        # Rollback routine: refund the customer if we charged them + remove the order from the database
+        if charged_successfully:
+            refund_user(order.user_id, order.total)
+
+        # Remove the order from the database
+        db["orders"].pop(order.order_id, None)
 
 
 def get_next_order_id() -> str:
@@ -124,13 +134,29 @@ def get_cart(cart_id: str) -> Cart | None:
 # BUSINESS LOGIC
 # High-level business logic for the application.
 # ============================================================
-def charge_user(user_id: str, amount: Decimal):
+def charge_user(user_id: str, amount: Decimal, order_id: str) -> bool:
+    """Charges a user, raises an exception if insufficient funds, returns True if charged sucessfully."""
+    # The exception signals that we shouldn't proceed with the order!
     user = get_user(user_id)
     if not user:
         raise ValueError(f"User '{user_id}' not found.")
     if user.balance < amount:
         raise ValueError("Insufficient funds.")
+
+    # Don't charge the user twice for the same order!
+    if order_id in db["orders"] and db["orders"][order_id].user_id == user_id:
+        return False
+
+    # Charge the user, return True if successful.
     user.balance -= amount
+    return True
+
+
+def refund_user(user_id: str, amount: Decimal):
+    """Refunds a user."""
+    user = get_user(user_id)
+    if user:
+        user.balance += amount
 
 
 # routes.py
@@ -143,9 +169,8 @@ def create_order_and_charge_customer(
 ):
     """Creates a new order and charges the customer."""
     total_price += delivery_fee
-    # Always charge the customer first!
-    charge_user(user_id, total_price)
 
+    # Always charge the customer first!
     new_order = Order(
         order_id=get_next_order_id(),
         total=total_price,
@@ -155,8 +180,7 @@ def create_order_and_charge_customer(
         delivery_address=delivery_address,
     )
 
-    # TODO: What if the order creation fails? Add a rollback mechanism before we go to production!
-    create_order(new_order)
+    _save_order_securely(new_order)
 
     return new_order
 
