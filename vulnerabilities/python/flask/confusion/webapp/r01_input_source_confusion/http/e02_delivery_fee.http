@@ -4,7 +4,7 @@
 
 ### Legitimate Order
 # Sandy introduces an update, and she tests that previous vulnerability is fixed:
-# Now "item" parameter is ignored.
+# Now "item" parameter has been removed.
 POST {{base}}/orders
 Authorization: Basic sandy:testpassword
 Content-Type: application/x-www-form-urlencoded
