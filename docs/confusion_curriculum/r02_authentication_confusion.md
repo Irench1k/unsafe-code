@@ -212,7 +212,7 @@ type AuthDebugPayload = {
 
 ### Vulnerabilities to Implement
 
-#### [v201] Authentication Type Confusion
+#### [v201] Session Hijack via Auth Mixup
 
 > Web launch day! Sandy debuts `app.cheeky.sea` with cookie sessions, while legacy clients (tablets, mobile app) stick to Basic Auth. Krusty Krab’s POS still polls `GET /orders` with its API key. The middleware needs to juggle every auth style, which makes Sandy feel a bit anxious, but she considers it an integral part of 'moving fast and breaking things'.
 
@@ -234,7 +234,7 @@ type AuthDebugPayload = {
 
 ---
 
-#### [v202] Method Confusion on Shared Handler
+#### [v202] Credit Top-Ups via GET
 
 > Growing pains: Sandy still tops up customer credits manually. To prepare for a semi-automated backoffice tool, she exposes `POST /account/credits` guarded by her personal `X-Admin-API-Key`, and adds it to the existing `GET /account/credits` handler.
 
@@ -257,7 +257,7 @@ _Aftermath: Maintaining separate auth blobs per handler is exhausting, so she ex
 
 ---
 
-#### [v203] Presence ≠ Validity
+#### [v203] Fake Header Refund Approvals
 
 > Investors keep asking when other restaurants can join. To scale, Sandy makes her decorators “lightweight” so new endpoints can be added quickly.
 
@@ -274,14 +274,14 @@ _Aftermath: Maintaining separate auth blobs per handler is exhausting, so she ex
 3. Global middleware authenticates via cookie; decorator sees the header and lets the request call manager-only code.
 
 **Impact:** Customers approve their own refunds as if they were restaurant managers. \
-**Severity:** 🟡 High \
+**Severity:** 🟠 High \
 **Endpoints:** `PATCH /orders/{id}/refund/status`
 
 _Aftermath: Sandy realizes that she needs a simpler and more reliable way to track user types, so she introduces a `request.user_type` context flag._
 
 ---
 
-#### [v204] Auth Context Pollution from Failed Validation
+#### [v204] Manager Mode Stuck After Bad Key
 
 > As Sandy prepares to scale her platform to multiple restaurants, she wants handlers to rely on a single `request.user_type` value ('customer', 'manager', 'internal'). She sets it the moment an API key shows up, then intends to downgrade it if validation fails.
 
@@ -298,7 +298,7 @@ _Aftermath: Sandy realizes that she needs a simpler and more reliable way to tra
 3. Handler sees `request.user_type == 'manager'` and returns all orders across tenants.
 
 **Impact:** Full data disclosure/modification for every restaurant. \
-**Severity:** 🟡 High \
+**Severity:** 🟠 High \
 **Endpoints:** `GET /orders`
 
 > **Why didn’t testing catch this?** Sandy only regression-tested `PATCH /orders/{id}/refund/status`, whose middleware order (API key -> cookie) cleans up the context. `GET /orders` executes Basic Auth first, so the polluted state survives into handler logic.
@@ -307,7 +307,7 @@ _Aftermath: Sandy doubles down on "intelligent" middleware to reduce the amount 
 
 ---
 
-#### [v205] Login Parameter → Session Contamination
+#### [v205] Session Overwrite via Login Form
 
 > Sandy refactors her authentication middleware to act more transparently, no matter whether the request is authenticated with Basic Auth, a cookie session or an API key.
 

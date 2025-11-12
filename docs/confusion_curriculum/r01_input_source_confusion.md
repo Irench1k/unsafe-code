@@ -223,7 +223,7 @@ type RegisterUserResponse = {
 
 ### Vulnerabilities to Implement
 
-#### [v101] Price Manipulation via Dual Parameters
+#### [v101] Premium Meal for Side Dish Price
 
 > The initial in-restaurant tablet pilot (single-item promo combos only) went great, so Mr. Krabs now wants the full menu. Sandy updates the kiosk app (still Basic Auth, still physically inside Krusty Krab) so a single `POST /orders` can hold multiple items.
 
@@ -241,7 +241,7 @@ type RegisterUserResponse = {
 3. Checkout charges $1 but kitchen receives the premium meal line items.
 
 **Impact:** Customer pays for a $1 side, receives a $20 meal. \
-**Severity:** 🔴 Critical \
+**Severity:** 🟠 High \
 **Endpoints:** `POST /orders`
 
 _Aftermath: With positive kiosk feedback, Mr. Krabs signs off on the delivery service trial next._
@@ -264,14 +264,14 @@ _Aftermath: With positive kiosk feedback, Mr. Krabs signs off on the delivery se
 3. Middleware thinks the cart is worth $30 and skips the delivery fee; the body still charges $10 worth of items.
 
 **Impact:** Free delivery on low-value orders. \
-**Severity:** 🟡 Low \
+**Severity:** 🟢 Low \
 **Endpoints:** `POST /orders`
 
 _Aftermath: The pilot participants order twice as much as previously, so Mr. Krabs asks for a proper mobile app ASAP._
 
 ---
 
-#### [v103] Order Overwrite via ID Injection
+#### [v103] Order Overwrite for Free Upgrades
 
 > Sandy ships a proper mobile app (still in closed beta) that testers install on their own phones. The basic order checkout gets replaced with a modern cart-based checkout flow to support item modification and other features Sandy wants to add later.
 
@@ -291,14 +291,14 @@ _Aftermath: The pilot participants order twice as much as previously, so Mr. Kra
 5. Restaurant receives the $20 order, and delivers it, despite customer only paying $1.
 
 **Impact:** Expensive order overwrites cheap one without recharging. \
-**Severity:** 🔴 Critical \
+**Severity:** 🟠 High \
 **Endpoints:** `POST /cart/{id}/checkout`
 
 _Aftermath: Sandy blames poor coding practices on the crunch time, and promises to clean it up. She fixes the vulnerability by checking the presence of `order_id` in the request body via middleware._
 
 ---
 
-#### [v104] Negative Tip
+#### [v104] Negative Tip Cashouts
 
 > Couriers ask Sandy to add a tip field to the checkout flow.
 
@@ -321,7 +321,7 @@ _Aftermath: Sandy blames poor coding practices on the crunch time, and promises 
 
 ---
 
-#### [v105] Refund Fraud
+#### [v105] Unlimited Refund Payouts
 
 > Courier delays are inevitable, so Sandy adds `POST /orders/{order_id}/refund` so the mobile app can auto-refund 20% when drivers are late. While there, she also lets app users request full refunds, although those would need to be manually approved by Sandy herself.
 
@@ -342,7 +342,7 @@ _Aftermath: Sandy blames poor coding practices on the crunch time, and promises 
 
 ---
 
-#### [v106] Onboarding Token Mixup
+#### [v106] Signup Token Email Swap
 
 > Until now, Sandy hand-created accounts for every beta user. The platform is still in the beta phase, as there's only one restaurant (Krusty Krab), but Sandy feels she's ready to open up customer registration to the public.
 
@@ -369,7 +369,7 @@ _Aftermath: Sandy patches the handler to compare token and body emails, and to p
 
 ---
 
-#### [v107] Onboarding Token Replay
+#### [v107] Signup Bonus Replay
 
 > To juice adoption before the big web launch, Sandy pays $2 in promo credit to every verified signup.
 
@@ -388,7 +388,7 @@ _Aftermath: Sandy patches the handler to compare token and body emails, and to p
 3. Each replay adds $2 to his credit balance even though no new user is created.
 
 **Impact:** Unlimited credit inflation without creating new accounts. \
-**Severity:** 🟡 High \
+**Severity:** 🟠 High \
 **Endpoints:** `POST /auth/register`
 
 _Aftermath: Sandy patches the handler to be super explicit about the input sources used, and prioritizes Basic Auth -> cookie session migration for the web UI launch._

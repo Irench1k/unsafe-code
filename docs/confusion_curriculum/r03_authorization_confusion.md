@@ -186,7 +186,7 @@ type PatchRestaurantResponse_v307 = Restaurant;
 
 ### Vulnerabilities to Implement
 
-### [v301] Sticky Role From API Key (Context Bleed)
+### [v301] Dual-Auth Refund Approval
 
 > Invite-only multi-tenancy launches. For now, Sandy still onboards each restaurant herself, generating a per-restaurant API key that grants full management access via integrations while customers keep using Basic Auth or cookies. She refactors middleware so “manager” checks aren’t hardcoded to the Krusty Krab key anymore.
 
@@ -205,12 +205,12 @@ type PatchRestaurantResponse_v307 = Restaurant;
 3. Middleware deems the user a manager and owner simultaneously, allowing self-approved refunds.
 
 **Impact:** Cross-tenant privilege escalation; Plankton refunds his own purchases at competitors. \
-**Severity:** 🔴 Critical \
+**Severity:** 🟠 High \
 **Endpoints:** `PATCH /orders/{id}/refund/status`
 
 ---
 
-#### [v302] Cart Confusion: Cookie vs Body
+#### [v302] Cart Swap Checkout
 
 > Sandy adds order and cart IDs to the session cookie, in order to simplify the ownership checks in the web app. The mobile app still uses Basic Auth relying on the legacy behavior, so she needs to support both. She also experiments with the new 'foolproof' way of charging the customers: the authorization check includes placing a hold on the customer's credit which gets automatically reversed if the request fails.
 
@@ -226,14 +226,14 @@ type PatchRestaurantResponse_v307 = Restaurant;
 3. Authorization sees cookie A ("owned"), but handlers load items from B and only bill $10.
 
 **Impact:** Plankton is charged $10 for the $100 cart. \
-**Severity:** 🔴 Critical \
+**Severity:** 🟠 High \
 **Endpoints:** `POST /cart/{id}/checkout`
 
 _Aftermath: Sandy reviews her whole authorization strategy, ahead of exposing management features via the web UI. She decides to remove Basic Auth, by migrating the mobile app to cookies, similarly to the web app._
 
 ---
 
-#### [v303] Menu Item IDOR: Missing Resource Type
+#### [v303] Menu Edits Without Restaurant ID
 
 > Restaurants beg for a lightweight way to tweak menus without needing to contact Sandy for support, so she adds adds a dedicated endpoint: `PATCH /menu/items/{id}`.
 
@@ -250,14 +250,14 @@ _Aftermath: Sandy reviews her whole authorization strategy, ahead of exposing ma
 3. Decorator sees no `restaurant_id`, short-circuits, and the item update succeeds.
 
 **Impact:** Cross-restaurant menu tampering. \
-**Severity:** 🔴 Critical \
+**Severity:** 🟠 High \
 **Endpoints:** `PATCH /menu/items/{id}`
 
 _Aftermath: Sandy figures out she needs to standardize on a common way to pass the restaurant ID to the endpoints, so she adds a `bind_to_restaurant()` helper to auto-detect it and keep handlers tiny._
 
 ---
 
-#### [v304] Authorization Bypass via Unvalidated Request Parameter
+#### [v304] Body Override Leaks Competitor Orders
 
 > Sandy’s integration SDK, mobile app, and soon-to-exist manager UI all send restaurant identifiers differently, so she adds `bind_to_restaurant()` to auto-detect them and keep handlers tiny.
 
@@ -273,14 +273,14 @@ _Aftermath: Sandy figures out she needs to standardize on a common way to pass t
 3. Database helper binds to `restaurant_id=1` from the body and returns Krusty Krab data.
 
 **Impact:** Full leakage of competitor orders. \
-**Severity:** 🔴 Critical \
+**Severity:** 🟠 High \
 **Endpoints:** `GET /orders`
 
 _Aftermath: Sandy fixes the vulnerability and decides to reduce the risk of inconsistencies between the access checks and the data storage operations by pushing the authorization fully into the data layer._
 
 ---
 
-#### [v305] Authorization Bypass via "No-Op" Data Leak
+#### [v305] Failed Update Leaks Order Data
 
 > The next big thing on the roadmap is the web-based manager dashboard, so to prepare for it, Sandy rewrites order updates to rely on stored procedures that double-check ownership.
 
@@ -297,14 +297,14 @@ _Aftermath: Sandy fixes the vulnerability and decides to reduce the risk of inco
 3. The handler refuses to update (no auth check) but returns the order details.
 
 **Impact:** Cross-tenant order disclosure at scale. \
-**Severity:** 🟡 High \
+**Severity:** 🟠 High \
 **Endpoints:** `PATCH /orders/{id}/status`
 
 _Aftermath: With guardrails “in place,” she turns to the next big blocker: letting restaurants self-register instead of emailing her._
 
 ---
 
-#### [v306] Domain Verification Token Confusion
+#### [v306] Domain Tokens Accept Any Mailbox
 
 > To escape manual onboarding, Sandy finally ships restaurant self-registration. A restaurant submits a domain, receives a token at `admin@{domain}`, and immediately gets an API key. She reuses her battle-tested email verification code to move fast. Sandy plans to automatically make all users with matching email domains – restaurant managers, so she sends a precautionary email to all current restaurant owners to check the list of the upcoming managers which she exposes in the API, ahead of that change.
 
@@ -321,12 +321,12 @@ _Aftermath: With guardrails “in place,” she turns to the next big blocker: l
 3. The platform assumes the domain is verified, issues an API key, and leaks every user tied to `bmail.sea`.
 
 **Impact:** User enumeration when any mailbox at the domain is available to the attacker. \
-**Severity:** 🟡 Low \
+**Severity:** 🟡 Medium \
 **Endpoints:** `POST /restaurants`
 
 ---
 
-#### [v307] "Time-of-Check, Time-of-Use" (TOCTOU) in Authorization
+#### [v307] Token Swap Hijacks Restaurants
 
 > With self-registration live, Sandy finally exposes management actions in the website/mobile app by auto-assigning manager roles to users whose email domain matches the restaurant. Managers can now update their restaurant profile via `PATCH /restaurants/{id}`.
 

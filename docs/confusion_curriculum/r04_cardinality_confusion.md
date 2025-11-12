@@ -152,7 +152,7 @@ type PatchMenuItemRequest_v405 = {
 
 ### Vulnerabilities to Implement
 
-#### [v401] Free Orders Due to Coupon Stacking
+#### [v401] Coupon Stacking for Free Orders
 
 > Sandy implements a frequently requested feature: passing coupons via query params, to make it easier for influencers to embed them in their content.
 
@@ -175,7 +175,7 @@ type PatchMenuItemRequest_v405 = {
 
 ---
 
-#### [v402] Quantity Manipulation Exploit
+#### [v402] Zero-Quantity Free Items
 
 > Influencer promotions are a resounding sucess and krabby patty becomes a viral sensation. However, during the peak of popularity, Krusty Krab had to disable new orders because they run out of ingredients, leading to bad customer experience. Mr. Krabs is so excited that he immediately forgets about the out of stock issue and asks Sandy to implement a `Buy 2 Get 1 Free` promotion immediately.
 
@@ -194,12 +194,12 @@ type PatchMenuItemRequest_v405 = {
 3. Price calculation multiplies by zero, so nothing is charged.
 
 **Impact:** Free items. \
-**Severity:** 🔴 Medium \
+**Severity:** 🟠 High \
 **Endpoints:** `POST /cart/{id}/items`
 
 ---
 
-#### [v403] Single-Use Coupon Reuse
+#### [v403] Duplicate Coupon Replay
 
 > A marketing startup offers to mail coupon bundles, but insists on enabling multiple coupons per order: "Four smaller discounts feel more generous than one big one." Sandy dreads adding coupon stacking and has been avoiding it, but the business case is undeniable.
 
@@ -226,14 +226,14 @@ type PatchMenuItemRequest_v405 = {
 4. The total discount is 2x10$ + Free Fries
 
 **Impact:** Multiplication of single-use discounts within one request \
-**Severity:** 🟠 Medium \
+**Severity:** 🟡 Medium \
 **Endpoints:** `POST /cart/{id}/apply-coupon`
 
 _Despite the exploit, the campaign succeeds wildly and there is a major boom in sales. However, new customers face unavailable items and missed deliveries. Even beta testers complain about degraded service. Sandy needs better tools for restaurants to handle the chaos._
 
 ---
 
-#### [v404] Restaurant Refunds: Any vs All Authorization
+#### [v404] Batch Refund Approves Every ID
 
 > Sandy builds a new endpoint to allow restaurants to initiate refunds pre-emptively, without waiting for customer to report the issue.
 
@@ -255,7 +255,7 @@ _Despite the exploit, the campaign succeeds wildly and there is a major boom in 
 
 ---
 
-#### [v405] Cross-Restaurant Menu Item Modification
+#### [v405] Two IDs Bypass Menu Checks
 
 > While working on the v404 fix, Sandy introduces a standardized helper, that automatically extracts `restaurant_id` from that path or query argument.
 
@@ -272,5 +272,5 @@ _Despite the exploit, the campaign succeeds wildly and there is a major boom in 
 3. ORM helper pops `2` and writes the change against restaurant 2’s context, effectively editing someone else’s menu item.
 
 **Impact:** Cross-restaurant menu edits despite dual validation. \
-**Severity:** 🔴 Critical \
+**Severity:** 🟠 High \
 **Endpoints:** `PATCH /menu/items/{id}`

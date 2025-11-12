@@ -180,7 +180,7 @@ type SlugProtectedRequest_v509 = {
 
 ### Vulnerabilities to Implement
 
-#### [v501] Coupon Code Enumeration via Wildcard
+#### [v501] Coupon List Leak via Wildcards
 
 > Sandy spends a day monitoring customer behavior to understand where they get stuck. She notices that many customers spend a surprising amount of time trying to enter the coupon code. A common issue affecting single-use codes that contain a simple prefix and a random suffix is customers making a typo in the first part, but missing it and spending time trying to "fix" the random suffix instead. She implements a helpful feature to let customers know when the code they're entering is not valid as soon as possible, without waiting for them to enter the entire code.
 
@@ -215,7 +215,7 @@ To enumerate all codes:
 
 _Aftermath: Sandy switches to exact, parameterized lookups (no LIKE)._
 
-#### [v502] Review Attribution: Whitespace Normalization
+#### [v502] Whitespace Tricks Steal Reviews
 
 > Sandy integrates with a third-party review aggregation service. Reviews are pushed to Cheeky SaaS via webhook and attributed by restaurant name. The restaurant names occasionaly don't match exactly, so she adds a simple normalization function.
 
@@ -241,7 +241,7 @@ _Aftermath: Sandy makes the webhook rely on the **same** uniqueness transform us
 
 ---
 
-#### [v503] Review Attribution: Unicode Normalization
+#### [v503] Accented Name Steals Reviews
 
 > While tightening v502, Sandy adds a Postgres `lower(unaccent(name))` index to speed lookups; creation uniqueness still uses a lighter transform (whitespace + lowercase + special characters removal).
 
@@ -265,7 +265,7 @@ _Aftermath: Sandy adds **explicit NFKC** normalization on **name/domain updates*
 
 ---
 
-#### [v504] User Registration: Unicode Normalization
+#### [v504] Unicode Email Grants Manager Role
 
 > While rolling out NFKC elsewhere, Sandy also normalizes **stored emails**; the auth layer still naively splits on `@`.
 
@@ -286,7 +286,7 @@ _Aftermath: Sandy disables domain-based auto-enrollments; current managers are g
 
 ---
 
-#### [v505] Domain Verification: Suffix Matching
+#### [v505] Lookalike Domain Verifies Victim
 
 > While working on RBAC & invitation system, Sandy experiments with decentralized credentials. After all of the database exploits, she decides to minimize the amount of data stored there, and starts by replacing regular API keys with signed tokens.
 
@@ -306,7 +306,7 @@ _Aftermath: Sandy fixes the faulty suffix logic and rolls back the idea of decen
 
 ---
 
-#### [v506] Domain Verification: Truncation Bypass
+#### [v506] Truncated Email Escalation
 
 > Manager invitation is live now. Restaurant creators are made 'owners' and get Admin role. They can invite colleagues to join their restaurant as a manager or another admin. Admins can change user roles, including demotion and user removal.
 
@@ -327,7 +327,7 @@ _Aftermath: Sandy aligns validation with column sizes, blocks truncation, and ma
 
 ---
 
-#### [v507] Slug Collision: Non-Idempotent Normalization
+#### [v507] Slug Collapse Redirects Traffic
 
 > Sandy gets inspired by her review service experience and decides to use slugs for restaurant pages, to improve SEO/branding.
 
@@ -347,7 +347,7 @@ _Aftermath: Sandy abandons ad-hoc slug rules and decides to lean on **domains** 
 
 ---
 
-#### [v508] Slug Collision: Lossy Domain-to-Slug Conversion
+#### [v508] Domain Dots Become Dashes
 
 > Sandy evolves slugs into a new feature: QR stickers for restaurant tables! She's tired of figthing Plankton and moves on to domain-backed slugs but “prettifies” them by replacing `.` with `-`. She enforces domain uniqueness in database via UNIQUE constraint.
 
@@ -367,7 +367,7 @@ _Aftermath: Sandy moves to **raw domains as slugs** and enforces a **UNIQUE(slug
 
 ---
 
-#### [v509] Slug/AuthZ: Unescaped Dots in Regex
+#### [v509] Dot-Wildcard Slug Bypass
 
 > Confident in **raw domains as slugs** (no new vulns since v507!), Sandy extends them into authz/audit paths.
 
