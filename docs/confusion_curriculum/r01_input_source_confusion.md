@@ -45,17 +45,30 @@ At this stage, authentication is basic (Sandy onboards each user manually, and u
 
 #### Schema Evolution
 
-Track how schemas change across versions:
+##### Data Model Evolution
 
-| Model               | v101              | v102                | v103                        | v104   | v105 | v106                        | v107                         |
-| ------------------- | ----------------- | ------------------- | --------------------------- | ------ | ---- | --------------------------- | --------------------------- |
-| Cart                | -                 | -                   | ✅ (new entity)             | -      | -    | -                           | -                           |
-| CartItem            | -                 | -                   | `sku list`                  | -      | -    | -                           | -                           |
-| CheckoutCartRequest | -                 | -                   | Base (`delivery_address`)   | `+tip` | -    | -                           | -                           |
-| CreateOrderRequest  | `item \| items[]` | `items[]` only      | Legacy fallback             | Legacy | Legacy | Legacy                     | Legacy                     |
-| Order               | Base              | `+delivery_fee`     | `+cart_id`                  | `+tip` | -    | -                           | -                           |
-| Refund              | -                 | -                   | -                           | -      | ✅   | -                           | -                           |
-| RegisterUserRequest | -                 | -                   | -                           | -      | -    | `Two-step (email/token)`    | `+BasicAuth override path` |
+| Model               | v101              | v102            | v103                      | v104   | v105 | v106                     | v107                       |
+| ------------------- | ----------------- | --------------- | ------------------------- | ------ | ---- | ------------------------ | -------------------------- |
+| Cart                | -                 | -               | ✅ (new entity)           | -      | -    | -                        | -                          |
+| CartItem            | -                 | -               | `sku list`                | -      | -    | -                        | -                          |
+| CheckoutCartRequest | -                 | -               | Base (`delivery_address`) | `+tip` | -    | -                        | -                          |
+| CreateOrderRequest  | `item \| items[]` | `items[]` only  | (no change)               | -      | -    | -                        | -                          |
+| Order               | Base              | `+delivery_fee` | `+cart_id`                | `+tip` | -    | -                        | -                          |
+| Refund              | -                 | -               | -                         | -      | ✅   | -                        | -                          |
+| RegisterUserRequest | -                 | -               | -                         | -      | -    | `Two-step (email/token)` | `+BasicAuth override path` |
+
+##### Behavioral Changes
+
+| Version | Component           | Behavioral Change                                                          |
+| ------- | ------------------- | -------------------------------------------------------------------------- |
+| v101    | CreateOrderRequest  | Accepts both `item` and `items[]` parameters                               |
+| v102    | Delivery Fee Calc   | Prioritizes query args over body when calculating fees                     |
+| v103    | CreateOrderRequest  | Legacy `item` parameter still read by price calculator                     |
+| v103    | CheckoutCartRequest | Allows `order_id` injection from request body                              |
+| v104    | CheckoutCartRequest | Middleware validates tip from query; handler applies tip from body         |
+| v105    | RefundRequest       | Auto-approval reads amount from JSON body; database write uses form amount |
+| v106    | RegisterUserRequest | Token verification uses token.email; account creation uses body.email      |
+| v107    | RegisterUserRequest | Credit issuance occurs before user existence check; uses Basic Auth email  |
 
 #### Data Models
 
@@ -146,36 +159,36 @@ type ListOrdersResponse = Order[];
 
 // POST /orders (v101: dual parameter era)
 type CreateOrderRequest_v101 = {
-  item?: string;          // Legacy single-item kiosk payload
-  items?: string[];       // Multi-item array added for newer tablets
+  item?: string; // Legacy single-item kiosk payload
+  items?: string[]; // Multi-item array added for newer tablets
   delivery_address?: string;
 };
 
 // POST /orders (v102: delivery fees depend on query/body divergence)
 type CreateOrderRequest_v102 = {
-  items: string[];        // Legacy `item` is ignored except for price calc bugs
+  items: string[]; // Legacy `item` is ignored except for price calc bugs
   delivery_address?: string;
 };
 
 // POST /cart (v103)
 type CreateCartRequest = {
-  items: string[];        // Deduplicated later, but duplicates still accepted now
+  items: string[]; // Deduplicated later, but duplicates still accepted now
 };
 
 // POST /cart/{id}/items (v103)
 type AddItemsToCartRequest = {
-  items: string[];        // Legacy clients send repeated keys, server dedupes lazily
+  items: string[]; // Legacy clients send repeated keys, server dedupes lazily
 };
 
 // POST /cart/{id}/checkout (v103)
 type CheckoutCartRequest_v103 = {
   delivery_address?: string;
-  order_id?: string;      // Should be ignored but triggers overwrite confusion
+  order_id?: string; // Should be ignored but triggers overwrite confusion
 };
 
 // POST /cart/{id}/checkout (v104)
 type CheckoutCartRequest_v104 = CheckoutCartRequest_v103 & {
-  tip?: decimal;          // Middleware reads query first, handler trusts body
+  tip?: decimal; // Middleware reads query first, handler trusts body
 };
 
 // PATCH /orders/{id}/status
@@ -185,7 +198,7 @@ type OrderStatusUpdateRequest = {
 
 // POST /orders/{id}/refund (v105)
 type RequestRefundRequest_v105 = {
-  amount?: decimal;       // Auto-approval path defaults to 20% of order total
+  amount?: decimal; // Auto-approval path defaults to 20% of order total
   reason?: string;
   source?: "auto" | "customer";
 };
@@ -271,9 +284,9 @@ _Aftermath: The pilot participants order twice as much as previously, so Mr. Kra
 
 **Exploit**
 
-1. Create a $1 cart, record it's ID as `cheap_cart_id` and make an order (paying)
+1. Create a $1 cart, make an order and record it's ID as `cheap_order_id`
 2. Populate another cart with $20 worth of items, record it's ID as `expensive_cart_id`.
-3. POST to `/cart/{expensive_cart_id}/checkout` with body `{ "destination_address": "123 Main St, Bikini Bottom", "order_id": "<cheap_cart_id>" }`.
+3. POST to `/cart/{expensive_cart_id}/checkout` with body `{ "destination_address": "123 Main St, Bikini Bottom", "order_id": "<cheap_order_id>" }`.
 4. The handler overwrites existing cheap order with the expensive cart data, without charging the customer.
 5. Restaurant receives the $20 order, and delivers it, despite customer only paying $1.
 

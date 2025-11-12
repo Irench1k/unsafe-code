@@ -36,33 +36,46 @@ This section focuses on how **list-handling mismatches** create vulnerabilities 
 
 ### Endpoints
 
-| Lifecycle | Method | Path                          | Auth                | Purpose                              | Vulnerabilities |
-| --------- | ------ | ----------------------------- | ------------------- | ------------------------------------ | --------------- |
-| v101+     | GET    | /account/credits              | Customer            | View balance                         | v202            |
-| v202+     | POST   | /account/credits              | Admin               | Add credits                          | v202            |
-| v101+     | GET    | /menu                         | Public              | List available items                 |                 |
-| v101+     | GET    | /orders                       | Customer/Restaurant | List orders                          | v201, v204, v304 |
-| v201+     | GET    | /orders/{id}                  | Customer/Restaurant | Get single order                     | v305            |
-| v105+     | POST   | /orders/{id}/refund           | Customer            | Request refund                       | v105            |
-| v201+     | PATCH  | /orders/{id}/refund/status    | Restaurant          | Update refund status                 | v301            |
-| v103+     | PATCH  | /orders/{id}/status           | Restaurant          | Update order status                  | v305            |
-| v103+     | POST   | /cart                         | Customer            | Create cart                          | v201            |
-| v103+     | POST   | /cart/{id}/items              | Customer            | Add item to cart                     | v402            |
-| v103+     | POST   | /cart/{id}/checkout           | Customer            | Checkout cart                        | v103, v104, v302 |
-| v401+     | POST   | /cart/{id}/apply-coupon       | Customer            | Attach coupons to cart               | v401, v403      |
-| v201+     | GET    | /cart/{id}                    | Customer/Restaurant | Get single cart                      |                 |
-| v404+     | POST   | /restaurants/{id}/refunds     | Restaurant          | Batch refund initiation              | v404            |
-| v303+     | PATCH  | /menu/items/{id}              | Restaurant          | Update menu item                     | v303, v405      |
+| Lifecycle | Method | Path                       | Auth                | Purpose                 | Vulnerabilities  |
+| --------- | ------ | -------------------------- | ------------------- | ----------------------- | ---------------- |
+| v101+     | GET    | /account/credits           | Customer            | View balance            | v202             |
+| v202+     | POST   | /account/credits           | Admin               | Add credits             | v202             |
+| v101+     | GET    | /menu                      | Public              | List available items    |                  |
+| v101+     | GET    | /orders                    | Customer/Restaurant | List orders             | v201, v204, v304 |
+| v201+     | GET    | /orders/{id}               | Customer/Restaurant | Get single order        | v305             |
+| v105+     | POST   | /orders/{id}/refund        | Customer            | Request refund          | v105             |
+| v201+     | PATCH  | /orders/{id}/refund/status | Restaurant          | Update refund status    | v301             |
+| v103+     | PATCH  | /orders/{id}/status        | Restaurant          | Update order status     | v305             |
+| v103+     | POST   | /cart                      | Customer            | Create cart             | v201             |
+| v103+     | POST   | /cart/{id}/items           | Customer            | Add item to cart        | v402             |
+| v103+     | POST   | /cart/{id}/checkout        | Customer            | Checkout cart           | v103, v104, v302 |
+| v401+     | POST   | /cart/{id}/apply-coupon    | Customer            | Attach coupons to cart  | v401, v403       |
+| v201+     | GET    | /cart/{id}                 | Customer/Restaurant | Get single cart         |                  |
+| v404+     | POST   | /restaurants/{id}/refunds  | Restaurant          | Batch refund initiation | v404             |
+| v303+     | PATCH  | /menu/items/{id}           | Restaurant          | Update menu item        | v303, v405       |
 
 #### Schema Evolution
 
-| Model/Helper          | v401                               | v402                                      | v403                                              | v404                                   | v405                                       |
-| --------------------- | ---------------------------------- | ----------------------------------------- | ------------------------------------------------- | -------------------------------------- | ------------------------------------------ |
-| Coupon                | Single `code` from form/query      | -                                           | `codes[]`, `single_use`, `used` flags             | -                                      | -                                          |
-| ApplyCouponRequest    | `code` via query vs form           | -                                           | `codes[]` JSON array preserved for application    | -                                      | -                                          |
-| CartItem              | `sku` only                         | `+quantity`, reservation loop clones items | -                                               | -                                      | -                                          |
-| BatchRefundRequest    | -                                  | -                                           | -                                               | `order_ids[]` plus single restaurant check | -                                          |
-| RestaurantBinding     | `bind_to_restaurant()` helper used | -                                           | -                                               | `batch refunds reuse helper`           | `get_restaurant_id()` pops query values twice |
+##### Data Model Evolution
+
+| Model              | v401                         | v402        | v403                              | v404                         | v405 |
+| ------------------ | ---------------------------- | ----------- | --------------------------------- | ---------------------------- | ---- |
+| Coupon             | Single `code` field          | -           | `codes[]`, `+single_use`, `+used` | -                            | -    |
+| ApplyCouponRequest | `code` field                 | -           | `codes[]` array                   | -                            | -    |
+| CartItem           | `sku` only                   | `+quantity` | -                                 | -                            | -    |
+| BatchRefundRequest | -                            | -           | -                                 | ✅ (`order_ids[]`, `reason`) | -    |
+| RestaurantBinding  | `bind_to_restaurant()` added | -           | -                                 | -                            | -    |
+
+##### Behavioral Changes
+
+| Version | Component            | Behavioral Change                                                                          |
+| ------- | -------------------- | ------------------------------------------------------------------------------------------ |
+| v401    | ApplyCouponRequest   | Validation checks `request.form.get('code')`; application reads `request.args.get('code')` |
+| v402    | CartItem Reservation | Reservation loop adds items one at a time; always adds at least one even if quantity is 0  |
+| v403    | ApplyCouponRequest   | Validation deduplicates and uppercases `codes[]`; application iterates original array      |
+| v403    | Coupon Usage         | `used` flag set only once after all iterations complete                                    |
+| v404    | BatchRefundRequest   | Authorization uses `SELECT ... LIMIT 1` (any match); handler refunds all IDs in array      |
+| v405    | get_restaurant_id()  | First `pop()` validates and stores in context; second `pop()` drives ORM binding           |
 
 #### Data Models
 
@@ -77,13 +90,13 @@ interface Coupon {
 }
 
 interface ApplyCouponPayload {
-  code?: string;        // Legacy single code (form body)
-  codes?: string[];     // JSON array added in v403
+  code?: string; // Legacy single code (form body)
+  codes?: string[]; // JSON array added in v403
   source?: "query" | "body";
 }
 
 interface CartItemV2 extends CartItem {
-  quantity: number;     // Introduced in v402; backend still stores ≥1 even if 0 sent
+  quantity: number; // Introduced in v402; backend still stores ≥1 even if 0 sent
 }
 
 interface CartWithCoupons extends Cart {
@@ -108,13 +121,13 @@ interface BatchRefundResult {
 ```ts
 // POST /cart/{id}/apply-coupon (v401)
 type ApplyCouponRequest_v401 = {
-  form_code?: string;   // Checked by validation
-  query_code?: string;  // Applied to cart regardless of validation source
+  form_code?: string; // Checked by validation
+  query_code?: string; // Applied to cart regardless of validation source
 };
 
 // POST /cart/{id}/apply-coupon (v403)
 type ApplyCouponRequest_v403 = {
-  codes: string[];      // Validation dedupes uppercase set, application loops original array
+  codes: string[]; // Validation dedupes uppercase set, application loops original array
 };
 
 type ApplyCouponResponse = CartWithCoupons;
@@ -176,7 +189,7 @@ type PatchMenuItemRequest_v405 = {
 
 **Exploit**
 
-1. POST `/cart/{id}/items` with `{ "items": ["krabby-patty"], "quantity": 0 }`.
+1. POST `/cart/{id}/items` with `{ "items": [{ "sku": "krabby-patty", "quantity": 0 }] }`.
 2. Reservation loop adds one item to the cart.
 3. Price calculation multiplies by zero, so nothing is charged.
 

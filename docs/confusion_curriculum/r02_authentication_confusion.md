@@ -34,6 +34,20 @@ Sandy adds proper authentication middleware and session management. She introduc
 
 This is where authentication gets interesting: multiple auth methods (Basic Auth, sessions, API keys, admin keys) now coexist in the same codebase. Sandy's middleware needs to handle all of them gracefully.
 
+### Authentication Methods
+
+By the end of r02, these authentication methods coexist:
+
+| Method             | Header/Cookie              | Purpose                   | Introduced |
+| ------------------ | -------------------------- | ------------------------- | ---------- |
+| Admin API Key      | `X-Admin-API-Key: ...`     | Internal admin operations | v202       |
+| Basic Auth         | `Authorization: Basic ...` | Legacy customer auth      | v101 (r01) |
+| Cookie Session     | `Cookie: session_id=...`   | Web UI customer auth      | v201       |
+| Restaurant API Key | `X-API-Key: ...`           | Restaurant integrations   | v101 (r01) |
+
+> [!NOTE]
+> Both cookies and API keys can be implemented as JWT tokens if that's more typical for your framework. For now, we're not covering JWT-specific vulnerabilities, so the token format isn't critical. Focus on the authentication logic, not the encoding.
+
 ### Endpoints
 
 | Lifecycle | Method | Path                       | Auth                | Purpose              | Vulnerabilities |
@@ -57,13 +71,27 @@ This is where authentication gets interesting: multiple auth methods (Basic Auth
 
 #### Schema Evolution
 
-| Model/Context        | v201                                   | v202                         | v203                               | v204                               | v205                                      |
-| -------------------- | -------------------------------------- | ---------------------------- | ---------------------------------- | ---------------------------------- | ----------------------------------------- |
-| RequestContext       | `user_id` copied before auth completes | `+admin_api_key principal`    | `+decorator shortcuts (header only)` | `+user_type flag (customer/manager/internal)` | `Login handler mutates context before password check` |
-| Session              | Cookie-backed session introduced       | `+remember manager role`      | -                                  | -                                  | `Session identity overwritten from login payload` |
-| AccountCredits       | Read-only balance endpoint             | `+mutation payload (amount, customer)` | -                          | -                                  | -                                           |
-| RefundStatusRequest  | -                                      | -                            | `Header-only decorator validation` | -                                  | -                                           |
-| LoginRequest         | Base email/password payload            | -                            | -                                  | -                                  | `Context-first assignment triggers contamination` |
+##### Data Model Evolution
+
+| Model               | v201                        | v202                                   | v203 | v204 | v205 |
+| ------------------- | --------------------------- | -------------------------------------- | ---- | ---- | ---- |
+| RequestContext      | ✅ (new entity)             | `+admin_api_key principal`             | -    | -    | -    |
+| Session             | ✅ (cookie-backed)          | `+manager role field`                  | -    | -    | -    |
+| AccountCredits      | Read-only balance endpoint  | `+mutation payload (amount, customer)` | -    | -    | -    |
+| RefundStatusRequest | -                           | -                                      | -    | -    | -    |
+| LoginRequest        | Base email/password payload | -                                      | -    | -    | -    |
+
+##### Behavioral Changes
+
+| Version | Component           | Behavioral Change                                                                  |
+| ------- | ------------------- | ---------------------------------------------------------------------------------- |
+| v201    | RequestContext      | Middleware copies `user_id` from Basic Auth username before password verification  |
+| v201    | RequestContext      | Failed Basic Auth falls back to cookie without clearing polluted `user_id`         |
+| v202    | AccountCredits      | Admin guard only runs when `request.method == 'POST'`                              |
+| v203    | RefundStatusRequest | Controller decorator validates auth; handler decorator only checks header presence |
+| v204    | RequestContext      | Middleware sets `user_type = 'manager'` before validating API key                  |
+| v204    | RequestContext      | Failed API key validation doesn't clear `user_type` before Basic Auth fallback     |
+| v205    | LoginRequest        | Middleware copies request email into session before password verification          |
 
 #### Data Models
 
@@ -136,8 +164,8 @@ type CheckoutCartRequest_v201 = CheckoutCartRequest_v104; // inherits tip + cart
 
 // POST /cart/{id}/checkout (context confusion path)
 type CheckoutCartContext = {
-  request_user_id?: string;   // Set by middleware before auth completes
-  session_user_id?: string;   // Derived from cookie
+  request_user_id?: string; // Set by middleware before auth completes
+  session_user_id?: string; // Derived from cookie
 };
 
 // GET /orders (v201)
@@ -181,20 +209,6 @@ type AuthDebugPayload = {
   user_type?: string;
 };
 ```
-
-### Authentication Methods
-
-By the end of r02, these authentication methods coexist:
-
-| Method             | Header/Cookie              | Purpose                   | Introduced |
-| ------------------ | -------------------------- | ------------------------- | ---------- |
-| Admin API Key      | `X-Admin-API-Key: ...`     | Internal admin operations | v202       |
-| Basic Auth         | `Authorization: Basic ...` | Legacy customer auth      | v101 (r01) |
-| Cookie Session     | `Cookie: session_id=...`   | Web UI customer auth      | v201       |
-| Restaurant API Key | `X-API-Key: ...`           | Restaurant integrations   | v101 (r01) |
-
-> [!NOTE]
-> Both cookies and API keys can be implemented as JWT tokens if that's more typical for your framework. For now, we're not covering JWT-specific vulnerabilities, so the token format isn't critical. Focus on the authentication logic, not the encoding.
 
 ### Vulnerabilities to Implement
 

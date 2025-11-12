@@ -38,34 +38,51 @@ This section focuses on how **character-level transformations** create subtle mi
 
 ### Endpoints
 
-| Lifecycle | Method | Path                              | Auth                | Purpose                                   | Vulnerabilities       |
-| --------- | ------ | --------------------------------- | ------------------- | ----------------------------------------- | --------------------- |
-| v401+     | POST   | /cart/{id}/apply-coupon           | Customer            | Attach coupons to cart                    | v401, v403, v501      |
-| v101+     | GET    | /menu                             | Public              | List menu items                           |                       |
-| v101+     | GET    | /orders                           | Customer/Restaurant | List orders                               | v201, v204, v304, v509 |
-| v201+     | GET    | /orders/{id}                      | Customer/Restaurant | Get single order                          | v305                  |
-| v105+     | POST   | /orders/{id}/refund               | Customer            | Request refund                            | v105                  |
-| v404+     | POST   | /restaurants/{id}/refunds         | Restaurant          | Batch refunds                             | v404                  |
-| v303+     | PATCH  | /menu/items/{id}                  | Restaurant          | Update menu item                          | v303, v405            |
-| v306+     | POST   | /restaurants                      | Public/Admin        | Register restaurant + slug                | v306, v507, v508      |
-| v307+     | PATCH  | /restaurants/{id}                 | Manager             | Update restaurant profile                 | v307, v508            |
-| v505+     | POST   | /restaurants/{id}/verify-domain   | Manager/Admin       | Confirm domain ownership                  | v505, v506            |
-| v502+     | POST   | /webhooks/reviews                 | Third-party (Public)| Attribute reviews by normalized name      | v502, v503            |
-| v507+     | GET    | /restaurants/{slug}               | Public              | Public restaurant landing page            | v507                  |
-| v508+     | GET    | /join/{slug}                      | Public              | QR redirect for table stickers            | v508                  |
-| v509+     | ANY    | /manager/restaurants/{slug}/...   | Manager/Admin       | Authz-protected slug routes               | v509                  |
-| v106+     | POST   | /auth/register                    | Public              | Register user / invite managers           | v106, v107, v504, v506 |
+| Lifecycle | Method | Path                            | Auth                 | Purpose                              | Vulnerabilities        |
+| --------- | ------ | ------------------------------- | -------------------- | ------------------------------------ | ---------------------- |
+| v401+     | POST   | /cart/{id}/apply-coupon         | Customer             | Attach coupons to cart               | v401, v403, v501       |
+| v101+     | GET    | /menu                           | Public               | List menu items                      |                        |
+| v101+     | GET    | /orders                         | Customer/Restaurant  | List orders                          | v201, v204, v304, v509 |
+| v201+     | GET    | /orders/{id}                    | Customer/Restaurant  | Get single order                     | v305                   |
+| v105+     | POST   | /orders/{id}/refund             | Customer             | Request refund                       | v105                   |
+| v404+     | POST   | /restaurants/{id}/refunds       | Restaurant           | Batch refunds                        | v404                   |
+| v303+     | PATCH  | /menu/items/{id}                | Restaurant           | Update menu item                     | v303, v405             |
+| v306+     | POST   | /restaurants                    | Public/Admin         | Register restaurant + slug           | v306, v507, v508       |
+| v307+     | PATCH  | /restaurants/{id}               | Manager              | Update restaurant profile            | v307, v508             |
+| v505+     | POST   | /restaurants/{id}/verify-domain | Manager/Admin        | Confirm domain ownership             | v505, v506             |
+| v502+     | POST   | /webhooks/reviews               | Third-party (Public) | Attribute reviews by normalized name | v502, v503             |
+| v507+     | GET    | /restaurants/{slug}             | Public               | Public restaurant landing page       | v507                   |
+| v508+     | GET    | /join/{slug}                    | Public               | QR redirect for table stickers       | v508                   |
+| v509+     | ANY    | /manager/restaurants/{slug}/... | Manager/Admin        | Authz-protected slug routes          | v509                   |
+| v106+     | POST   | /auth/register                  | Public               | Register user / invite managers      | v106, v107, v504, v506 |
 
 #### Schema Evolution
 
-| Model/Helper          | v501                                     | v502                                   | v503                                        | v504                                         | v505                                     | v506                                         | v507                                      | v508                                             | v509                                         |
-| --------------------- | ---------------------------------------- | -------------------------------------- | ------------------------------------------- | -------------------------------------------- | ---------------------------------------- | ---------------------------------------------- | ----------------------------------------- | ------------------------------------------------ | ---------------------------------------------- |
-| CouponLookup          | Prefix hint checks `^\\w+$` while using `LIKE` | -                                      | -                                           | -                                            | -                                      | -                                            | -                                       | -                                                  | -                                            |
-| ReviewNormalization   | -                                        | `webhook: collapse \s+`                | `webhook: lower(unaccent(...))`             | -                                            | -                                      | -                                            | -                                       | -                                                  | -                                            |
-| RegisterUserRequest   | -                                        | -                                      | -                                           | `NFKC-stored email vs raw split`             | -                                      | `DB truncation vs validation length`            | -                                       | -                                                  | -                                            |
-| DomainVerification    | -                                        | -                                      | -                                           | -                                            | `token.email.endswith(domain)`          | `email truncation + domain-based invites`      | -                                       | -                                                  | -                                            |
-| RestaurantSlug        | -                                        | -                                      | -                                           | -                                            | -                                      | -                                            | `slugify() non-idempotent`             | `domain.replace('.', '-')` collisions            | `regex uses '.' unescaped`                |
-| ReviewWebhookPayload  | -                                        | `tabs/newlines collapse`               | `unicode variants converge`                 | -                                            | -                                      | -                                            | -                                       | -                                                  | -                                            |
+##### Data Model Evolution
+
+| Model                | v501 | v502 | v503 | v504                 | v505 | v506                             | v507          | v508 | v509 |
+| -------------------- | ---- | ---- | ---- | -------------------- | ---- | -------------------------------- | ------------- | ---- | ---- |
+| CouponLookup         | -    | -    | -    | -                    | -    | -                                | -             | -    | -    |
+| ReviewNormalization  | -    | -    | -    | -                    | -    | -                                | -             | -    | -    |
+| RegisterUserRequest  | -    | -    | -    | Email stored as NFKC | -    | `email` column length constraint | -             | -    | -    |
+| DomainVerification   | -    | -    | -    | -                    | -    | -                                | -             | -    | -    |
+| RestaurantSlug       | -    | -    | -    | -                    | -    | -                                | `+slug` field | -    | -    |
+| ReviewWebhookPayload | -    | -    | -    | -                    | -    | -                                | -             | -    | -    |
+
+##### Behavioral Changes
+
+| Version | Component           | Behavioral Change                                                                                      |
+| ------- | ------------------- | ------------------------------------------------------------------------------------------------------ |
+| v501    | CouponLookup        | Prefix validation checks `^\w+$` (allows underscore); database uses `LIKE` with underscore as wildcard |
+| v502    | ReviewNormalization | Restaurant creation removes literal spaces; webhook collapses all `\s+` whitespace                     |
+| v503    | ReviewNormalization | Restaurant creation uses whitespace + lowercase; webhook uses `lower(unaccent(...))`                   |
+| v504    | RegisterUserRequest | Email stored as NFKC in database; auth layer splits raw email on `@`                                   |
+| v505    | DomainVerification  | Token verification uses `token.email.endswith(restaurant.domain)` without prefix check                 |
+| v506    | DomainVerification  | Email validation allows length N; DB column silently truncates to shorter length                       |
+| v506    | DomainVerification  | Invites reference restaurant domain (string), not restaurant ID                                        |
+| v507    | RestaurantSlug      | `slugify()` not idempotent: validation sees first pass, storage sees second pass                       |
+| v508    | RestaurantSlug      | Slug generation uses `domain.replace('.', '-')` without slug uniqueness constraint                     |
+| v509    | RestaurantSlug      | Admin/manager routes use regex with unescaped `.` for slug matching                                    |
 
 #### Data Models
 
@@ -85,8 +102,8 @@ interface NormalizedReviewPayload extends ReviewPayload {
 }
 
 interface NormalizedEmail {
-  raw: string;       // Provided by user input
-  nfkc: string;      // Stored in DB (v504)
+  raw: string; // Provided by user input
+  nfkc: string; // Stored in DB (v504)
   domain_from_raw: string; // Still derived via naive split
 }
 
@@ -125,38 +142,38 @@ type ReviewWebhookRequest_v503 = NormalizedReviewPayload;
 
 // POST /auth/register (v504)
 type RegisterUserRequest_v504 = RegisterUserRequest_v107 & {
-  raw_email: string;      // For UI echo
+  raw_email: string; // For UI echo
 };
 
 // POST /auth/register (v506 invitations)
 type RegisterUserRequest_v506 = RegisterUserRequest_v504 & {
-  invite_domain: string;  // Compared via string truncation
+  invite_domain: string; // Compared via string truncation
 };
 
 // POST /restaurants/{id}/verify-domain
 type VerifyDomainRequest_v505 = {
-  token: string;          // token.email.endswith(restaurant.domain)
+  token: string; // token.email.endswith(restaurant.domain)
 };
 
 // POST /restaurants/{id}/verify-domain (v506 truncation)
 type VerifyDomainRequest_v506 = VerifyDomainRequest_v505 & {
-  email: string;          // Persisted column may truncate before comparison
+  email: string; // Persisted column may truncate before comparison
 };
 
 // GET /restaurants/{slug}
 type GetRestaurantBySlugResponse_v507 = Restaurant & {
-  slug: string;           // Derived via non-idempotent slugify
+  slug: string; // Derived via non-idempotent slugify
 };
 
 // GET /join/{slug}
 type JoinRestaurantRedirect_v508 = {
-  slug: string;           // domain.replace('.', '-')
+  slug: string; // domain.replace('.', '-')
   target_domain: string;
 };
 
 // Manager/Admin slug routes (v509)
 type SlugProtectedRequest_v509 = {
-  slug: string;           // Matched via regex using '.' as wildcard
+  slug: string; // Matched via regex using '.' as wildcard
   action: string;
 };
 ```
@@ -181,8 +198,16 @@ type SlugProtectedRequest_v509 = {
   - But by entering a series of underscores, Plankton can leak all codes in the database.
 
 **Exploit**
-Send `?code=BURGER20` -> LIKE `'CODE-%-BURGER20%'` (matches `CODE-1-BURGER20-E7B2A`)
-Send `?code=_____%` -> LIKE `'CODE-%-_____%'` (matches all codes of a given length)
+
+Send `?code=_____` -> `LIKE 'CODE-%-_____%'`
+
+- Matches: CODE-1-ABCDE-XXX (where \_\_\_\_\_ matches any 5 character code)
+- Not matches: CODE-1-ABCD-XXX (only 4 chars in that position)
+
+To enumerate all codes:
+
+- Try `_`, `__`, `___`, `____`, `_____` (1-5 char suffixes)
+- Each leaks codes with that exact suffix length
 
 **Impact:** Information disclosure of all coupon codes. \
 **Severity:** 🟡 Medium \

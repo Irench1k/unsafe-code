@@ -46,31 +46,45 @@ By the end of r03, these roles are enforced:
 
 ### Endpoints
 
-| Lifecycle | Method | Path                          | Auth                | Purpose                             | Vulnerabilities |
-| --------- | ------ | ----------------------------- | ------------------- | ----------------------------------- | --------------- |
-| v101+     | GET    | /account/credits              | Customer            | View balance                        | v202            |
-| v202+     | POST   | /account/credits              | Admin               | Add credits                         | v202            |
-| v101+     | GET    | /menu                         | Public              | List available items                |                 |
-| v101+     | GET    | /orders                       | Customer/Restaurant | List orders                         | v201, v204, v304 |
-| v201+     | GET    | /orders/{id}                  | Customer/Restaurant | Get single order                    | v305            |
-| v105+     | POST   | /orders/{id}/refund           | Customer            | Request refund                      | v105            |
-| v201+     | PATCH  | /orders/{id}/refund/status    | Restaurant          | Update refund status                | v301            |
-| v103+     | PATCH  | /orders/{id}/status           | Restaurant          | Update order status                 | v305            |
-| v103+     | POST   | /cart/{id}/checkout           | Customer            | Checkout cart                       | v302            |
-| v103+     | POST   | /cart/{id}/items              | Customer            | Add item to cart                    |                 |
-| v303+     | PATCH  | /menu/items/{id}              | Restaurant          | Update menu item                    | v303, v405      |
-| v306+     | POST   | /restaurants                  | Public              | Register restaurant + API key       | v306            |
-| v307+     | PATCH  | /restaurants/{id}             | Manager             | Update restaurant profile           | v307            |
+| Lifecycle | Method | Path                       | Auth                | Purpose                       | Vulnerabilities  |
+| --------- | ------ | -------------------------- | ------------------- | ----------------------------- | ---------------- |
+| v101+     | GET    | /account/credits           | Customer            | View balance                  | v202             |
+| v202+     | POST   | /account/credits           | Admin               | Add credits                   | v202             |
+| v101+     | GET    | /menu                      | Public              | List available items          |                  |
+| v101+     | GET    | /orders                    | Customer/Restaurant | List orders                   | v201, v204, v304 |
+| v201+     | GET    | /orders/{id}               | Customer/Restaurant | Get single order              | v305             |
+| v105+     | POST   | /orders/{id}/refund        | Customer            | Request refund                | v105             |
+| v201+     | PATCH  | /orders/{id}/refund/status | Restaurant          | Update refund status          | v301             |
+| v103+     | PATCH  | /orders/{id}/status        | Restaurant          | Update order status           | v305             |
+| v103+     | POST   | /cart/{id}/checkout        | Customer            | Checkout cart                 | v302             |
+| v103+     | POST   | /cart/{id}/items           | Customer            | Add item to cart              |                  |
+| v303+     | PATCH  | /menu/items/{id}           | Restaurant          | Update menu item              | v303, v405       |
+| v306+     | POST   | /restaurants               | Public              | Register restaurant + API key | v306             |
+| v307+     | PATCH  | /restaurants/{id}          | Manager             | Update restaurant profile     | v307             |
 
 #### Schema Evolution
 
-| Model/Helper          | v301                                 | v302                               | v303                                   | v304                                   | v305                                   | v306                                    | v307                                        |
-| --------------------- | ------------------------------------ | ---------------------------------- | -------------------------------------- | -------------------------------------- | -------------------------------------- | ---------------------------------------- | ------------------------------------------ |
-| AuthorizationContext  | `has_access_to(order)` trusts merged principals | `session.cart_id` added for holds | `@require_restaurant_access` expects path param | `bind_to_restaurant()` inspects every source | Stored procedure handles auth in data layer | Domain verification token reused for restaurants | Middleware overwrites `request.restaurant_id` with token data |
-| CartAuthorization     | -                                    | `cookie cart_id` vs body cart_id   | -                                        | -                                        | -                                        | -                                          | -                                            |
-| MenuItem              | -                                    | -                                  | `restaurant_id` missing from route vars | `restaurant_id` auto-detected from any container | -                                        | -                                          | -                                            |
-| Restaurant            | -                                    | -                                  | -                                        | -                                        | -                                        | ✅ (domain onboarding)                    | `+domain mutation via PATCH`                 |
-| DomainToken           | -                                    | -                                  | -                                        | -                                        | -                                        | `user token reused for domain`           | `token mutates context before auth`          |
+##### Data Model Evolution
+
+| Model                | v301 | v302               | v303 | v304 | v305 | v306                       | v307                     |
+| -------------------- | ---- | ------------------ | ---- | ---- | ---- | -------------------------- | ------------------------ |
+| AuthorizationContext | ✅   | -                  | -    | -    | -    | -                          | -                        |
+| CartAuthorization    | -    | `+session.cart_id` | -    | -    | -    | -                          | -                        |
+| MenuItem             | -    | -                  | -    | -    | -    | -                          | -                        |
+| Restaurant           | -    | -                  | -    | -    | -    | ✅ (domain onboarding)     | `+domain PATCH mutation` |
+| DomainToken          | -    | -                  | -    | -    | -    | ✅ (user token reuse path) | -                        |
+
+##### Behavioral Changes
+
+| Version | Component                      | Behavioral Change                                                                        |
+| ------- | ------------------------------ | ---------------------------------------------------------------------------------------- |
+| v301    | AuthorizationContext           | `has_access_to(order)` trusts merged principals from multiple auth methods               |
+| v302    | CartAuthorization              | Authorization reads `session.cart_id`; handler prefers request body over session         |
+| v303    | MenuItem Authorization         | `@require_restaurant_access` expects `restaurant_id` in path; PATCH uses `item_id` only  |
+| v304    | bind_to_restaurant()           | Decorator validates query `restaurant_id`; helper inspects all request containers        |
+| v305    | Order Status Update            | Authorization happens in stored procedure; handler returns order before auth check       |
+| v306    | Domain Verification            | Token verification checks signature/expiry but not email local-part (admin@ requirement) |
+| v307    | Restaurant PATCH Authorization | Middleware updates `request.restaurant_id` from token before authorization layer runs    |
 
 #### Data Models
 
@@ -138,8 +152,8 @@ type PatchMenuItemRequest_v303 = MenuItemPatch;
 
 // GET /orders (v304)
 type ListOrdersRequest_v304 = {
-  restaurant_id?: string;          // Decorator looks only at query
-  body_restaurant_id?: string;     // Helper inspects every container
+  restaurant_id?: string; // Decorator looks only at query
+  body_restaurant_id?: string; // Helper inspects every container
 };
 
 // PATCH /orders/{id}/status (v305)
