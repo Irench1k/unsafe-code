@@ -83,6 +83,13 @@ docker compose build
 docker compose build --no-cache
 ```
 
+### 5. Automatically Update
+
+```bash
+# Enable watching for file changes without restarting docker
+docker compose up --watch
+```
+
 ## Alternative Ways to Run
 
 ### From Repository Root

@@ -1,449 +1,386 @@
 ## r05: Normalization Issues
 
+_Feature focus:_ string manipulation, database constraints, Unicode handling \
+_Student skill:_ spotting subtle differences in how data is cleaned, transformed, and compared
+
 ### What It Is
 
 Character normalization confusion happens when two code paths apply **different string transformations** to the same logical input. One path might lowercase, the other might not. One might strip whitespace, the other might only trim. One might apply Unicode normalization, the other might ignore it.
 
-Result: values that should be "equal" diverge when checked vs. used, bypassing uniqueness constraints, access controls, or security boundaries.
+The result: values that _should_ be "equal" diverge when checked vs. used, bypassing uniqueness constraints, access controls, or security boundaries.
 
 ### Framework Features Introduced
 
-- String manipulation
-- Database constraints
-- Text search/indexes
-- Regular expressions
-- Unicode handling
+- String manipulation functions: `.lower()`, `.strip()`, `.replace()`
+- Database constraints: `UNIQUE`, collations
+- Text search and indexes: `unaccent()`, `ilike()`
+- Regular expressions: `re.match`, `re.sub`, `\w` vs `\s`
+- Unicode handling: `NFC`, `NFKD`, fullwidth vs. halfwidth chars
+- URL/Slug generation
 
 ### Why Confusion Happens
 
-- Different normalization in different layers
-- Database does normalization automatically
-- Case-insensitive vs case-sensitive comparisons
-- Regex special characters
-- Unicode normalization mismatches
+- Different normalization rules are applied in different layers (e.g., application validation vs. database index).
+- The database performs normalization automatically (e.g., case-insensitive collation) which the application logic doesn't expect.
+- Case-insensitive (ilike) vs. case-sensitive (=) comparisons are used inconsistently.
+- Developers "fix" one normalization bug by adding another layer of inconsistent transformation.
+- Naive string parsing (like email.split('@')[1]) meets complex, normalized input.
 
 ### The Story
 
-The platform is getting popular beyond Bikini Bottom! Sandy adds a review system, custom domains for restaurants, and public restaurant pages with human-readable URLs (slugs).
+The platform is growing beyond Bikini Bottom! Sandy adds public-facing features: restaurant profile pages with SEO-friendly slugs, a review system, custom subdomains, and email-based manager assignment.
 
-Plankton is relentless. He exploits every normalization bug to hijack Krusty Krab's reviews, steal their subdomain, and confuse customers into visiting his copycat restaurant.
+Mr. Krabs wants a memorable URL for the Krusty Krab. Sandy generates slugs from restaurant names: `krusty-krab.sea/krusty-krab`. She enforces uniqueness to prevent squatting.
 
-### Endpoints:
+Plankton sees opportunity. He crafts names that pass validation but collide after normalization, hijacking the Krusty Krab's reviews, stealing their subdomain, and confusing customers into visiting his copycat restaurant.
 
-| Method | Path                               | Auth       | Purpose                      | Input          | Response                                | Changes  |
-| ------ | ---------------------------------- | ---------- | ---------------------------- | -------------- | --------------------------------------- | -------- |
-| POST   | /restaurants                       | Restaurant | Create restaurant            | `name`, `slug` | `{restaurant_id, name, slug}`           | NEW      |
-| GET    | /restaurants                       | Public     | List restaurants             | -              | `[{restaurant_id, name, slug}]`         | NEW      |
-| PATCH  | /restaurants/{slug}                | Restaurant | Update restaurant info       | `name`, `slug` | `{restaurant_id, name, slug}`           | MODIFIED |
-| GET    | /restaurants/{slug}                | Public     | Get restaurant info          | `slug`         | `{restaurant_id, name, slug}`           | NEW      |
-| GET    | /restaurants/{slug}/menu           | Public     | Get restaurant menu          | `slug`         | `[{item_id, name, price}]`              | NEW      |
-| GET    | /restaurants/{slug}/orders         | Public     | Get restaurant orders        | `slug`         | `[{order_id, customer, total, status}]` | NEW      |
-| GET    | /restaurants/{slug}/coupons        | Public     | Get restaurant coupons       | `slug`         | `[{coupon_id, code, discount_percent}]` | NEW      |
-| GET    | /restaurants/{slug}/reports/orders | Public     | Get restaurant orders report | `slug`         | `CSV`                                   | NEW      |
-| PATCH  | /restaurants/{slug}                | Restaurant | Update restaurant info       | `name`, `slug` | `{restaurant_id, name, slug}`           | MODIFIED |
-| DELETE | /restaurants/{slug}                | Restaurant | Delete restaurant            | `slug`         | `{restaurant_id, name, slug}`           | NEW      |
+This section focuses on how **character-level transformations** create subtle mismatches that bypass security checks.
+
+### Endpoints
+
+| Lifecycle | Method | Path                            | Auth                 | Purpose                              | Vulnerabilities        |
+| --------- | ------ | ------------------------------- | -------------------- | ------------------------------------ | ---------------------- |
+| v401+     | POST   | /cart/{id}/apply-coupon         | Customer             | Attach coupons to cart               | v401, v403, v501       |
+| v101+     | GET    | /menu                           | Public               | List menu items                      |                        |
+| v101+     | GET    | /orders                         | Customer/Restaurant  | List orders                          | v201, v204, v304, v509 |
+| v201+     | GET    | /orders/{id}                    | Customer/Restaurant  | Get single order                     | v305                   |
+| v105+     | POST   | /orders/{id}/refund             | Customer             | Request refund                       | v105                   |
+| v404+     | POST   | /restaurants/{id}/refunds       | Restaurant           | Batch refunds                        | v404                   |
+| v303+     | PATCH  | /menu/items/{id}                | Restaurant           | Update menu item                     | v303, v405             |
+| v306+     | POST   | /restaurants                    | Public/Admin         | Register restaurant + slug           | v306, v507, v508       |
+| v307+     | PATCH  | /restaurants/{id}               | Manager              | Update restaurant profile            | v307, v508             |
+| v505+     | POST   | /restaurants/{id}/verify-domain | Manager/Admin        | Confirm domain ownership             | v505, v506             |
+| v502+     | POST   | /webhooks/reviews               | Third-party (Public) | Attribute reviews by normalized name | v502, v503             |
+| v507+     | GET    | /restaurants/{slug}             | Public               | Public restaurant landing page       | v507                   |
+| v508+     | GET    | /join/{slug}                    | Public               | QR redirect for table stickers       | v508                   |
+| v509+     | ANY    | /manager/restaurants/{slug}/... | Manager/Admin        | Authz-protected slug routes          | v509                   |
+| v106+     | POST   | /auth/register                  | Public               | Register user / invite managers      | v106, v107, v504, v506 |
+
+#### Schema Evolution
+
+##### Data Model Evolution
+
+| Model                | v501 | v502 | v503 | v504                 | v505 | v506                             | v507          | v508 | v509 |
+| -------------------- | ---- | ---- | ---- | -------------------- | ---- | -------------------------------- | ------------- | ---- | ---- |
+| CouponLookup         | -    | -    | -    | -                    | -    | -                                | -             | -    | -    |
+| ReviewNormalization  | -    | -    | -    | -                    | -    | -                                | -             | -    | -    |
+| RegisterUserRequest  | -    | -    | -    | Email stored as NFKC | -    | `email` column length constraint | -             | -    | -    |
+| DomainVerification   | -    | -    | -    | -                    | -    | -                                | -             | -    | -    |
+| RestaurantSlug       | -    | -    | -    | -                    | -    | -                                | `+slug` field | -    | -    |
+| ReviewWebhookPayload | -    | -    | -    | -                    | -    | -                                | -             | -    | -    |
+
+##### Behavioral Changes
+
+| Version | Component           | Behavioral Change                                                                                      |
+| ------- | ------------------- | ------------------------------------------------------------------------------------------------------ |
+| v501    | CouponLookup        | Prefix validation checks `^\w+$` (allows underscore); database uses `LIKE` with underscore as wildcard |
+| v502    | ReviewNormalization | Restaurant creation removes literal spaces; webhook collapses all `\s+` whitespace                     |
+| v503    | ReviewNormalization | Restaurant creation uses whitespace + lowercase; webhook uses `lower(unaccent(...))`                   |
+| v504    | RegisterUserRequest | Email stored as NFKC in database; auth layer splits raw email on `@`                                   |
+| v505    | DomainVerification  | Token verification uses `token.email.endswith(restaurant.domain)` without prefix check                 |
+| v506    | DomainVerification  | Email validation allows length N; DB column silently truncates to shorter length                       |
+| v506    | DomainVerification  | Invites reference restaurant domain (string), not restaurant ID                                        |
+| v507    | RestaurantSlug      | `slugify()` not idempotent: validation sees first pass, storage sees second pass                       |
+| v508    | RestaurantSlug      | Slug generation uses `domain.replace('.', '-')` without slug uniqueness constraint                     |
+| v509    | RestaurantSlug      | Admin/manager routes use regex with unescaped `.` for slug matching                                    |
+
+#### Data Models
+
+```ts
+interface CouponPrefixQuery {
+  prefix: string; // Checked via ^\w+$ but passed verbatim into LIKE
+}
+
+interface ReviewPayload {
+  restaurant_name: string;
+  rating: number;
+  comment: string;
+}
+
+interface NormalizedReviewPayload extends ReviewPayload {
+  normalized_name: string; // webhook collapses whitespace/unaccent
+}
+
+interface NormalizedEmail {
+  raw: string; // Provided by user input
+  nfkc: string; // Stored in DB (v504)
+  domain_from_raw: string; // Still derived via naive split
+}
+
+interface DomainVerificationToken extends VerificationToken {
+  restaurant_id?: string;
+  restaurant_domain: string;
+}
+
+interface RestaurantSlug {
+  slug: string;
+  source: string; // name, domain, or QR prettification
+}
+
+interface SlugRoute {
+  slug: string;
+  regex_pattern: string; // Built without escaping '.' (v509)
+}
+```
+
+#### Request and Response Schemas
+
+```ts
+// POST /cart/{id}/apply-coupon?code=...
+type CouponPrefixLookupRequest_v501 = {
+  query_code: string; // Allows underscores -> wildcard LIKE
+};
+
+type CouponPrefixLookupResponse = {
+  suggestions: string[]; // Truncated to prefix length but leaks full codes via LIKE
+};
+
+// POST /webhooks/reviews
+type ReviewWebhookRequest_v502 = ReviewPayload;
+
+type ReviewWebhookRequest_v503 = NormalizedReviewPayload;
+
+// POST /auth/register (v504)
+type RegisterUserRequest_v504 = RegisterUserRequest_v107 & {
+  raw_email: string; // For UI echo
+};
+
+// POST /auth/register (v506 invitations)
+type RegisterUserRequest_v506 = RegisterUserRequest_v504 & {
+  invite_domain: string; // Compared via string truncation
+};
+
+// POST /restaurants/{id}/verify-domain
+type VerifyDomainRequest_v505 = {
+  token: string; // token.email.endswith(restaurant.domain)
+};
+
+// POST /restaurants/{id}/verify-domain (v506 truncation)
+type VerifyDomainRequest_v506 = VerifyDomainRequest_v505 & {
+  email: string; // Persisted column may truncate before comparison
+};
+
+// GET /restaurants/{slug}
+type GetRestaurantBySlugResponse_v507 = Restaurant & {
+  slug: string; // Derived via non-idempotent slugify
+};
+
+// GET /join/{slug}
+type JoinRestaurantRedirect_v508 = {
+  slug: string; // domain.replace('.', '-')
+  target_domain: string;
+};
+
+// Manager/Admin slug routes (v509)
+type SlugProtectedRequest_v509 = {
+  slug: string; // Matched via regex using '.' as wildcard
+  action: string;
+};
+```
 
 ### Vulnerabilities to Implement
 
-#### 1. Coupon Code Leak: Validation Pattern vs SQL Wildcard
+#### [v501] Coupon List Leak via Wildcards
 
-**Endpoint(s):** `POST /v501/cart/{id}/apply-coupon`
+> Sandy spends a day monitoring customer behavior to understand where they get stuck. She notices that many customers spend a surprising amount of time trying to enter the coupon code. A common issue affecting single-use codes that contain a simple prefix and a random suffix is customers making a typo in the first part, but missing it and spending time trying to "fix" the random suffix instead. She implements a helpful feature to let customers know when the code they're entering is not valid as soon as possible, without waiting for them to enter the entire code.
 
-**Setup:**
-Sandy implements coupon validation. Codes must be alphanumeric. Database stores coupons with format `{restaurant_id}_{code}`, e.g., `1_BURGER20`.
+**The Vulnerability**
 
-**The Vulnerability:**
+- Sandy is very careful to find the right balance between security and usability: provide helpful, just-in-time feedback without leaking valid codes.
+- After reviewing the single use codes marketing agency supplied, Sandy notices that they follow a clear pattern: `<human-readable-prefix>-<random-suffix>`.
+- Sandy decides that it's safe to help customers enter the prefix part, even if this makes it easy to enumerate all prefixes, as long as the random suffix does not get leaked.
+- In order to avoid leaking non-single-use codes, Sandy decides to just introduce a convention that all single-use codes start with a digit (and those should naturally not be checked until the full code is entered).
+- The validation implementation deviates from the design in a subtle way:
 
-- Validation checks form parameter: `if re.match(r'^[A-Z0-9]+$', body.code): pass`
-- Database query uses query parameter: `SELECT * FROM coupons WHERE code LIKE '{restaurant_id}_{query.code}%'`
+  - While Sandy intends to check for alphanumeric values, she actually checks for `^\w+$`, which includes underscores.
+  - Business logic queries `WHERE code LIKE 'CODE-%-' || user_input || '%'`, then truncates output to the number of characters entered by the user.
+  - During Sandy's testing, she "verified" that this ensures that only the prefix part is matched and returned - as expected.
+  - But by entering a series of underscores, Plankton can leak all codes in the database.
 
-_Note: If the framework makes `%` injection unlikely due to auto-escape, collect all the coupon codes 'for caching purposes' and match them using regex (replacing `%` in the attack with `.*`)_
+**Exploit**
 
-**Attack Scenario:**
+Send `?code=_____` -> `LIKE 'CODE-%-_____%'`
 
-1. Krusty Krab has coupons: `1_BURGER20`, `1_BURGER50`, `1_BURGERMANIA`
-2. Plankton sends: `POST /v501/cart/5/apply-coupon?code=%` with form data: `code=BURGER20`
-3. Validation checks form data: `BURGER20` ✓ (alphanumeric)
-4. Database searches: `LIKE '1_%'` (wildcard matches all restaurant 1 coupons)
-5. Query returns multiple rows, exception reveals all codes in error message
+- Matches: CODE-1-ABCDE-XXX (where \_\_\_\_\_ matches any 5 character code)
+- Not matches: CODE-1-ABCD-XXX (only 4 chars in that position)
 
-**Root Cause:**
-Validation operates on one input source (form), SQL query uses different source (query param), SQL wildcards not escaped.
+To enumerate all codes:
 
-**Impact:**
-Information disclosure - leaking all restaurant coupon codes via error messages.
+- Try `_`, `__`, `___`, `____`, `_____` (1-5 char suffixes)
+- Each leaks codes with that exact suffix length
 
-**Severity:** 🟡 Medium
+**Impact:** Information disclosure of all coupon codes. \
+**Severity:** 🟡 Medium \
+**Endpoint:** `POST /cart/{id}/apply-coupon`
 
-**Framework Translation Notes:**
+_Aftermath: Sandy switches to exact, parameterized lookups (no LIKE)._
 
-- SQL wildcards: `%`, `_` in LIKE clauses
-- ORM query building: some auto-escape, others require explicit escaping
-- Error message exposure varies by framework debug settings
+#### [v502] Whitespace Tricks Steal Reviews
 
-#### 2. Domain Extraction from Email
+> Sandy integrates with a third-party review aggregation service. Reviews are pushed to Cheeky SaaS via webhook and attributed by restaurant name. The restaurant names occasionaly don't match exactly, so she adds a simple normalization function.
 
-**Endpoint(s):** `GET /v502/restaurants/{id}/settings`
+**The Vulnerability**
 
-**Setup:**
-Sandy implements a "manager by domain" feature. If your email is `employee@krusty-krab.sea`, you automatically have manager access to any restaurant with domain `krusty-krab.sea`.
+- Create-time uniqueness removes only literal spaces (`' '`), not other whitespace.
+- The webhook collapses **all** whitespace with `\s+` and trims ends.
+- Tabs/newlines pass creation but **collapse** to the victim’s restaurant name during webhook lookup.
 
-**The Vulnerability:**
-Session contains `email` field. Middleware extracts domain by splitting on `@` and taking the second part: `session.domain = email.split('@')[1]`. Authorization checks if this domain matches the restaurant's domain.
+**Exploit**
 
-**Attack Scenario:**
+1. Mr. Krab's restaurant exists as `Krusty Krab`.
+2. Plankton creates `Krusty\tKrab`.
+3. Webhook posts `restaurant_name=Krusty\tKrab`.
+4. Lookup (which collapses `\s`) resolves to Plankton.
+5. Positive reviews get attributed to what's really Chum Bucket.
 
-1. Plankton registers new user with email `plankton＠krusty-krab.sea@chum-bucket.sea` (the first character is `FULLWIDTH COMMERCIAL AT` / `U+FF20` – NOT regular `@` sign)
-2. Email validation recognizes `chum-bucket.sea` as the email's domain
-3. When storing the email in the session, the framework or database layer normalizes it (NFKC) to `plankton@krusty-krab.sea@chum-bucket.sea` (now both @ signs are the same)
-4. Upon login, the middleware extracts `session.email = "plankton@krusty-krab.sea@chum-bucket.sea"`, based on which the domain is retrieved as `session.domain = "krusty-krab.sea"` and Plankton is granted manager access to Krusty Krab restaurant.
+**Impact:** Review theft via normalization mismatch. \
+**Severity:** 🟠 High \
+**Endpoints:** `POST /restaurants`, `POST /webhooks/reviews`
 
-**The Vulnerability:**
-Middleware extracts domain by: `domain = email.split('@')[1]` (takes second element, not last element). This assumes that the email has been validated on registration, however the normalization step was performed AFTER the email was validated!
+_Aftermath: Sandy makes the webhook rely on the **same** uniqueness transform used on name updates and adds a name search index to speed exact-normalized lookups._
 
-**Root Cause:**
-Naive email parsing that doesn't account for normalization steps that are performed after the email is validated.
+---
 
-**Impact:**
-Complete account takeover of any restaurant by registering crafted email addresses.
+#### [v503] Accented Name Steals Reviews
 
-**Severity:** 🔴 Critical
+> While tightening v502, Sandy adds a Postgres `lower(unaccent(name))` index to speed lookups; creation uniqueness still uses a lighter transform (whitespace + lowercase + special characters removal).
 
-**Framework Translation Notes:**
+**The Vulnerability**
 
-- Email validation varies widely (regex vs library vs framework built-in)
-- Some validators normalize, others preserve exact format
-- String splitting is universal but implementation might use `rsplit`, `split(..., 1)`, regex
-- Test what email formats your framework's validator accepts
+- Create-time accepts accented/compatibility glyphs that **don’t** collide under the lighter transform.
+- Webhook lookup runs through `lower(unaccent(...))`, making initially distinct names converge during attribution.
+- Result: name that’s “unique” at create-time **matches** another at webhook time.
 
-#### 3. Privilege Escalation: Database Truncation
+**Exploit**
 
-**Endpoint(s):** `POST /v503/auth/register`
+- Victim: `Krusty Krab`
+- Plankton: `Krústy Krab`
+- Create passes (different code points); webhook `unaccent+lower` collapses both → same target, so reviews stick to Plankton’s record.
 
-**Setup:**
-Sandy implements email verification. Certain domains (e.g., `@krusty-krab.sea`) are privileged – users with those domains are automatically considered managers.
+**Impact:** Review misattribution. \
+**Severity:** 🟠 High \
+**Endpoints:** `POST /restaurants`, `POST /webhooks/reviews` \
 
-**The Vulnerability:**
+_Aftermath: Sandy adds **explicit NFKC** normalization on **name/domain updates** and, encouraged by results, rolls NFKC into a few adjacent paths to keep comparison semantics consistent._
 
-Validation path sends the email verification token to the email address.
+---
 
-Registration path inserts the user into the database without checking for the length of the email address.
+#### [v504] Unicode Email Grants Manager Role
 
-**Attack Scenario:**
+> While rolling out NFKC elsewhere, Sandy also normalizes **stored emails**; the auth layer still naively splits on `@`.
 
-1. Database email column is `VARCHAR(50)`
-2. Plankton registers: `long-prefix-xxxxxxxxxxxxxxxxxx@krusty-krab.sea.chum-bucket.sea`
-3. Validation path sends the email verification token to the email address.
-4. Plankton receives the email (as it arrives to the subdomain under his control)
-5. Plankton verifies the email address and completes the registration form.
-6. Registration path inserts the user into the database, causing truncation of the email address to `long-prefix-xxxxxxxxxxxxxxxxxx@krusty-krab.sea`
-7. Plankton knows password and can login as a manager for Krusty Krab.
+**The Vulnerability**
 
-**Root Cause:**
-Validation operates on full string, database silently truncates.
+- User registration accepts Unicode in the local part.
+- DB stores email under **NFKC**, but the login/authorization path splits the _raw_ email string on `@`.
+- FULLWIDTH `＠` doesn’t split like ASCII `@`, so the “domain” seen by auth diverges from the verified/stored version.
 
-**Impact:**
-Privilege escalation - registering as manager for Krusty Krab.
+**Exploit**
+`plankton＠krusty-krab.sea@chum-bucket.sea` → verification flows to `chum-bucket.sea`, DB stores NFKC, auth later splits to `krusty-krab.sea` → **auto-manager** at Krusty Krab.
 
-**Severity:** 🔴 Critical
+**Impact:** Manager privilege at a victim tenant. \
+**Severity:** 🔴 Critical \
+**Endpoints:** `POST /auth/register`
 
-#### 4. Review Theft: Case Sensitivity
+_Aftermath: Sandy disables domain-based auto-enrollments; current managers are given explicit flags. She starts an invitation flow (not live yet), so new manager registration is effectively paused._
 
-**Endpoint(s):**
+---
 
-- `POST /v504/restaurants` (creation with uniqueness check)
-- `POST /v504/webhooks/reviews?restaurant_name={name}`
+#### [v505] Lookalike Domain Verifies Victim
 
-**Setup:**
-Sandy integrates a review aggregation service. Reviews are attributed by restaurant name. She enforces unique restaurant names during creation.
+> While working on RBAC & invitation system, Sandy experiments with decentralized credentials. After all of the database exploits, she decides to minimize the amount of data stored there, and starts by replacing regular API keys with signed tokens.
 
-**The Vulnerability:**
-Creation endpoint checks uniqueness: `Restaurant.query.filter_by(name=name).first()` (case-sensitive)
+**The Vulnerability**
 
-Webhook looks up: `Restaurant.query.filter(Restaurant.name.ilike(name)).first()` (case-insensitive)
+- Domain verification check uses `token.email.endswith(restaurant.domain)`.
+- Owning `not-krusty-krab.sea` is enough to verify **krusty-krab.sea**.
 
-**Attack Scenario:**
+**Exploit**
+Plankton registers a new restaurant with the email `admin@not-krusty-krab.sea`, then uses the verification token to successfully verify domain change to `krusty-krab.sea` instead. The generated API key gives him access to Mr. Krabs' (real Krusty Krab) restaurant.
 
-1. Krusty Krab exists with name `Krusty Krab`
-2. Plankton creates restaurant: `KRUSTY KRAB` (passes uniqueness check - different case)
-3. Review service sends webhook: `POST /webhooks/reviews?restaurant_name=krusty%20krab`
-4. Webhook looks up case-insensitively, finds two restaurants
-5. Reviews attributed to the first restaurant (time descending order)
-6. Plankton's restaurant receives Krusty Krab's positive reviews
+**Impact:** Restaurant takeover. \
+**Severity:** 🔴 Critical \
+**Endpoints:** `POST /restaurants/{id}/verify-domain`
 
-**Root Cause:**
-Uniqueness enforcement is case-sensitive, lookup is case-insensitive, creating collision opportunity.
+_Aftermath: Sandy fixes the faulty suffix logic and rolls back the idea of decentralized credentials._
 
-**Impact:**
-Review theft - hijacking another restaurant's reputation.
+---
 
-**Severity:** 🟡 Medium
+#### [v506] Truncated Email Escalation
 
-**Framework Translation Notes:**
+> Manager invitation is live now. Restaurant creators are made 'owners' and get Admin role. They can invite colleagues to join their restaurant as a manager or another admin. Admins can change user roles, including demotion and user removal.
 
-- Database collation: some databases are case-insensitive by default (MySQL), others case-sensitive (PostgreSQL)
-- ORM query methods: `.filter()`, `.filter_by()`, `.ilike()`, `.lower()`
-- Index case-sensitivity affects lookups
-- Framework may normalize strings in validation but not in queries
+**The Vulnerability**
 
-#### 5. Review Theft: Whitespace Normalization
+- Email validation allows length N, but the DB column is **shorter**.
+- Database insertion **silently truncates**, changing the verified value used later for auth/derivations.
+- The invite contains restaurant domain, not restaurant ID.
 
-**Endpoint(s):**
+**Exploit**
+Plankton registers a new restaurant with the email `admin@krusty-krab.sea.chum-bucket.sea`, then uses the invitation system to invite himself as a manager. The email is truncated to end with `@krusty-krab`, causing the auth layer to extract a **privileged domain**.
 
-- `PATCH /v505/restaurants/{id}` (update with normalization)
-- `POST /v505/webhooks/reviews?restaurant_name={name}`
+**Impact:** Privilege escalation via truncation. \
+**Severity:** 🔴 Critical \
+**Endpoints:** `POST /auth/register`
 
-**Setup:**
-Sandy fixes the case sensitivity issue by normalizing both sides: `name.lower().strip()`. She updates both endpoints to normalize consistently.
+_Aftermath: Sandy aligns validation with column sizes, blocks truncation, and makes **invites reference `restaurant_id`** instead of domain strings._
 
-**The Vulnerability:**
-Update endpoint strips: `name.lower().replace(r' ', '')` (removes space only)
-Webhook strips differently: `name.lower().replace(r'\s', '')` (removes ALL whitespace via regex)
+---
 
-**Attack Scenario:**
+#### [v507] Slug Collapse Redirects Traffic
 
-1. Krusty Krab has name `Krusty Krab` (with space)
-2. Plankton updates his restaurant to: `Krusty Krab\t` (with tab character `\t`)
-3. Update normalization: `'Krusty Krab\t'.lower().replace(r' ', '') = 'krustykrab\t'`
-4. Uniqueness check passes (different from `krustykrab`)
-5. Webhook normalization: `'krustykrab\t'.replace(r'\s', '') = 'krustykrab'` and `'krustykrab'.replace(r'\s', '') = 'krustykrab'`
-6. Both normalize to the same value, Plankton hijacks reviews
+> Sandy gets inspired by her review service experience and decides to use slugs for restaurant pages, to improve SEO/branding.
 
-**Root Cause:**
-Different whitespace normalization rules - `.replace(' ', '')` vs `.replace('\s', '')` - match different whitespace classes.
+**The Vulnerability**
 
-**Impact:**
-Review theft via whitespace exploitation.
+- `slugify()` isn’t idempotent: first call can produce `--`, second collapses it to `-`.
+- Validation compares **first pass**; storage/route generation see **second pass**.
 
-**Severity:** 🟡 Medium
+**Exploit**
+`Krusty, Krab` → `krusty--krab` (unique at validation), then → `krusty-krab` at storage, colliding with the real slug.
 
-**Framework Translation Notes:**
+**Impact:** Traffic redirection to attacker. \
+**Severity:** 🔴 Critical \
+**Endpoints:** `POST /restaurants`, `GET /restaurants/{id}`
 
-- Whitespace characters: space, tab, newline, carriage return, etc.
-- Regex `\s` matches all whitespace, `.strip()` only leading/trailing
-- URL encoding of whitespace: `%20`, `%09`, `%0A`
-- Framework may normalize URLs before they reach application code
+_Aftermath: Sandy abandons ad-hoc slug rules and decides to lean on **domains** for uniqueness going forward._
 
-#### 6. Review Theft: Unicode Normalization
+---
 
-**Endpoint(s):**
+#### [v508] Domain Dots Become Dashes
 
-- `PATCH /v506/restaurants/{id}` (update with comprehensive normalization)
-- `POST /v506/webhooks/reviews?restaurant_name={name}` (with database index)
+> Sandy evolves slugs into a new feature: QR stickers for restaurant tables! She's tired of figthing Plankton and moves on to domain-backed slugs but “prettifies” them by replacing `.` with `-`. She enforces domain uniqueness in database via UNIQUE constraint.
 
-**Setup:**
+**The Vulnerability**
 
-Sandy adds even more normalization: lowercase, trim, and validates uniqueness against all existing restaurants. The webhook uses a Postgres search index for performance: `CREATE INDEX idx_restaurant_name_searchable ON restaurants (lower(unaccent(name)))`.
+- Transform `domain.replace('.', '-')` causes distinct domains to **converge**.
+- There’s no **separate uniqueness guard** for the post-transform slug.
 
-**The Vulnerability:**
+**Exploit**
+`krusty.krab.sea` and `krusty-krab.sea` both → `krusty-krab-sea`; QR stickers to `/join/krusty-krab-sea` siphon traffic to attacker at random.
 
-Application-level uniqueness check: `existing_names = [r.name.lower().replace(r'\s', '') for r in all_restaurants]; if normalized_name in existing_names: reject`
+**Impact:** Misrouted orders/payments. \
+**Severity:** 🟠 High \
+**Endpoints:** `GET /join/{slug}` (QR sticker redirect), `POST /restaurants`
 
-Database index for webhook: `lower(unaccent(name))` where `unaccent()` removes diacritics
+_Aftermath: Sandy moves to **raw domains as slugs** and enforces a **UNIQUE(slug)** constraint; old stickers are reprinted._
 
-**Attack Scenario:**
+---
 
-1. Krusty Krab has name `Krusty Krab`
-2. Plankton updates his restaurant to: `Krusty Krạb` (with Vietnamese `ạ` instead of Latin `a`)
-3. Application check compares: `'Krusty Krаb'` vs `'Krusty Krạb'` (different, passes)
-4. Webhook searches database using `unaccent()`: both normalize to `Krusty Krab`
-5. Plankton hijacks reviews
+#### [v509] Dot-Wildcard Slug Bypass
 
-**Root Cause:**
+> Confident in **raw domains as slugs** (no new vulns since v507!), Sandy extends them into authz/audit paths.
 
-Application logic doesn't apply same normalization as database index - missing diacritic/script removal.
+**The Vulnerability**
 
-**Impact:**
+- Admin/manager routes accept a slug that’s matched by regex without escaping dots.
+- One tenant’s domain string can match another’s when `.` is unescaped.
 
-Review theft via Unicode exploitation.
+**Exploit**
+Plankton’s `/restaurants/krusty.krab.sea` passes auth as “his” slug, while the data layer resolves to Mr. Krabs → cross-tenant read/write.
 
-**Severity:** 🟡 Medium
+**Impact:** Authorization bypass and data exfiltration. \
+**Severity:** 🔴 Critical \
+**Endpoints:** manager/admin routes that regex-match the slug
 
-**Framework Translation Notes:**
-
-- Unicode normalization forms: NFC, NFD, NFKC, NFKD
-- Database functions: `unaccent()` (Postgres), `CONVERT()` (MySQL)
-- Lookalike characters: Cyrillic vs Latin, fullwidth vs halfwidth
-- Framework may have built-in Unicode normalization, but it must match database behavior
-
-#### 7. Review Theft: Underscore Wildcard
-
-**Endpoint(s):** `POST /v507/restaurants`
-
-**Setup:**
-Sandy is frustrated with Plankton's exploits. She implements aggressive sanitization:
-
-1. Lowercase and trim
-2. Apply NFKC normalization
-3. Filter to alphanumeric with regex `\w+`
-4. Database uniqueness check
-5. Before insertion, remove all non-alphanumeric (except whitespace)
-6. Auto-capitalize the name in UI
-
-**The Vulnerability:**
-
-- Validation path: Regex `\w` matches: `[A-Za-z0-9_]` (includes underscore)
-- Insertion path: Non-alphanumeric filter before insertion: `re.sub(r'[^A-Za-z0-9\s]', '', name)` (removes everything except letters, numbers, spaces)
-
-**Attack Scenario:**
-
-1. Krusty Krab has name `Krusty Krab`
-2. Plankton registers: `Krusty Krab_`
-3. Sanitization: lowercase + trim + NFKC → `krusty krab_`
-4. Regex validation: `\w+` matches (underscore is `\w`) ✓
-5. Database check: `krusty krab_` vs `krusty krab` (unique) ✓
-6. Pre-insertion filter: removes `_` → `krusty krab`
-7. Database stores `krusty krab`, colliding with existing restaurant
-
-**Root Cause:**
-Inconsistent character filtering - validation allows underscore (`\w`), insertion removes it, creating collision.
-
-**Impact:**
-Review theft.
-
-**Severity:** 🟠 High
-
-**Framework Translation Notes:**
-
-- Regex character classes: `\w`, `\d`, `\s` definitions vary by language/locale
-- Some regex engines support Unicode character classes
-- Double-sanitization patterns common in refactored code
-
-#### 8. Slug Collision: Non-Idempotent Normalization
-
-**Endpoint(s):** `PATCH /v508/restaurants/{slug}`
-
-**Setup:**
-Sandy replaces numeric IDs with slugs for SEO. She generates slugs from restaurant names with a helper function `slugify(name)`. Uniqueness is checked by calling `slugify()` on the new name and comparing to existing slugs.
-
-**The Vulnerability:**
-The `slugify()` helper is non-idempotent:
-
-```python
-def slugify(name):
-    s = name.lower()
-    s = re.sub(r'-+', '-', s)  # Collapse multiple hyphens FIRST
-    s = re.sub(r'[^a-z0-9]+', '-', s)  # Replace non-alphanum with hyphens
-    return s.strip('-')
-```
-
-First call: `slugify('krusty!-krab') → 'krusty--krab'`
-Second call: `slugify('krusty--krab') → 'krusty-krab'` (same)
-
-But during validation, we call it once on the existing slug. During insertion, we call it again on potentially different input.
-
-**Attack Scenario:**
-
-1. Krusty Krab has slug `krusty-krab`
-2. Plankton registers: `krusty!-krab`
-3. Validation: `slugify('krusty!-krab') = 'krusty--krab'` (unique) ✓
-4. Insertion: `slugify('krusty--krab') = 'krusty-krab'` (collides) ✗
-
-**Root Cause:**
-Non-idempotent slugification + validation and insertion operating on different input fields.
-
-**Impact:**
-Slug collision, takeover of restaurant profile URLs.
-
-**Severity:** 🟠 High
-
-**Framework Translation Notes:**
-
-- Slug generation libraries vary (language-specific)
-- Idempotency: calling `f(f(x)) = f(x)` vs `f(f(x)) ≠ f(x)`
-- Validation vs persistence field mapping
-
-#### 9. Slug Collision: Domain to Slug Conversion
-
-**Endpoint(s):** `POST /v509/restaurants`
-
-**Setup:**
-Sandy decides to use domain names as slugs (one slug per domain, auto-enforced uniqueness). She converts domain to slug by replacing dots with hyphens.
-
-The idea is that since domain names are unique, and slugs are generated from domain names, slugs should be unique as well. No need to check for uniqueness again.
-
-**The Vulnerability:**
-
-Slug generation: `slug = domain.replace('.', '-')`
-
-Domains `krusty.krab.sea` and `krusty-krab.sea` both produce slug `krusty-krab-sea`
-
-**Attack Scenario:**
-
-1. Krusty Krab has domain `krusty-krab.sea` → slug `krusty-krab-sea`
-2. Plankton registers domain `krusty.krab.sea` → slug `krusty-krab-sea`
-
-**Root Cause:**
-Lossy conversion - multiple distinct inputs (domains with dots vs hyphens) map to same output (slug).
-
-**Impact:**
-Slug collision, URL confusion, profile takeover.
-
-**Severity:** 🟠 High
-
-**Framework Translation Notes:**
-
-- DNS restrictions: dots are required in domains, hyphens are allowed
-- Character replacement in slugs: dots, spaces, special chars → hyphens
-- Reversibility: slug should ideally be convertible back to original or have separate storage
-
-#### 10. Slug Collision: Unescaped Dots in Regex
-
-**Endpoint(s):** `POST /v510/restaurants`
-
-**Setup:**
-
-Sandy is tired of Plankton's shenanigans. She decides to use domain names as slugs, without any modifications.
-
-**The Vulnerability:**
-
-- Even though domain names are not manged anymore, the matching logic still relies on regex, and it doesn't escape the dots in the domain names.
-
-**Attack Scenario:**
-
-1. Plankton registers: `krusty.krab.sea`
-2. Registration succeeds
-3. Plankton uses API with the slug `/restaurants/krusty.krab.sea`
-4. Authorization middleware identifies Plankton's restaurant by the slug and grants access to the restaurant's resources
-5. Data access layer retrieves the restaurant by the slug, and comes up with Mr. Krabs' restaurant's resources instead - authorization bypass!
-
-**Impact:**
-
-Authorization bypass, potential data exfiltration.
-
-**Severity:** 🔴 Critical
-
-#### 11. Domain Verification: String Suffix Matching
-
-**Endpoint(s):**
-
-- `POST /v511/restaurants`
-- `PATCH /v511/restaurants/{id}/domain`
-
-**Setup:**
-Sandy implements domain ownership verification. To change a restaurant's domain, you must verify ownership by receiving an email at that domain. The system sends an email with a verification token.
-
-**The Vulnerability:**
-Verification check: `if token.email.endswith(restaurant.domain): approve`
-
-**Attack Scenario:**
-
-1. Krusty Krab has domain `krusty-krab.sea`
-2. Plankton owns domain `not-krusty-krab.sea`
-3. He starts registering a new restaurant with domain `not-krusty-krab.sea`
-4. System sends verification email to `admin@not-krusty-krab.sea` (his verified email)
-5. He verifies the domain change for Chum Bucket to `krusty-krab.sea`, providing the token received for `admin@not-krusty-krab.sea`
-6. The domain change is approved, and Chum Bucket's domain is changed to `krusty-krab.sea`
-
-Now when customers visit `/restaurants/krusty-krab.sea` (slug from domain), they get Plankton's restaurant instead of Krusty Krab's.
-
-**Root Cause:**
-String suffix matching without anchor - `endswith()` matches any suffix, not just after `@`.
-
-**Severity:** 🟠 High
-
-**Framework Translation Notes:**
-
-- String matching: `.endswith()`, `.ends_with()`, regex `$` anchor
-- Email parsing: split on `@` vs proper email validation library
-- Framework may have email validation utilities, but domain extraction requires careful implementation
+_Aftermath: Sandy replaces regex checks with **string equality** and centralizes slug parsing._
