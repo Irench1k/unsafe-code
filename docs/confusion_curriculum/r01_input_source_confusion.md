@@ -28,55 +28,39 @@ Sandy Cheeks is building a restaurant ordering platform. She starts with a simpl
 
 At this stage, authentication is basic (Sandy onboards each user manually, and uses hardcoded credentials & API keys for authentication). There's no multi-tenancy complexity yet. Sandy is focused on shipping features quickly, validating her MVP and finding product-market fit.
 
-### Endpoints:
+### Endpoints
 
-| Lifecycle | Method | Path                       | Auth                | Purpose                   | Vulnerabilities |
-| --------- | ------ | -------------------------- | ------------------- | ------------------------- | --------------- |
-| v101+     | GET    | /account/credits           | Customer            | View balance              |                 |
-| v101+     | GET    | /menu                      | Public              | List available menu items |                 |
-| v101+     | GET    | /orders                    | Customer/Restaurant | List orders               |                 |
-| v101-v102 | POST   | /orders                    | Customer            | Create new order          | v101, v102      |
-| v103+     | POST   | /cart                      | Customer            | Create cart               |                 |
-| v103+     | POST   | /cart/{id}/items           | Customer            | Add item to cart          |                 |
-| v103+     | POST   | /cart/{id}/checkout        | Customer            | Checkout cart             | v103, v104      |
-| v103+     | PATCH  | /orders/{id}/status        | Restaurant          | Update order status       |                 |
-| v105+     | POST   | /orders/{id}/refund        | Customer            | Request refund            |                 |
-| v105+     | PATCH  | /orders/{id}/refund/status | Restaurant          | Update refund status      | v105            |
-| v106      | POST   | /auth/register             | Public              | Register user             | v106            |
-
-> [!IMPORTANT]
-> Don't add complex authorization yet – that's r03. Use database-level ownership checks (e.g., `WHERE user_id = current_user`) to avoid accidental IDORs, but don't build a full RBAC system.
-
-This section uses rudimentary authentication and authorization:
-
-- Beta-users are onboarded manually by Sandy (using direct database inserts)
-- Customers are authenticated using Basic Auth (username/password)
-- Restaurants are authenticated using API keys (X-API-Key header)
-
-> [!TIP]
-> Add a docker compose service for https://github.com/axllent/mailpit to capture verification emails sent during user registration
+| Lifecycle | Method | Path                | Auth                | Purpose                   | Vulnerabilities |
+| --------- | ------ | ------------------- | ------------------- | ------------------------- | --------------- |
+| v101+     | GET    | /account/credits    | Customer            | View balance              |                 |
+| v101+     | GET    | /menu               | Public              | List available menu items |                 |
+| v101+     | GET    | /orders             | Customer/Restaurant | List orders               |                 |
+| v101-v102 | POST   | /orders             | Customer            | Create new order          | v101, v102      |
+| v103+     | POST   | /cart               | Customer            | Create cart               |                 |
+| v103+     | POST   | /cart/{id}/items    | Customer            | Add item to cart          |                 |
+| v103+     | POST   | /cart/{id}/checkout | Customer            | Checkout cart             | v103, v104      |
+| v103+     | PATCH  | /orders/{id}/status | Restaurant          | Update order status       |                 |
+| v105+     | POST   | /orders/{id}/refund | Customer            | Request refund            | v105            |
+| v106+     | POST   | /auth/register      | Public              | Register user             | v106, v107      |
 
 #### Schema Evolution
 
 Track how schemas change across versions:
 
-| Model               | v101              | v102            | v103       | v104   | v105 | v106 |
-| ------------------- | ----------------- | --------------- | ---------- | ------ | ---- | ---- |
-| Cart                | -                 | -               | ✅         | -      | -    | -    |
-| CheckoutCartRequest | -                 | -               | Base       | `+tip` | -    | -    |
-| CreateOrderRequest  | `item \| items[]` | `items[]` only  | -          | -      | -    | -    |
-| MenuItem            | ✅                | -               | -          | -      | -    | -    |
-| Order               | Base              | `+delivery_fee` | `+cart_id` | `+tip` | -    | -    |
-| OrderItem           | ✅                | -               | -          | -      | -    | -    |
-| Refund              | -                 | -               | -          | -      | ✅   | -    |
-| RegisterUserRequest | -                 | -               | -          | -      | -    | ✅   |
+| Model               | v101              | v102                | v103                        | v104   | v105 | v106                        | v107                         |
+| ------------------- | ----------------- | ------------------- | --------------------------- | ------ | ---- | --------------------------- | --------------------------- |
+| Cart                | -                 | -                   | ✅ (new entity)             | -      | -    | -                           | -                           |
+| CartItem            | -                 | -                   | `sku list`                  | -      | -    | -                           | -                           |
+| CheckoutCartRequest | -                 | -                   | Base (`delivery_address`)   | `+tip` | -    | -                           | -                           |
+| CreateOrderRequest  | `item \| items[]` | `items[]` only      | Legacy fallback             | Legacy | Legacy | Legacy                     | Legacy                     |
+| Order               | Base              | `+delivery_fee`     | `+cart_id`                  | `+tip` | -    | -                           | -                           |
+| Refund              | -                 | -                   | -                           | -      | ✅   | -                           | -                           |
+| RegisterUserRequest | -                 | -                   | -                           | -      | -    | `Two-step (email/token)`    | `+BasicAuth override path` |
 
 #### Data Models
 
 ```ts
-/**
- * A single item available on a restaurant's menu.
- */
+/** Public menu entry (unchanged through r01). */
 interface MenuItem {
   id: string;
   name: string;
@@ -84,64 +68,67 @@ interface MenuItem {
   available: boolean;
 }
 
-/**
- * An item that has been added to an order.
- * Note: price is copied at time of purchase.
- */
+/** Snapshot of a menu item captured inside an order/cart. */
 interface OrderItem {
   item_id: string;
   name: string;
   price: decimal;
 }
 
-/**
- * Represents a customer's shopping cart.
- */
+/** Cart line item introduced in v103 when the mobile app shipped. */
+interface CartItem {
+  sku: string;
+}
+
+/** Shopping cart produced by POST /cart (v103+). */
 interface Cart {
   cart_id: string;
-  items: string[]; // Array of item IDs
+  user_id: string;
+  items: CartItem[];
+  subtotal: decimal;
 }
 
-/**
- * Represents a completed Order.
- * This model evolves throughout r01.
- */
+/** Core order record; new fields are appended as features land. */
 interface Order {
   order_id: string;
-  total: decimal;
-  delivery_address: string;
-  created_at: timestamp;
+  user_id: string;
   items: OrderItem[];
-
-  // Added in v102
+  total: decimal;
+  delivery_address?: string;
+  // v102: delivery pilot introduces a fee based on cart value.
   delivery_fee?: decimal;
-
-  // Added in v103 (cart-based checkout)
+  // v103: cart-based checkout copies the originating cart ID when provided.
   cart_id?: string;
-
-  // Added in v104
+  // v104: couriers can see the gratuity Sandy stores alongside the order.
   tip?: decimal;
+  created_at: timestamp;
 }
 
-/**
- * Represents a refund request.
- */
+/** Refund requests appear in v105. */
 interface Refund {
   refund_id: string;
   order_id: string;
   amount: decimal;
   reason?: string;
-  status: "pending" | "accepted" | "rejected";
+  status: "pending" | "auto_approved" | "rejected";
+  // v105 auto-approval flag records whether middleware granted 20% refunds.
+  auto_approved: boolean;
 }
 
-/**
- * Represents a registered user.
- */
+/** Minimal user profile carried through r01 enrolment flows. */
 interface User {
   user_id: string;
   email: string;
-  name: string;
+  password_hash: string;
   balance: decimal;
+}
+
+/** Verification token payload shared between email + domain confirmation. */
+interface VerificationToken {
+  token: string;
+  email: string;
+  issued_at: timestamp;
+  expires_at: timestamp;
 }
 ```
 
@@ -149,9 +136,7 @@ interface User {
 
 ```ts
 // GET /account/credits
-type GetCreditsResponse = {
-  balance: decimal;
-};
+type GetCreditsResponse = { balance: decimal };
 
 // GET /menu
 type ListMenuResponse = MenuItem[];
@@ -159,71 +144,67 @@ type ListMenuResponse = MenuItem[];
 // GET /orders
 type ListOrdersResponse = Order[];
 
-// POST /orders (v101)
+// POST /orders (v101: dual parameter era)
 type CreateOrderRequest_v101 = {
-  item?: string; // Single item ID (initial MVP)
-  items?: string[]; // Array of menu item IDs (new feature)
-  delivery_address: string;
+  item?: string;          // Legacy single-item kiosk payload
+  items?: string[];       // Multi-item array added for newer tablets
+  delivery_address?: string;
 };
 
-// POST /orders (v102)
-// The 'item' parameter is deprecated and removed
+// POST /orders (v102: delivery fees depend on query/body divergence)
 type CreateOrderRequest_v102 = {
-  items: string[];
-  delivery_address: string;
+  items: string[];        // Legacy `item` is ignored except for price calc bugs
+  delivery_address?: string;
 };
 
-// POST /cart
+// POST /cart (v103)
 type CreateCartRequest = {
-  items: string[]; // Array of item IDs
+  items: string[];        // Deduplicated later, but duplicates still accepted now
 };
 
-// POST /cart/{id}/items
-type AddItemToCartRequest = {
-  items: string[]; // Array of item IDs
+// POST /cart/{id}/items (v103)
+type AddItemsToCartRequest = {
+  items: string[];        // Legacy clients send repeated keys, server dedupes lazily
 };
 
 // POST /cart/{id}/checkout (v103)
 type CheckoutCartRequest_v103 = {
-  delivery_address: string;
+  delivery_address?: string;
+  order_id?: string;      // Should be ignored but triggers overwrite confusion
 };
 
 // POST /cart/{id}/checkout (v104)
-type CheckoutCartRequest_v104 = {
-  delivery_address: string;
-  tip?: decimal; // Tip is added
+type CheckoutCartRequest_v104 = CheckoutCartRequest_v103 & {
+  tip?: decimal;          // Middleware reads query first, handler trusts body
 };
 
-// PATCH /orders/{order_id}/status
+// PATCH /orders/{id}/status
 type OrderStatusUpdateRequest = {
-  status: "preparing" | "delivering" | "finished" | "cancelled";
+  status: "pending" | "preparing" | "delivering" | "finished" | "cancelled";
 };
 
-// POST /orders/{order_id}/refund
-type RequestRefundRequest = {
-  amount?: decimal; // Defaults to 20% if not provided
+// POST /orders/{id}/refund (v105)
+type RequestRefundRequest_v105 = {
+  amount?: decimal;       // Auto-approval path defaults to 20% of order total
   reason?: string;
+  source?: "auto" | "customer";
 };
 
-// PATCH /orders/{order_id}/refund/status
-type UpdateRefundStatusRequest = {
-  status: "accepted" | "rejected";
-  reason?: string;
+// POST /auth/register (v106 two-step enrollment)
+type RegisterUserRequest_v106 =
+  | { email: string; token?: undefined; password?: undefined }
+  | { token: string; password: string; email?: string };
+
+// POST /auth/register (v107 Basic Auth override keeps running during beta)
+type RegisterUserRequest_v107 = RegisterUserRequest_v106 & {
+  basic_auth_email?: string; // Copied from Authorization header when present
 };
 
-// POST /auth/register
-type RegisterUserRequest = {
-  email: string;
-  password?: string; // Optional: not needed for first step
-  token?: string; // Optional: provided in verification step
-};
-
-// POST /auth/register
+// POST /auth/register response
 type RegisterUserResponse = {
   user_id: string;
   email: string;
-  name: string;
-  balance: decimal; // New users get $2.00
+  bonus_credit: decimal; // $2 signup promo rolls out in v107
 };
 ```
 
@@ -231,115 +212,170 @@ type RegisterUserResponse = {
 
 #### [v101] Price Manipulation via Dual Parameters
 
-**Scenario:** Sandy initially accepted a single `item` parameter. Later, she added support for `items` (array) but forgot to remove the old parameter.
+> The initial in-restaurant tablet pilot (single-item promo combos only) went great, so Mr. Krabs now wants the full menu. Sandy updates the kiosk app (still Basic Auth, still physically inside Krusty Krab) so a single `POST /orders` can hold multiple items.
 
-**The Bug:**
+**The Vulnerability**
 
-- Price calculation reads `item` (single value)
-- Order creation reads `items` (array)
-- If both present, customer pays for one cheap item but receives expensive items
+- Order endpoint accepts a new `items[]` parameter now, but still accepts the legacy `item` parameter for backwards compatibility until all tablets are upgraded to the new version.
+- Price calculation still trusts the legacy `item` field if available
+- Order creation preferrably iterates over the new `items[]` array to insert rows in the database.
+- When both parameters appear, the `item` drives price while `items[]` drives fulfillment.
 
-**Impact:** Customer pays for a $1 side of fries, gets a $20 Krabby Patty meal. \
-**Severity:** 🔴 Critical
+**Exploit**
 
+1. Submit `item=coleslaw` ( $1 ).
+2. Also send `items[]=["krabby-patty-meal"]` (or `items=krabby-patty-meal&items=something-else`) in the form body.
+3. Checkout charges $1 but kitchen receives the premium meal line items.
+
+**Impact:** Customer pays for a $1 side, receives a $20 meal. \
+**Severity:** 🔴 Critical \
 **Endpoints:** `POST /orders`
+
+_Aftermath: With positive kiosk feedback, Mr. Krabs signs off on the delivery service trial next._
 
 ---
 
 #### [v102] Delivery Fee Bypass
 
-**Scenario:** Sandy is adding a free delivery feature for orders over $25.00.
+> Riding the pilot’s success, Sandy lends a few tablets to VIP customers (Plankton included) so they can place orders from home. She updates the API with a `delivery_address` and a delivery fee calculation algorithm (flat $4.99 fee for the orders under $25).
 
-**The Bug:**
+**The Vulnerability**
 
-- Fee calculation reads `items` from query parameters
-- Checkout reads `items` from request body
-- Attacker sends fake high-value items in query to trigger free delivery, real low-value items in body
+- Fee calculation happens to prioritize query args, if it's present
+- The order creation only reads the request data from the body
 
-**Impact:** Customer with $10 order gets free delivery by lying about cart total in query string. \
-**Severity:** 🟡 Medium
+**Exploit**
 
+1. Populate a cart with $10 worth of items.
+2. Hit checkout with `?items=[{"sku":"deluxe-mega","price":30}]`.
+3. Middleware thinks the cart is worth $30 and skips the delivery fee; the body still charges $10 worth of items.
+
+**Impact:** Free delivery on low-value orders. \
+**Severity:** 🟡 Low \
 **Endpoints:** `POST /orders`
+
+_Aftermath: The pilot participants order twice as much as previously, so Mr. Krabs asks for a proper mobile app ASAP._
 
 ---
 
 #### [v103] Order Overwrite via ID Injection
 
-**Scenario:** When introducing cart-based checkout, Sandy also added support for JSON bodies.
+> Sandy ships a proper mobile app (still in closed beta) that testers install on their own phones. The basic order checkout gets replaced with a modern cart-based checkout flow to support item modification and other features Sandy wants to add later.
 
-**The Bug:**
+**The Vulnerability**
 
-- For form data: the checkout handler creates new order with generated ID
-- For JSON: the checkout handler merges request JSON **into** template (with `order_id: <new_id>`)
-- Attacker includes existing `order_id` in JSON body, causing _upsert_ instead of _insert_
+- The new cart-based checkout builds a new order record based on the user request data.
+- It's careful to avoid merging untrusted user data into the order record, and explicitly takes the opposite "safe" approach (overwriting untrusted user input with calculated values).
+- The `order_id` is not passed in though, as it gets generated by the database.
+- If the attacker passes an explicit `order_id`, it's not overwritten – which can lead to rewriting an existing record.
 
-**Impact:** Attacker creates cheap order, then overwrites it with expensive items (without paying for them). \
-**Severity:** 🔴 Critical
+**Exploit**
 
+1. Create a $1 cart, record it's ID as `cheap_cart_id` and make an order (paying)
+2. Populate another cart with $20 worth of items, record it's ID as `expensive_cart_id`.
+3. POST to `/cart/{expensive_cart_id}/checkout` with body `{ "destination_address": "123 Main St, Bikini Bottom", "order_id": "<cheap_cart_id>" }`.
+4. The handler overwrites existing cheap order with the expensive cart data, without charging the customer.
+5. Restaurant receives the $20 order, and delivers it, despite customer only paying $1.
+
+**Impact:** Expensive order overwrites cheap one without recharging. \
+**Severity:** 🔴 Critical \
 **Endpoints:** `POST /cart/{id}/checkout`
+
+_Aftermath: Sandy blames poor coding practices on the crunch time, and promises to clean it up. She fixes the vulnerability by checking the presence of `order_id` in the request body via middleware._
 
 ---
 
 #### [v104] Negative Tip
 
-**Scenario:** Sandy is adding a new feature to allow customers to tip their delivery driver.
+> Couriers ask Sandy to add a tip field to the checkout flow.
 
-**The Bug:**
+**The Vulnerability**
 
-- Tip validation reads `tip` from request body
-- Charge calculation reads `tip` from query parameter
-- Attacker sends negative tip in query to offset order price, then only pays the difference instead of full amount
-- Attacker can also get more money back then what they paid for the order
+- Sandy has implemented the tip validation via middleware. It blocks requests with negative tips.
+- The middleware checks both query and body, prioritizing the query if present.
+- If both are present, the body value isn't validated.
+- An attacker supplies `tip=20` in the query string plus a negative tip in the body; validation sees the positive value, but charging logic subtracts the negative amount from the order total.
 
-**Impact:** Customer offsets order price by a negative tip, gets free orders or just steals money. \
-**Severity:** 🔴 Critical
+**Exploit**
 
+1. Send body `{ "tip": -50 }` to satisfy validation.
+2. Append `?tip=20` to the same request.
+3. Middleware blesses the request, but the final charge applies `-5`, crediting money back to the attacker.
+
+**Impact:** Free orders or direct payouts via negative tips. \
+**Severity:** 🔴 Critical \
 **Endpoints:** `POST /cart/{id}/checkout`
 
 ---
 
 #### [v105] Refund Fraud
 
-**Scenario:** Sandy is adding a new feature to allow customers to refund their orders. If the order gets delayed, the client app automatically requests a refund of 20% of the order total, so the backend implements logic to automatically accept refunds of up to 20% of the order total – and to wait for manual resolution for refunds over 20%.
+> Courier delays are inevitable, so Sandy adds `POST /orders/{order_id}/refund` so the mobile app can auto-refund 20% when drivers are late. While there, she also lets app users request full refunds, although those would need to be manually approved by Sandy herself.
 
-**The Bug:**
+**The Vulnerability**
 
-- Refund amount validation reads `amount` from JSON body (no value -> default 20% is set)
-- When applied, the refund `amount` is accessed from the merged dictionary of form data and JSON body
-- Attacker can send negative amount in urlencode form, bypassing the validation and causing the refund to be auto-accepted
+- The auto-approval check reads `amount` from the JSON body, defaulting to `order_total * 0.2` when absent.
+- The database write consumes the `amount` from either JSON or the form data.
 
-**Impact:** Customer paid $2.49, gets $20.00 refund. Steals $17.51. \
-**Severity:** 🔴 Critical
+**Exploit**
 
+1. Plankton sends a request to `/orders/{order_id}/refund` with body `amount=2000`
+2. The auto-approval check only checks JSON body, so it considers it a 20% refund and auto-approves it.
+3. The handler refunds Plankton $2000.
+
+**Impact:** Sandy pays out refunds far exceeding the original purchase. \
+**Severity:** 🔴 Critical \
 **Endpoints:** `POST /orders/{order_id}/refund`
 
 ---
 
-#### [v106] Onboarding Fraud
+#### [v106] Onboarding Token Mixup
 
-**Scenario:** Sandy is adding a new feature to allow customers to onboard themselves. The registration is open to anyone, but requires email verification.
+> Until now, Sandy hand-created accounts for every beta user. The platform is still in the beta phase, as there's only one restaurant (Krusty Krab), but Sandy feels she's ready to open up customer registration to the public.
 
-**Intended implementation:**
+**The Vulnerability**
 
-- The same handler `POST /auth/register` is used for both initial registration and email verification
-- First, it receives `{email}` in the request body – and sends a signed (stateless) verification token to the email address
-- When the user receives the verification email, they click the link in the email and fill in the rest of the registration form in the web UI
-- On submission, the same handler is called again - this time with `{email, password}`
-- The handler verifies the token and creates the user with the provided email and password
-- New user gets $2.00 credit on their account - not enough to place an order, and meant to be a discount equivalent
+- The user registration handler contains two branches:
+  - The first branch is entered if there's NO `token`, and expects to only receive `email` in the body. It checks email uniqueness and sends the verification token to the email address.
+  - The second branch expects to receive `token` and `password`, verifying the token and creating the user record if it's valid.
+- Token verification checks signature/expiry and ensures the token email hasn’t been used before. It does not check that there's no `body.email` present or that `body.email == token.email`.
+- During account creation, handler prioritizes `body.email` if it's available over the `token.email`.
+- If the `body.email` matches existing user, the handler overwrites the user's password with the one provided in the request body.
 
-**The Bug:**
+**Exploit**
 
-- Token validation routine checks expiration, signature and `token.email` uniqueness
-- User creation reads `body.email` if available, and only falls back to `token.email` if not
-- There is no validation that the `email` parameter matches the email embedded in the token
-- In case of email collision, the user creation routine resets the password to the provided one and adds $2.00 credit to the existing account
+1. Plankton registers `plankton@chum-bucket.sea` and receives a valid verification token.
+2. He replays the request with `body.email = spongebob@krusty-krab.sea`, `password = "hijack"`, and the original token.
+3. Handler trusts the token signature, then overwrites SpongeBob’s password with Plankton’s choice.
 
-**Impact:**
-
-- Attacker can perform account takeover by initiating new registration and providing `body.email` that matches the email of an existing user – causing their password to be set to the one chosen by the attacker
-- Attacker can accumulate free credits by providing in `body.email` an email address of their existing account – replaying this requst won't finish the creation of a new account, but will keep adding $2.00 credit increments to the attacker's existing account
-
-**Severity:** 🟡 High
-
+**Impact:** Full account takeover of existing users. \
+**Severity:** 🔴 Critical \
 **Endpoints:** `POST /auth/register`
+
+_Aftermath: Sandy patches the handler to compare token and body emails, and to prevent accidental overwrites._
+
+---
+
+#### [v107] Onboarding Token Replay
+
+> To juice adoption before the big web launch, Sandy pays $2 in promo credit to every verified signup.
+
+**The Vulnerability**
+
+- Credit issuance happens after token verification but before checking if the user record already exists.
+- Sandy has implemented v106 mitigations by moving part of the validation logic to the middleware.
+- The code is written with the assumption that the registration handler would only be used by new users, so it does not expect to receive a request authenticated with Basic Auth credentials.
+- If the request contains Basic Auth credentials, the user creation uses the email address from the Authorization header, instead of `token.email`.
+- Due to the user overwrite protection Sandy implemented addressing v106, the handler aborts user creation, but only _after_ topping up the existing user's credit balance with a $2 sign-up bonus.
+
+**Exploit**
+
+1. Plankton verifies his own account once to obtain a token.
+2. He adds the valid Basic Auth credentials to the email validation request and keeps replaying it.
+3. Each replay adds $2 to his credit balance even though no new user is created.
+
+**Impact:** Unlimited credit inflation without creating new accounts. \
+**Severity:** 🟡 High \
+**Endpoints:** `POST /auth/register`
+
+_Aftermath: Sandy patches the handler to be super explicit about the input sources used, and prioritizes Basic Auth -> cookie session migration for the web UI launch._
