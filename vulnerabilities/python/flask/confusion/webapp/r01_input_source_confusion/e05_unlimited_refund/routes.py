@@ -8,7 +8,7 @@ from .auth import (
     validate_api_key,
 )
 from .database import (
-    _save_order_securely,
+    save_order_securely,
     add_item_to_cart,
     create_cart,
     get_all_menu_items,
@@ -153,7 +153,7 @@ def checkout_cart(cart_id):
     items = convert_item_ids_to_order_items(cart.items)
 
     safe_order_data = {
-        "total": total_price + delivery_fee,
+        "total": total_price + delivery_fee + tip,
         "user_id": g.user.user_id,
         "items": [item.model_dump() for item in items],
         "delivery_fee": delivery_fee,
@@ -162,6 +162,6 @@ def checkout_cart(cart_id):
 
     new_order = Order.model_validate({**user_data, **safe_order_data})
 
-    _save_order_securely(new_order)
+    save_order_securely(new_order)
 
     return jsonify(new_order.model_dump(mode="json")), 201

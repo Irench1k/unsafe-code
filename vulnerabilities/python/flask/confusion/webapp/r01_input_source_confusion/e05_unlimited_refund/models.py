@@ -1,6 +1,6 @@
 import datetime
 from decimal import Decimal
-from typing import List
+from typing import List, Literal
 
 from pydantic import BaseModel, Field
 
@@ -40,6 +40,16 @@ class Order(BaseModel):
 class Cart(BaseModel):
     cart_id: str
     items: List[str]  # Array of item IDs
+
+
+class Refund(BaseModel):
+    refund_id: str
+    order_id: str
+    amount: Decimal
+    reason: str = Field(default="")
+    status: Literal["pending", "auto_approved", "rejected"] = Field(default="pending")
+    auto_approved: bool
+    created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
 
 
 class User(BaseModel):
