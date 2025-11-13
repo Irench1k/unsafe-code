@@ -1,0 +1,62 @@
+@base = http://localhost:8000/api/v104
+
+# ---- Legitimate Usage ----
+
+### Create a cart (step 1 of cart checkout flow)
+# @name cheapCart
+POST {{base}}/cart
+Authorization: Basic sandy:testpassword
+
+### Add items to cart (step 2 - can be called multiple times)
+POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/items
+Authorization: Basic sandy:testpassword
+Content-Type: application/json
+
+{
+  "item_id": "1"
+}
+
+### This example should be blocked by middleware.
+
+POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout
+Authorization: Basic sandy:testpassword
+Content-Type: application/x-www-form-urlencoded
+
+tip=-50&delivery_address=124 Conch Street
+
+### This example should be blocked by middleware.
+POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout
+Authorization: Basic sandy:testpassword
+Content-Type: application/json
+
+{
+  "tip": -50,
+  "delivery_address": "124 Conch Street"
+}
+
+### This example is vulnerable.
+# @name cheapOrder
+POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout?tip=10
+Authorization: Basic sandy:testpassword
+Content-Type: application/x-www-form-urlencoded
+
+tip=-50&delivery_address=124 Conch Street
+
+### This example is vulnerable.
+POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout?tip=10
+Authorization: Basic sandy:testpassword
+Content-Type: application/json
+
+{
+  "tip": -50,
+  "delivery_address": "124 Conch Street"
+}
+
+### View orders to see the legitimate cart checkout
+GET {{base}}/orders
+Authorization: Basic sandy:testpassword
+
+### Check balance (should be deducted $11.99)
+GET {{base}}/account/credits
+Authorization: Basic sandy:testpassword
+
