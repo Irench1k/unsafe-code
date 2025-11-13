@@ -77,12 +77,12 @@ def get_api_key() -> str:
     return db["api_key"]
 
 
-def _save_order_securely(order: Order):
+def save_order_securely(order: Order):
     """Charge customer and save order in DB, now with idempotency & rollback!"""
     charged_successfully = False
 
     try:
-        charged_successfully = charge_user(order.user_id, order.total + order.tip, order.order_id)
+        charged_successfully = charge_user(order.user_id, order.total, order.order_id)
         db["orders"][order.order_id] = order
     except Exception as e:
         # Rollback routine: refund the customer if we charged them + remove the order from the database
@@ -157,32 +157,6 @@ def refund_user(user_id: str, amount: Decimal):
     user = get_user(user_id)
     if user:
         user.balance += amount
-
-
-# routes.py
-def create_order_and_charge_customer(
-    total_price: Decimal,
-    user_id: str,
-    items: List[OrderItem],
-    delivery_fee: Decimal,
-    delivery_address: str,
-):
-    """Creates a new order and charges the customer."""
-    total_price += delivery_fee
-
-    # Always charge the customer first!
-    new_order = Order(
-        order_id=get_next_order_id(),
-        total=total_price,
-        user_id=user_id,
-        items=items,
-        delivery_fee=delivery_fee,
-        delivery_address=delivery_address,
-    )
-
-    _save_order_securely(new_order)
-
-    return new_order
 
 
 # routes.py

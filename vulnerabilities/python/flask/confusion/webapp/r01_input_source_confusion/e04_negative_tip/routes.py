@@ -8,7 +8,7 @@ from .auth import (
     validate_api_key,
 )
 from .database import (
-    _save_order_securely,
+    save_order_securely,
     add_item_to_cart,
     create_cart,
     get_all_menu_items,
@@ -146,17 +146,17 @@ def checkout_cart(cart_id):
     tip = Decimal(user_data.get("tip", 0))
 
     # Price and delivery fee calculation is the same for both branches
-    total_price, delivery_fee = check_cart_price_and_delivery_fee(cart.items)
-    if not total_price:
+    items_price, delivery_fee = check_cart_price_and_delivery_fee(cart.items)
+    if not items_price:
         return jsonify({"error": "Item not available, sorry!"}), 400
 
-    if g.user.balance < total_price + delivery_fee + tip:
+    if g.user.balance < items_price + delivery_fee + tip:
         return jsonify({"error": "Insufficient balance"}), 400
 
     items = convert_item_ids_to_order_items(cart.items)
 
     safe_order_data = {
-        "total": total_price + delivery_fee,
+        "total": items_price + delivery_fee + tip,
         "user_id": g.user.user_id,
         "items": [item.model_dump() for item in items],
         "delivery_fee": delivery_fee,
@@ -165,6 +165,6 @@ def checkout_cart(cart_id):
 
     new_order = Order.model_validate({**user_data, **safe_order_data})
 
-    _save_order_securely(new_order)
+    save_order_securely(new_order)
 
     return jsonify(new_order.model_dump(mode="json")), 201
