@@ -1,4 +1,6 @@
-@base = http://localhost:8000/api/v104
+@base = http://localhost:8000/api/v105
+
+### Vulnerable Example FIXED:
 
 ### Create a cart
 # @name cheapCart
@@ -14,46 +16,56 @@ Content-Type: application/json
   "item_id": "1"
 }
 
-### This example should be blocked by middleware: you can't tip with a negative value!
+### Now when someone "accidentally" gives a negative tip, it will be converted to a positive one
+# And we take it from the customer!
 POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout
 Authorization: Basic sandy:testpassword
 Content-Type: application/x-www-form-urlencoded
 
-tip=-50&delivery_address=124 Conch Street
+tip=-10&delivery_address=124 Conch Street
 
-### This example should be blocked by middleware: again, don't tip with a negative value!
+
+# {
+#   ...
+#   "order_id": "2",
+#   "tip": "10",
+#   ...
+# }
+
+### Now all these examples work the same way: no negative tips anymore!
 POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout
 Authorization: Basic sandy:testpassword
 Content-Type: application/json
 
 {
-  "tip": -50,
+  "tip": -1,
   "delivery_address": "124 Conch Street"
 }
 
-### This example is vulnerable: you can tip with a negative value if you provide a positive tip in the query params...
+### Even if you provide a positive tip in the query params, and a negative tip in the body, 
+# we will ignore the query params and take the tip from the body, which will be converted to a positive one
 # @name cheapOrder
-POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout?tip=10
+POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout?tip=1
 Authorization: Basic sandy:testpassword
 Content-Type: application/x-www-form-urlencoded
 
-tip=-50&delivery_address=124 Conch Street
+tip=-2&delivery_address=124 Conch Street
 
-### This example is vulnerable: same for JSON body!
-POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout?tip=10
+### Same with JSON body!
+POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout?tip=1
 Authorization: Basic sandy:testpassword
 Content-Type: application/json
 
 {
-  "tip": -50,
+  "tip": -2,
   "delivery_address": "124 Conch Street"
 }
 
-###
+### Now you see that all orders have positive tips!
 GET {{base}}/orders
 Authorization: Basic sandy:testpassword
 
-### Check balance: Sandy got more money than she initially had!
+### Check balance: Sandy was charged for all of them
 GET {{base}}/account/credits
 Authorization: Basic sandy:testpassword
 
