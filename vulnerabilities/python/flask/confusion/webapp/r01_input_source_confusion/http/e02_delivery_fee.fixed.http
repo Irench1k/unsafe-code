@@ -1,0 +1,13 @@
+@base = http://localhost:8000/api/v103
+
+### Vulnerable Example FIXED:
+# Sandy checks that the delivery fee is correctly calculated
+POST {{base}}/orders?items=6&items=1
+Authorization: Basic sandy:testpassword
+Content-Type: application/x-www-form-urlencoded
+
+items=3&delivery_address=124 Conch Street
+
+### Check balance after regression test
+GET {{base}}/account/credits
+Authorization: Basic sandy:testpassword

@@ -1,13 +1,13 @@
 @base = http://localhost:8000/api/v104
 
-# ---- Legitimate Usage ----
+### Vulnerable Example FIXED:
 
-### Create a cart (step 1 of cart checkout flow)
+### Create a cart and populate it with an item
 # @name cheapCart
 POST {{base}}/cart
 Authorization: Basic sandy:testpassword
 
-### Add items to cart (step 2 - can be called multiple times)
+###
 POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/items
 Authorization: Basic sandy:testpassword
 Content-Type: application/json
@@ -16,9 +16,7 @@ Content-Type: application/json
   "item_id": "1"
 }
 
-### Legitimate checkout using form data (step 3 - SAFE branch)
-# This uses the safe form-urlencoded branch which properly generates
-# a new order ID and charges the customer.
+### Checkout the cart
 # @name cheapOrder
 POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout
 Authorization: Basic sandy:testpassword
@@ -26,15 +24,15 @@ Content-Type: application/x-www-form-urlencoded
 
 delivery_address=124 Conch Street
 
-### View orders to see the legitimate cart checkout
+### View orders to see the cart checkout
 GET {{base}}/orders
 Authorization: Basic sandy:testpassword
 
-### Check balance (should be deducted $11.99)
+### Check balance
 GET {{base}}/account/credits
 Authorization: Basic sandy:testpassword
 
-# ---- Vulnerability Demonstration ----
+### Vulnerable Example FIXED:
 
 ### Create a cart with expensive items
 # @name expensiveCart
@@ -69,10 +67,15 @@ Content-Type: application/json
   "order_id": "{{cheapOrder.response.body.order_id}}"
 }
 
-### Check Sandy's order history: she has both a cheap and an expensive orders
+# Now if someone tries to overwrite the order_id with another, they will get an error:
+# {
+#   "error": "hacking attempt detected"
+# }
+
+### Check Sandy's order history: she has her cheap order, but no expensive order
 GET {{base}}/orders
 Authorization: Basic sandy:testpassword
 
-### Check Sandy's balance: she was charged only for the cheap orders
+### Check Sandy's balance: she paid only for the cheap order, which is fine, because she didn't get her expensive order
 GET {{base}}/account/credits
 Authorization: Basic sandy:testpassword
