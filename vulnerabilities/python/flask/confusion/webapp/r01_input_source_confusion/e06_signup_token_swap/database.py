@@ -16,16 +16,14 @@ db = {
         "6": MenuItem(id="6", name="Krusty Krab Complect", price=Decimal("20.50"), available=True),
     },
     "users": {
-        "sandy": User(
-            user_id="sandy",
-            email="sandy.cheeks@bikinibottom.com",
+        "sandy@bikinibottom.sea": User(
+            user_id="sandy@bikinibottom.sea",
             name="Sandy Cheeks",
             balance=Decimal("50.00"),
             password="testpassword",
         ),
-        "spongebob": User(
-            user_id="spongebob",
-            email="spongebob.squarepants@bikinibottom.com",
+        "spongebob@bikinibottom.sea": User(
+            user_id="spongebob@bikinibottom.sea",
             name="SpongeBob SquarePants",
             balance=Decimal("20.00"),
             password="i_l0ve_burg3rs",
@@ -35,7 +33,7 @@ db = {
         "1": Order(
             order_id="1",
             total=Decimal("26.49"),
-            user_id="spongebob",
+            user_id="spongebob@bikinibottom.sea",
             items=[
                 OrderItem(item_id="6", name="Krusty Krab Complect", price=Decimal("20.50")),
                 OrderItem(item_id="1", name="Krabby Patty", price=Decimal("5.99")),
@@ -202,3 +200,9 @@ def add_item_to_cart(cart_id: str, item_id: str) -> Cart | None:
 
     cart.items.append(item_id)
     return cart
+
+
+def create_user(email: str, password: str, name: str):
+    """Creates a new user."""
+    user = User(user_id=email, name=name, password=password)
+    db["users"][user.user_id] = user

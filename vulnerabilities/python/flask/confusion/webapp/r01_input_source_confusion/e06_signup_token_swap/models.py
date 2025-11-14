@@ -1,6 +1,6 @@
 import datetime
 from decimal import Decimal
-from typing import List, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -37,7 +37,7 @@ class Order(BaseModel):
     total: Decimal
     user_id: str
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
-    items: List[OrderItem]
+    items: list[OrderItem]
     delivery_fee: Decimal
     delivery_address: str
     tip: Decimal = Field(default=Decimal("0.00"))
@@ -45,7 +45,7 @@ class Order(BaseModel):
 
 class Cart(BaseModel):
     cart_id: str
-    items: List[str]  # Array of item IDs
+    items: list[str]  # Array of item IDs
 
 
 class Refund(BaseModel):
@@ -60,7 +60,6 @@ class Refund(BaseModel):
 
 class User(BaseModel):
     user_id: str
-    email: str
     name: str
-    balance: Decimal
+    balance: Decimal = Field(default=Decimal("0.00"))
     password: str

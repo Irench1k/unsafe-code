@@ -11,9 +11,11 @@ from .auth import (
 from .database import (
     add_item_to_cart,
     create_cart,
+    create_user,
     get_all_menu_items,
     get_all_orders,
     get_cart,
+    get_user,
     get_user_orders,
     refund_user,
     save_order_securely,
@@ -23,8 +25,11 @@ from .models import Order, Refund
 from .utils import (
     check_cart_price_and_delivery_fee,
     convert_item_ids_to_order_items,
+    generate_verification_token,
     get_request_parameter,
     parse_as_decimal,
+    send_verification_email,
+    verify_user_verification_token,
 )
 
 bp = Blueprint("e06_signup_token_swap", __name__)
@@ -179,3 +184,60 @@ def refund_order(order_id):
 
     save_refund(refund)
     return jsonify(refund.model_dump(mode="json")), 200
+
+
+@bp.route("/auth/register", methods=["POST"])
+def register_user():
+    """
+    Registers a new user with an email verification.
+
+    The handler gets called twice:
+
+      1. Without a token:
+        - Input: `email`
+        - Output: `email` and `status` (failure if email is already taken)
+        - Sends verification email to the user, with a token & URL
+
+      2. With a token:
+        - Input: `token`, `email`, `password`, `name`
+        - Output: `email` and `status` (failure if the token invalid)
+    """
+    if not request.json:
+        # Registration is only for new app & upcoming website, I don't think I need to support form anymore
+        return jsonify({"status": "error", "message": "This is a JSON-only endpoint"}), 400
+
+    user_data = request.json
+    if not user_data or not isinstance(user_data, dict):
+        return jsonify({"status": "error", "message": "Invalid request!"}), 400
+
+    if "token" not in user_data:
+        # First step: check email uniqueness and send verification email
+        email = user_data.get("email")
+        if not email or not isinstance(email, str):
+            # Maybe add email validation here? The user should only get token if email is valid, so that's probably enough...
+            return jsonify({"status": "error", "message": "email is required"}), 400
+
+        if get_user(email):
+            return jsonify({"status": "error", "message": "email already taken"}), 400
+
+        token = generate_verification_token(email)
+        send_verification_email(email, token)
+        return jsonify({"status": "verification_email_sent", "email": email}), 200
+    else:
+        # Second step: verify token and create user if token is valid
+        email = user_data.get("email")
+        password = user_data.get("password")
+        name = user_data.get("name")
+        token = user_data.get("token")
+
+        if not email or not password or not name or not token:
+            return jsonify(
+                {"status": "error", "message": "email, password, name, and token are required"}
+            ), 400
+
+        if not verify_user_verification_token(token):
+            return jsonify({"status": "error", "message": "Invalid token"}), 400
+
+        create_user(email, password, name)
+
+        return jsonify({"status": "user_created", "email": email}), 200
