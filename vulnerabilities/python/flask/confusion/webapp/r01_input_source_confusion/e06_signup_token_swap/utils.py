@@ -5,9 +5,9 @@ from uuid import uuid4
 
 import jwt
 from envelopes import SMTP, Envelope
-from flask import request
+from flask import jsonify, request
 
-from .database import get_menu_item, get_user
+from .database import create_user, get_menu_item, get_user
 from .models import OrderItem
 
 DELIVERY_FEE = Decimal("5.00")
@@ -93,6 +93,14 @@ def generate_verification_token(email: str) -> str:
     )
 
 
+def get_email_from_token(token: str) -> str | None:
+    """Extract the email from the token pre-verification."""
+    decoded_token = _verify_and_decode_token(token)
+    if not decoded_token:
+        return None
+    return decoded_token.get("email")
+
+
 def _verify_and_decode_token(token: str) -> str | None:
     """Verify the verification token and return the decoded token."""
     try:
@@ -140,8 +148,10 @@ The Cheeky Sea Team
 """
 
 
-def send_verification_email(email: str, token: str):
+def send_verification_email(email: str):
     """Send a verification email to the user."""
+    token = generate_verification_token(email)
+
     envelope = Envelope(
         from_addr="no-reply@app.cheeky.sea",
         to_addr=email,
@@ -150,3 +160,11 @@ def send_verification_email(email: str, token: str):
     )
     smtp = SMTP(host="mailpit", port=1025)
     smtp.send(envelope)
+
+    return jsonify({"status": "verification_email_sent", "email": email}), 200
+
+
+def register_new_user(email: str, password: str, name: str):
+    """Registers a new user."""
+    create_user(email, password, name)
+    return jsonify({"status": "user_created", "email": email}), 200
