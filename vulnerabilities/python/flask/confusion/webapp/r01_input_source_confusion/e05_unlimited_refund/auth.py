@@ -1,9 +1,11 @@
+from decimal import Decimal
 from functools import wraps
 from hmac import compare_digest
 
 from flask import g, jsonify, request
 
-from .database import get_api_key, get_user
+from .database import get_api_key, get_order, get_user
+from .utils import parse_as_decimal
 
 
 def _authenticate(user, password):
@@ -52,7 +54,7 @@ def validate_api_key():
 
 
 def customer_authentication_required(f):
-    """Authenticate customers via Basic Auth."""
+    """Authenticate customers via Basic Auth and authorize order access."""
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -60,6 +62,12 @@ def customer_authentication_required(f):
         if not user:
             return jsonify({"error": "User authentication required"}), 401
         g.user = user
+
+        if "order_id" in request.view_args:
+            order = get_order(request.view_args["order_id"])
+            if not order or order.user_id != g.user.user_id:
+                return jsonify({"error": "Unauthorized"}), 401
+            g.order = order
         return f(*args, **kwargs)
 
     return decorated_function
@@ -72,6 +80,33 @@ def restaurant_manager_authentication_required(f):
     def decorated_function(*args, **kwargs):
         if not validate_api_key():
             return jsonify({"error": "Restaurant manager authentication required"}), 401
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def protect_refunds(f):
+    """Protects refund endpoint from hacking attempts."""
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not g.order:
+            return jsonify({"error": "Order not found"}), 404
+
+        refund_amount = (
+            request.is_json
+            and parse_as_decimal(request.json.get("amount"))
+            or Decimal("0.2") * g.order.total
+        )
+
+        if refund_amount < 0:
+            return jsonify({"error": "Refund amount cannot be negative"}), 400
+
+        if refund_amount > g.order.total:
+            return jsonify({"error": "Refund amount cannot be greater than order total"}), 400
+
+        g.refund_is_auto_approved = refund_amount <= Decimal("0.2") * g.order.total
+
         return f(*args, **kwargs)
 
     return decorated_function

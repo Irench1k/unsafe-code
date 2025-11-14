@@ -1,6 +1,8 @@
 from decimal import Decimal
 from typing import List
 
+from flask import request
+
 from .database import get_menu_item
 from .models import OrderItem
 
@@ -101,3 +103,20 @@ def check_cart_price_and_delivery_fee(item_ids: List[str]) -> tuple[Decimal, Dec
         return None, None
     delivery_fee = _calculate_delivery_fee_for_total(total_price)
     return total_price, delivery_fee
+
+
+def parse_as_decimal(value: str) -> Decimal | None:
+    try:
+        return Decimal(value)
+    except Exception:
+        return None
+
+
+def get_request_parameter(parameter):
+    parameter_in_args = request.args.get(parameter)
+    parameter_in_json = (
+        request.is_json and isinstance(request.json, dict) and request.json.get(parameter)
+    )
+    parameter_in_form = request.form.get(parameter)
+
+    return parameter_in_args or parameter_in_json or parameter_in_form

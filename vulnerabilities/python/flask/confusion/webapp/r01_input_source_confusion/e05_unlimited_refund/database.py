@@ -117,6 +117,11 @@ def get_all_orders() -> List[Order]:
     return list(db["orders"].values())
 
 
+def get_order(order_id: str) -> Order | None:
+    """Gets an order by its ID."""
+    return db["orders"].get(order_id)
+
+
 # routes.py
 def get_all_menu_items() -> List[MenuItem]:
     """Gets all menu items."""
@@ -139,6 +144,18 @@ def _create_cart(cart: Cart):
 def get_cart(cart_id: str) -> Cart | None:
     """Gets a cart by its ID."""
     return db["carts"].get(cart_id)
+
+
+def get_next_refund_id() -> str:
+    """Gets the next refund ID and increments the counter."""
+    reserved_refund_id = str(db["next_refund_id"])
+    db["next_refund_id"] += 1
+    return reserved_refund_id
+
+
+def save_refund(refund: Refund):
+    """Saves a refund to the database."""
+    db["refunds"][refund.refund_id] = refund
 
 
 # ============================================================

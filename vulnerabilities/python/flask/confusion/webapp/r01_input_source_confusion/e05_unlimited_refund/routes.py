@@ -5,41 +5,29 @@ from flask import Blueprint, g, jsonify, request
 from .auth import (
     customer_authentication_required,
     get_authenticated_user,
+    protect_refunds,
     validate_api_key,
 )
 from .database import (
-    save_order_securely,
     add_item_to_cart,
     create_cart,
     get_all_menu_items,
     get_all_orders,
     get_cart,
     get_user_orders,
+    refund_user,
+    save_order_securely,
+    save_refund,
 )
-from .models import Order
+from .models import Order, Refund
 from .utils import (
     check_cart_price_and_delivery_fee,
     convert_item_ids_to_order_items,
+    get_request_parameter,
+    parse_as_decimal,
 )
 
 bp = Blueprint("e05_unlimited_refund", __name__)
-
-
-def parse_as_decimal(value: str) -> Decimal:
-    try:
-        return Decimal(value)
-    except ValueError:
-        return None
-
-
-def get_request_parameter(parameter):
-    parameter_in_args = request.args.get(parameter)
-    parameter_in_json = (
-        request.is_json and isinstance(request.json, dict) and request.json.get(parameter)
-    )
-    parameter_in_form = request.form.get(parameter)
-
-    return parameter_in_args or parameter_in_json or parameter_in_form
 
 
 @bp.before_request
@@ -165,3 +153,29 @@ def checkout_cart(cart_id):
     save_order_securely(new_order)
 
     return jsonify(new_order.model_dump(mode="json")), 201
+
+
+@bp.route("/orders/<order_id>/refund", methods=["POST"])
+@customer_authentication_required
+@protect_refunds
+def refund_order(order_id):
+    """Refunds an order."""
+    reason = get_request_parameter("reason") or ""
+    refund_amount_entered = parse_as_decimal(get_request_parameter("amount"))
+    refund_amount = refund_amount_entered or Decimal("0.2") * g.order.total
+
+    status = "auto_approved" if g.refund_is_auto_approved else "pending"
+
+    refund = Refund(
+        order_id=order_id,
+        amount=refund_amount,
+        reason=reason,
+        status=status,
+        auto_approved=g.refund_is_auto_approved,
+    )
+
+    if g.refund_is_auto_approved:
+        refund_user(g.user.user_id, refund_amount)
+
+    save_refund(refund)
+    return jsonify(refund.model_dump(mode="json")), 200

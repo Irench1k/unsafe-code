@@ -12,6 +12,12 @@ def get_next_order_id_from_db() -> str:
     return get_next_order_id()
 
 
+def get_next_refund_id_from_db() -> str:
+    from .database import get_next_refund_id
+
+    return get_next_refund_id()
+
+
 class MenuItem(BaseModel):
     id: str
     name: str
@@ -43,7 +49,7 @@ class Cart(BaseModel):
 
 
 class Refund(BaseModel):
-    refund_id: str
+    refund_id: str = Field(default_factory=get_next_refund_id_from_db)
     order_id: str
     amount: Decimal
     reason: str = Field(default="")
