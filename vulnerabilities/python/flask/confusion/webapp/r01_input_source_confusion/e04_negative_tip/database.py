@@ -1,5 +1,4 @@
 from decimal import Decimal
-from typing import List
 
 from .models import Cart, MenuItem, Order, OrderItem, User
 
@@ -84,7 +83,7 @@ def save_order_securely(order: Order):
     try:
         charged_successfully = charge_user(order.user_id, order.total, order.order_id)
         db["orders"][order.order_id] = order
-    except Exception as e:
+    except Exception:
         # Rollback routine: refund the customer if we charged them + remove the order from the database
         if charged_successfully:
             refund_user(order.user_id, order.total)
@@ -101,27 +100,15 @@ def get_next_order_id() -> str:
 
 
 # routes.py
-def get_all_orders() -> List[Order]:
+def get_all_orders() -> list[Order]:
     """Gets all orders."""
     return list(db["orders"].values())
 
 
 # routes.py
-def get_all_menu_items() -> List[MenuItem]:
+def get_all_menu_items() -> list[MenuItem]:
     """Gets all menu items."""
     return list(db["menu_items"].values())
-
-
-def _get_next_cart_id() -> str:
-    """Gets the next cart ID and increments the counter."""
-    reserved_cart_id = str(db["next_cart_id"])
-    db["next_cart_id"] += 1
-    return reserved_cart_id
-
-
-def _create_cart(cart: Cart):
-    """Creates a new cart in the database."""
-    db["carts"][cart.cart_id] = cart
 
 
 # routes.py
@@ -160,7 +147,7 @@ def refund_user(user_id: str, amount: Decimal):
 
 
 # routes.py
-def get_user_orders(user_id: str) -> List[Order]:
+def get_user_orders(user_id: str) -> list[Order]:
     """Gets all orders for a given user."""
     orders = []
     for order in get_all_orders():
@@ -171,9 +158,10 @@ def get_user_orders(user_id: str) -> List[Order]:
 
 # routes.py
 def create_cart() -> Cart:
-    """Creates a new empty cart."""
-    new_cart = Cart(cart_id=_get_next_cart_id(), items=[])
-    _create_cart(new_cart)
+    """Creates and persists a new empty cart."""
+    new_cart = Cart(cart_id=str(db["next_cart_id"]), items=[])
+    db["next_cart_id"] += 1
+    db["carts"][new_cart.cart_id] = new_cart
     return new_cart
 
 
