@@ -7,6 +7,7 @@ from .e03_order_overwrite.routes import bp as bp_e03
 from .e04_negative_tip.routes import bp as bp_e04
 from .e05_unlimited_refund.routes import bp as bp_e05
 from .e06_signup_token_swap.routes import bp as bp_e06
+from .e07_signup_bonus import bp as bp_e07
 
 bp = Blueprint("input_source_confusion", __name__)
 
@@ -23,3 +24,4 @@ bp.register_blueprint(bp_e03, url_prefix="v103")
 bp.register_blueprint(bp_e04, url_prefix="v104")
 bp.register_blueprint(bp_e05, url_prefix="v105")
 bp.register_blueprint(bp_e06, url_prefix="v106")
+bp.register_blueprint(bp_e07, url_prefix="v107")

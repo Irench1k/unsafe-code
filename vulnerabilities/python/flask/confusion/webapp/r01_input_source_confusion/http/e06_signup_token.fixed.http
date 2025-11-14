@@ -1,0 +1,75 @@
+@base = http://localhost:8000/api/v107
+
+# So, we have a legitimate user SpongeBob registered in the system
+GET {{base}}/account/info
+Authorization: Basic spongebob@bikinibottom.sea:i_l0ve_burg3rs
+
+# {
+#   "balance": "20.00",
+#   "email": "spongebob@bikinibottom.sea",
+#   "name": "SpongeBob SquarePants",
+#   "orders": 1
+# }
+
+### Plankton wants to hijack SpongeBob's account and tries to register as him, but he can't
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+    "email": "spongebob@bikinibottom.sea"
+}
+
+# {
+#   "error": "email already taken"
+# }
+
+### So, Plankton registers a new account for himself
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+    "email": "plankton.jr@chum-bucket.sea"
+}
+
+### Vulnerable Example FIXED: Now Plankton wants to hijack SpongeBob's account, 
+# but instead he is creating a new user for himself
+# @prompt token Get the token from verification email, using Mailpit UI: http://127.0.0.1:8025/
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+    "token": "{{token}}",
+    "email": "spongebob@bikinibottom.sea",
+    "password": "hijacked",
+    "name": "SpongeBob"
+}
+
+# {
+#   "email": "plankton.jr@chum-bucket.sea", # Before we had a Spongebob's email, now it is Plankton's email!
+#   "status": "user_created"
+# }
+
+
+### Now, Plankton can't access SpongeBob's accont anymore
+GET {{base}}/account/info
+Authorization: Basic spongebob@bikinibottom.sea:hijacked
+
+
+# {
+#   "error": "User authentication required"
+# }
+
+### Meanwhile SpongBob is fine, he can access his own account
+GET {{base}}/account/info
+Authorization: Basic spongebob@bikinibottom.sea:i_l0ve_burg3rs
+
+### Meanwhile Plankton is surprised to see he has his own account (with a bonus money!)
+GET {{base}}/account/info
+Authorization: Basic plankton.jr@chum-bucket.sea:hijacked
+
+# {
+#   "balance": "2.00",
+#   "email": "plankton.jr@chum-bucket.sea",
+#   "name": "SpongeBob",
+#   "orders": 0
+# }

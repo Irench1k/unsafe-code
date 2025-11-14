@@ -1,0 +1,233 @@
+from decimal import Decimal
+
+from .models import Cart, MenuItem, Order, OrderItem, Refund, User
+
+# ============================================================
+# DATA STORAGE (In-memory database)
+# For an MVP, a simple dictionary will do.
+# ============================================================
+db = {
+    "menu_items": {
+        "1": MenuItem(id="1", name="Krabby Patty", price=Decimal("5.99"), available=True),
+        "2": MenuItem(id="2", name="Krusty Krab Pizza", price=Decimal("12.50"), available=True),
+        "3": MenuItem(id="3", name="Side of Fries", price=Decimal("1.00"), available=True),
+        "4": MenuItem(id="4", name="Kelp Shake", price=Decimal("2.50"), available=True),
+        "5": MenuItem(id="5", name="Soda", price=Decimal("2.75"), available=False),
+        "6": MenuItem(id="6", name="Krusty Krab Complect", price=Decimal("20.50"), available=True),
+    },
+    "users": {
+        "sandy@bikinibottom.sea": User(
+            user_id="sandy@bikinibottom.sea",
+            name="Sandy Cheeks",
+            balance=Decimal("50.00"),
+            password="testpassword",
+        ),
+        "spongebob@bikinibottom.sea": User(
+            user_id="spongebob@bikinibottom.sea",
+            name="SpongeBob SquarePants",
+            balance=Decimal("20.00"),
+            password="i_l0ve_burg3rs",
+        ),
+    },
+    "orders": {
+        "1": Order(
+            order_id="1",
+            total=Decimal("26.49"),
+            user_id="spongebob@bikinibottom.sea",
+            items=[
+                OrderItem(item_id="6", name="Krusty Krab Complect", price=Decimal("20.50")),
+                OrderItem(item_id="1", name="Krabby Patty", price=Decimal("5.99")),
+            ],
+            delivery_fee=Decimal("0.00"),
+            delivery_address="122 Conch Street",
+        ),
+    },
+    "next_order_id": 2,
+    "carts": {
+        "1": Cart(cart_id="1", items=["1", "3"]),
+    },
+    "next_cart_id": 2,
+    "api_key": "key-krusty-krub-z1hu0u8o94",
+    "refunds": {
+        "1": Refund(
+            refund_id="1",
+            order_id="1",
+            amount=Decimal("5.298"),
+            reason="Late delivery",
+            status="pending",
+            auto_approved=False,
+        ),
+    },
+    "next_refund_id": 2,
+    "signup_bonus_remaining": Decimal("100.00"),
+}
+
+# ============================================================
+# DATA ACCESS LAYER
+# This layer is responsible for accessing the data from the database.
+# The layering right now isn't very strict, will improve on this in the future.
+# ============================================================
+
+
+# utils.py
+def get_menu_item(item_id: str) -> MenuItem | None:
+    return db["menu_items"].get(item_id)
+
+
+# auth.py
+def get_user(user_id: str) -> User | None:
+    """Gets a User by their user ID."""
+    return db["users"].get(user_id)
+
+
+# auth.py
+def get_api_key() -> str:
+    """Gets the restaurant's API key from the database."""
+    return db["api_key"]
+
+
+def save_order_securely(order: Order):
+    """Charge customer and save order in DB, now with idempotency & rollback!"""
+    charged_successfully = False
+
+    try:
+        charged_successfully = charge_user(order.user_id, order.total, order.order_id)
+        db["orders"][order.order_id] = order
+    except Exception:
+        # Rollback routine: refund the customer if we charged them + remove the order from the database
+        if charged_successfully:
+            refund_user(order.user_id, order.total)
+
+        # Remove the order from the database
+        db["orders"].pop(order.order_id, None)
+
+
+def get_next_order_id() -> str:
+    """Gets the next order ID and increments the counter."""
+    reserved_order_id = str(db["next_order_id"])
+    db["next_order_id"] += 1
+    return reserved_order_id
+
+
+# routes.py
+def get_all_orders() -> list[Order]:
+    """Gets all orders."""
+    return list(db["orders"].values())
+
+
+def get_order(order_id: str) -> Order | None:
+    """Gets an order by its ID."""
+    return db["orders"].get(order_id)
+
+
+# routes.py
+def get_all_menu_items() -> list[MenuItem]:
+    """Gets all menu items."""
+    return list(db["menu_items"].values())
+
+
+# routes.py
+def get_cart(cart_id: str) -> Cart | None:
+    """Gets a cart by its ID."""
+    return db["carts"].get(cart_id)
+
+
+def get_next_refund_id() -> str:
+    """Gets the next refund ID and increments the counter."""
+    reserved_refund_id = str(db["next_refund_id"])
+    db["next_refund_id"] += 1
+    return reserved_refund_id
+
+
+def save_refund(refund: Refund):
+    """Saves a refund to the database."""
+    db["refunds"][refund.refund_id] = refund
+
+
+# ============================================================
+# BUSINESS LOGIC
+# High-level business logic for the application.
+# ============================================================
+def charge_user(user_id: str, amount: Decimal, order_id: str) -> bool:
+    """Charges a user, raises an exception if insufficient funds, returns True if charged sucessfully."""
+    # The exception signals that we shouldn't proceed with the order!
+    user = get_user(user_id)
+    if not user:
+        raise ValueError(f"User '{user_id}' not found.")
+    if user.balance < amount:
+        raise ValueError("Insufficient funds.")
+
+    # Don't charge the user twice for the same order!
+    if order_id in db["orders"] and db["orders"][order_id].user_id == user_id:
+        return False
+
+    # Charge the user, return True if successful.
+    user.balance -= amount
+    return True
+
+
+def refund_user(user_id: str, amount: Decimal):
+    """Refunds a user."""
+    user = get_user(user_id)
+    if user:
+        user.balance += amount
+
+
+# routes.py
+def get_user_orders(user_id: str) -> list[Order]:
+    """Gets all orders for a given user."""
+    orders = []
+    for order in get_all_orders():
+        if order.user_id == user_id:
+            orders.append(order)
+    return orders
+
+
+# routes.py
+def create_cart() -> Cart:
+    """Creates and persists a new empty cart."""
+    new_cart = Cart(cart_id=str(db["next_cart_id"]), items=[])
+    db["next_cart_id"] += 1
+    db["carts"][new_cart.cart_id] = new_cart
+    return new_cart
+
+
+# routes.py
+def add_item_to_cart(cart_id: str, item_id: str) -> Cart | None:
+    """Adds an item to a cart."""
+    cart = get_cart(cart_id)
+    if not cart:
+        return None
+
+    cart.items.append(item_id)
+    return cart
+
+
+def create_user(email: str, password: str, name: str):
+    """Creates a new user."""
+    if email in db["users"]:
+        # The email uniqueness is checkde in middleware, but just in case let's log if something passes through
+        print(f"Trying to create a user that already exists ('{email}').")
+        return
+
+    user = User(user_id=email, name=name, password=password)
+    db["users"][user.user_id] = user
+
+
+def apply_signup_bonus(email: str):
+    """Applies a signup bonus to a newly registered user."""
+    user = get_user(email)
+    if not user:
+        return
+
+    db["signup_bonus_remaining"] -= Decimal("2.00")
+    if db["signup_bonus_remaining"] < Decimal("0.00"):
+        print(f"No signup bonus remaining to apply to user '{email}'.")
+        return
+
+    user.balance += Decimal("2.00")
+
+
+def user_exists(email: str) -> bool:
+    """Checks if a user exists in the database."""
+    return email in db["users"]
