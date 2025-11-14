@@ -5,3 +5,4 @@ sqlalchemy>=2,<3
 psycopg[binary,pool]>=3,<4
 bcrypt>=4,<5
 pyjwt >=2,<3
+envelopes ==0.4

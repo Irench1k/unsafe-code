@@ -56,6 +56,20 @@ def view_balance():
     return jsonify({"user_id": g.user.user_id, "balance": str(g.user.balance)}), 200
 
 
+@bp.route("/account/info", methods=["GET"])
+@customer_authentication_required
+def view_account_info():
+    """Views the account information for a given user."""
+    return jsonify(
+        {
+            "email": g.user.user_id,
+            "name": g.user.name,
+            "balance": str(g.user.balance),
+            "orders": len(get_user_orders(g.user.user_id)),
+        }
+    ), 200
+
+
 @bp.route("/menu", methods=["GET"])
 def list_menu_items():
     """Lists all available menu items."""

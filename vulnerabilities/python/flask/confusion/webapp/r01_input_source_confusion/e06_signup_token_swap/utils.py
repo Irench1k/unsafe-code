@@ -4,6 +4,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 import jwt
+from envelopes import SMTP, Envelope
 from flask import request
 
 from .database import get_menu_item, get_user
@@ -123,7 +124,29 @@ def verify_user_verification_token(token: str) -> bool:
     return True
 
 
+VERIFICATION_EMAIL_TEMPLATE = """
+Thank you for registering at Cheeky Sea!
+
+Click the link to verify your registration: https://app.cheeky.sea/verify?token={token}
+
+If the link doesn't work, copy and paste the following token:
+
+{token}
+
+If you have not initiated this registration, please ignore this email!
+
+Kind regards,
+The Cheeky Sea Team
+"""
+
+
 def send_verification_email(email: str, token: str):
     """Send a verification email to the user."""
-    # TODO: Implement this
-    print(f"Sending verification email to {email} with token {token}")
+    envelope = Envelope(
+        from_addr="no-reply@app.cheeky.sea",
+        to_addr=email,
+        subject="Verify your registration at Cheeky Sea!",
+        text_body=VERIFICATION_EMAIL_TEMPLATE.format(token=token),
+    )
+    smtp = SMTP(host="mailpit", port=1025)
+    smtp.send(envelope)

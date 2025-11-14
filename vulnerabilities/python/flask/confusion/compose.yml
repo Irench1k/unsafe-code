@@ -28,5 +28,20 @@ services:
       timeout: 3s
       retries: 30
 
+  # Mailpit for email testing
+  mailpit:
+    image: axllent/mailpit
+    container_name: mailpit
+    restart: unless-stopped
+    ports:
+      # Web interface
+      - 8025:8025
+      # Note that we don't expose SMTP to the host, as it's only needed
+      # within the docker compose network
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    networks: [lab]
+
 networks:
   lab: {}
