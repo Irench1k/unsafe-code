@@ -1,4 +1,4 @@
-@base = http://localhost:8000/api/v105
+@base = http://localhost:8000/api/v106
 
 ### Vulnerable Example FIXED:
 
@@ -33,8 +33,7 @@ Content-Type: application/json
   "amount": "1"
 }
 
-### Refund $50: check the JSON body
-#it is more expensive than the order total and will be rejected
+### Refund $50: it is more expensive than the order total and will be rejected
 POST {{base}}/orders/{{order.response.body.order_id}}/refund
 Authorization: Basic sandy:testpassword
 Content-Type: application/json
@@ -43,14 +42,14 @@ Content-Type: application/json
   "amount": "50"
 }
 
-### Vulnerable Example: now code does not check the form body
-# So, $50 is refunded, even though it is more expensive than the order total
+### Vulnerable Example FIXED: now we check both the body form and the JSON body:
+# Again, $50 is more than the order total and will be rejected
 POST {{base}}/orders/{{order.response.body.order_id}}/refund
 Authorization: Basic sandy:testpassword
 Content-Type: application/x-www-form-urlencoded
 
 amount=50
 
-### Check balance: Sandy received refund for $50
+### Check balance: Sandy received refund for $1
 GET {{base}}/account/credits
 Authorization: Basic sandy:testpassword
