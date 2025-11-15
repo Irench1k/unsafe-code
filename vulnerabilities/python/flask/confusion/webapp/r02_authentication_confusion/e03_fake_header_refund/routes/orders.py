@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal
 
 from flask import Blueprint, g, jsonify, request
@@ -7,17 +8,14 @@ from ..auth.decorators import (
     verify_order_access,
 )
 from ..auth.helpers import authenticate_customer, validate_api_key
-from ..database.models import Refund
 from ..database.repository import (
     find_all_orders,
     get_refund_by_order_id,
-    save_refund,
 )
 from ..database.services import (
     create_refund,
     get_user_orders,
     process_refund,
-    refund_user,
     serialize_orders,
     serialize_refund,
     update_order_refund_status,
@@ -25,6 +23,7 @@ from ..database.services import (
 from ..errors import CheekyApiError
 from ..utils import get_request_parameter, parse_as_decimal
 
+logger = logging.getLogger(__name__)
 bp = Blueprint("orders", __name__, url_prefix="/orders")
 
 
@@ -72,7 +71,6 @@ def refund_order(order_id):
     refund_amount_entered = parse_as_decimal(get_request_parameter("amount"))
     refund_amount = refund_amount_entered or Decimal("0.2") * g.order.total
 
-    # TODO: The new approach
     refund = create_refund(
         order_id=order_id,
         amount=refund_amount,
@@ -83,27 +81,11 @@ def refund_order(order_id):
     process_refund(refund, g.email)
     return jsonify(serialize_refund(refund)), 200
 
-    # status = "auto_approved" if g.refund_is_auto_approved else "pending"
-
-    # refund = Refund(
-    #     order_id=order_id,
-    #     amount=refund_amount,
-    #     reason=reason,
-    #     status=status,
-    #     auto_approved=g.refund_is_auto_approved,
-    # )
-
-    # if g.refund_is_auto_approved:
-    #     refund_user(g.email, refund_amount)
-
-    # save_refund(refund)
-    # return jsonify(refund.model_dump(mode="json")), 200
-
 
 @bp.patch("/<order_id>/refund/status")
 def update_refund_status(order_id):
     """Updates the status of a refund."""
-    print(f"Updating refund status for order {order_id}")
+    logger.info(f"Updating refund status for order {order_id}")
     if not authenticated_with("restaurant"):
         raise CheekyApiError("Unauthorized")
 

@@ -155,6 +155,15 @@ def serialize_orders(orders: list[Order]) -> list[dict]:
     return [serialize_order(order) for order in orders]
 
 
+def find_order_owner(order_id: str) -> str:
+    """Finds the owner of an order."""
+    order = find_order_by_id(order_id)
+    if not order:
+        logger.warning(f"Order not found: {order_id}")
+        return None
+    return order.user_id
+
+
 # ============================================================
 # CART SERVICES
 # ============================================================
@@ -204,11 +213,16 @@ def create_refund(order_id: str, amount: Decimal, reason: str, auto_approved: bo
 
 def process_refund(refund: Refund, user_id: str) -> None:
     """Processes a refund: saves it and credits user if auto-approved."""
-    if refund.auto_approved:
+    if refund.status in ("auto_approved", "approved") and not refund.paid:
         refund_user(user_id, refund.amount)
-        logger.info(f"Auto-approved refund processed: {refund.refund_id} for {user_id}")
+        refund.paid = True
+        logger.info(
+            f"Approved refund processed: {refund.refund_id} of {refund.amount} for {user_id}"
+        )
     else:
-        logger.info(f"Refund pending approval: {refund.refund_id}")
+        logger.error(
+            f"Refund status: {refund.status}. Refund of {refund.amount} for {user_id} is not paid."
+        )
 
     save_refund(refund)
 
@@ -225,7 +239,8 @@ def update_order_refund_status(
     refund = get_refund_by_order_id(order_id)
     if refund:
         refund.status = status
-        save_refund(refund)
+        refund_owner = find_order_owner(order_id)
+        process_refund(refund, refund_owner)
         return refund
     logger.warning(f"Refund not found for order {order_id}")
     return None

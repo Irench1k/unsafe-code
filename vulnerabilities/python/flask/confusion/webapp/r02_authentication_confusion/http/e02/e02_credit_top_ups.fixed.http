@@ -10,13 +10,14 @@ Content-Type: application/x-www-form-urlencoded
 
 user=spongebob@bikinibottom.sea&amount=100
 
-### Vulnerable Example: Plankton can add credits as customer
+### Vulnerable Example FIXED: now Plankton cannot add credits as customer, and when sending this request,
+# he will see just his balance unchanged
 GET {{base}}/account/credits
 Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
 Content-Type: application/x-www-form-urlencoded
 
 amount=100&user=plankton@chum-bucket.sea
 
-### Now we see that Plankton added credits to his account!
+### Check again: Plankton's balance is unchanged
 GET {{base}}/account/info
 Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife

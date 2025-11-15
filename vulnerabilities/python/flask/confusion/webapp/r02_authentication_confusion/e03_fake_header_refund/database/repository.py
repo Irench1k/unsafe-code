@@ -6,11 +6,14 @@ All database operations should go through these repository functions.
 When migrating to SQLAlchemy, only this file will need significant changes.
 """
 
+import logging
 from decimal import Decimal
 from typing import Literal
 
 from .models import Cart, MenuItem, Order, Refund, User
 from .storage import db
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================
@@ -42,10 +45,10 @@ def save_user(user: User) -> None:
 def increment_user_balance(user_id: str, amount: Decimal) -> Decimal | None:
     """Increments a user's balance."""
     user = find_user_by_id(user_id)
-    print(f"User: {user}, Amount: {amount}")
+    logger.info(f"User: {user}, Amount: {amount}")
     if user:
         user.balance += amount
-        print(f"User: {user}, New Balance: {user.balance}")
+        logger.info(f"User: {user}, New Balance: {user.balance}")
         return user.balance
     return None
 
