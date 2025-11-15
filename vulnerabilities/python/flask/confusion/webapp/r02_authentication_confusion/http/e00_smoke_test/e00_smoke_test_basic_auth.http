@@ -15,7 +15,6 @@ Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
 GET {{base}}/orders
 Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
 
-
 ### Create a new cart and add items to it
 # @name cart
 POST {{base}}/cart
