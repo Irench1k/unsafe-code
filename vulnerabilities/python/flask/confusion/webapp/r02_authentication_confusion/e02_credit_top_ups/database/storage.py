@@ -53,7 +53,8 @@ db = {
         "1": Cart(cart_id="1", items=["1", "3"]),
     },
     "next_cart_id": 2,
-    "api_key": "key-krusty-krub-z1hu0u8o94",
+    "restaurant_api_key": "key-mrkrabs-1bd647c2-dc5b-4c2b-a316-5ff83786c219",
+    "platform_api_key": "key-sandy-42841a8d-0e65-41db-8cce-8588c23e53dc",
     "refunds": {
         "1": Refund(
             refund_id="1",

@@ -6,6 +6,7 @@ All database operations should go through these repository functions.
 When migrating to SQLAlchemy, only this file will need significant changes.
 """
 
+from decimal import Decimal
 from .models import Cart, MenuItem, Order, Refund, User
 from .storage import db
 
@@ -41,11 +42,15 @@ def save_user(user: User) -> None:
     db["users"][user.user_id] = user
 
 
-def update_user_balance(user_id: str, new_balance) -> None:
-    """Updates a user's balance."""
+def increment_user_balance(user_id: str, amount: Decimal) -> Decimal | None:
+    """Increments a user's balance."""
     user = find_user_by_id(user_id)
+    print(f"User: {user}, Amount: {amount}")
     if user:
-        user.balance = new_balance
+        user.balance += amount
+        print(f"User: {user}, New Balance: {user.balance}")
+        return user.balance
+    return None
 
 
 # ============================================================
@@ -123,7 +128,12 @@ def get_and_increment_refund_id() -> str:
 # ============================================================
 def get_api_key() -> str:
     """Gets the restaurant's API key from the database."""
-    return db["api_key"]
+    return db["restaurant_api_key"]
+
+
+def get_platform_api_key() -> str:
+    """Gets the platform's API key from the database."""
+    return db["platform_api_key"]
 
 
 def get_signup_bonus_remaining():

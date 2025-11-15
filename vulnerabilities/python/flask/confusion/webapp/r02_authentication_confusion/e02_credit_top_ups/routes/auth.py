@@ -1,12 +1,31 @@
 from flask import Blueprint, g, jsonify, request, session
 
 from ..auth.authenticators import CredentialAuthenticator, CustomerAuthenticator
-from ..database.repository import find_user_by_id
+from ..auth.helpers import verify_user_registration
+from ..database.repository import find_user_by_id, user_exists
 from ..database.services import apply_signup_bonus, create_user
 from ..errors import CheekyApiError
-from ..utils import send_verification_email
+from ..utils import get_email_from_token, send_verification_email
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
+
+
+@bp.before_request
+def protect_registration_flow():
+    """Authenticate user via email verification flow during the registration process."""
+    token = request.is_json and request.json.get("token")
+    if token and verify_user_registration(token):
+        email_from_token = get_email_from_token(token)
+        if not user_exists(email_from_token):
+            g.email = email_from_token
+            g.email_confirmed = True
+        else:
+            g.email = None
+            g.email_confirmed = False
+    else:
+        print("token is invalid")
+        # The token is expired, or maybe this isn't even a registration request
+        g.email_confirmed = False
 
 
 @bp.post("/register")

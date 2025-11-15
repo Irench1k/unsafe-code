@@ -24,24 +24,6 @@ def handle_exception(error: Exception):
 
 
 @bp.before_request
-def protect_registration_flow():
-    """Authenticate user via email verification flow during the registration process."""
-    token = request.is_json and request.json.get("token")
-    if token and verify_user_registration(token):
-        email_from_token = get_email_from_token(token)
-        if not user_exists(email_from_token):
-            g.email = email_from_token
-            g.email_confirmed = True
-        else:
-            g.email = None
-            g.email_confirmed = False
-    else:
-        print("token is invalid")
-        # The token is expired, or maybe this isn't even a registration request
-        g.email_confirmed = False
-
-
-@bp.before_request
 def protect_order_id():
     """Security middleware to prevent future attacks."""
     # We don't accept order_id from the user to prevent order overwrite attacks.
