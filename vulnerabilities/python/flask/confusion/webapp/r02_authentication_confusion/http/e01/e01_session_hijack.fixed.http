@@ -1,0 +1,26 @@
+@base = http://localhost:8000/api/v202
+
+### Mobile app still uses Basic Auth for user authentication
+GET {{base}}/orders
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+
+### Plankton logins into his own account
+# This request sets the session cookie that will be automatically added in the followup requests
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "plankton@chum-bucket.sea",
+    "password": "i_love_my_wife"
+}
+
+### Plankton accesses his own orders via cookie authentication
+GET {{base}}/orders
+
+### Vulnerable Example FIXED: now when Plankton tries to access Spongebob's orders without knowing his password, he sees his own orders anyway
+GET {{base}}/orders
+Authorization: Basic spongebob@bikinibottom.sea:no_password
+
+#### We can check it by accessing account info: we see Plankton's account
+GET {{base}}/account/info
+Authorization: Basic spongebob@bikinibottom.sea:no_password
