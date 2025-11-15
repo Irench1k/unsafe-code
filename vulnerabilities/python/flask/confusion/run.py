@@ -9,4 +9,9 @@ if __name__ == "__main__":
     host = os.environ.get("APP_HOST", "0.0.0.0")
     port = int(os.environ.get("APP_PORT", 8000))
 
-    app.run(host=host, port=port)
+    # Enable Flask's debug mode (including hot-reload) in development
+    # The dev-supervisor.py will let Flask's own reloader handle changes,
+    # and only restart the process if it crashes
+    debug = os.environ.get("FLASK_DEBUG", "0") == "1"
+
+    app.run(host=host, port=port, debug=debug)

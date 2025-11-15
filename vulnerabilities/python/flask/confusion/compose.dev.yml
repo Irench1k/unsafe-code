@@ -1,14 +1,27 @@
 services:
   app:
-    extends:
-      file: compose.yml
-      service: app
-    develop:
-      watch:
-        - action: sync+restart
-          path: .
-          target: /app
-          ignore:
-            - __pycache__/
-        - action: rebuild
-          path: requirements.txt
+    # Redefine the 'app' service for development
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+
+    ports:
+      - "${PORT:-8000}:8000"
+
+    networks: [lab]
+
+    environment:
+      # Enable Flask's debug mode and hot-reload
+      - FLASK_DEBUG=1
+      - DATABASE_URL="postgresql+psycopg://unsafe:code@db:5432/lab"
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    volumes:
+      - .:/app:cached
+
+    # No command override - use the Dockerfile CMD (python run.py)
+    # which goes through: entrypoint → supervisor → run.py

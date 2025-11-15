@@ -5,6 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: prod
     ports:
       - "${PORT:-8000}:8000"
     networks: [lab]
