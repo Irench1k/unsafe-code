@@ -37,8 +37,8 @@ examples:
       code_start_line: 33
       code_end_line: 57
     file_hashes:
-      e01_baseline/routes.py: 377224a3930c4e3944001638b44d0d9dca871f3255187234daedd7924c15aeff
-    fingerprint: 9beda3b94d420865461a1608133080225beb9f080fcd5fdf7525665d49dceb20
+      e01_baseline/routes.py: f1e483d8b8ae4554948aebb521dd7ea0593cd338b0c3914b407296b680bfd279
+    fingerprint: f0e037ce533c848fa5f5b56169dc4318ea33b9bf2280be3ef03d9e9b74a858ea
   2:
     id: 2
     kind: block
@@ -81,8 +81,8 @@ examples:
       code_start_line: 16
       code_end_line: 31
     file_hashes:
-      e02_middleware/routes.py: 512f8bee9aafffa995b7fb5ca3187ab3af74dac79594218acca1385edfce3e71
-    fingerprint: fe1b5978b7b12c95ea61c100f66b3d4e6f585d3963a59c8d61c66a076a88f668
+      e02_middleware/routes.py: 90f9f98adc8ca9c3b5979e5988a7fe2facf238a49581d5b2420871ef4a95ea5c
+    fingerprint: 8ce4dd5dc990c80f5eed874f51341d70fd600cb9f1e1cb952dc8dd71bff67990
   3:
     id: 3
     kind: block
@@ -114,9 +114,9 @@ examples:
       code_start_line: 12
       code_end_line: 28
     file_hashes:
-      e03_decorator/auth.py: 6220f63b7c6f0545d3294eacdaf1921a733599b9830c979b8bf707ebccfede12
-      e03_decorator/routes.py: 4df573b3e3cb24252ef14c701b84ecf0d2b75d088ecc140135e53b8ff3077c7c
-    fingerprint: d8d8e45d466a0d306fef439b6d8087e38e96407d1ee2de41337ed0d97bda6ad1
+      e03_decorator/auth.py: 07164d5bc4713b3b4c3e0653cb653f0827494c82c52fdb87701723372d32c49e
+      e03_decorator/routes.py: 9607da47fd411232e58426a2861e3f6c02fedeea5085daafa505b899978e28d7
+    fingerprint: b021ed773fb532043acf1fcd7c66dcf17f13270bf8164256751fb1f21bcb7d48
   4:
     id: 4
     kind: block
@@ -147,9 +147,9 @@ examples:
       code_start_line: 12
       code_end_line: 29
     file_hashes:
-      e04_decorator_2/auth.py: 813600fa6d226b44cb4018c86398c2e257ab0c8e9c857fbbf692088e6f77e62e
-      e04_decorator_2/routes.py: 03008bec0a9b361ebf9a3635e57dadfc77ec6729e75652754df41ffe5eb074e2
-    fingerprint: 199435685021f8410bc6c6d27a53e37e5c410c8327c13861de0387fee5f8c8a4
+      e04_decorator_2/auth.py: 28a000ca08fa77ac3838310ffdd8c55d3b747ef306a30eaff716d518780349fb
+      e04_decorator_2/routes.py: fa91e37161e134a78aa57a2a7387b9488bcea2867bb82ff74ce463d9603c9948
+    fingerprint: 7822d05e762c301a9190c5a235014cee0c7a9e77aa816abdb3b5f860e75c5b93
   5:
     id: 5
     kind: block
@@ -192,10 +192,10 @@ examples:
       code_start_line: 42
       code_end_line: 68
     file_hashes:
-      e05_basic_auth/auth.py: 3dafa3d3cde0848e2cca83b43a0a4e70016a971ac60e12fe90a3d3d481019418
-      e05_basic_auth/db.py: c24178fc9f52e806800381d1f74803d3efac913f00ab8cba2359dd073e42c04d
-      e05_basic_auth/routes.py: 6330fe7d9ebec102d02405e8ee30bba95d3bfe4cb23ac27ed47dff3ecfb2e7c1
-    fingerprint: 6a0c9b167b2c94beb3ff95c86226c04d37df332c78b9d73f4a6f55d4385dc9a5
+      e05_basic_auth/auth.py: d3a73c36e722480f8c8c051feedd5d689f4ff74dce7f925ef3bfecb24780ab15
+      e05_basic_auth/db.py: bf622c20d579b978ee0ddd191ae087c6d0dbf4c23f2917b558295ebdc6348be0
+      e05_basic_auth/routes.py: 182fa7471b495e9d25031ef1f1f0d31fe11f8cd0e5285e5174a5f9ab66b34859
+    fingerprint: 4f14623b8c146b0712ff2b486c8ec5d554a14b89d94d8eebb149bfb7a46d30fa
   6:
     id: 6
     kind: block
@@ -256,16 +256,16 @@ examples:
       code_start_line: 15
       code_end_line: 22
     file_hashes:
-      e06_error_handler/db.py: 2ed13bf215ae0e4dd0894f94c7420d378759d93a8e58b31ca2652fbaf266ef39
-      e06_error_handler/routes.py: de6dc4ab7a635944c41fafe47d1c76821cd6a13db02494e2a0ab8df64867a8c3
-      e06_error_handler/security.py: df00362f16c1d6b02215bd3da209aee0f37c493d72fe36bbcbcb97f019e157cd
-    fingerprint: 472cfe7208296b7233bab6269e6f4984efdc26de403849c6e9d7664d8cf9d873
+      e06_error_handler/db.py: 1130859cb0268c3de016c03cd177477c11b7417ceff41341a62dfe9dc555e6fa
+      e06_error_handler/routes.py: 3010436c945d701130082e19444fc96495b5dfebfd2fdcf86898b16e69ca64d0
+      e06_error_handler/security.py: f736c3f9962af3c44a55356b2540a77924d015fac46fd625c16c16c69b0fb7d4
+    fingerprint: 8fc62a679cd4bad19aeb86b2db633c9b84c9a0b864af91c369e5f893b9595d03
 attachments:
-  http/exploit-1.http: d58c8471fb5a25ce7a138ef80db30a3d70c664e51d79e2560a1f5263a7233cc0
-  http/exploit-2.http: dbaae4a4d2e5585e72e16ea39f173ac51d6f2ca7dccf530613c9ab84595a792c
-  http/exploit-3.http: 19d080c12c1cac41896ddb79ec0985a617b776ab66b6a31a62b32f99486f84c5
-  http/exploit-4.http: f1c3617a40636af418f09badc22209140d41d69412630640335e206a6d1afbcc
-  http/exploit-5.http: fa014fbd0ad12700637869b3326646725e561002c6a5f4e4129cff7d306e9bdf
-  http/exploit-6.http: 81b4e2b25c542dd8dcd2e0a98758b33ac5bb173e5860f98031b2b40043665873
-build_signature: 573c722d65d9e60a5ea44e176679d8abb4c37cca1e427d9084709affb74cc282
-last_readme_fingerprint: 0c481f15fade953baf9f01fadcb4ad736ebf7e61ccd27fd916b70936f014f0f8
+  http/exploit-1.http: 4f2bbb19aa9d01f72652f3624b97689f64a6632c41a39b0fe1106eafc7619fa6
+  http/exploit-2.http: 3f7f022d53e9cffc80a4f391b885a37a7fff2a8a945350b2dc32bcb8edac3f36
+  http/exploit-3.http: 7ba5bed5a3081c7ea746603d59700822fdef644eb5961d19af1357676f370607
+  http/exploit-4.http: 4cbd4a02de1c8137721ccffefa962be5fe9216eae9b5e6a8a10a69420db10d1f
+  http/exploit-5.http: d666522c31d8c42fbb696e245845b7232d929e1ae2535f0526e956fa2b29beec
+  http/exploit-6.http: 4e7844cb91f2ca5b87fcc1037d8265bc3e11438fac9283afda6e4e483d13465e
+build_signature: 6b6f1212695cb161b569638ed15e79676bba14f97e72b91826320e699686a52d
+last_readme_fingerprint: 084cfd596ceece865d87f49a70a17b87b90defb5d150c4373ea17d76d3d18501

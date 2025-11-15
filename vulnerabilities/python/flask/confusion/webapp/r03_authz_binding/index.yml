@@ -42,8 +42,8 @@ examples:
       code_start_line: 28
       code_end_line: 58
     file_hashes:
-      e01_baseline/routes.py: 5f671caa90a924061941f71f9e508519ff84e306865fb6ddefb99f85a26c2207
-    fingerprint: 5c53c7215d6cd1e8afec9cf2f91620ee105a4e033b52f8afa563627e7149f40b
+      e01_baseline/routes.py: fc04772439cbb19dfd24c894f725815464b82c1f74ae2464f39620a3e8c99f15
+    fingerprint: 5c5e169b40086e05953e84f3865ea4833ad38064fc36c77840e9db5d0bc9746a
   2:
     id: 2
     kind: block
@@ -85,8 +85,8 @@ examples:
       code_start_line: 35
       code_end_line: 50
     file_hashes:
-      e02_path_query_confusion/routes.py: 340e8de944fa34db6fe8ff8e79d0bab99654e8a7bddec5ab7dbb1cb0fdf530af
-    fingerprint: 196a9acfcfe429a21484374f90d95d3b996a3df5b56cd4e6bceb0b2d768ff43f
+      e02_path_query_confusion/routes.py: d895161f324e649c4e9aecb08607e32199cb4b160ca67bc79449cb9e1f1d48b2
+    fingerprint: f2003d4f81ac47163e7f327d3dc1e1c5535ae6226aab8be0dff2f9358c61f18e
   3:
     id: 3
     kind: block
@@ -137,8 +137,8 @@ examples:
       code_start_line: 82
       code_end_line: 97
     file_hashes:
-      e02_path_query_confusion/routes.py: 340e8de944fa34db6fe8ff8e79d0bab99654e8a7bddec5ab7dbb1cb0fdf530af
-    fingerprint: c8923084b869726579dca2e85259006fd1d1a58d13c3b2b38ae70921b5cc5e6e
+      e02_path_query_confusion/routes.py: d895161f324e649c4e9aecb08607e32199cb4b160ca67bc79449cb9e1f1d48b2
+    fingerprint: 987a40e15b53f408439b1c8872756253036dfeee97033911e03d2b45a7cccce1
   4:
     id: 4
     kind: block
@@ -189,8 +189,8 @@ examples:
       code_start_line: 39
       code_end_line: 76
     file_hashes:
-      e03_simple_rebinding/routes.py: 9717ac94f8b5082bc0654fbba25c79420b6edd295ec1ea29608023adba8bff84
-    fingerprint: 0da3c12f4f9868f914db00fd09872ec897a04fe0c19469d268e8878f4d6e6902
+      e03_simple_rebinding/routes.py: 73a675e0a9b855a0e7228611d4538c0c6a14223751a5a9dda5c72230e6ac8e2d
+    fingerprint: f84a6d5f04d03e09ca68e4252afdf0fad65b94c53fd5bfe9519720373d41be68
   13:
     id: 13
     kind: block
@@ -204,8 +204,8 @@ examples:
       code_start_line: 20
       code_end_line: 36
     file_hashes:
-      e01_baseline/decorator.py: 8b681ce69fafe2466d6980fd3567d52452842e936238402fae306655d919583d
-    fingerprint: 0d2dc73df2479b718730e57fa2d079096c6f374dd15ebb93b23670e6629fb00f
+      e01_baseline/decorator.py: 98c5ae44a827092c44cafac85c292e7e8987c75107be513318db33ac74221185
+    fingerprint: 9e42a6dbfd745953b427f2c84810c962fdd693e24f1ff557e9fbb8f163ed4b50
   14:
     id: 14
     kind: block
@@ -219,8 +219,8 @@ examples:
       code_start_line: 21
       code_end_line: 50
     file_hashes:
-      e02_path_query_confusion/decorator.py: 32a3e8ade10bcca35dfc72824a86a68329bdbb61891fd23ac26bf61fcf152214
-    fingerprint: c7d5bacb6a22918b1d4ba26e0f8209388a804fc44ead3e891c493085b2eeca30
+      e02_path_query_confusion/decorator.py: cba6f891e7df11e98d2e9a434c625757d9bf4a33eb080d3d7af656b4dfdb5b80
+    fingerprint: 0675da6d4209ba980387172cf3e185e88e250b03616c5f94538a81df0dd0eea6
   15:
     id: 15
     kind: block
@@ -234,12 +234,12 @@ examples:
       code_start_line: 59
       code_end_line: 92
     file_hashes:
-      e02_path_query_confusion/decorator.py: 32a3e8ade10bcca35dfc72824a86a68329bdbb61891fd23ac26bf61fcf152214
-    fingerprint: 1f913a207d57aae50e6a95dd83f80f0ab87004de4f62576e9dc9e2c8395d67e5
+      e02_path_query_confusion/decorator.py: cba6f891e7df11e98d2e9a434c625757d9bf4a33eb080d3d7af656b4dfdb5b80
+    fingerprint: 6adf80555c57870225e606a30831381bca08debd22472b9c30dec05841f2d6c5
 attachments:
-  http/exploit-1.http: 77bc81050ebdbc3adfc49c0c3a5ca3ca7bfce0704e59188365721cd164a4166c
-  http/exploit-2.http: 8a4f38f146750b0f86cf4506bcf8e404084d3ca6de90d7a2d9376e6e6373c1ad
-  http/exploit-3.http: 2fcb8ab484c3d6d390a8d245105961d71ba4fc88f14c1218e44461fad8ce12eb
-  http/exploit-4.http: 3714f6759a61e296218d5ab3545a140d25eca48f0dacd2d777428d12a74fb832
-build_signature: e3c2f20c3debfe710047a1315b35480b9a449d62d453bf77a6d2b222cc5eb299
-last_readme_fingerprint: d0e5b6f73d67cb86357dd7b72bf819c09fa9961db1b460bcc6a8ada4cba99e19
+  http/exploit-1.http: 499a2390053183f5ba9ee9c551af9f19efaa8fab8aac5f18159403a297c9efc1
+  http/exploit-2.http: 9316699c101e94b322480c5bf1e35ada343c3260b8c4ecd6aca00a7d40e7fab2
+  http/exploit-3.http: df3bb095cf96ff74b343ce71554cd5834d20bd04c6a63431ba216f9a1f080666
+  http/exploit-4.http: c795cfe84b25ee8e9aff44b69124a454bb198c7307e8ce28aa51a7a40a232a0e
+build_signature: e3e3f6a956a45b74ac28ef1296526406ed8a2779695e05c718b46af9c791fd6c
+last_readme_fingerprint: da72d2b3b97a7b56db5b9b8b5a7dba01a301bff6f65fe18646420ed396958e68

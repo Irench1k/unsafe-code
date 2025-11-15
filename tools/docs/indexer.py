@@ -151,9 +151,25 @@ def build_directory_index(root: Path, spec: ReadmeSpec) -> DirectoryIndex:
     )
 
     sig_data: list[str] = []
+
     sig_data.extend(ex.fingerprint or "" for ex in sorted(examples.values(), key=lambda e: e.id))
     sig_data.extend(f"{p}:{h}" for p, h in sorted(attachments.items()))
+
+    docs_root = Path(__file__).resolve().parent  # tools/docs
+    generator_files = [
+        docs_root / "markdown_generator.py",
+        docs_root / "indexer.py",
+        docs_root / "readme_spec.py",
+    ]
+
+    for gf in generator_files:
+        try:
+            sig_data.append(f"{gf.name}:{sha256_file(gf)}")
+        except Exception:
+            continue
+
     index.build_signature = compute_fingerprint(sig_data)
+
     return index
 
 

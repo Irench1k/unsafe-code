@@ -4,5 +4,5 @@ category: type-coercion.loose-equality
 namespace: flask-type-coercion-loose-equality
 examples: {}
 attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: ce821dc5059d74c7ad42a95e7082adda894f7bf8599ff7c70dcc121a3204267f
+build_signature: 3b1e09d830ddb9340fdefb7db0ac488c2fdc866c3de86492163d509df41d63a1
+last_readme_fingerprint: 5679d620cce31ce4c5121d29deda1ae1dfcd17a6bc01a2800b248dad45b3e05f
