@@ -3,7 +3,7 @@ from decimal import Decimal
 from flask import g, jsonify, request, session
 
 from . import bp
-from .auth.authenticators import CredentialAuthenticator
+from .auth.authenticators import CredentialAuthenticator, CustomerAuthenticator
 from .auth.decorators import (
     customer_authentication_required,
     protect_refunds,
@@ -192,7 +192,6 @@ def refund_order(order_id):
     return jsonify(refund.model_dump(mode="json")), 200
 
 
-# v107: Cleaned up code, moved verification to middleware, error handling to @bp error handler
 @bp.route("/auth/register", methods=["POST"])
 def register_user():
     """
@@ -240,3 +239,15 @@ def login_user():
     session["email"] = g.email
 
     return jsonify({"message": "Login successful"}), 200
+
+
+@bp.route("/auth/logout", methods=["POST"])
+def logout_user():
+    """Logs out the user."""
+    authenticator = CustomerAuthenticator()
+
+    if not authenticator.authenticate():
+        raise CheekyApiError("You are not logged in!")
+
+    session.pop("email", None)
+    return jsonify({"message": "Logout successful"}), 200
