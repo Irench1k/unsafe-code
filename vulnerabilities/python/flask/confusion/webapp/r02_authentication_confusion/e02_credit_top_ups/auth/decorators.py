@@ -28,7 +28,7 @@ def verify_order_access(f):
     def decorated_function(*args, **kwargs):
         g.order = get_order(request.view_args.get("order_id"))
         if g.order and g.order.user_id != g.email:
-            raise CheekyApiError("Unathorized")
+            raise CheekyApiError("Unauthorized")
         return f(*args, **kwargs)
 
     return decorated_function

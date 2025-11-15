@@ -1,12 +1,13 @@
+import logging
 import traceback
 
-from flask import g, jsonify, request
+from flask import jsonify
 
 from .. import bp
-from ..database.repository import user_exists
 from ..errors import CheekyApiError
-from ..utils import get_email_from_token, get_request_parameter
-from .helpers import verify_user_registration
+from ..utils import get_request_parameter
+
+logger = logging.getLogger(__name__)
 
 
 @bp.errorhandler(CheekyApiError)
@@ -18,8 +19,7 @@ def handle_cheeky_api_error(error: CheekyApiError):
 @bp.errorhandler(Exception)
 def handle_exception(error: Exception):
     """Handle all other exceptions."""
-    print(f"Exception: {error}")
-    print(traceback.format_exc())
+    logger.error(f"Unhandled exception: {error}\n{traceback.format_exc()}")
     return jsonify({"error": "Something went wrong"}), 500
 
 

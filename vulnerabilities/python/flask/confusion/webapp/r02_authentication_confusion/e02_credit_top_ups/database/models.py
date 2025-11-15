@@ -12,26 +12,6 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-def _get_next_order_id_from_repository() -> str:
-    """
-    Helper function to avoid circular imports.
-    This is only called during model instantiation.
-    """
-    from .repository import get_and_increment_order_id
-
-    return get_and_increment_order_id()
-
-
-def _get_next_refund_id_from_repository() -> str:
-    """
-    Helper function to avoid circular imports.
-    This is only called during model instantiation.
-    """
-    from .repository import get_and_increment_refund_id
-
-    return get_and_increment_refund_id()
-
-
 class MenuItem(BaseModel):
     id: str
     name: str
@@ -46,7 +26,7 @@ class OrderItem(BaseModel):
 
 
 class Order(BaseModel):
-    order_id: str = Field(default_factory=_get_next_order_id_from_repository)
+    order_id: str
     total: Decimal
     user_id: str
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
@@ -62,7 +42,7 @@ class Cart(BaseModel):
 
 
 class Refund(BaseModel):
-    refund_id: str = Field(default_factory=_get_next_refund_id_from_repository)
+    refund_id: str
     order_id: str
     amount: Decimal
     reason: str = Field(default="")

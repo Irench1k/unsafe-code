@@ -3,14 +3,17 @@ from decimal import Decimal
 from flask import Blueprint, g, jsonify, request
 
 from ..auth.decorators import customer_authentication_required
-from ..database.models import Order
 from ..database.repository import find_cart_by_id
-from ..database.services import add_item_to_cart, create_cart, save_order_securely
-from ..errors import CheekyApiError
-from ..utils import (
-    check_cart_price_and_delivery_fee,
-    convert_item_ids_to_order_items,
+from ..database.services import (
+    add_item_to_cart,
+    create_cart,
+    create_order_from_checkout,
+    save_order_securely,
+    serialize_cart,
+    serialize_order,
 )
+from ..errors import CheekyApiError
+from ..utils import check_cart_price_and_delivery_fee, convert_item_ids_to_order_items
 
 bp = Blueprint("cart", __name__, url_prefix="/cart")
 
@@ -25,7 +28,7 @@ def create_new_cart():
     the client will use in subsequent requests to add items.
     """
     new_cart = create_cart()
-    return jsonify(new_cart.model_dump()), 201
+    return jsonify(serialize_cart(new_cart)), 201
 
 
 @bp.post("/<cart_id>/items")
@@ -52,7 +55,7 @@ def add_item_to_cart_endpoint(cart_id):
         raise CheekyApiError("Cart not found")
 
     updated_cart = add_item_to_cart(cart_id, item_id)
-    return jsonify(updated_cart.model_dump()), 200
+    return jsonify(serialize_cart(updated_cart)), 200
 
 
 @bp.post("/<cart_id>/checkout")
@@ -78,16 +81,16 @@ def checkout_cart(cart_id):
         raise CheekyApiError("Insufficient balance")
 
     items = convert_item_ids_to_order_items(cart.items)
+    delivery_address = user_data.get("delivery_address", "")
 
-    safe_order_data = {
-        "total": total_price + delivery_fee + tip,
-        "user_id": g.email,
-        "items": [item.model_dump() for item in items],
-        "delivery_fee": delivery_fee,
-        "tip": tip,
-    }
+    new_order = create_order_from_checkout(
+        user_id=g.email,
+        total=total_price + delivery_fee + tip,
+        items=[item.model_dump() for item in items],
+        delivery_fee=delivery_fee,
+        delivery_address=delivery_address,
+        tip=tip,
+    )
 
-    new_order = Order.model_validate({**user_data, **safe_order_data})
     save_order_securely(new_order)
-
-    return jsonify(new_order.model_dump(mode="json")), 201
+    return jsonify(serialize_order(new_order)), 201

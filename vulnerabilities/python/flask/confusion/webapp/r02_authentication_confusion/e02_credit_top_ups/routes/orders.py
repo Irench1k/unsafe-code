@@ -8,9 +8,14 @@ from ..auth.decorators import (
     verify_order_access,
 )
 from ..auth.helpers import authenticate_customer, validate_api_key
-from ..database.models import Refund
-from ..database.repository import find_all_orders, save_refund
-from ..database.services import get_user_orders, refund_user
+from ..database.repository import find_all_orders
+from ..database.services import (
+    create_refund,
+    get_user_orders,
+    process_refund,
+    serialize_orders,
+    serialize_refund,
+)
 from ..errors import CheekyApiError
 from ..utils import get_request_parameter, parse_as_decimal
 
@@ -24,12 +29,12 @@ def list_orders():
     # Customer -> List their own orders
     if authenticate_customer():
         orders = get_user_orders(g.email)
-        return jsonify([order.model_dump(mode="json") for order in orders])
+        return jsonify(serialize_orders(orders))
 
     # Restaurant manager -> List all orders
     if validate_api_key():
         orders = find_all_orders()
-        return jsonify([order.model_dump(mode="json") for order in orders])
+        return jsonify(serialize_orders(orders))
 
     raise CheekyApiError("Unauthorized")
 
@@ -44,18 +49,12 @@ def refund_order(order_id):
     refund_amount_entered = parse_as_decimal(get_request_parameter("amount"))
     refund_amount = refund_amount_entered or Decimal("0.2") * g.order.total
 
-    status = "auto_approved" if g.refund_is_auto_approved else "pending"
-
-    refund = Refund(
+    refund = create_refund(
         order_id=order_id,
         amount=refund_amount,
         reason=reason,
-        status=status,
         auto_approved=g.refund_is_auto_approved,
     )
 
-    if g.refund_is_auto_approved:
-        refund_user(g.email, refund_amount)
-
-    save_refund(refund)
-    return jsonify(refund.model_dump(mode="json")), 200
+    process_refund(refund, g.email)
+    return jsonify(serialize_refund(refund)), 200

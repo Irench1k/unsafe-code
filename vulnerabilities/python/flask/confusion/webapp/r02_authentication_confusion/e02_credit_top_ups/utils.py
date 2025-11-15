@@ -101,17 +101,12 @@ def get_email_from_token(token: str) -> str | None:
     return decoded_token.get("email")
 
 
-def verify_and_decode_token(token: str) -> str | None:
+def verify_and_decode_token(token: str) -> dict | None:
     """Verify the verification token and return the decoded token."""
     try:
         return jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-    except jwt.ExpiredSignatureError:
-        print("The token has expired!")
-    except jwt.InvalidSignatureError:
-        print("The token has an invalid signature!")
     except jwt.InvalidTokenError:
-        print("The token is invalid!")
-    return None
+        return None
 
 
 VERIFICATION_EMAIL_TEMPLATE = """

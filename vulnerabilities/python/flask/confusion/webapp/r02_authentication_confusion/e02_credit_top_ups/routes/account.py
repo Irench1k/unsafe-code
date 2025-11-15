@@ -2,8 +2,8 @@ from flask import Blueprint, g, jsonify, request
 
 from ..auth.decorators import customer_authentication_required
 from ..auth.helpers import authenticate_customer
-from ..database.repository import get_platform_api_key, increment_user_balance
-from ..database.services import get_user_orders
+from ..database.repository import get_platform_api_key
+from ..database.services import get_user_orders, increment_user_balance
 from ..errors import CheekyApiError
 from ..utils import parse_as_decimal
 
