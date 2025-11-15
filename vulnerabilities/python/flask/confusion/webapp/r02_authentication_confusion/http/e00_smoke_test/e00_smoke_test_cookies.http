@@ -1,0 +1,54 @@
+@base = http://localhost:8000/api/v201
+
+### Listing Menu Items (Public)
+GET {{base}}/menu
+
+### Login as Plankton
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "plankton@chum-bucket.sea",
+    "password": "i_love_my_wife"
+}
+
+### Listing Plankton's Account Info
+GET {{base}}/account/info
+
+### Listing Plankton's Balance Before New Order
+GET {{base}}/account/credits
+
+### Listing Plankton's Orders via Basic Auth
+GET {{base}}/orders
+
+
+### Create a new cart and add items to it
+# @name cart
+POST {{base}}/cart
+
+### Add items to the cart
+POST {{base}}/cart/{{cart.response.body.cart_id}}/items
+Content-Type: application/json
+
+{
+  "item_id": "1"
+}
+
+### Checkout the cart
+# @name order
+POST {{base}}/cart/{{cart.response.body.cart_id}}/checkout
+Content-Type: application/x-www-form-urlencoded
+
+tip=-1&delivery_address=Chum Backet Restaurant
+
+### Refund the order: should not work, because the amount is more than the order total
+POST {{base}}/orders/{{order.response.body.order_id}}/refund
+Content-Type: application/x-www-form-urlencoded
+
+amount=50
+
+### Refund the order: should work
+POST {{base}}/orders/{{order.response.body.order_id}}/refund
+Content-Type: application/x-www-form-urlencoded
+
+amount=1

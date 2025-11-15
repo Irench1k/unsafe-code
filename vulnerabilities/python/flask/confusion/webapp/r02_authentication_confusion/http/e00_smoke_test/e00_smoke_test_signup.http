@@ -1,0 +1,40 @@
+@base = http://localhost:8000/api/v201
+
+### Listing Menu Items (Public)
+GET {{base}}/menu
+
+### Create a new user: should be already taken
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+    "email": "spongebob@bikinibottom.sea"
+}
+
+### Create a new user
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+    "email": "plankton.jr@chum-bucket.sea"
+}
+
+### Should fail
+# @prompt token Get the token from verification email, using Mailpit UI: http://127.0.0.1:8025/
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+    "token": "{{token}}",
+    "email": "spongebob@bikinibottom.sea",
+    "password": "hijacked",
+    "name": "SpongeBob"
+}
+
+###
+GET {{base}}/account/info
+Authorization: Basic spongebob@bikinibottom.sea:whatever
+
+###
+GET {{base}}/account/info
+Authorization: Basic plankton.jr@chum-bucket.sea:hijacked
