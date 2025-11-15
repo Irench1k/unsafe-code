@@ -1,0 +1,22 @@
+@base = http://localhost:8000/api/v203
+
+GET {{base}}/account/credits
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+
+### Add credits as admin
+POST {{base}}/account/credits
+X-Admin-API-Key: key-sandy-42841a8d-0e65-41db-8cce-8588c23e53dc
+Content-Type: application/x-www-form-urlencoded
+
+user=spongebob@bikinibottom.sea&amount=100
+
+### Vulnerable Example: Plankton can add credits as customer
+GET {{base}}/account/credits
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+Content-Type: application/x-www-form-urlencoded
+
+amount=100&user=plankton@chum-bucket.sea
+
+### Now we see that Plankton added credits to his account!
+GET {{base}}/account/info
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
