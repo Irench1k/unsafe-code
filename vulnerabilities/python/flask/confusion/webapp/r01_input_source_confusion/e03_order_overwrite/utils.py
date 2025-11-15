@@ -1,5 +1,4 @@
 from decimal import Decimal
-from typing import List
 
 from .database import get_menu_item
 from .models import OrderItem
@@ -23,7 +22,7 @@ def _check_price_and_availability_v100(item_id):
     return menu_item.price
 
 
-def _calculate_total_price(item_ids: List[str]) -> Decimal | None:
+def _calculate_total_price(item_ids: list[str]) -> Decimal | None:
     """
     Core logic: calculates total price for a list of item IDs.
     Returns None if any item is unavailable.
@@ -47,7 +46,7 @@ def _calculate_delivery_fee_for_total(total_price: Decimal) -> Decimal:
     return DELIVERY_FEE
 
 
-def convert_item_ids_to_order_items(item_ids: List[str]) -> List[OrderItem]:
+def convert_item_ids_to_order_items(item_ids: list[str]) -> list[OrderItem]:
     """
     Core logic: converts item IDs to OrderItem objects with locked-in prices.
 
@@ -94,7 +93,7 @@ def get_order_items(data):
 # ============================================================
 
 
-def check_cart_price_and_delivery_fee(item_ids: List[str]) -> tuple[Decimal, Decimal]:
+def check_cart_price_and_delivery_fee(item_ids: list[str]) -> tuple[Decimal, Decimal]:
     """Checks the price and availability of items in a cart."""
     total_price = _calculate_total_price(item_ids)
     if not total_price:

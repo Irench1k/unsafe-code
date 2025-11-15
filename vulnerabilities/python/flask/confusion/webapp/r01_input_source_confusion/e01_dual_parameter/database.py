@@ -1,5 +1,4 @@
 from decimal import Decimal
-from typing import List
 
 from .models import MenuItem, Order, OrderItem, User
 
@@ -85,13 +84,13 @@ def _get_next_order_id() -> str:
 
 
 # routes.py
-def get_all_orders() -> List[Order]:
+def get_all_orders() -> list[Order]:
     """Gets all orders."""
     return list(db["orders"].values())
 
 
 # routes.py
-def get_all_menu_items() -> List[MenuItem]:
+def get_all_menu_items() -> list[MenuItem]:
     """Gets all menu items."""
     return list(db["menu_items"].values())
 
@@ -110,7 +109,7 @@ def _charge_user(user_id: str, amount: Decimal):
 
 
 # routes.py
-def create_order_and_charge_customer(total_price: Decimal, user_id: str, items: List[OrderItem]):
+def create_order_and_charge_customer(total_price: Decimal, user_id: str, items: list[OrderItem]):
     """Creates a new order and charges the customer."""
     # Always charge the customer first!
     _charge_user(user_id, total_price)
@@ -129,7 +128,7 @@ def create_order_and_charge_customer(total_price: Decimal, user_id: str, items: 
 
 
 # routes.py
-def get_user_orders(user_id: str) -> List[Order]:
+def get_user_orders(user_id: str) -> list[Order]:
     """Gets all orders for a given user."""
     orders = []
     for order in get_all_orders():

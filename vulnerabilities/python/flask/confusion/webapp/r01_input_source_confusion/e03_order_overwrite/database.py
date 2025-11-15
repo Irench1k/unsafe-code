@@ -1,5 +1,4 @@
 from decimal import Decimal
-from typing import List
 
 from .models import Cart, MenuItem, Order, OrderItem, User
 
@@ -84,7 +83,7 @@ def _save_order_securely(order: Order):
     try:
         charged_successfully = charge_user(order.user_id, order.total, order.order_id)
         db["orders"][order.order_id] = order
-    except Exception as e:
+    except Exception:
         # Rollback routine: refund the customer if we charged them + remove the order from the database
         if charged_successfully:
             refund_user(order.user_id, order.total)
@@ -101,13 +100,13 @@ def get_next_order_id() -> str:
 
 
 # routes.py
-def get_all_orders() -> List[Order]:
+def get_all_orders() -> list[Order]:
     """Gets all orders."""
     return list(db["orders"].values())
 
 
 # routes.py
-def get_all_menu_items() -> List[MenuItem]:
+def get_all_menu_items() -> list[MenuItem]:
     """Gets all menu items."""
     return list(db["menu_items"].values())
 
@@ -163,7 +162,7 @@ def refund_user(user_id: str, amount: Decimal):
 def create_order_and_charge_customer(
     total_price: Decimal,
     user_id: str,
-    items: List[OrderItem],
+    items: list[OrderItem],
     delivery_fee: Decimal,
     delivery_address: str,
 ):
@@ -186,7 +185,7 @@ def create_order_and_charge_customer(
 
 
 # routes.py
-def get_user_orders(user_id: str) -> List[Order]:
+def get_user_orders(user_id: str) -> list[Order]:
     """Gets all orders for a given user."""
     orders = []
     for order in get_all_orders():

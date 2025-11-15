@@ -11,7 +11,6 @@ from .auth import (
 from .database import (
     add_item_to_cart,
     create_cart,
-    create_user,
     get_all_menu_items,
     get_all_orders,
     get_cart,
@@ -25,7 +24,6 @@ from .models import Order, Refund
 from .utils import (
     check_cart_price_and_delivery_fee,
     convert_item_ids_to_order_items,
-    generate_verification_token,
     get_email_from_token,
     get_request_parameter,
     parse_as_decimal,

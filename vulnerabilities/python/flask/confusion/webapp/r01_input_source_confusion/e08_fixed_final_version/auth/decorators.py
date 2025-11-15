@@ -1,11 +1,10 @@
 from decimal import Decimal
 from functools import wraps
 
-from flask import g, jsonify
+from flask import g
 
 from ..errors import CheekyApiError
 from ..utils import get_request_parameter, parse_as_decimal
-from .helpers import validate_api_key
 
 
 def customer_authentication_required(f):
