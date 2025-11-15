@@ -4,5 +4,5 @@ category: policy-composition-and-precedence.scope-mismatch
 namespace: flask-policy-scope-mismatch
 examples: {}
 attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: 4c4e4142ef1639dadec1b411d61477d1658b1995c6dfd20d92c1ac668ad557da
+build_signature: 3b1e09d830ddb9340fdefb7db0ac488c2fdc866c3de86492163d509df41d63a1
+last_readme_fingerprint: fc4e94694bb62c3720c49eb0aa97a7a7fec092309a35a1cdf807b373b418fea1

@@ -4,5 +4,5 @@ category: unsafe-defaults-and-misconfiguration.host-and-proxy-trust
 namespace: flask-unsafe-defaults-host-proxy
 examples: {}
 attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: 4e9fde79511e0364a8777e404f714cddf3d2cd037d34864da10fb5e94d1e5349
+build_signature: 3b1e09d830ddb9340fdefb7db0ac488c2fdc866c3de86492163d509df41d63a1
+last_readme_fingerprint: 5c86ee54d1ba09a846d83646663392b67fec337159171a5addb4a0117645524e

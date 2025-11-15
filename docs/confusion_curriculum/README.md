@@ -68,11 +68,11 @@ But avoid:
 
 The five categories build naturally on each other, mirroring how real applications evolve:
 
-1. [**r01: Input Source**](/docs/confusion_curriculum/r01_input_source_confusion.md) -> MVP with basic endpoints, multiple input formats
-2. [**r02: Authentication**](/docs/confusion_curriculum/r02_authentication_confusion.md) -> Add middleware, API keys, user context
-3. [**r03: Authorization**](/docs/confusion_curriculum/r03_authorization_confusion.md) -> Introduce resources, ownership, access control
-4. [**r04: Cardinality**](/docs/confusion_curriculum/r04_cardinality_confusion.md) -> Handle lists, bulk operations, edge cases
-5. [**r05: Normalization**](/docs/confusion_curriculum/r05_normalization_issues.md) -> String processing, database lookups, collision bugs
+1. [**r01: Input Source**](./r01_input_source_confusion.md) -> MVP with basic endpoints, multiple input formats
+2. [**r02: Authentication**](./r02_authentication_confusion.md) -> Add middleware, API keys, user context
+3. [**r03: Authorization**](./r03_authorization_confusion.md) -> Introduce resources, ownership, access control
+4. [**r04: Cardinality**](./r04_cardinality_confusion.md) -> Handle lists, bulk operations, edge cases
+5. [**r05: Normalization**](./r05_normalization_issues.md) -> String processing, database lookups, collision bugs
 
 Each stage adds one major framework feature (middleware, sessions, JSON, SQL, validation) while showcasing how those features create new confusion opportunities.
 

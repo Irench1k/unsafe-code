@@ -4,5 +4,5 @@ category: type-coercion.null-empty-missing
 namespace: flask-type-coercion-null-empty
 examples: {}
 attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: 003342ad641f628905ae3b5453ecc13ef9b921c9ba0192e3eeb0d29fdb8664ae
+build_signature: 3b1e09d830ddb9340fdefb7db0ac488c2fdc866c3de86492163d509df41d63a1
+last_readme_fingerprint: c60b16d7827b7f6c8a02a3a6374e5ce092af9db30c028a2928cd30dd4fe0c9c4

@@ -4,5 +4,5 @@ category: unsafe-defaults-and-misconfiguration.cors-and-scheme
 namespace: flask-unsafe-defaults-cors-scheme
 examples: {}
 attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: 82e458e8ff8353e390d2632ed8a5e5ff4c7a37e202af2b01791835342cb38c81
+build_signature: 3b1e09d830ddb9340fdefb7db0ac488c2fdc866c3de86492163d509df41d63a1
+last_readme_fingerprint: 4dd2acffa5f8b0a6b54d8ed402745bc015d70df4553fd337ef73d972ca4d5d04

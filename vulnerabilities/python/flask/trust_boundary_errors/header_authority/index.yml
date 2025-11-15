@@ -4,5 +4,5 @@ category: trust-boundary-errors.header-authority
 namespace: flask-trust-boundary-header-authority
 examples: {}
 attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: 5e3f73ecb89e3bd2379f3c671bcff72c027441b25e71b3366235ccc8aa65c39b
+build_signature: 3b1e09d830ddb9340fdefb7db0ac488c2fdc866c3de86492163d509df41d63a1
+last_readme_fingerprint: d9e798bfc8499bded632b249865d10d9829600deb0c1d00d8b7f8474999befc9

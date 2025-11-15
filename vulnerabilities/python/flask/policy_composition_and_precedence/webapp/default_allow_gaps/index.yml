@@ -4,5 +4,5 @@ category: policy-composition-and-precedence.default-allow-gaps
 namespace: flask-policy-default-allow
 examples: {}
 attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: 618eaa72cbfbbba651df4791c82d0aa1f429b940a09eb8428c9c1be40e205219
+build_signature: 3b1e09d830ddb9340fdefb7db0ac488c2fdc866c3de86492163d509df41d63a1
+last_readme_fingerprint: 63bef3c7910e3227f04ea6b8d2086b9e5228c6f770bf4edf15bb90e8fd143e8e

@@ -4,5 +4,5 @@ category: cross-component-semantics.cache-key-canonicalization
 namespace: flask-cross-component-cache-keying
 examples: {}
 attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: 7718f98bf153fa535cb32316af2c45a6d79f1a7cc5ed2cc7a0841a70172badc0
+build_signature: 3b1e09d830ddb9340fdefb7db0ac488c2fdc866c3de86492163d509df41d63a1
+last_readme_fingerprint: 4bbbb642828888534edadb91090416fc4da8a09ed4488340950f3be7a45cd68e
