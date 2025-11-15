@@ -1,0 +1,64 @@
+@base = http://localhost:8000/api/v108
+
+### Plankton registers his own account
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+    "email": "plankton@chum-bucket.sea"
+}
+
+
+### Plankton uses the token to register his own account
+# @prompt token Get the token from verification email, using Mailpit UI: http://127.0.0.1:8025/
+# @name registration
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+    "token": "{{token}}",
+    "password": "i_love_my_wife",
+    "name": "Plankton"
+}
+
+
+### We can verify that Plankton's account was created and he received his bonus of $2
+GET {{base}}/account/info
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+
+# {
+#   "balance": "2.00",
+#   "email": "plankton@chum-bucket.sea",
+#   "name": "Plankton",
+#   "orders": 0
+# }
+
+### Vulnerable Example FIXED: now Plankton is NOT able to collect an additional signup-bonuses
+POST {{base}}/auth/register
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+Content-Type: application/json
+
+{
+    "token": "{{registration.request.body.token}}",
+    "password": "i_love_my_wife",
+    "name": "Plankton"
+}
+
+
+
+# {
+#   "error": "Registration failed, don't try again!"
+# }
+
+### We see that Plankton's balance is still $2
+GET {{base}}/account/info
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+
+# {
+#   "balance": "2.00",
+#   "email": "plankton@chum-bucket.sea",
+#   "name": "Plankton",
+#   "orders": 0
+# }
+
+
