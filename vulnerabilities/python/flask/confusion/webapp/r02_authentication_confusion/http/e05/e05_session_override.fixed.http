@@ -1,0 +1,31 @@
+@base = http://localhost:8000/api/v206
+
+### Plankton logs in as usual
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "plankton@chum-bucket.sea",
+    "password": "i_love_my_wife"
+}
+
+### Check account info: it's Plankton's account
+GET {{base}}/account/info
+
+### Plankton can list his own orders
+GET {{base}}/orders
+
+#### Vulnerable Example FIXED: Plankton tries to login as SpongeBob, but logs in as himself
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "spongebob@bikinibottom.sea",
+    "password": "does not matter"
+}
+
+### Check account info again: it's Plankton's account
+GET {{base}}/account/info
+
+### Check orders: it's Plankton's orders!
+GET {{base}}/orders

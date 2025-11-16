@@ -5,6 +5,7 @@ from .e02_credit_top_ups import bp as bp_e02
 from .e03_fake_header_refund import bp as bp_e03
 from .e04_manager_mode import bp as bp_e04
 from .e05_session_overwrite import bp as bp_e05
+from .e06_fixed_final_version import bp as bp_e06
 
 bp = Blueprint("authentication_confusion", __name__)
 
@@ -19,3 +20,4 @@ bp.register_blueprint(bp_e02, url_prefix="v202")
 bp.register_blueprint(bp_e03, url_prefix="v203")
 bp.register_blueprint(bp_e04, url_prefix="v204")
 bp.register_blueprint(bp_e05, url_prefix="v205")
+bp.register_blueprint(bp_e06, url_prefix="v206")
