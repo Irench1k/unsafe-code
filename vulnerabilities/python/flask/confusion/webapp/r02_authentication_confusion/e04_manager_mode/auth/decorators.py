@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal
 from functools import wraps
 
@@ -6,19 +7,14 @@ from flask import g, request
 from ..database.repository import find_order_by_id as get_order
 from ..errors import CheekyApiError
 from ..utils import get_request_parameter, parse_as_decimal
-from .helpers import authenticate_customer, validate_api_key
+from .authenticators import (
+    CredentialAuthenticator,
+    CustomerAuthenticator,
+    PlatformAuthenticator,
+    RestaurantAuthenticator,
+)
 
-
-def customer_authentication_required(f):
-    """Authenticate customers via Basic Auth and authorize order access."""
-
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not authenticate_customer():
-            raise CheekyApiError("User authentication required")
-        return f(*args, **kwargs)
-
-    return decorated_function
+logger = logging.getLogger(__name__)
 
 
 def verify_order_access(f):
@@ -29,18 +25,6 @@ def verify_order_access(f):
         g.order = get_order(request.view_args.get("order_id"))
         if g.order and g.order.user_id != g.email:
             raise CheekyApiError("Unauthorized")
-        return f(*args, **kwargs)
-
-    return decorated_function
-
-
-def restaurant_manager_authentication_required(f):
-    """Authenticate restaurant managers via API key."""
-
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not validate_api_key():
-            raise CheekyApiError("Restaurant manager authentication required")
         return f(*args, **kwargs)
 
     return decorated_function
@@ -64,3 +48,49 @@ def protect_refunds(f):
         return f(*args, **kwargs)
 
     return decorated_function
+
+
+def require_auth(auth_methods: list[str]):
+    """
+    Unified authentication decorator supporting multiple methods.
+
+    Tries each authentication method in order. If any succeeds,
+    the request is allowed. If all fail, raises 401 Unauthorized.
+
+    Args:
+        auth_methods: List of authentication methods to try. Valid values:
+            - "cookies": Customer session-based auth
+            - "basic_auth": Customer Basic Auth
+            - "restaurant_api_key": Restaurant API key
+            - "platform_api_key": Platform API key
+    """
+
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            authenticators = {
+                "cookies": CustomerAuthenticator,
+                "basic_auth": lambda: CredentialAuthenticator.from_basic_auth(),
+                "restaurant_api_key": RestaurantAuthenticator,
+                "platform_api_key": PlatformAuthenticator,
+            }
+
+            for method in auth_methods:
+                if method not in authenticators:
+                    logger.warning(f"Unknown authentication method: {method}")
+                    continue
+
+                # Try to authenticate
+                auth_class = authenticators[method]
+                authenticator = auth_class() if isinstance(auth_class, type) else auth_class()
+
+                if authenticator.authenticate():
+                    # Request is authenticated
+                    return f(*args, **kwargs)
+
+            # All methods failed
+            raise CheekyApiError("Authentication required")
+
+        return decorated_function
+
+    return decorator

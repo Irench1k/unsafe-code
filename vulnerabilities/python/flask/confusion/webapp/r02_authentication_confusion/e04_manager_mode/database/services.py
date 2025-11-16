@@ -85,9 +85,14 @@ def increment_user_balance(user_id: str, amount: Decimal) -> Decimal | None:
     return user.balance
 
 
-def get_current_user() -> User | None:
+def get_current_user(email: str) -> User | None:
     """Gets the current user from the database."""
-    return find_user_by_id(g.email)
+    user_email = email or getattr(g, "email", None)
+    if not user_email:
+        logger.warning("No email provided and no user in request context")
+        return None
+
+    return find_user_by_id(user_email)
 
 
 # ============================================================

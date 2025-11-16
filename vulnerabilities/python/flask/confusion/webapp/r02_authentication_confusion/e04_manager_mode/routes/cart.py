@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from flask import Blueprint, g, jsonify, request
 
-from ..auth.decorators import customer_authentication_required
+from ..auth.decorators import require_auth
 from ..database.repository import find_cart_by_id
 from ..database.services import (
     add_item_to_cart,
@@ -19,7 +19,7 @@ bp = Blueprint("cart", __name__, url_prefix="/cart")
 
 
 @bp.post("")
-@customer_authentication_required
+@require_auth(["cookies", "basic_auth"])
 def create_new_cart():
     """
     Creates a new empty cart.
@@ -32,7 +32,7 @@ def create_new_cart():
 
 
 @bp.post("/<cart_id>/items")
-@customer_authentication_required
+@require_auth(["cookies", "basic_auth"])
 def add_item_to_cart_endpoint(cart_id):
     """
     Adds a single item to an existing cart.
@@ -43,13 +43,10 @@ def add_item_to_cart_endpoint(cart_id):
     Note: Flask's request.json automatically parses JSON bodies when
     Content-Type is application/json.
     """
-    if not request.json:
+    if not request.is_json or not request.json:
         raise CheekyApiError("JSON body required")
 
     item_id = request.json.get("item_id")
-    if not item_id:
-        raise CheekyApiError("item_id is required")
-
     cart = find_cart_by_id(cart_id)
     if not cart:
         raise CheekyApiError("Cart not found")
@@ -59,7 +56,7 @@ def add_item_to_cart_endpoint(cart_id):
 
 
 @bp.post("/<cart_id>/checkout")
-@customer_authentication_required
+@require_auth(["cookies", "basic_auth"])
 def checkout_cart(cart_id):
     """Checks out a cart and creates an order."""
     cart = find_cart_by_id(cart_id)

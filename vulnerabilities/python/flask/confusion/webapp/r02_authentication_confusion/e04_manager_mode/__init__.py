@@ -1,7 +1,7 @@
 from flask import Blueprint
 
 # Create the main blueprint
-bp = Blueprint("e03_fake_header_refund", __name__)
+bp = Blueprint("e04_manager_mode", __name__)
 
 # Import middleware to ensure decorators execute
 from .auth import middleware  # noqa: E402, F401

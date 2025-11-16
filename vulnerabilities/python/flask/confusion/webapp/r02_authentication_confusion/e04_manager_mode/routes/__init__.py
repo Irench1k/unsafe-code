@@ -1,4 +1,4 @@
-"""Routes package for e03_fake_header_refund application."""
+"""Routes package for e04_manager_mode application."""
 
 from . import (
     account,
