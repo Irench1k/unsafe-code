@@ -85,9 +85,9 @@ def login_user():
         raise CheekyApiError("Invalid email or password")
 
     # Initiate cookie session on successful authentication
-    session["email"] = email
+    session["email"] = g.email
 
-    return jsonify({"message": "Login successful"}), 200
+    return jsonify({"message": f"Login successful for user {g.email}"}), 200
 
 
 @bp.post("/logout")
