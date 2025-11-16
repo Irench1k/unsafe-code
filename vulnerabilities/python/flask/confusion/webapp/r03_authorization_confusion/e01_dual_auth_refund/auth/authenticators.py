@@ -3,7 +3,10 @@ from hmac import compare_digest
 
 from flask import g, request, session
 
-from ..database.repository import get_platform_api_key, get_restaurant_api_key
+from ..database.repository import (
+    find_restaurant_by_api_key,
+    get_platform_api_key,
+)
 from ..database.services import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -65,7 +68,7 @@ class CustomerAuthenticator(BaseAuthenticator):
       - g.auth_context: 'customer'
       - g.customer_request: True (for rate limiting)
       - g.authenticated_customer: True
-      - g.email, g.user, g.name, g.balance: Customer-specific claims
+      - g.email, g.user_id, g.name, g.balance: Customer-specific claims
     """
 
     def authenticate(self) -> bool:
@@ -173,7 +176,7 @@ class CustomerAuthenticator(BaseAuthenticator):
         not for other authenticator types.
         """
         g.email = email
-        g.user = user
+        g.user_id = user.id
         g.name = user.name
         g.balance = user.balance
 
@@ -213,8 +216,7 @@ class APIKeyAuthenticator(BaseAuthenticator):
             logger.debug(f"No {self.AUTH_CONTEXT} API key found in {self.HEADER_NAME} header")
             return False
 
-        correct_key = self._get_correct_key()
-        is_valid = compare_digest(api_key, correct_key)
+        is_valid = self._is_valid_api_key(api_key)
 
         if not is_valid:
             logger.warning(f"Invalid {self.AUTH_CONTEXT} API key attempt")
@@ -231,11 +233,8 @@ class APIKeyAuthenticator(BaseAuthenticator):
         logger.info(f"{self.AUTH_CONTEXT.capitalize()} API key authentication successful")
         return True
 
-    def _get_correct_key(self) -> str:
-        """Get the correct API key for validation.
-
-        Must be implemented by subclasses.
-        """
+    def _is_valid_api_key(self, api_key: str) -> bool:
+        """Check if the API key is valid."""
         raise NotImplementedError
 
 
@@ -250,8 +249,13 @@ class RestaurantAuthenticator(APIKeyAuthenticator):
     REQUEST_FLAG = "manager_request"
     AUTHENTICATED_FLAG = "authenticated_manager"
 
-    def _get_correct_key(self) -> str:
-        return get_restaurant_api_key()
+    def _is_valid_api_key(self, api_key: str) -> bool:
+        restaurant = find_restaurant_by_api_key(api_key)
+        if restaurant is None:
+            return False
+
+        g.restaurant_id = restaurant.id
+        return True
 
 
 class PlatformAuthenticator(APIKeyAuthenticator):
@@ -265,5 +269,5 @@ class PlatformAuthenticator(APIKeyAuthenticator):
     REQUEST_FLAG = "platform_request"
     AUTHENTICATED_FLAG = "authenticated_platform"
 
-    def _get_correct_key(self) -> str:
-        return get_platform_api_key()
+    def _is_valid_api_key(self, api_key: str) -> bool:
+        return compare_digest(get_platform_api_key(), api_key)

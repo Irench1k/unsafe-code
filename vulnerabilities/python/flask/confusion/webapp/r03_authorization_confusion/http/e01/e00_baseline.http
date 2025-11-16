@@ -2,6 +2,7 @@
 
 # Plankton now has Chum Bucket Restaurant API key
 @chum_bucket_api_key = key-plankton-a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d
+@krusty_krab_api_key = key-mrkrabs-1bd647c2-dc5b-4c2b-a316-5ff83786c219
 
 ### He also keeps using his customer credentials to order from Krusty Krab
 POST {{base}}/auth/login
@@ -15,16 +16,20 @@ Content-Type: application/json
 ### Plankton has a balance of $100
 GET {{base}}/account/info
 
+### List Menu Items
+GET {{base}}/menu
+
 ### Plankton orders a krabby patty
+# NOTE: New argument, restaurant_id is required!
 # @name cart
-POST {{base}}/cart
+POST {{base}}/cart?restaurant_id=1
 
 ###
 POST {{base}}/cart/{{cart.response.body.cart_id}}/items
 Content-Type: application/json
 
 {
-  "item_id": "6"
+  "item_id": "4"
 }
 
 ###
@@ -64,3 +69,25 @@ GET {{base}}/orders/{{order.response.body.order_id}}/refund/status
 
 ### Plankton's balance is back to $100
 GET {{base}}/account/info
+
+###
+GET {{base}}/orders
+X-API-Key: {{chum_bucket_api_key}}
+
+###
+PATCH {{base}}/orders/3/refund/status
+X-API-Key: {{chum_bucket_api_key}}
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+###
+PATCH {{base}}/orders/3/refund/status
+X-API-Key: {{krusty_krab_api_key}}
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+###
+GET {{base}}/orders
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife

@@ -4,7 +4,13 @@ from decimal import Decimal
 from flask import Blueprint, g, jsonify, request
 
 from ..auth.decorators import protect_refunds, require_auth, verify_order_access
-from ..database.repository import find_all_orders, get_refund_by_order_id
+from ..database.models import OrderStatus
+from ..database.repository import (
+    find_all_orders,
+    find_order_by_id,
+    find_orders_by_restaurant,
+    get_refund_by_order_id,
+)
 from ..database.services import (
     create_refund,
     get_user_orders,
@@ -34,7 +40,13 @@ def _parse_order_id(raw_order_id: str) -> int:
 @require_auth(["customer", "restaurant_api_key"])
 def list_orders():
     """Customers can list their own orders, restaurant managers can list ALL of them."""
-    orders = find_all_orders() if g.get("manager_request") else get_user_orders(g.user.id)
+    if g.get("manager_request") and g.get("restaurant_id"):
+        orders = find_orders_by_restaurant(g.restaurant_id)
+    elif g.get("customer_request") and g.get("user_id"):
+        orders = get_user_orders(g.user_id)
+    else:
+        raise CheekyApiError("Something went wrong")
+
     return jsonify(serialize_orders(orders))
 
 
@@ -43,8 +55,21 @@ def list_orders():
 @verify_order_access
 @protect_refunds
 def refund_order(order_id):
-    """Refunds an order."""
+    """Initiates a refund for a customer's order. Customer-only."""
     order_id_int = _parse_order_id(order_id)
+
+    # Authorization check: order must belong to the user
+    if g.order.user_id != g.user_id:
+        raise CheekyApiError("Order does not belong to user")
+
+    # Integrity check: order must NOT be in the refunded state already
+    if g.order.status == OrderStatus.refunded:
+        raise CheekyApiError("Order has already been refunded")
+
+    # Integrity check: there should NOT be other refunds for this order already
+    if get_refund_by_order_id(order_id_int):
+        raise CheekyApiError("Refund already exists for this order")
+
     reason = get_request_parameter("reason") or ""
     refund_amount_entered = parse_as_decimal(get_request_parameter("amount"))
     refund_amount = refund_amount_entered or Decimal("0.2") * g.order.total
@@ -56,18 +81,23 @@ def refund_order(order_id):
         auto_approved=g.refund_is_auto_approved,
     )
 
-    process_refund(refund, g.user.id)
+    process_refund(refund, g.user_id)
     return jsonify(serialize_refund(refund)), 200
 
 
 @bp.patch("/<order_id>/refund/status")
 @require_auth(["restaurant_api_key"])
 def update_refund_status(order_id):
-    """Updates the status of a refund."""
+    """Approves or rejects a refund. Restaurant-only."""
     order_id_int = _parse_order_id(order_id)
     status = request.form.get("status")
     if not status or status not in ["approved", "rejected"]:
         raise CheekyApiError("Status is missing or invalid")
+
+    # Authorization check: order must belong to the restaurant
+    order = find_order_by_id(order_id_int)
+    if order.restaurant_id != g.restaurant_id:
+        raise CheekyApiError("Order does not belong to restaurant")
 
     refund = update_order_refund_status(order_id_int, status)
     if not refund:
@@ -78,8 +108,16 @@ def update_refund_status(order_id):
 @bp.get("/<order_id>/refund/status")
 @require_auth(["customer"])
 def get_refund_status(order_id):
-    """Gets the status of a refund."""
+    """Gets the status of a refund. Customer-only."""
     order_id_int = _parse_order_id(order_id)
+    order = find_order_by_id(order_id_int)
+    if not order:
+        raise CheekyApiError("Order not found")
+
+    # Authorization check: order must belong to the user
+    if order.user_id != g.user_id:
+        raise CheekyApiError("Order does not belong to user")
+
     refund = get_refund_by_order_id(order_id_int)
     if not refund:
         raise CheekyApiError("Refund not found")

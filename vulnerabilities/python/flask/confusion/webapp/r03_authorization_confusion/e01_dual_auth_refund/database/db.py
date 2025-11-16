@@ -11,17 +11,7 @@ from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
 from ..config import Config
-from .fixtures import (
-    get_cart_items,
-    get_carts,
-    get_menu_items,
-    get_order_items,
-    get_orders,
-    get_platform_config,
-    get_refunds,
-    get_restaurants,
-    get_users,
-)
+from .fixtures import initialize_all_fixtures
 from .models import Base
 
 logger = logging.getLogger(__name__)
@@ -120,74 +110,19 @@ def init_database(config: Config, drop_existing: bool = True):
 
 
 def _load_fixtures(config: Config):
-    """Load bootstrap data into the database."""
+    """
+    Load bootstrap data into the database.
+
+    This is now a simple wrapper around the comprehensive fixtures module.
+    All fixture logic lives in fixtures.py for easy maintenance.
+    """
     session_factory = get_session_factory(config)
     session = session_factory()
 
     try:
-        # Load all fixtures in order (respecting dependencies)
-        logger.debug("Loading restaurants")
-        restaurants = get_restaurants()
-        session.add_all(restaurants)
-        session.flush()
-
-        logger.debug("Loading users")
-        users = get_users()
-        session.add_all(users)
-        session.flush()
-
-        logger.debug("Loading menu items")
-        krusty = next(r for r in restaurants if r.name == "Krusty Krab")
-        menu_items = get_menu_items(restaurant_id=krusty.id)
-        session.add_all(menu_items)
-        session.flush()
-
-        logger.debug("Loading orders")
-        spongebob = next(u for u in users if u.email == "spongebob@bikinibottom.sea")
-        orders = get_orders(restaurant_id=krusty.id, user_id=spongebob.id)
-        session.add_all(orders)
-        session.flush()
-
-        logger.debug("Loading order items")
-        menu_item_by_name = {item.name: item for item in menu_items}
-        order_items = get_order_items(
-            order_id=orders[0].id,
-            items=[
-                menu_item_by_name["Krusty Krab Complect"],
-                menu_item_by_name["Krabby Patty"],
-            ],
-        )
-        session.add_all(order_items)
-        session.flush()
-
-        logger.debug("Loading carts")
-        carts = get_carts(restaurant_id=krusty.id)
-        session.add_all(carts)
-        session.flush()
-
-        logger.debug("Loading cart items")
-        cart_items = get_cart_items(
-            cart_id=carts[0].id,
-            items=[
-                menu_item_by_name["Krabby Patty"],
-                menu_item_by_name["Side of Fries"],
-            ],
-        )
-        session.add_all(cart_items)
-        session.flush()
-
-        logger.debug("Loading refunds")
-        refunds = get_refunds(order_id=orders[0].id)
-        session.add_all(refunds)
-        session.flush()
-
-        logger.debug("Loading platform config")
-        config_items = get_platform_config()
-        session.add_all(config_items)
-
-        session.commit()
+        # All fixture loading is handled by the fixtures module
+        initialize_all_fixtures(session)
         logger.info("Fixtures loaded successfully")
-
     except Exception as e:
         logger.error(f"Error loading fixtures: {e}")
         session.rollback()

@@ -12,12 +12,14 @@ from typing import Literal
 
 from flask import g
 
+from ..errors import CheekyApiError
 from .models import Cart, Order, OrderItem, Refund, RefundStatus, User
 from .repository import (
     add_cart_item,
     delete_order,
     find_all_restaurants,
     find_cart_by_id,
+    find_menu_item_by_id,
     find_order_by_id,
     find_order_items,
     find_orders_by_user,
@@ -220,17 +222,11 @@ def find_order_owner(order_id: int | str) -> int | None:
 # ============================================================
 # CART SERVICES
 # ============================================================
-def create_cart(restaurant_id: int | None = None) -> Cart:
+def create_cart(restaurant_id: int, user_id: int) -> Cart:
     """Creates and persists a new empty cart."""
-    if restaurant_id is None:
-        restaurants = find_all_restaurants()
-        if not restaurants:
-            raise ValueError("No restaurants available to create a cart")
-        restaurant_id = restaurants[0].id
-
-    new_cart = Cart(restaurant_id=restaurant_id)
+    new_cart = Cart(restaurant_id=restaurant_id, user_id=user_id)
     save_cart(new_cart)
-    logger.debug(f"Cart created: {new_cart.id}")
+    logger.debug(f"Cart created: {new_cart.id} for user {user_id}")
     return new_cart
 
 
@@ -240,6 +236,28 @@ def add_item_to_cart(cart_id: int | str, item_id: int | str) -> Cart | None:
     if not cart:
         logger.warning(f"Cart not found: {cart_id}")
         return None
+
+    menu_item = find_menu_item_by_id(item_id)
+    if not menu_item:
+        raise CheekyApiError(f"Menu item not found: {item_id}")
+
+    # Authorization check: user must be the owner of the cart
+    if cart.user_id != g.user_id:
+        raise CheekyApiError(f"User {g.user_id} is not the owner of cart {cart_id}")
+
+    # Integrity check: menu item must be available
+    if not menu_item.available:
+        raise CheekyApiError(f"Menu item {item_id} is not available")
+
+    # Integrity check: menu item must belong to the same restaurant as the cart
+    if menu_item.restaurant_id != cart.restaurant_id:
+        raise CheekyApiError(
+            f"Menu item {item_id} does not belong to restaurant {cart.restaurant_id}"
+        )
+
+    # Integrity check: cart must be active
+    if not cart.active:
+        raise CheekyApiError(f"Cart {cart_id} is not active")
 
     add_cart_item(cart_id, item_id)
     logger.debug(f"Item {item_id} added to cart {cart_id}")
@@ -252,7 +270,7 @@ def serialize_cart(cart: Cart) -> dict:
     return {
         "cart_id": cart.id,
         "restaurant_id": cart.restaurant_id,
-        "items": cart_items,
+        "items": [item.item_id for item in cart_items],
     }
 
 
@@ -262,13 +280,15 @@ def serialize_cart(cart: Cart) -> dict:
 def create_refund(order_id: int, amount: Decimal, reason: str, auto_approved: bool) -> Refund:
     """Creates a new refund with a generated ID."""
     status = RefundStatus.auto_approved if auto_approved else RefundStatus.pending
-    return Refund(
+    refund = Refund(
         order_id=order_id,
         amount=amount,
         reason=reason,
         status=status,
         auto_approved=auto_approved,
     )
+    save_refund(refund)
+    return refund
 
 
 def process_refund(refund: Refund, user_id: int) -> None:
@@ -281,7 +301,6 @@ def process_refund(refund: Refund, user_id: int) -> None:
         logger.error(
             f"Refund status: {refund.status}. Refund of {refund.amount} for {user_id} is not paid."
         )
-
     save_refund(refund)
 
 
@@ -305,6 +324,10 @@ def update_order_refund_status(
     """Updates the status of a refund in the database."""
     refund = get_refund_by_order_id(order_id)
     if refund:
+        # Integrity check: refunds are adjustable ONLY while in `pending` state
+        if refund.status != RefundStatus.pending:
+            raise CheekyApiError("Refund is not in pending state anymore")
+
         refund.status = RefundStatus.approved if status == "approved" else RefundStatus.rejected
         refund_owner = find_order_owner(order_id)
         if refund_owner is not None:
@@ -319,7 +342,7 @@ def update_order_refund_status(
 # ============================================================
 # PAYMENT SERVICES
 # ============================================================
-def charge_user(user_id: int, amount: Decimal, order_id: int | None = None) -> bool:
+def charge_user(user_id: int, amount: Decimal) -> bool:
     """
     Charges a user, raises an exception if insufficient funds.
     Returns True if charged successfully, False if already charged.
@@ -329,13 +352,6 @@ def charge_user(user_id: int, amount: Decimal, order_id: int | None = None) -> b
         raise ValueError(f"User '{user_id}' not found.")
     if user.balance < amount:
         raise ValueError("Insufficient funds.")
-
-    # Don't charge the user twice for the same order (idempotency check)
-    if order_id is not None:
-        existing_order = find_order_by_id(order_id)
-        if existing_order and existing_order.user_id == user_id:
-            logger.info(f"Order already exists, skipping charge: {order_id}")
-            return False
 
     # Charge the user
     user.balance -= amount

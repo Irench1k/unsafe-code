@@ -3,7 +3,7 @@ from decimal import Decimal
 from flask import Blueprint, g, jsonify, request
 
 from ..auth.decorators import require_auth
-from ..database.repository import find_cart_by_id, get_cart_items
+from ..database.repository import find_cart_by_id, find_menu_item_by_id, get_cart_items
 from ..database.services import (
     add_item_to_cart,
     create_cart,
@@ -13,7 +13,10 @@ from ..database.services import (
     serialize_order,
 )
 from ..errors import CheekyApiError
-from ..utils import check_cart_price_and_delivery_fee, convert_item_ids_to_order_items
+from ..utils import (
+    check_cart_price_and_delivery_fee,
+    get_restaurant_id,
+)
 
 bp = Blueprint("cart", __name__, url_prefix="/cart")
 
@@ -37,7 +40,8 @@ def create_new_cart():
     This is step 1 of the new checkout flow. The cart gets an ID that
     the client will use in subsequent requests to add items.
     """
-    new_cart = create_cart()
+    restaurant_id = get_restaurant_id()
+    new_cart = create_cart(restaurant_id, g.user_id)
     return jsonify(serialize_cart(new_cart)), 201
 
 
@@ -76,10 +80,34 @@ def checkout_cart(cart_id):
     if not cart:
         raise CheekyApiError("Cart not found")
 
+    # Authorization check: user must be the owner of the cart
+    if cart.user_id != g.user_id:
+        raise CheekyApiError(f"User {g.user_id} is not the owner of cart {cart_id}")
+
+    # Integrity check: cart must be active
+    if not cart.active:
+        raise CheekyApiError(f"Cart {cart_id} is not active")
+
     # Get cart items from the database
-    cart_item_ids = get_cart_items(cart_id_int)
-    if not cart_item_ids:
+    cart_items = get_cart_items(cart_id_int)
+    if not cart_items:
         raise CheekyApiError("Cart is empty")
+
+    # Integrity check: all items must be available
+    hydrated_items = []
+    for item in cart_items:
+        menu_item = find_menu_item_by_id(item.item_id)
+        if not menu_item:
+            raise CheekyApiError(f"Menu item {item.item_id} not found")
+        if not menu_item.available:
+            raise CheekyApiError(f"Menu item {item.item_id} is not available")
+        hydrated_items.append(
+            {
+                "item_id": menu_item.id,
+                "name": menu_item.name,
+                "price": menu_item.price,
+            }
+        )
 
     # Get user input - handle both JSON and form data
     user_data = request.json if request.is_json else request.form
@@ -88,26 +116,20 @@ def checkout_cart(cart_id):
     tip = abs(Decimal(user_data.get("tip", 0)))
 
     # Price and delivery fee calculation is the same for both branches
-    total_price, delivery_fee = check_cart_price_and_delivery_fee(cart_item_ids)
+    total_price, delivery_fee = check_cart_price_and_delivery_fee(cart_items)
     if not total_price:
         raise CheekyApiError("Item not available, sorry!")
 
     if g.balance < total_price + delivery_fee + tip:
         raise CheekyApiError("Insufficient balance")
 
-    items = convert_item_ids_to_order_items(cart_item_ids)
     delivery_address = user_data.get("delivery_address", "")
 
-    # Convert SQLAlchemy OrderItem instances to dicts for create_order_from_checkout
-    items_dict = [
-        {"item_id": item.item_id, "name": item.name, "price": item.price} for item in items
-    ]
-
     order, order_items = create_order_from_checkout(
-        user_id=g.user.id,
+        user_id=g.user_id,
         restaurant_id=cart.restaurant_id,
         total=total_price + delivery_fee + tip,
-        items=items_dict,
+        items=hydrated_items,
         delivery_fee=delivery_fee,
         delivery_address=delivery_address,
         tip=tip,

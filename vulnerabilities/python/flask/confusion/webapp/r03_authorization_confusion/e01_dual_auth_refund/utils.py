@@ -7,8 +7,9 @@ import jwt
 from envelopes import SMTP, Envelope
 from flask import jsonify, request
 
-from .database.models import OrderItem
+from .database.models import CartItem, OrderItem
 from .database.repository import find_menu_item_by_id
+from .errors import CheekyApiError
 
 DELIVERY_FEE = Decimal("5.00")
 FREE_DELIVERY_ABOVE = Decimal("25.00")
@@ -39,15 +40,15 @@ def _calculate_delivery_fee(total_price: Decimal) -> Decimal:
     return DELIVERY_FEE
 
 
-def check_cart_price_and_delivery_fee(item_ids: Iterable[str]) -> tuple[Decimal, Decimal]:
+def check_cart_price_and_delivery_fee(items: Iterable[CartItem]) -> tuple[Decimal, Decimal]:
     """
     Validates that all cart items are orderable and returns their price and delivery fee.
 
     Returns (None, None) as a signal to the caller when any menu item is missing or unavailable.
     """
     total_price = Decimal("0.00")
-    for item_id in item_ids:
-        price = _menu_item_price(item_id)
+    for item in items:
+        price = _menu_item_price(item.item_id)
         if price is None:
             return None, None
         total_price += price
@@ -55,29 +56,16 @@ def check_cart_price_and_delivery_fee(item_ids: Iterable[str]) -> tuple[Decimal,
     return total_price, _calculate_delivery_fee(total_price)
 
 
-def convert_item_ids_to_order_items(item_ids: Iterable[str | int]) -> list[OrderItem]:
-    """
-    Converts item IDs to OrderItem snapshots so invoices stay stable even if prices change later.
-    """
-    order_items: list[OrderItem] = []
-    for item_id in item_ids:
-        try:
-            normalized_id = int(item_id)
-        except (TypeError, ValueError):
-            continue
-
-        menu_item = find_menu_item_by_id(normalized_id)
-        if not menu_item:
-            continue
-        order_items.append(
-            OrderItem(item_id=normalized_id, name=menu_item.name, price=menu_item.price)
-        )
-    return order_items
-
-
 def parse_as_decimal(value: str) -> Decimal | None:
     try:
         return Decimal(value)
+    except Exception:
+        return None
+
+
+def parse_as_int(value: str) -> int | None:
+    try:
+        return int(value)
     except Exception:
         return None
 
@@ -90,6 +78,13 @@ def get_request_parameter(parameter):
     parameter_in_form = request.form.get(parameter)
 
     return parameter_in_args or parameter_in_json or parameter_in_form
+
+
+def get_restaurant_id() -> int:
+    restaurant_id = parse_as_int(get_request_parameter("restaurant_id"))
+    if restaurant_id is None:
+        raise CheekyApiError("Restaurant ID is required")
+    return restaurant_id
 
 
 def _generate_verification_token(email: str) -> str:

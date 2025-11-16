@@ -19,7 +19,6 @@ def list_restaurants():
                 "id": r.id,
                 "name": r.name,
                 "description": r.description,
-                "owner": r.owner,
             }
             for r in restaurants
         ]

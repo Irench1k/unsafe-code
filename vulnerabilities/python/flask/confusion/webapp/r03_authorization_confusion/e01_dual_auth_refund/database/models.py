@@ -84,6 +84,14 @@ class MenuItem(Base):
     available: Mapped[bool] = mapped_column(nullable=False, default=True)
 
 
+class OrderStatus(enum.Enum):
+    """Enumeration for order statuses."""
+
+    created = "created"  # Order has been created and paid by customer
+    delivered = "delivered"  # Order has been delivered to customer
+    refunded = "refunded"  # Order has been refunded
+
+
 class Order(Base):
     """Order model - represents a customer order."""
 
@@ -115,6 +123,10 @@ class Order(Base):
         DateTime, nullable=False, default=datetime.datetime.utcnow
     )
 
+    status: Mapped[OrderStatus] = mapped_column(
+        Enum(OrderStatus), nullable=False, default=OrderStatus.created
+    )
+
 
 class OrderItem(Base):
     """Order item model - represents an item in an order."""
@@ -141,6 +153,8 @@ class Cart(Base):
     restaurant_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("restaurants.id"), nullable=False
     )
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    active: Mapped[bool] = mapped_column(nullable=False, default=True)
 
 
 class CartItem(Base):

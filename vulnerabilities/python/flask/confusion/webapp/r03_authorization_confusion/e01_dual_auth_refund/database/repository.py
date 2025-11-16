@@ -236,15 +236,14 @@ def find_cart_by_id(cart_id: int | str) -> Cart | None:
     return session.get(Cart, cid)
 
 
-def get_cart_items(cart_id: int | str) -> list[int]:
-    """Gets all item IDs for a specific cart."""
+def get_cart_items(cart_id: int | str) -> list[CartItem]:
+    """Gets all items for a specific cart."""
     session = get_session()
     cid = _coerce_int_id(cart_id, "cart_id")
     if cid is None:
         return []
     stmt = select(CartItem).where(CartItem.cart_id == cid)
-    cart_items = session.execute(stmt).scalars().all()
-    return [item.item_id for item in cart_items]
+    return list(session.execute(stmt).scalars().all())
 
 
 def save_cart(cart: Cart) -> None:
@@ -289,17 +288,6 @@ def get_refund_by_order_id(order_id: int | str) -> Refund | None:
 # ============================================================
 # CONFIGURATION
 # ============================================================
-def get_restaurant_api_key() -> str:
-    """
-    Gets the restaurant's API key from the database.
-
-    DEPRECATED: Use find_restaurant_by_api_key() instead for multi-tenancy.
-    This function returns the first restaurant's API key for backward compatibility.
-    """
-    restaurants = find_all_restaurants()
-    if restaurants:
-        return restaurants[0].api_key
-    raise ValueError("No restaurants found in database")
 
 
 def get_platform_api_key() -> str:
