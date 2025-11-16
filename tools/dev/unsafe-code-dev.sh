@@ -10,9 +10,97 @@ export UNSAFE_CODE_ROOT="$(cd "$_uc_script_dir/../.." && pwd)"
 
 # Track current focus area
 export UC_FOCUS_AREA=""
+# Store helpful error message and resolved path for the last match attempt
+UC_LAST_MATCH_ERROR=""
+UC_MATCHED_PATH=""
 
 _uc_focus_cli() {
     (cd "$UNSAFE_CODE_ROOT" && uv run focus "$@")
+}
+
+_uc_abs_path() {
+    local dir="$1"
+    (cd "$dir" 2>/dev/null && pwd)
+}
+
+_uc_resolve_target_path() {
+    local target="$1"
+    local require_example="${2:-0}"
+    local usage_hint="${3:-ucgo}"
+    UC_LAST_MATCH_ERROR=""
+    UC_MATCHED_PATH=""
+
+    if [[ -z "$target" ]]; then
+        UC_MATCHED_PATH="$UNSAFE_CODE_ROOT"
+        return 0
+    fi
+
+    if [[ -d "$target" ]]; then
+        UC_MATCHED_PATH="$(_uc_abs_path "$target")"
+        return 0
+    fi
+
+    if [[ -d "$UNSAFE_CODE_ROOT/$target" ]]; then
+        UC_MATCHED_PATH="$(_uc_abs_path "$UNSAFE_CODE_ROOT/$target")"
+        return 0
+    fi
+
+    local round_token="${target%%/*}"
+    local example_token=""
+
+    if [[ "$target" != "$round_token" ]]; then
+        example_token="${target#*/}"
+    fi
+
+    if [[ -z "$example_token" ]]; then
+        if [[ "$require_example" -eq 1 ]]; then
+            UC_LAST_MATCH_ERROR="❌ Invalid format. Use: $usage_hint r02/e03"
+            return 1
+        fi
+    fi
+
+    if [[ ! "$round_token" =~ ^r[0-9]+$ ]]; then
+        UC_LAST_MATCH_ERROR="❌ Invalid round format. Use: $usage_hint r02/e03"
+        return 1
+    fi
+
+    if [[ -n "$example_token" && ! "$example_token" =~ ^e[0-9]+$ ]]; then
+        UC_LAST_MATCH_ERROR="❌ Invalid example format. Use: $usage_hint r02/e03"
+        return 1
+    fi
+
+    local webapp_base="$UNSAFE_CODE_ROOT/vulnerabilities/python/flask/confusion/webapp"
+    local round_dir=""
+    if [[ -d "$webapp_base/$round_token" ]]; then
+        round_dir="$webapp_base/$round_token"
+    else
+        round_dir=$(command find "$webapp_base" -maxdepth 1 -mindepth 1 -type d -name "${round_token}_*" | head -1)
+    fi
+
+    if [[ -z "$round_dir" ]]; then
+        UC_LAST_MATCH_ERROR="❌ Could not find round: $round_token"
+        return 1
+    fi
+
+    if [[ -z "$example_token" ]]; then
+        UC_MATCHED_PATH="$round_dir"
+        return 0
+    fi
+
+    local example_dir=""
+    if [[ -d "$round_dir/$example_token" ]]; then
+        example_dir="$round_dir/$example_token"
+    else
+        example_dir=$(command find "$round_dir" -maxdepth 1 -mindepth 1 -type d -name "${example_token}_*" | head -1)
+    fi
+
+    if [[ -z "$example_dir" ]]; then
+        UC_LAST_MATCH_ERROR="❌ Could not find example: $example_token in $(basename "$round_dir")"
+        return 1
+    fi
+
+    UC_MATCHED_PATH="$example_dir"
+    return 0
 }
 
 # ================================
@@ -29,43 +117,21 @@ ucfocus() {
     fi
 
     local target="$1"
-
-    # If short form like "r02/e03", expand it
-    if [[ "$target" =~ ^r[0-9]+/?e?[0-9]*$ ]]; then
-        # Find the full path
-        local webapp_base="$UNSAFE_CODE_ROOT/vulnerabilities/python/flask/confusion/webapp"
-
-        # Parse r02/e03 format
-        if [[ "$target" =~ ^(r[0-9]+)/(e[0-9]+)$ ]]; then
-            local round="${BASH_REMATCH[1]}"
-            local example="${BASH_REMATCH[2]}"
-            # Find the full directory name (e.g., r02_authentication_confusion)
-            local round_dir=$(ls -d "$webapp_base/${round}"* 2>/dev/null | head -1)
-            if [[ -n "$round_dir" ]]; then
-                target="$round_dir/$example"
-            fi
-        elif [[ "$target" =~ ^(r[0-9]+)$ ]]; then
-            # Just round, no example
-            local round="${BASH_REMATCH[1]}"
-            local round_dir=$(ls -d "$webapp_base/${round}"* 2>/dev/null | head -1)
-            if [[ -n "$round_dir" ]]; then
-                target="$round_dir"
-            fi
+    if ! _uc_resolve_target_path "$target" 0 ucfocus; then
+        if [[ -n "$UC_LAST_MATCH_ERROR" ]]; then
+            echo "$UC_LAST_MATCH_ERROR"
         fi
+        return 1
     fi
 
-    # If relative path, make it absolute
-    if [[ "$target" != /* ]]; then
-        target="$UNSAFE_CODE_ROOT/$target"
-    fi
+    local resolved="$UC_MATCHED_PATH"
 
-    # Run focus script via uv
-    _uc_focus_cli "$target"
+    _uc_focus_cli "$resolved"
 
     if [[ $? -eq 0 ]]; then
-        export UC_FOCUS_AREA="$target"
+        export UC_FOCUS_AREA="$resolved"
         # Also cd to that directory
-        cd "$target"
+        cd "$resolved"
     fi
 }
 
@@ -208,61 +274,22 @@ alias ucwebapp='cd $UNSAFE_CODE_ROOT/vulnerabilities/python/flask/confusion/weba
 # Quick jump to round/example (e.g., "ucgo r02/e03" or full names)
 ucgo() {
     if [[ $# -eq 0 ]]; then
-        echo "Usage: ucgo <round>/<example>"
-        echo "Example: ucgo r02/e03"
-        return 1
-    fi
-
-    local target="$1"
-    local webapp_base="$UNSAFE_CODE_ROOT/vulnerabilities/python/flask/confusion/webapp"
-
-    # Allow passing full relative paths (vulnerabilities/...)
-    if [[ -d "$UNSAFE_CODE_ROOT/$target" ]]; then
-        cd "$UNSAFE_CODE_ROOT/$target"
+        cd "$UNSAFE_CODE_ROOT"
         echo "📂 $(pwd)"
         return 0
     fi
 
-    local round_token="${target%%/*}"
-    local example_token="${target#*/}"
-    if [[ -z "$example_token" || "$round_token" == "$target" ]]; then
-        echo "❌ Invalid format. Use: ucgo r02/e03"
-        return 1
-    fi
-    if [[ ! "$round_token" =~ ^r[0-9]+ ]]; then
-        echo "❌ Invalid round format. Use: ucgo r02/e03"
-        return 1
-    fi
-    if [[ ! "$example_token" =~ ^e[0-9]+ ]]; then
-        echo "❌ Invalid example format. Use: ucgo r02/e03"
-        return 1
-    fi
-    local round_dir=""
-
-    if [[ -d "$webapp_base/$round_token" ]]; then
-        round_dir="$webapp_base/$round_token"
-    elif [[ "$round_token" =~ ^r[0-9]+$ ]]; then
-        round_dir=$(command find "$webapp_base" -maxdepth 1 -mindepth 1 -type d -name "${round_token}_*" | head -1)
-    fi
-
-    if [[ -z "$round_dir" ]]; then
-        echo "❌ Could not find round: $round_token"
+    local target="$1"
+    if ! _uc_resolve_target_path "$target" 1 ucgo; then
+        if [[ -n "$UC_LAST_MATCH_ERROR" ]]; then
+            echo "$UC_LAST_MATCH_ERROR"
+        fi
         return 1
     fi
 
-    local example_dir=""
-    if [[ -d "$round_dir/$example_token" ]]; then
-        example_dir="$round_dir/$example_token"
-    elif [[ "$example_token" =~ ^e[0-9]+$ ]]; then
-        example_dir=$(command find "$round_dir" -maxdepth 1 -mindepth 1 -type d -name "${example_token}_*" | head -1)
-    fi
+    local resolved="$UC_MATCHED_PATH"
 
-    if [[ -z "$example_dir" ]]; then
-        echo "❌ Could not find example: $example_token in $(basename "$round_dir")"
-        return 1
-    fi
-
-    cd "$example_dir"
+    cd "$resolved"
     echo "📂 $(pwd)"
 }
 
