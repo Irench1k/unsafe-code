@@ -1,19 +1,19 @@
-"""Routes package for e05_session_overwrite application."""
+"""Routes package for e01_dual_auth_refund application."""
 
 from . import (
     account,
     auth,
     cart,
-    index,
     menu,
     orders,
+    restaurants,
 )
 
 __all__ = [
     "account",
     "auth",
     "cart",
-    "index",
     "menu",
     "orders",
+    "restaurants",
 ]

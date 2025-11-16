@@ -3,7 +3,7 @@ from decimal import Decimal
 from flask import Blueprint, g, jsonify, request
 
 from ..auth.decorators import require_auth
-from ..database.repository import find_cart_by_id
+from ..database.repository import find_cart_by_id, get_cart_items
 from ..database.services import (
     add_item_to_cart,
     create_cart,
@@ -60,8 +60,13 @@ def add_item_to_cart_endpoint(cart_id):
 def checkout_cart(cart_id):
     """Checks out a cart and creates an order."""
     cart = find_cart_by_id(cart_id)
-    if not cart or not cart.items:
+    if not cart:
         raise CheekyApiError("Cart not found")
+
+    # Get cart items from the database
+    cart_item_ids = get_cart_items(cart_id)
+    if not cart_item_ids:
+        raise CheekyApiError("Cart is empty")
 
     # Get user input - handle both JSON and form data
     user_data = request.json if request.is_json else request.form
@@ -70,24 +75,30 @@ def checkout_cart(cart_id):
     tip = abs(Decimal(user_data.get("tip", 0)))
 
     # Price and delivery fee calculation is the same for both branches
-    total_price, delivery_fee = check_cart_price_and_delivery_fee(cart.items)
+    total_price, delivery_fee = check_cart_price_and_delivery_fee(cart_item_ids)
     if not total_price:
         raise CheekyApiError("Item not available, sorry!")
 
     if g.balance < total_price + delivery_fee + tip:
         raise CheekyApiError("Insufficient balance")
 
-    items = convert_item_ids_to_order_items(cart.items)
+    items = convert_item_ids_to_order_items(cart_item_ids)
     delivery_address = user_data.get("delivery_address", "")
 
-    new_order = create_order_from_checkout(
+    # Convert SQLAlchemy OrderItem instances to dicts for create_order_from_checkout
+    items_dict = [
+        {"item_id": item.item_id, "name": item.name, "price": item.price} for item in items
+    ]
+
+    order, order_items = create_order_from_checkout(
         user_id=g.email,
+        restaurant_id=cart.restaurant_id,
         total=total_price + delivery_fee + tip,
-        items=[item.model_dump() for item in items],
+        items=items_dict,
         delivery_fee=delivery_fee,
         delivery_address=delivery_address,
         tip=tip,
     )
 
-    save_order_securely(new_order)
-    return jsonify(serialize_order(new_order)), 201
+    save_order_securely(order, order_items)
+    return jsonify(serialize_order(order)), 201
