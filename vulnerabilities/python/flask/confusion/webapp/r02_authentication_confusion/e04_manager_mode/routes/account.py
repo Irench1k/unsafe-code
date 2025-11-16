@@ -16,7 +16,7 @@ def view_balance():
 
 
 @bp.post("/credits")
-@require_auth(["restaurant_api_key"])
+@require_auth(["platform_api_key"])
 def add_credits():
     amount = request.form["amount"]
     user = request.form["user"]
