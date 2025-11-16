@@ -15,12 +15,17 @@ FREE_DELIVERY_ABOVE = Decimal("25.00")
 JWT_SECRET = str(uuid4())
 
 
-def _menu_item_price(item_id: str) -> Decimal | None:
+def _menu_item_price(item_id: str | int) -> Decimal | None:
     """Returns the current price for an available menu item."""
     if not item_id:
         return None
 
-    menu_item = find_menu_item_by_id(item_id)
+    try:
+        normalized_id = int(item_id)
+    except (TypeError, ValueError):
+        return None
+
+    menu_item = find_menu_item_by_id(normalized_id)
     if not menu_item or not menu_item.available:
         return None
 
@@ -50,16 +55,23 @@ def check_cart_price_and_delivery_fee(item_ids: Iterable[str]) -> tuple[Decimal,
     return total_price, _calculate_delivery_fee(total_price)
 
 
-def convert_item_ids_to_order_items(item_ids: Iterable[str]) -> list[OrderItem]:
+def convert_item_ids_to_order_items(item_ids: Iterable[str | int]) -> list[OrderItem]:
     """
     Converts item IDs to OrderItem snapshots so invoices stay stable even if prices change later.
     """
     order_items: list[OrderItem] = []
     for item_id in item_ids:
-        menu_item = find_menu_item_by_id(item_id)
+        try:
+            normalized_id = int(item_id)
+        except (TypeError, ValueError):
+            continue
+
+        menu_item = find_menu_item_by_id(normalized_id)
         if not menu_item:
             continue
-        order_items.append(OrderItem(item_id=item_id, name=menu_item.name, price=menu_item.price))
+        order_items.append(
+            OrderItem(item_id=normalized_id, name=menu_item.name, price=menu_item.price)
+        )
     return order_items
 
 

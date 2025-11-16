@@ -127,40 +127,63 @@ def _load_fixtures(config: Config):
     try:
         # Load all fixtures in order (respecting dependencies)
         logger.debug("Loading restaurants")
-        for restaurant in get_restaurants():
-            session.add(restaurant)
+        restaurants = get_restaurants()
+        session.add_all(restaurants)
+        session.flush()
 
         logger.debug("Loading users")
-        for user in get_users():
-            session.add(user)
+        users = get_users()
+        session.add_all(users)
+        session.flush()
 
         logger.debug("Loading menu items")
-        for menu_item in get_menu_items():
-            session.add(menu_item)
+        krusty = next(r for r in restaurants if r.name == "Krusty Krab")
+        menu_items = get_menu_items(restaurant_id=krusty.id)
+        session.add_all(menu_items)
+        session.flush()
 
         logger.debug("Loading orders")
-        for order in get_orders():
-            session.add(order)
+        spongebob = next(u for u in users if u.email == "spongebob@bikinibottom.sea")
+        orders = get_orders(restaurant_id=krusty.id, user_id=spongebob.id)
+        session.add_all(orders)
+        session.flush()
 
         logger.debug("Loading order items")
-        for order_item in get_order_items():
-            session.add(order_item)
+        menu_item_by_name = {item.name: item for item in menu_items}
+        order_items = get_order_items(
+            order_id=orders[0].id,
+            items=[
+                menu_item_by_name["Krusty Krab Complect"],
+                menu_item_by_name["Krabby Patty"],
+            ],
+        )
+        session.add_all(order_items)
+        session.flush()
 
         logger.debug("Loading carts")
-        for cart in get_carts():
-            session.add(cart)
+        carts = get_carts(restaurant_id=krusty.id)
+        session.add_all(carts)
+        session.flush()
 
         logger.debug("Loading cart items")
-        for cart_item in get_cart_items():
-            session.add(cart_item)
+        cart_items = get_cart_items(
+            cart_id=carts[0].id,
+            items=[
+                menu_item_by_name["Krabby Patty"],
+                menu_item_by_name["Side of Fries"],
+            ],
+        )
+        session.add_all(cart_items)
+        session.flush()
 
         logger.debug("Loading refunds")
-        for refund in get_refunds():
-            session.add(refund)
+        refunds = get_refunds(order_id=orders[0].id)
+        session.add_all(refunds)
+        session.flush()
 
         logger.debug("Loading platform config")
-        for config_item in get_platform_config():
-            session.add(config_item)
+        config_items = get_platform_config()
+        session.add_all(config_items)
 
         session.commit()
         logger.info("Fixtures loaded successfully")

@@ -2,14 +2,15 @@ import logging
 
 from flask import Blueprint, g
 
+# Initialize database when the blueprint is registered
+from .config import load_config
+from .database.db import close_session, get_session, init_database
+
 # Create the main blueprint
 bp = Blueprint("e01_dual_auth_refund_approval", __name__)
 
 logger = logging.getLogger(__name__)
 
-# Initialize database when the blueprint is registered
-from .config import load_config
-from .database.db import close_session, get_session, init_database
 
 _config = load_config()
 _db_initialized = False

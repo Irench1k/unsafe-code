@@ -18,6 +18,16 @@ from ..utils import check_cart_price_and_delivery_fee, convert_item_ids_to_order
 bp = Blueprint("cart", __name__, url_prefix="/cart")
 
 
+def _parse_positive_int(value: str, label: str) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        raise CheekyApiError(f"Invalid {label}") from None
+    if parsed <= 0:
+        raise CheekyApiError(f"Invalid {label}")
+    return parsed
+
+
 @bp.post("")
 @require_auth(["customer"])
 def create_new_cart():
@@ -47,11 +57,13 @@ def add_item_to_cart_endpoint(cart_id):
         raise CheekyApiError("JSON body required")
 
     item_id = request.json.get("item_id")
-    cart = find_cart_by_id(cart_id)
+    cart_id_int = _parse_positive_int(cart_id, "cart_id")
+    item_id_int = _parse_positive_int(item_id, "item_id")
+    cart = find_cart_by_id(cart_id_int)
     if not cart:
         raise CheekyApiError("Cart not found")
 
-    updated_cart = add_item_to_cart(cart_id, item_id)
+    updated_cart = add_item_to_cart(cart_id_int, item_id_int)
     return jsonify(serialize_cart(updated_cart)), 200
 
 
@@ -59,12 +71,13 @@ def add_item_to_cart_endpoint(cart_id):
 @require_auth(["customer"])
 def checkout_cart(cart_id):
     """Checks out a cart and creates an order."""
-    cart = find_cart_by_id(cart_id)
+    cart_id_int = _parse_positive_int(cart_id, "cart_id")
+    cart = find_cart_by_id(cart_id_int)
     if not cart:
         raise CheekyApiError("Cart not found")
 
     # Get cart items from the database
-    cart_item_ids = get_cart_items(cart_id)
+    cart_item_ids = get_cart_items(cart_id_int)
     if not cart_item_ids:
         raise CheekyApiError("Cart is empty")
 
@@ -91,7 +104,7 @@ def checkout_cart(cart_id):
     ]
 
     order, order_items = create_order_from_checkout(
-        user_id=g.email,
+        user_id=g.user.id,
         restaurant_id=cart.restaurant_id,
         total=total_price + delivery_fee + tip,
         items=items_dict,

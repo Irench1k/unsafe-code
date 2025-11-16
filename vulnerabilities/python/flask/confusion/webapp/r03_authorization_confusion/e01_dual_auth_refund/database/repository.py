@@ -36,6 +36,22 @@ def get_session():
     return g.db_session
 
 
+def _coerce_int_id(value, label: str) -> int | None:
+    """Normalise IDs that might come in as strings."""
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            logger.warning("Invalid %s value: %s", label, value)
+            return None
+    if value is None:
+        return None
+    logger.warning("Unsupported %s type: %s", label, type(value))
+    return None
+
+
 # ============================================================
 # RESTAURANTS
 # ============================================================
@@ -45,10 +61,13 @@ def find_all_restaurants() -> list[Restaurant]:
     return list(session.execute(select(Restaurant)).scalars().all())
 
 
-def find_restaurant_by_id(restaurant_id: str) -> Restaurant | None:
+def find_restaurant_by_id(restaurant_id: int | str) -> Restaurant | None:
     """Finds a restaurant by ID."""
     session = get_session()
-    return session.get(Restaurant, restaurant_id)
+    rest_id = _coerce_int_id(restaurant_id, "restaurant_id")
+    if rest_id is None:
+        return None
+    return session.get(Restaurant, rest_id)
 
 
 def find_restaurant_by_api_key(api_key: str) -> Restaurant | None:
@@ -61,10 +80,13 @@ def find_restaurant_by_api_key(api_key: str) -> Restaurant | None:
 # ============================================================
 # MENU ITEMS
 # ============================================================
-def find_menu_item_by_id(item_id: str) -> MenuItem | None:
+def find_menu_item_by_id(item_id: int | str) -> MenuItem | None:
     """Finds a menu item by ID."""
     session = get_session()
-    return session.get(MenuItem, item_id)
+    menu_id = _coerce_int_id(item_id, "menu_item_id")
+    if menu_id is None:
+        return None
+    return session.get(MenuItem, menu_id)
 
 
 def find_all_menu_items() -> list[MenuItem]:
@@ -73,20 +95,33 @@ def find_all_menu_items() -> list[MenuItem]:
     return list(session.execute(select(MenuItem)).scalars().all())
 
 
-def find_menu_items_by_restaurant(restaurant_id: str) -> list[MenuItem]:
+def find_menu_items_by_restaurant(restaurant_id: int | str) -> list[MenuItem]:
     """Gets all menu items for a specific restaurant."""
     session = get_session()
-    stmt = select(MenuItem).where(MenuItem.restaurant_id == restaurant_id)
+    rest_id = _coerce_int_id(restaurant_id, "restaurant_id")
+    if rest_id is None:
+        return []
+    stmt = select(MenuItem).where(MenuItem.restaurant_id == rest_id)
     return list(session.execute(stmt).scalars().all())
 
 
 # ============================================================
 # USERS
 # ============================================================
-def find_user_by_id(user_id: str) -> User | None:
-    """Finds a user by their user ID (email)."""
+def find_user_by_id(user_id: int | str) -> User | None:
+    """Finds a user by their primary key."""
     session = get_session()
-    return session.get(User, user_id)
+    pk = _coerce_int_id(user_id, "user_id")
+    if pk is None:
+        return None
+    return session.get(User, pk)
+
+
+def find_user_by_email(email: str) -> User | None:
+    """Finds a user by their email address."""
+    session = get_session()
+    stmt = select(User).where(User.email == email)
+    return session.execute(stmt).scalar_one_or_none()
 
 
 def save_user(user: User) -> None:
@@ -96,9 +131,9 @@ def save_user(user: User) -> None:
     session.commit()
 
 
-def increment_user_balance(user_id: str, amount: Decimal) -> Decimal | None:
+def increment_user_balance(email: str, amount: Decimal) -> Decimal | None:
     """Increments a user's balance."""
-    user = find_user_by_id(user_id)
+    user = find_user_by_email(email)
     logger.info(f"User: {user}, Amount: {amount}")
     if user:
         user.balance += amount
@@ -112,10 +147,13 @@ def increment_user_balance(user_id: str, amount: Decimal) -> Decimal | None:
 # ============================================================
 # ORDERS
 # ============================================================
-def find_order_by_id(order_id: str) -> Order | None:
+def find_order_by_id(order_id: int | str) -> Order | None:
     """Finds an order by its ID."""
     session = get_session()
-    return session.get(Order, order_id)
+    oid = _coerce_int_id(order_id, "order_id")
+    if oid is None:
+        return None
+    return session.get(Order, oid)
 
 
 def find_all_orders() -> list[Order]:
@@ -124,17 +162,23 @@ def find_all_orders() -> list[Order]:
     return list(session.execute(select(Order)).scalars().all())
 
 
-def find_orders_by_user(user_id: str) -> list[Order]:
+def find_orders_by_user(user_id: int | str) -> list[Order]:
     """Gets all orders for a specific user."""
     session = get_session()
-    stmt = select(Order).where(Order.user_id == user_id)
+    uid = _coerce_int_id(user_id, "user_id")
+    if uid is None:
+        return []
+    stmt = select(Order).where(Order.user_id == uid)
     return list(session.execute(stmt).scalars().all())
 
 
-def find_orders_by_restaurant(restaurant_id: str) -> list[Order]:
+def find_orders_by_restaurant(restaurant_id: int | str) -> list[Order]:
     """Gets all orders for a specific restaurant."""
     session = get_session()
-    stmt = select(Order).where(Order.restaurant_id == restaurant_id)
+    rest_id = _coerce_int_id(restaurant_id, "restaurant_id")
+    if rest_id is None:
+        return []
+    stmt = select(Order).where(Order.restaurant_id == rest_id)
     return list(session.execute(stmt).scalars().all())
 
 
@@ -145,13 +189,16 @@ def save_order(order: Order) -> None:
     session.commit()
 
 
-def delete_order(order_id: str) -> None:
+def delete_order(order_id: int | str) -> None:
     """Deletes an order from the database."""
     session = get_session()
-    order = session.get(Order, order_id)
+    oid = _coerce_int_id(order_id, "order_id")
+    if oid is None:
+        return
+    order = session.get(Order, oid)
     if order:
         # Also delete associated order items
-        stmt = select(OrderItem).where(OrderItem.order_id == order_id)
+        stmt = select(OrderItem).where(OrderItem.order_id == oid)
         order_items = session.execute(stmt).scalars().all()
         for item in order_items:
             session.delete(item)
@@ -159,18 +206,13 @@ def delete_order(order_id: str) -> None:
         session.commit()
 
 
-def generate_next_order_id() -> str:
-    """Generates the next order ID based on existing orders."""
-    session = get_session()
-    stmt = select(Order)
-    order_count = len(list(session.execute(stmt).scalars().all()))
-    return str(order_count + 1)
-
-
-def find_order_items(order_id: str) -> list[OrderItem]:
+def find_order_items(order_id: int | str) -> list[OrderItem]:
     """Gets all items for a specific order."""
     session = get_session()
-    stmt = select(OrderItem).where(OrderItem.order_id == order_id)
+    oid = _coerce_int_id(order_id, "order_id")
+    if oid is None:
+        return []
+    stmt = select(OrderItem).where(OrderItem.order_id == oid)
     return list(session.execute(stmt).scalars().all())
 
 
@@ -185,16 +227,22 @@ def save_order_items(order_items: list[OrderItem]) -> None:
 # ============================================================
 # CARTS
 # ============================================================
-def find_cart_by_id(cart_id: str) -> Cart | None:
+def find_cart_by_id(cart_id: int | str) -> Cart | None:
     """Finds a cart by its ID."""
     session = get_session()
-    return session.get(Cart, cart_id)
+    cid = _coerce_int_id(cart_id, "cart_id")
+    if cid is None:
+        return None
+    return session.get(Cart, cid)
 
 
-def get_cart_items(cart_id: str) -> list[str]:
+def get_cart_items(cart_id: int | str) -> list[int]:
     """Gets all item IDs for a specific cart."""
     session = get_session()
-    stmt = select(CartItem).where(CartItem.cart_id == cart_id)
+    cid = _coerce_int_id(cart_id, "cart_id")
+    if cid is None:
+        return []
+    stmt = select(CartItem).where(CartItem.cart_id == cid)
     cart_items = session.execute(stmt).scalars().all()
     return [item.item_id for item in cart_items]
 
@@ -206,20 +254,16 @@ def save_cart(cart: Cart) -> None:
     session.commit()
 
 
-def add_cart_item(cart_id: str, item_id: str) -> None:
+def add_cart_item(cart_id: int | str, item_id: int | str) -> None:
     """Adds an item to a cart."""
     session = get_session()
-    cart_item = CartItem(cart_id=cart_id, item_id=item_id)
+    cid = _coerce_int_id(cart_id, "cart_id")
+    mid = _coerce_int_id(item_id, "menu_item_id")
+    if cid is None or mid is None:
+        return
+    cart_item = CartItem(cart_id=cid, item_id=mid)
     session.add(cart_item)
     session.commit()
-
-
-def generate_next_cart_id() -> str:
-    """Generates the next cart ID based on existing carts."""
-    session = get_session()
-    stmt = select(Cart)
-    cart_count = len(list(session.execute(stmt).scalars().all()))
-    return str(cart_count + 1)
 
 
 # ============================================================
@@ -232,18 +276,13 @@ def save_refund(refund: Refund) -> None:
     session.commit()
 
 
-def generate_next_refund_id() -> str:
-    """Generates the next refund ID based on existing refunds."""
-    session = get_session()
-    stmt = select(Refund)
-    refund_count = len(list(session.execute(stmt).scalars().all()))
-    return str(refund_count + 1)
-
-
-def get_refund_by_order_id(order_id: str) -> Refund | None:
+def get_refund_by_order_id(order_id: int | str) -> Refund | None:
     """Gets a refund by its order ID."""
     session = get_session()
-    stmt = select(Refund).where(Refund.order_id == order_id)
+    oid = _coerce_int_id(order_id, "order_id")
+    if oid is None:
+        return None
+    stmt = select(Refund).where(Refund.order_id == oid)
     return session.execute(stmt).scalar_one_or_none()
 
 
@@ -265,8 +304,7 @@ def get_restaurant_api_key() -> str:
 
 def get_platform_api_key() -> str:
     """Gets the platform's API key from the database."""
-    session = get_session()
-    config = session.get(PlatformConfig, "platform_api_key")
+    config = _get_platform_config_entry("platform_api_key")
     if config:
         return config.value
     raise ValueError("Platform API key not found in database")
@@ -274,8 +312,7 @@ def get_platform_api_key() -> str:
 
 def get_signup_bonus_remaining() -> Decimal:
     """Gets the remaining signup bonus amount."""
-    session = get_session()
-    config = session.get(PlatformConfig, "signup_bonus_remaining")
+    config = _get_platform_config_entry("signup_bonus_remaining")
     if config:
         return Decimal(config.value)
     return Decimal("0.00")
@@ -284,10 +321,16 @@ def get_signup_bonus_remaining() -> Decimal:
 def set_signup_bonus_remaining(amount: Decimal) -> None:
     """Sets the remaining signup bonus amount."""
     session = get_session()
-    config = session.get(PlatformConfig, "signup_bonus_remaining")
+    config = _get_platform_config_entry("signup_bonus_remaining")
     if config:
         config.value = str(amount)
     else:
         config = PlatformConfig(key="signup_bonus_remaining", value=str(amount))
         session.add(config)
     session.commit()
+
+
+def _get_platform_config_entry(key: str) -> PlatformConfig | None:
+    session = get_session()
+    stmt = select(PlatformConfig).where(PlatformConfig.key == key)
+    return session.execute(stmt).scalar_one_or_none()

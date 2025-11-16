@@ -10,7 +10,15 @@ import datetime
 import enum
 from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, Numeric, String
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -34,7 +42,7 @@ class Restaurant(Base):
 
     __tablename__ = "restaurants"
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False, default="")
     owner: Mapped[str] = mapped_column(String, nullable=False)
@@ -46,10 +54,14 @@ class User(Base):
 
     __tablename__ = "users"
 
-    user_id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(String, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
     balance: Mapped[Decimal] = mapped_column(
-        Numeric(10, 2), nullable=False, default=Decimal("0.00")
+        Numeric(10, 2),
+        CheckConstraint("balance >= 0", name="user_balance_non_negative"),
+        nullable=False,
+        default=Decimal("0.00"),
     )
     password: Mapped[str] = mapped_column(String, nullable=False)
 
@@ -59,8 +71,10 @@ class MenuItem(Base):
 
     __tablename__ = "menu_items"
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
-    restaurant_id: Mapped[str] = mapped_column(String, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    restaurant_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("restaurants.id"), nullable=False
+    )
     name: Mapped[str] = mapped_column(String, nullable=False)
     price: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
@@ -75,9 +89,11 @@ class Order(Base):
 
     __tablename__ = "orders"
 
-    order_id: Mapped[str] = mapped_column(String, primary_key=True)
-    restaurant_id: Mapped[str] = mapped_column(String, nullable=False)
-    user_id: Mapped[str] = mapped_column(String, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    restaurant_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("restaurants.id"), nullable=False
+    )
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     total: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
         CheckConstraint("total >= 0", name="order_total_non_negative"),
@@ -106,8 +122,8 @@ class OrderItem(Base):
     __tablename__ = "order_items"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    order_id: Mapped[str] = mapped_column(String, nullable=False)
-    item_id: Mapped[str] = mapped_column(String, nullable=False)
+    order_id: Mapped[int] = mapped_column(Integer, ForeignKey("orders.id"), nullable=False)
+    item_id: Mapped[int] = mapped_column(Integer, ForeignKey("menu_items.id"), nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
     price: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
@@ -121,8 +137,10 @@ class Cart(Base):
 
     __tablename__ = "carts"
 
-    cart_id: Mapped[str] = mapped_column(String, primary_key=True)
-    restaurant_id: Mapped[str] = mapped_column(String, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    restaurant_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("restaurants.id"), nullable=False
+    )
 
 
 class CartItem(Base):
@@ -131,8 +149,8 @@ class CartItem(Base):
     __tablename__ = "cart_items"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    cart_id: Mapped[str] = mapped_column(String, nullable=False)
-    item_id: Mapped[str] = mapped_column(String, nullable=False)
+    cart_id: Mapped[int] = mapped_column(Integer, ForeignKey("carts.id"), nullable=False)
+    item_id: Mapped[int] = mapped_column(Integer, ForeignKey("menu_items.id"), nullable=False)
 
 
 class Refund(Base):
@@ -140,8 +158,8 @@ class Refund(Base):
 
     __tablename__ = "refunds"
 
-    refund_id: Mapped[str] = mapped_column(String, primary_key=True)
-    order_id: Mapped[str] = mapped_column(String, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    order_id: Mapped[int] = mapped_column(Integer, ForeignKey("orders.id"), nullable=False)
     amount: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
         CheckConstraint("amount > 0", name="refund_amount_positive"),
@@ -163,5 +181,6 @@ class PlatformConfig(Base):
 
     __tablename__ = "platform_config"
 
-    key: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    key: Mapped[str] = mapped_column(String, nullable=False)
     value: Mapped[str] = mapped_column(String, nullable=False)

@@ -21,8 +21,16 @@ def verify_order_access(f):
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        g.order = get_order(request.view_args.get("order_id"))
-        if g.order and g.order.user_id != g.email:
+        raw_order_id = request.view_args.get("order_id")
+        try:
+            order_id = int(raw_order_id)
+        except (TypeError, ValueError):
+            raise CheekyApiError("Invalid order_id") from None
+
+        g.order = get_order(order_id)
+        if not g.order:
+            raise CheekyApiError("Order not found")
+        if g.order.user_id != getattr(g.user, "id", None):
             raise CheekyApiError("Unauthorized")
         return f(*args, **kwargs)
 

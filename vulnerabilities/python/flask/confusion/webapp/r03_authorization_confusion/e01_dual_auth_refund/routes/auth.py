@@ -5,7 +5,7 @@ from flask import Blueprint, g, jsonify, request, session
 
 from ..auth.authenticators import CustomerAuthenticator
 from ..auth.helpers import verify_user_registration
-from ..database.repository import find_user_by_id
+from ..database.repository import find_user_by_email
 from ..database.services import apply_signup_bonus, create_user
 from ..errors import CheekyApiError
 from ..utils import get_email_from_token, send_verification_email
@@ -20,7 +20,7 @@ def protect_registration_flow():
     token = request.is_json and request.json.get("token")
     if token and verify_user_registration(token):
         email_from_token = get_email_from_token(token)
-        if not find_user_by_id(email_from_token):
+        if not find_user_by_email(email_from_token):
             g.email = email_from_token
             g.email_confirmed = True
         else:
@@ -53,7 +53,7 @@ def register_user():
         if not unvalidated_email:
             raise CheekyApiError("email is required")
 
-        if find_user_by_id(unvalidated_email):
+        if find_user_by_email(unvalidated_email):
             raise CheekyApiError("email already taken")
 
         return send_verification_email(unvalidated_email)
