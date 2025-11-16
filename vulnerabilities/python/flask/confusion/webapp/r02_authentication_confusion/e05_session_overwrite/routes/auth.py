@@ -1,8 +1,9 @@
 import logging
+import re
 
 from flask import Blueprint, g, jsonify, request, session
 
-from ..auth.authenticators import CredentialAuthenticator, CustomerAuthenticator
+from ..auth.authenticators import CustomerAuthenticator
 from ..auth.helpers import verify_user_registration
 from ..database.repository import find_user_by_id
 from ..database.services import apply_signup_bonus, create_user
@@ -68,13 +69,23 @@ def register_user():
 @bp.post("/login")
 def login_user():
     """Login endpoint for website - accepts JSON credentials."""
-    authenticator = CredentialAuthenticator.from_json()
+    email = request.json.get("email")
+    password = request.json.get("password")
+    if not email or not password:
+        raise CheekyApiError("Email and password are required")
 
+    # Some older users stil haven't assigned email address,
+    # our user_id -> email transition is over, ask them to contact support
+    if not re.match(r"^[^@]+@[^@]+$", email):
+        raise CheekyApiError("Please contact support to get your email address verified!")
+
+    # Only check credentials through the new authenticator, to avoid unsafe password handling
+    authenticator = CustomerAuthenticator()
     if not authenticator.authenticate():
         raise CheekyApiError("Invalid email or password")
 
-    # Set session for future requests
-    session["email"] = g.email
+    # Initiate cookie session on successful authentication
+    session["email"] = email
 
     return jsonify({"message": "Login successful"}), 200
 

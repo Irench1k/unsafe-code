@@ -8,7 +8,6 @@ from ..database.repository import find_order_by_id as get_order
 from ..errors import CheekyApiError
 from ..utils import get_request_parameter, parse_as_decimal
 from .authenticators import (
-    CredentialAuthenticator,
     CustomerAuthenticator,
     PlatformAuthenticator,
     RestaurantAuthenticator,
@@ -59,18 +58,20 @@ def require_auth(auth_methods: list[str]):
 
     Args:
         auth_methods: List of authentication methods to try. Valid values:
-            - "cookies": Customer session-based auth
-            - "basic_auth": Customer Basic Auth
+            - "customer": Customer auth (tries cookies, basic auth, and JSON credentials)
             - "restaurant_api_key": Restaurant API key
             - "platform_api_key": Platform API key
+
+    Note:
+        The "customer" method automatically checks all three customer authentication
+        methods (cookies, basic auth, JSON), so you no longer need to specify them separately.
     """
 
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             authenticators = {
-                "cookies": CustomerAuthenticator,
-                "basic_auth": lambda: CredentialAuthenticator.from_basic_auth(),
+                "customer": CustomerAuthenticator,
                 "restaurant_api_key": RestaurantAuthenticator,
                 "platform_api_key": PlatformAuthenticator,
             }
@@ -82,7 +83,7 @@ def require_auth(auth_methods: list[str]):
 
                 # Try to authenticate
                 auth_class = authenticators[method]
-                authenticator = auth_class() if isinstance(auth_class, type) else auth_class()
+                authenticator = auth_class()
 
                 if authenticator.authenticate():
                     # Request is authenticated

@@ -10,13 +10,13 @@ bp = Blueprint("account", __name__, url_prefix="/account")
 
 
 @bp.get("/credits")
-@require_auth(["cookies", "basic_auth"])
+@require_auth(["customer"])
 def view_balance():
     return jsonify({"email": g.email, "balance": str(g.balance)}), 200
 
 
 @bp.post("/credits")
-@require_auth(["restaurant_api_key"])
+@require_auth(["platform_api_key"])
 def add_credits():
     amount = request.form["amount"]
     user = request.form["user"]
@@ -28,7 +28,7 @@ def add_credits():
 
 
 @bp.route("/info", methods=["GET"])
-@require_auth(["cookies", "basic_auth"])
+@require_auth(["customer"])
 def view_account_info():
     """Views the account information for a given user."""
     return jsonify(

@@ -3,15 +3,8 @@ from decimal import Decimal
 
 from flask import Blueprint, g, jsonify, request
 
-from ..auth.decorators import (
-    protect_refunds,
-    require_auth,
-    verify_order_access,
-)
-from ..database.repository import (
-    find_all_orders,
-    get_refund_by_order_id,
-)
+from ..auth.decorators import protect_refunds, require_auth, verify_order_access
+from ..database.repository import find_all_orders, get_refund_by_order_id
 from ..database.services import (
     create_refund,
     get_user_orders,
@@ -28,7 +21,7 @@ bp = Blueprint("orders", __name__, url_prefix="/orders")
 
 
 @bp.get("")
-@require_auth(["cookies", "restaurant_api_key", "basic_auth"])
+@require_auth(["customer", "restaurant_api_key"])
 def list_orders():
     """Customers can list their own orders, restaurant managers can list ALL of them."""
     orders = find_all_orders() if g.get("manager_request") else get_user_orders(g.email)
@@ -36,7 +29,7 @@ def list_orders():
 
 
 @bp.post("/<order_id>/refund")
-@require_auth(["cookies", "basic_auth"])
+@require_auth(["customer"])
 @verify_order_access
 @protect_refunds
 def refund_order(order_id):
@@ -71,7 +64,7 @@ def update_refund_status(order_id):
 
 
 @bp.get("/<order_id>/refund/status")
-@require_auth(["basic_auth", "cookies"])
+@require_auth(["customer"])
 def get_refund_status(order_id):
     """Gets the status of a refund."""
     refund = get_refund_by_order_id(order_id)

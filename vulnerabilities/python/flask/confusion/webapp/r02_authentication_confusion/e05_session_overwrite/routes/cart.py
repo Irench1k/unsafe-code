@@ -19,7 +19,7 @@ bp = Blueprint("cart", __name__, url_prefix="/cart")
 
 
 @bp.post("")
-@require_auth(["cookies", "basic_auth"])
+@require_auth(["customer"])
 def create_new_cart():
     """
     Creates a new empty cart.
@@ -32,7 +32,7 @@ def create_new_cart():
 
 
 @bp.post("/<cart_id>/items")
-@require_auth(["cookies", "basic_auth"])
+@require_auth(["customer"])
 def add_item_to_cart_endpoint(cart_id):
     """
     Adds a single item to an existing cart.
@@ -56,7 +56,7 @@ def add_item_to_cart_endpoint(cart_id):
 
 
 @bp.post("/<cart_id>/checkout")
-@require_auth(["cookies", "basic_auth"])
+@require_auth(["customer"])
 def checkout_cart(cart_id):
     """Checks out a cart and creates an order."""
     cart = find_cart_by_id(cart_id)
