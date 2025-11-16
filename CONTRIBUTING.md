@@ -5,11 +5,13 @@ Thank you for your interest in contributing! Unsafe Code Lab demonstrates securi
 ## What Makes a Good Example
 
 We create **realistic vulnerabilities** that emerge from natural coding patterns:
+
 - Refactoring drift (decorator reads different source than handler)
 - Feature additions that introduce edge cases
 - Framework helper functions with subtle precedence rules
 
 **Avoid:**
+
 - CTF-style puzzles or contrived code
 - Obvious markers like `# VULNERABILITY HERE` or `vulnerable_handler()`
 - Code that would fail a normal code review for non-security reasons
@@ -37,14 +39,18 @@ direnv allow
 
 The development configuration (`compose.dev.yml`) provides instant code reload and debug-level logs.
 
-## Quick Start 
+### Optional: Shell Ergonomics
+
+For faster navigation you can source our helper script from your shell config (e.g., add `source /path/to/unsafe-code/tools/dev/unsafe-code-dev.sh` to `~/.bashrc` or `~/.zshrc`). This exposes handy commands such as `ucfocus`/`ucunfocus`/`ucstatus` (VSCode focus control), `ucup`/`ucdown`/`uclogs` (docker compose shortcuts), and navigation helpers like `ucgo`, `uclist`, and `uchelp`. These are purely optional ergonomics improvements.
+
+## Quick Start
 
 The most convenient way to run examples is using Docker Compose:
 
 ### 1. Navigate to an example directory
 
 ```bash
-cd vulnerabilities/python/flask/confusion 
+cd vulnerabilities/python/flask/confusion
 ```
 
 ### 2. Start the application
@@ -157,6 +163,7 @@ uv run docs test -v
 ```
 
 **Tip:** Enable shell completion or add an alias:
+
 ```bash
 uv run docs --install-completion
 # or
