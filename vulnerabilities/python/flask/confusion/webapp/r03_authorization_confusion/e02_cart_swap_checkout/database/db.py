@@ -2,7 +2,7 @@
 Database Engine and Session Management
 
 This module handles SQLAlchemy engine creation, session management,
-and database initialization for the v301 scenario.
+and database initialization.
 """
 
 import logging

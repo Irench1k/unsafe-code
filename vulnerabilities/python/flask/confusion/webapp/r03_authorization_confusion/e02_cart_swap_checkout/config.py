@@ -1,5 +1,5 @@
 """
-Configuration for v301 scenario.
+Configuration for v302 scenario.
 
 This module provides configuration specific to this example/blueprint.
 Since all blueprints run in the same Flask process, we can't rely on
@@ -15,13 +15,11 @@ from decimal import Decimal
 
 @dataclass
 class Config:
-    """Configuration for the v301 scenario."""
-
     # Database connection string (shared across all blueprints)
     database_url: str
 
     # Schema name for this specific scenario (isolated from other blueprints)
-    schema_name: str = "v301"
+    schema_name: str = "v302"
 
     # Whether to reinitialize the database on startup
     # (drop existing schema and recreate with fixtures)

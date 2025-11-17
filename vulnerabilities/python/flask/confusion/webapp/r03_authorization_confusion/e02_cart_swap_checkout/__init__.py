@@ -20,7 +20,7 @@ def _init_db_once():
     """Initialize the database once when the blueprint is first used."""
     global _db_initialized
     if not _db_initialized:
-        logger.info("Initializing database for v301...")
+        logger.info("Initializing database...")
         init_database(_config, drop_existing=_config.reinitialize_on_startup)
         _db_initialized = True
         logger.info("Database initialized successfully")
