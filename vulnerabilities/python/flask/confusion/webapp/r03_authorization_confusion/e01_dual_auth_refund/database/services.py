@@ -10,14 +10,13 @@ import logging
 from decimal import Decimal
 from typing import Literal
 
-from flask import g
+from flask import g, session
 
 from ..errors import CheekyApiError
 from .models import Cart, Order, OrderItem, Refund, RefundStatus, User
 from .repository import (
     add_cart_item,
     delete_order,
-    find_all_restaurants,
     find_cart_by_id,
     find_menu_item_by_id,
     find_order_by_id,
@@ -99,9 +98,10 @@ def increment_user_balance(email: str, amount: Decimal) -> Decimal | None:
     return user.balance
 
 
-def get_current_user(email: str) -> User | None:
+def get_current_user(email: str | None = None) -> User | None:
     """Gets the current user from the database."""
-    user_email = email or getattr(g, "email", None)
+
+    user_email = email or getattr(g, "email", None) or session.get("email")
     if not user_email:
         logger.warning("No email provided and no user in request context")
         return None

@@ -4,17 +4,19 @@ from decimal import Decimal
 from flask import Blueprint, g, jsonify, request
 
 from ..auth.decorators import protect_refunds, require_auth, verify_order_access
+from ..auth.helpers import has_access_to_order
 from ..database.models import OrderStatus
 from ..database.repository import (
-    find_all_orders,
     find_order_by_id,
     find_orders_by_restaurant,
     get_refund_by_order_id,
+    save_order,
 )
 from ..database.services import (
     create_refund,
     get_user_orders,
     process_refund,
+    serialize_order,
     serialize_orders,
     serialize_refund,
     update_order_refund_status,
@@ -95,8 +97,11 @@ def update_refund_status(order_id):
         raise CheekyApiError("Status is missing or invalid")
 
     # Authorization check: order must belong to the restaurant
-    order = find_order_by_id(order_id_int)
-    if order.restaurant_id != g.restaurant_id:
+    # order = find_order_by_id(order_id_int)
+    # if order.restaurant_id != g.restaurant_id:
+    #     raise CheekyApiError("Order does not belong to restaurant")
+
+    if not has_access_to_order(order_id_int):
         raise CheekyApiError("Order does not belong to restaurant")
 
     refund = update_order_refund_status(order_id_int, status)
@@ -123,3 +128,46 @@ def get_refund_status(order_id):
         raise CheekyApiError("Refund not found")
 
     return jsonify(serialize_refund(refund)), 200
+
+
+@bp.patch("/<order_id>/status")
+@require_auth(["restaurant_api_key", "customer"])
+def update_order_status(order_id):
+    """
+    Update order status. Available to both customers and restaurant managers.
+
+    Order status can be changed only from "created".
+    Customers and restaurant managers have different rules.
+
+    Customers:
+    - can change order status to cancelled
+    - only if order has not been delivered yet
+
+    Restaurants:
+    - can change order status to delivered
+    - only if order has been created and not delivered yet
+    """
+    order_id_int = _parse_order_id(order_id)
+    status = request.form.get("status")
+    if not status or status not in ["created", "delivered", "cancelled", "refunded"]:
+        raise CheekyApiError("Status is missing or invalid")
+
+    order = find_order_by_id(order_id_int)
+    if not order:
+        raise CheekyApiError("Order not found")
+
+    # Authorization check: order must belong to the user or restaurant
+    if g.get("user_id"):
+        if order.user_id != g.user_id:
+            raise CheekyApiError("Order does not belong to user")
+    else:
+        if order.restaurant_id != g.restaurant_id:
+            raise CheekyApiError("Order does not belong to restaurant")
+
+    # Integrity check: order status can be changed only from "created"
+    if order.status != OrderStatus.created:
+        raise CheekyApiError("Order status can be changed only from 'created'")
+
+    order.status = status
+    save_order(order)
+    return jsonify(serialize_order(order)), 200

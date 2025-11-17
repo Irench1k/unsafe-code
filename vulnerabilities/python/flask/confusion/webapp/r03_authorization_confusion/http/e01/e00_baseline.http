@@ -91,3 +91,71 @@ status=approved
 ###
 GET {{base}}/orders
 Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+
+### ------------------------------------------------------------------------------------------------
+
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "plankton@chum-bucket.sea",
+    "password": "i_love_my_wife"
+}
+
+### List Menu Items
+GET {{base}}/menu
+
+### Plankton orders a krabby patty
+# NOTE: New argument, restaurant_id is required!
+# @name cart
+POST {{base}}/cart?restaurant_id=1
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+
+###
+POST {{base}}/cart/{{cart.response.body.cart_id}}/items
+Content-Type: application/json
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+
+{
+  "item_id": "4"
+}
+
+###
+# @name order
+POST {{base}}/cart/{{cart.response.body.cart_id}}/checkout
+Content-Type: application/x-www-form-urlencoded
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+
+tip=1&delivery_address=Chum Backet Restaurant
+
+### Plankton's balance is now $73.50
+GET {{base}}/account/info
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+
+### Plankton requests a refund as soon as it's delivered
+POST {{base}}/orders/{{order.response.body.order_id}}/refund
+Content-Type: application/x-www-form-urlencoded
+Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+
+amount=26.50
+
+### Krabs can reject!!!
+PATCH {{base}}/orders/3/refund/status
+X-API-Key: {{krusty_krab_api_key}}
+Content-Type: application/x-www-form-urlencoded
+
+status=rejected
+
+### Should not work with the vulnerable example!!!!
+PATCH {{base}}/orders/3/refund/status
+X-API-Key: {{chum_bucket_api_key}}
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+### Vulnerable Example: with Plankton's cookies we can approve his own refund request
+PATCH {{base}}/orders/3/refund/status
+X-API-Key: {{chum_bucket_api_key}}
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
