@@ -13,7 +13,7 @@ from typing import Literal
 from flask import g, session
 
 from ..errors import CheekyApiError
-from .models import Cart, CartItem, Order, OrderItem, Refund, RefundStatus, User
+from .models import Cart, CartItem, MenuItem, Order, OrderItem, Refund, RefundStatus, User
 from .repository import (
     add_cart_item,
     delete_order,
@@ -44,38 +44,30 @@ FREE_DELIVERY_ABOVE = Decimal("25.00")
 # ============================================================
 # PRICING SERVICES
 # ============================================================
-def prepare_cart_for_checkout(
+def calculate_cart_price(
     cart_items: list[CartItem],
-) -> tuple[list[dict], Decimal, Decimal] | tuple[None, None, None]:
+) -> tuple[Decimal, Decimal] | tuple[None, None]:
     """
     Validate cart items and calculate totals for checkout.
 
     Returns:
-      (hydrated_items, subtotal, delivery_fee) on success
-      (None, None, None) if any item is unavailable or not found
+      (subtotal, delivery_fee) on success
+      (None, None) if any item is unavailable or not found
 
     This combines validation and price calculation in a single pass.
     """
-    hydrated_items = []
     subtotal = Decimal("0.00")
 
     for item in cart_items:
         menu_item = find_menu_item_by_id(item.item_id)
         if not menu_item or not menu_item.available:
-            return None, None, None
+            return None, None
 
-        hydrated_items.append(
-            {
-                "item_id": menu_item.id,
-                "name": menu_item.name,
-                "price": menu_item.price,
-            }
-        )
         subtotal += menu_item.price
 
     # Calculate delivery fee
     delivery_fee = Decimal("0.00") if subtotal > FREE_DELIVERY_ABOVE else DELIVERY_FEE
-    return hydrated_items, subtotal, delivery_fee
+    return subtotal, delivery_fee
 
 
 # ============================================================
@@ -156,7 +148,7 @@ def create_order_from_checkout(
     user_id: int,
     restaurant_id: int,
     total: Decimal,
-    items: list[dict],
+    cart_items: list[CartItem],
     delivery_fee: Decimal,
     delivery_address: str,
     tip: Decimal = Decimal("0.00"),
@@ -172,13 +164,14 @@ def create_order_from_checkout(
     )
 
     # Create order items separately
+    menu_items = [find_menu_item_by_id(item.item_id) for item in cart_items]
     order_items = [
         OrderItem(
-            item_id=int(item["item_id"]),
-            name=item["name"],
-            price=Decimal(str(item["price"])),
+            item_id=item.id,
+            name=item.name,
+            price=item.price,
         )
-        for item in items
+        for item in menu_items
     ]
 
     return order, order_items

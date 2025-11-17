@@ -172,6 +172,12 @@ def _create_menu_items(
             price=Decimal("20.50"),
             available=True,
         ),
+        "Ultimate Krusty Krab": MenuItem(
+            restaurant_id=krusty_krab.id,
+            name="Ultimate Krusty Krab",
+            price=Decimal("50.00"),
+            available=True,
+        ),
     }
 
     # Chum Bucket Menu
