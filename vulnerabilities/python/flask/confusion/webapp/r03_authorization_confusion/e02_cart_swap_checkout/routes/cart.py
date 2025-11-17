@@ -1,16 +1,16 @@
 from decimal import Decimal
 from functools import wraps
 
-from flask import Blueprint, g, request, session
+from flask import Blueprint, g, session
 
 from ..auth.decorators import require_auth
 from ..database.repository import find_cart_by_id, find_menu_item_by_id, get_cart_items
 from ..database.services import (
     add_item_to_cart,
+    calculate_cart_price,
     charge_user,
     create_cart,
     create_order_from_checkout,
-    calculate_cart_price,
     refund_user,
     save_order_securely,
     serialize_cart,

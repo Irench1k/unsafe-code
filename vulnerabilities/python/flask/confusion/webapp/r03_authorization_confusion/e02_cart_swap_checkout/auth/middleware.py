@@ -1,8 +1,6 @@
 import logging
 import traceback
 
-from flask import jsonify
-
 from .. import bp
 from ..errors import CheekyApiError
 from ..utils import error_response, get_param

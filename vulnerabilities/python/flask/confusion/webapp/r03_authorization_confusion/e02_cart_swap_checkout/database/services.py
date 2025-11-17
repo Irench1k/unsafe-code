@@ -12,8 +12,9 @@ from typing import Literal
 
 from flask import g, session
 
+from ..config import OrderConfig
 from ..errors import CheekyApiError
-from .models import Cart, CartItem, MenuItem, Order, OrderItem, Refund, RefundStatus, User
+from .models import Cart, CartItem, Order, OrderItem, Refund, RefundStatus, User
 from .repository import (
     add_cart_item,
     delete_order,
@@ -35,10 +36,6 @@ from .repository import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-DELIVERY_FEE = Decimal("5.00")
-FREE_DELIVERY_ABOVE = Decimal("25.00")
 
 
 # ============================================================
@@ -66,7 +63,9 @@ def calculate_cart_price(
         subtotal += menu_item.price
 
     # Calculate delivery fee
-    delivery_fee = Decimal("0.00") if subtotal > FREE_DELIVERY_ABOVE else DELIVERY_FEE
+    delivery_fee = (
+        Decimal("0.00") if subtotal > OrderConfig.FREE_DELIVERY_ABOVE else OrderConfig.DELIVERY_FEE
+    )
     return subtotal, delivery_fee
 
 
@@ -104,17 +103,16 @@ def apply_signup_bonus(email: str) -> None:
         logger.warning(f"Cannot apply signup bonus - user not found: {email}")
         return
 
-    bonus_amount = Decimal("2.00")
     remaining = get_signup_bonus_remaining()
 
-    if remaining < bonus_amount:
+    if remaining < OrderConfig.SIGNUP_BONUS:
         logger.warning(f"Insufficient signup bonus remaining for {email}: {remaining}")
         return
 
-    user.balance += bonus_amount
+    user.balance += OrderConfig.SIGNUP_BONUS
     save_user(user)
-    set_signup_bonus_remaining(remaining - bonus_amount)
-    logger.info(f"Signup bonus applied to {email}: {bonus_amount}")
+    set_signup_bonus_remaining(remaining - OrderConfig.SIGNUP_BONUS)
+    logger.info(f"Signup bonus applied to {email}: {OrderConfig.SIGNUP_BONUS}")
 
 
 def increment_user_balance(email: str, amount: Decimal) -> Decimal | None:

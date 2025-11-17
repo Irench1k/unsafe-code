@@ -10,6 +10,7 @@ blueprint-specific settings like schema name.
 
 import os
 from dataclasses import dataclass
+from decimal import Decimal
 
 
 @dataclass
@@ -38,3 +39,10 @@ def load_config() -> Config:
         database_url = database_url.strip('"').strip("'")
 
     return Config(database_url=database_url)
+
+
+class OrderConfig:
+    DELIVERY_FEE = Decimal("5.00")
+    FREE_DELIVERY_ABOVE = Decimal("25.00")
+    DEFAULT_REFUND_PERCENTAGE = Decimal("0.2")
+    SIGNUP_BONUS = Decimal("2.00")

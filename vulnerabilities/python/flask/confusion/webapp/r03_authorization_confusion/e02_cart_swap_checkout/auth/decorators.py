@@ -1,17 +1,13 @@
 import logging
-from decimal import Decimal
 from functools import wraps
 
 from flask import g, request
 
+from ..config import OrderConfig
 from ..database.repository import find_order_by_id as get_order
 from ..errors import CheekyApiError
 from ..utils import get_decimal_param
-from .authenticators import (
-    CustomerAuthenticator,
-    PlatformAuthenticator,
-    RestaurantAuthenticator,
-)
+from .authenticators import CustomerAuthenticator, PlatformAuthenticator, RestaurantAuthenticator
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +37,7 @@ def protect_refunds(f):
         if not getattr(g, "order", None):
             raise CheekyApiError("Order not found")
 
-        default_refund = Decimal("0.2") * g.order.total
+        default_refund = OrderConfig.DEFAULT_REFUND_PERCENTAGE * g.order.total
         refund_amount = get_decimal_param("amount", default_refund)
 
         if refund_amount < 0 or refund_amount > g.order.total:

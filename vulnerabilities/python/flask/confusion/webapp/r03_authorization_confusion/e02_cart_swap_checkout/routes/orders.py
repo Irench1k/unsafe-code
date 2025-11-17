@@ -1,9 +1,9 @@
 import logging
-from decimal import Decimal
 
 from flask import Blueprint, g
 
 from ..auth.decorators import protect_refunds, require_auth, verify_order_access
+from ..config import OrderConfig
 from ..database.models import OrderStatus
 from ..database.repository import (
     find_order_by_id,
@@ -55,7 +55,9 @@ def refund_order(order_id: int):
     """Initiates a refund for a customer's order. Customer-only."""
     # Parse inputs
     reason = get_param("reason") or ""
-    refund_amount = get_decimal_param("amount", Decimal("0.2") * g.order.total)
+    refund_amount = get_decimal_param(
+        "amount", OrderConfig.DEFAULT_REFUND_PERCENTAGE * g.order.total
+    )
 
     # Integrity check: order must not already be refunded
     require_condition(g.order.status != OrderStatus.refunded, "Order has already been refunded")
