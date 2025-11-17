@@ -6,7 +6,7 @@
 # - Clear separation between handler logic and route mapping
 # - Functions can be imported and used elsewhere if needed
 #
-# Cons: 
+# Cons:
 # - More verbose than decorators
 # - Route path repeated in registration call
 

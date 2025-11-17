@@ -1,6 +1,6 @@
-from flask import Flask, render_template_string, request, redirect, url_for
+
+from flask import Flask, redirect, render_template_string, request, url_for
 from markupsafe import escape
-import os
 
 app = Flask(__name__)
 
@@ -98,7 +98,7 @@ def sign_in():
         return f"Here you go, get the sign-in token for: {request.form['username']}\n"
     else:
         # Fail!
-        return f"Wrong password or username!\n"
+        return "Wrong password or username!\n"
 
 
 ##

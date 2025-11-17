@@ -1,9 +1,10 @@
-import cherrypy
 import random
 import string
 
+import cherrypy
 
-class WebApp(object):
+
+class WebApp:
     @cherrypy.expose
     def hello(self):
         return "Hello world!"
@@ -67,4 +68,4 @@ class WebApp(object):
             return f"Here you go, get the sign-in token for: {username}\n"
         else:
             # Fail!
-            return f"Wrong password or username!\n"
+            return "Wrong password or username!\n"

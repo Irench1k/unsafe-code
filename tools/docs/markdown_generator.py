@@ -180,10 +180,10 @@ class MarkdownBuilder:
         """Add a link to the source code file after the example."""
         if not example.parts:
             return
-        
+
         file_label = self._get_file_label(example)
         code_link = self._get_code_link(example)
-        
+
         if file_label and code_link:
             doc.writeTextLine(f"See the code here: [{file_label}]({code_link})", html_escape=False)
             doc.writeTextLine()  # Blank line after source code link

@@ -1,9 +1,10 @@
-import cherrypy
 import random
 import string
 
+import cherrypy
 
-class UserController(object):
+
+class UserController:
     @cherrypy.expose
     def index(self, username=None, user_id=None, **kwargs):
         """
@@ -30,13 +31,13 @@ class UserController(object):
 
             cherrypy.request.params['username'] = username
             cherrypy.request.params['user_id'] = user_id
-            
+
             return self.details
 
         # Case 2: /user/<segment> (e.g., vpath = ['irina'] or vpath = ['123'])
         if len(vpath) == 1:
             segment = vpath.pop(0)
-            
+
             if segment.isdigit():
                 cherrypy.request.params['user_id'] = segment
                 return self.by_id
@@ -48,7 +49,7 @@ class UserController(object):
     @cherrypy.expose
     def details(self, username, user_id):
         return f"Username: {username}, User ID: {user_id}, Route: /user/{username}/{user_id}"
-    
+
     @cherrypy.expose
     def by_id(self, user_id):
         return f"User ID: {user_id}, Route: /user/{user_id}"
@@ -58,14 +59,14 @@ class UserController(object):
         return f"User: {username}, Route: /user/{username}"
 
 
-class WebApp(object):
+class WebApp:
     def __init__(self):
         self.user = UserController()
 
     @cherrypy.expose
     def hello(self):
         return "Hello world!"
-    
+
     @cherrypy.expose
     def index(self):
         return """<html>
@@ -77,11 +78,11 @@ class WebApp(object):
             </form>
           </body>
         </html>"""
-    
+
     @cherrypy.expose
     def generate(self, length=8):
         return ''.join(random.sample(string.hexdigits, int(length)))
-    
+
     @cherrypy.expose
     def submit(self, name=None):
         if cherrypy.request.method == 'POST':
@@ -97,7 +98,7 @@ class WebApp(object):
                 </form>
                 <p>Route: /submit (GET)</p>
             """
-    
+
     @cherrypy.expose
     def sign_in(self, username=None, password=None):
         password_db = {
@@ -108,7 +109,7 @@ class WebApp(object):
         if username and (password_db.get(username) == password):
             return f"Here you go, get the sign-in token for: {username}\n"
         else:
-            return f"Wrong password or username!\n"
+            return "Wrong password or username!\n"
 
 
 # Export the app for use by run.py

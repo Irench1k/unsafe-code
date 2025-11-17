@@ -36,9 +36,9 @@ def create_app():
 
     # Register blueprints with URL prefixes
     # Each blueprint acts as a namespace for routes and templates
-    from .users.routes import users_bp
-    from .posts.routes import posts_bp
     from .admin.routes import admin_bp
+    from .posts.routes import posts_bp
+    from .users.routes import users_bp
 
     # URL prefixes define the routing hierarchy
     # These become the base path for all routes in each blueprint

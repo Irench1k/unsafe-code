@@ -4,7 +4,7 @@
 
 def register(app, prefix='/admin'):
     """Register admin routes with consistent prefix."""
-    
+
     # Note that we need to provide the explicit endpoint names ('admin.list_users', 'admin.get_user')
     # because without them, Flask will use the function names ('list_users', 'get_user') which will
     # cause a collision with the ones registered in the users/routes.py file!
@@ -15,6 +15,6 @@ def list_users():
     """Admin view: List all users with additional admin info."""
     return "Admin: List all users (with admin details)"
 
-def get_user(user_id):  
+def get_user(user_id):
     """Admin view: List all posts with moderation controls."""
     return f"Admin: Get user {user_id}"

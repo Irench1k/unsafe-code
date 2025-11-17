@@ -12,11 +12,11 @@
 
 def register(app):
     """Register post-related routes using decorator-based approach."""
-    
+
     @app.route('/posts/', methods=['GET'])
     def list_posts():
         return "List of posts"
 
-    @app.route('/posts/<int:post_id>', methods=['GET']) 
+    @app.route('/posts/<int:post_id>', methods=['GET'])
     def get_post(post_id):
         return f"Post {post_id}"

@@ -1,6 +1,7 @@
 import os
-from bottle import run
+
 from app import *  # Import all routes and app configuration
+from bottle import run
 
 if __name__ == "__main__":
     # Get configuration from environment variables with sensible defaults

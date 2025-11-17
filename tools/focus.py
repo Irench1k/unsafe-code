@@ -13,7 +13,6 @@ import json
 import sys
 from pathlib import Path
 
-
 MANAGED_EXCLUDES_KEY = "_focus_managed_excludes"
 PREV_EXCLUDE_GITIGNORE_KEY = "_focus_prev_exclude_gitignore"
 
@@ -25,7 +24,7 @@ SETTINGS_FILE = VSCODE_DIR / "settings.json"
 def load_settings():
     """Load existing VSCode settings or create empty dict."""
     if SETTINGS_FILE.exists():
-        with open(SETTINGS_FILE, 'r') as f:
+        with open(SETTINGS_FILE) as f:
             return json.load(f)
     return {}
 

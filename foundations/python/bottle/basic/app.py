@@ -1,5 +1,4 @@
-import os
-from bottle import route, run, template, get, post, request, redirect, abort
+from bottle import abort, get, post, redirect, request, route, template
 
 
 @route("/")

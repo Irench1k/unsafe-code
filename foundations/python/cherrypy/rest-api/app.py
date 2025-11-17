@@ -1,10 +1,11 @@
 import random
 import string
+
 import cherrypy
 
 
 @cherrypy.expose
-class StringGeneratorWebService(object):
+class StringGeneratorWebService:
     """
     RESTful web service for string generation using HTTP method dispatching.
     

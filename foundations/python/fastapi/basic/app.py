@@ -1,8 +1,8 @@
+from enum import Enum
+
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from enum import Enum
-import os
 
 
 class ModelName(str, Enum):
