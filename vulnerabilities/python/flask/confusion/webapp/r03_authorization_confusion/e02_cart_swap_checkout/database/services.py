@@ -17,7 +17,6 @@ from ..errors import CheekyApiError
 from .models import Cart, CartItem, Order, OrderItem, Refund, RefundStatus, User
 from .repository import (
     add_cart_item,
-    delete_order,
     find_menu_item_by_id,
     find_order_by_id,
     find_order_items,
@@ -176,34 +175,17 @@ def create_order_from_checkout(
 
 
 def save_order_securely(order: Order, order_items: list[OrderItem]) -> None:
+    """Persist the order and snapshots within the current transaction.
+
+    Payment authorization happens earlier (handled by checkout decorators), so
+    this function only needs to flush the ORM objects. If anything fails the
+    request-scoped transaction rolls everything back automatically.
     """
-    Charge customer and save order in DB, now with idempotency & rollback!
-
-    This is a transactional operation that ensures data consistency:
-    - Charges the user
-    - Saves the order
-    - Saves the order items
-    - Rolls back both operations if anything fails
-    """
-    charged_successfully = False
-
-    try:
-        charged_successfully = charge_user(order.user_id, order.total)
-        save_order(order)
-        for item in order_items:
-            item.order_id = order.id
-        save_order_items(order_items)
-        logger.info(f"Order saved: {order.id} for user {order.user_id}")
-    except Exception as e:
-        logger.error(f"Order save failed: {order.id} - {e}")
-        # Rollback routine: refund the customer if we charged them + remove the order from the database
-        if charged_successfully:
-            refund_user(order.user_id, order.total)
-
-        # Remove the order from the database
-        if order.id:
-            delete_order(order.id)
-        raise
+    save_order(order)
+    for item in order_items:
+        item.order_id = order.id
+    save_order_items(order_items)
+    logger.info(f"Order saved: {order.id} for user {order.user_id}")
 
 
 def get_user_orders(user_id: int) -> list[Order]:
@@ -350,10 +332,7 @@ def update_order_refund_status(
 # PAYMENT SERVICES
 # ============================================================
 def charge_user(user_id: int, amount: Decimal) -> bool:
-    """
-    Charges a user, raises an exception if insufficient funds.
-    Returns True if charged successfully, False if already charged.
-    """
+    """Debit a user's balance inside the current transaction."""
     user = find_user_by_id(user_id)
     if not user:
         raise ValueError(f"User '{user_id}' not found.")

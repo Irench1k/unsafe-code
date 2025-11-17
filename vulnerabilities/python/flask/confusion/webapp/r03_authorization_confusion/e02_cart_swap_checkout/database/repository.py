@@ -5,7 +5,12 @@ This is the ONLY file (besides db.py) that should directly interact with
 the database. All database operations should go through these repository functions.
 
 The repository uses SQLAlchemy ORM and expects a session to be available
-in Flask's g object (set up by middleware).
+in Flask's g object (set up by middleware). Transactions are opened per
+request in routes/__init__.py, so repository calls deliberately avoid
+`session.commit()` or `session.rollback()`. When a new primary key or DB-side
+default must be materialized, call `session.flush()`—the surrounding request
+handler will ultimately commit on success and roll back on errors, keeping
+multi-step flows atomic and easier to reason about.
 """
 
 import logging
@@ -29,8 +34,8 @@ from .models import (
 logger = logging.getLogger(__name__)
 
 
-def get_session():
-    """Get the current database session from Flask's g object."""
+def get_request_session():
+    """Return the request-scoped session that middleware stored on g."""
     if not hasattr(g, "db_session"):
         raise RuntimeError("No database session available. Did you forget to set up middleware?")
     return g.db_session
@@ -57,13 +62,13 @@ def _coerce_int_id(value, label: str) -> int | None:
 # ============================================================
 def find_all_restaurants() -> list[Restaurant]:
     """Gets all restaurants."""
-    session = get_session()
+    session = get_request_session()
     return list(session.execute(select(Restaurant)).scalars().all())
 
 
 def find_restaurant_by_id(restaurant_id: int | str) -> Restaurant | None:
     """Finds a restaurant by ID."""
-    session = get_session()
+    session = get_request_session()
     rest_id = _coerce_int_id(restaurant_id, "restaurant_id")
     if rest_id is None:
         return None
@@ -72,7 +77,7 @@ def find_restaurant_by_id(restaurant_id: int | str) -> Restaurant | None:
 
 def find_restaurant_by_api_key(api_key: str) -> Restaurant | None:
     """Finds a restaurant by API key."""
-    session = get_session()
+    session = get_request_session()
     stmt = select(Restaurant).where(Restaurant.api_key == api_key)
     return session.execute(stmt).scalar_one_or_none()
 
@@ -82,7 +87,7 @@ def find_restaurant_by_api_key(api_key: str) -> Restaurant | None:
 # ============================================================
 def find_menu_item_by_id(item_id: int | str) -> MenuItem | None:
     """Finds a menu item by ID."""
-    session = get_session()
+    session = get_request_session()
     menu_id = _coerce_int_id(item_id, "menu_item_id")
     if menu_id is None:
         return None
@@ -91,13 +96,13 @@ def find_menu_item_by_id(item_id: int | str) -> MenuItem | None:
 
 def find_all_menu_items() -> list[MenuItem]:
     """Gets all menu items."""
-    session = get_session()
+    session = get_request_session()
     return list(session.execute(select(MenuItem)).scalars().all())
 
 
 def find_menu_items_by_restaurant(restaurant_id: int | str) -> list[MenuItem]:
     """Gets all menu items for a specific restaurant."""
-    session = get_session()
+    session = get_request_session()
     rest_id = _coerce_int_id(restaurant_id, "restaurant_id")
     if rest_id is None:
         return []
@@ -110,7 +115,7 @@ def find_menu_items_by_restaurant(restaurant_id: int | str) -> list[MenuItem]:
 # ============================================================
 def find_user_by_id(user_id: int | str) -> User | None:
     """Finds a user by their primary key."""
-    session = get_session()
+    session = get_request_session()
     pk = _coerce_int_id(user_id, "user_id")
     if pk is None:
         return None
@@ -119,16 +124,16 @@ def find_user_by_id(user_id: int | str) -> User | None:
 
 def find_user_by_email(email: str) -> User | None:
     """Finds a user by their email address."""
-    session = get_session()
+    session = get_request_session()
     stmt = select(User).where(User.email == email)
     return session.execute(stmt).scalar_one_or_none()
 
 
 def save_user(user: User) -> None:
     """Saves a user to the database."""
-    session = get_session()
+    session = get_request_session()
     session.add(user)
-    session.commit()
+    session.flush()
 
 
 def increment_user_balance(email: str, amount: Decimal) -> Decimal | None:
@@ -137,8 +142,8 @@ def increment_user_balance(email: str, amount: Decimal) -> Decimal | None:
     logger.info(f"User: {user}, Amount: {amount}")
     if user:
         user.balance += amount
-        session = get_session()
-        session.commit()
+        session = get_request_session()
+        session.flush()
         logger.info(f"User: {user}, New Balance: {user.balance}")
         return user.balance
     return None
@@ -149,7 +154,7 @@ def increment_user_balance(email: str, amount: Decimal) -> Decimal | None:
 # ============================================================
 def find_order_by_id(order_id: int | str) -> Order | None:
     """Finds an order by its ID."""
-    session = get_session()
+    session = get_request_session()
     oid = _coerce_int_id(order_id, "order_id")
     if oid is None:
         return None
@@ -158,13 +163,13 @@ def find_order_by_id(order_id: int | str) -> Order | None:
 
 def find_all_orders() -> list[Order]:
     """Gets all orders."""
-    session = get_session()
+    session = get_request_session()
     return list(session.execute(select(Order)).scalars().all())
 
 
 def find_orders_by_user(user_id: int | str) -> list[Order]:
     """Gets all orders for a specific user."""
-    session = get_session()
+    session = get_request_session()
     uid = _coerce_int_id(user_id, "user_id")
     if uid is None:
         return []
@@ -174,7 +179,7 @@ def find_orders_by_user(user_id: int | str) -> list[Order]:
 
 def find_orders_by_restaurant(restaurant_id: int | str) -> list[Order]:
     """Gets all orders for a specific restaurant."""
-    session = get_session()
+    session = get_request_session()
     rest_id = _coerce_int_id(restaurant_id, "restaurant_id")
     if rest_id is None:
         return []
@@ -184,14 +189,14 @@ def find_orders_by_restaurant(restaurant_id: int | str) -> list[Order]:
 
 def save_order(order: Order) -> None:
     """Saves an order to the database."""
-    session = get_session()
+    session = get_request_session()
     session.add(order)
-    session.commit()
+    session.flush()
 
 
 def delete_order(order_id: int | str) -> None:
     """Deletes an order from the database."""
-    session = get_session()
+    session = get_request_session()
     oid = _coerce_int_id(order_id, "order_id")
     if oid is None:
         return
@@ -203,12 +208,12 @@ def delete_order(order_id: int | str) -> None:
         for item in order_items:
             session.delete(item)
         session.delete(order)
-        session.commit()
+        session.flush()
 
 
 def find_order_items(order_id: int | str) -> list[OrderItem]:
     """Gets all items for a specific order."""
-    session = get_session()
+    session = get_request_session()
     oid = _coerce_int_id(order_id, "order_id")
     if oid is None:
         return []
@@ -218,10 +223,10 @@ def find_order_items(order_id: int | str) -> list[OrderItem]:
 
 def save_order_items(order_items: list[OrderItem]) -> None:
     """Saves order items to the database."""
-    session = get_session()
+    session = get_request_session()
     for item in order_items:
         session.add(item)
-    session.commit()
+    session.flush()
 
 
 # ============================================================
@@ -229,7 +234,7 @@ def save_order_items(order_items: list[OrderItem]) -> None:
 # ============================================================
 def find_cart_by_id(cart_id: int | str) -> Cart | None:
     """Finds a cart by its ID."""
-    session = get_session()
+    session = get_request_session()
     cid = _coerce_int_id(cart_id, "cart_id")
     if cid is None:
         return None
@@ -238,7 +243,7 @@ def find_cart_by_id(cart_id: int | str) -> Cart | None:
 
 def get_cart_items(cart_id: int | str) -> list[CartItem]:
     """Gets all items for a specific cart."""
-    session = get_session()
+    session = get_request_session()
     cid = _coerce_int_id(cart_id, "cart_id")
     if cid is None:
         return []
@@ -248,21 +253,21 @@ def get_cart_items(cart_id: int | str) -> list[CartItem]:
 
 def save_cart(cart: Cart) -> None:
     """Saves a cart to the database."""
-    session = get_session()
+    session = get_request_session()
     session.add(cart)
-    session.commit()
+    session.flush()
 
 
 def add_cart_item(cart_id: int | str, item_id: int | str) -> None:
     """Adds an item to a cart."""
-    session = get_session()
+    session = get_request_session()
     cid = _coerce_int_id(cart_id, "cart_id")
     mid = _coerce_int_id(item_id, "menu_item_id")
     if cid is None or mid is None:
         return
     cart_item = CartItem(cart_id=cid, item_id=mid)
     session.add(cart_item)
-    session.commit()
+    session.flush()
 
 
 # ============================================================
@@ -270,14 +275,14 @@ def add_cart_item(cart_id: int | str, item_id: int | str) -> None:
 # ============================================================
 def save_refund(refund: Refund) -> None:
     """Saves a refund to the database."""
-    session = get_session()
+    session = get_request_session()
     session.add(refund)
-    session.commit()
+    session.flush()
 
 
 def get_refund_by_order_id(order_id: int | str) -> Refund | None:
     """Gets a refund by its order ID."""
-    session = get_session()
+    session = get_request_session()
     oid = _coerce_int_id(order_id, "order_id")
     if oid is None:
         return None
@@ -308,17 +313,17 @@ def get_signup_bonus_remaining() -> Decimal:
 
 def set_signup_bonus_remaining(amount: Decimal) -> None:
     """Sets the remaining signup bonus amount."""
-    session = get_session()
+    session = get_request_session()
     config = _get_platform_config_entry("signup_bonus_remaining")
     if config:
         config.value = str(amount)
     else:
         config = PlatformConfig(key="signup_bonus_remaining", value=str(amount))
         session.add(config)
-    session.commit()
+    session.flush()
 
 
 def _get_platform_config_entry(key: str) -> PlatformConfig | None:
-    session = get_session()
+    session = get_request_session()
     stmt = select(PlatformConfig).where(PlatformConfig.key == key)
     return session.execute(stmt).scalar_one_or_none()

@@ -28,22 +28,48 @@ def _init_db_once():
 
 @bp.before_request
 def setup_database_session():
-    """Set up a database session for each request."""
-    # Initialize DB on first request
+    """Create a scoped session *and* open an explicit transaction per request.
+
+    Historically SQLAlchemy would autobegin a transaction on first query, which
+    made it easy to forget there was already an open unit of work.
+
+    We want the lifecycle to be loud and obvious: every request opens a session,
+    immediately begins a transaction, and leaves responsibility for commit/rollback
+    to teardown handlers. Handlers and decorators can rely on this predictable
+    scope when they manipulate money or other sensitive records.
+    """
     _init_db_once()
 
-    # Create a new session for this request
     g.db_session = get_session(_config)
+    # Handlers should only use g.db_session. g._db_trasaction_handle is only
+    # used by teardown_request to commit or rollback the transaction.
+    g._db_transaction_handle = g.db_session.begin()
 
 
 @bp.teardown_request
 def teardown_database_session(exception=None):
-    """Clean up the database session after each request."""
+    """Finalize the request-scoped transaction and close the session."""
+    transaction = g.pop("_db_transaction_handle", None)
     session = g.pop("db_session", None)
-    if session is not None:
-        if exception:
+
+    try:
+        if transaction is not None:
+            if exception:
+                # Handler caused an exception, roll back the transaction to undo any changes.
+                transaction.rollback()
+            else:
+                # Handler completed successfully, commit the transaction atomically.
+                transaction.commit()
+    except Exception:
+        # Any failure during commit still needs an explicit rollback to avoid
+        # poisoning the connection in the pool.
+        if session is not None:
             session.rollback()
-        close_session(session)
+        logger.exception("Database transaction cleanup failed")
+        raise
+    finally:
+        if session is not None:
+            close_session(session)
 
 
 # Import middleware to ensure decorators execute

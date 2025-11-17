@@ -11,7 +11,6 @@ from ..database.services import (
     charge_user,
     create_cart,
     create_order_from_checkout,
-    refund_user,
     save_order_securely,
     serialize_cart,
     serialize_order,
@@ -59,7 +58,8 @@ def preprocess_cart_id(endpoint, values):
     """Early middleware to replace untrusted cart ID from the path with authorized cart object."""
     if "cart_id" in values:
         g.cart_id = values.pop("cart_id")
-        # TODO: Replace cart ID with authorized cart object
+        # TODO: I'd like to systemically replace cart ID with authorized cart object, but user_id
+        # is only set at decorator level right now, so not in @bp.url_value_preprocessor...
         # values["cart"] = resolve_trusted_cart()
 
 
@@ -74,7 +74,7 @@ def create_new_cart():
     """
     restaurant_id = get_restaurant_id()
     new_cart = create_cart(restaurant_id, g.user_id)
-    if session:
+    if session is not None:
         session["cart_id"] = new_cart.id
     return created_response(serialize_cart(new_cart))
 
@@ -110,48 +110,35 @@ def add_item_to_cart_endpoint():
 
 def charge_customer_with_hold(checkout_handler):
     @wraps(checkout_handler)
-    def decorated_function(*args, **kwargs):
-        """
-        Charge customer before checkout flows and keep the transaction scoped here.
-        """
+    def decorated_function():
+        """Authorize funds up-front and expose checkout context to the handler."""
         cart = resolve_trusted_cart()
-        require_condition(g.db_session, "Database session required for checkout")
+        tip = abs(get_decimal_param("tip", Decimal("0.00")))
 
-        g.tip = abs(get_decimal_param("tip", Decimal("0.00")))
-        charged_amount = Decimal("0.00")
+        # Cart must exist and have items
+        cart_items = get_cart_items(cart.id)
+        require_condition(cart_items, f"Cart {cart.id} is empty")
 
-        transaction = g.db_session.begin()
+        # Calculate the total amount of the cart
+        subtotal, delivery_fee = calculate_cart_price(cart_items)
+        require_condition(subtotal, f"Cart {cart.id} is empty")
+
+        # Ensure the customer has enough balance
+        total_amount = subtotal + delivery_fee + tip
+        require_condition(g.balance >= total_amount, "Insufficient balance")
+
+        # Prevent cart reuse once checkout starts
+        session.pop("cart_id", None)
+
+        # Funds are deducted inside the open request transaction. If anything
+        # raises afterwards, the teardown handler will roll back and release
+        # the hold automatically.
+        charge_user(g.user_id, total_amount)
+
         try:
-            cart_items = get_cart_items(cart.id)
-            require_condition(cart_items, f"Cart {cart.id} is empty")
-
-            g.subtotal, g.delivery_fee = calculate_cart_price(cart_items)
-            require_condition(g.subtotal, f"Cart {cart.id} is empty")
-
-            total_amount = g.subtotal + g.delivery_fee + g.tip
-            require_condition(g.balance >= total_amount, "Insufficient balance")
-
-            # Validations passed, charged
-            session.pop("cart_id")
-            charge_user(g.user_id, total_amount)
-
-            # TODO: check this
-            charged_amount = total_amount
-
-            # Execute the checkout handler to place the order
-            result = checkout_handler(*args, **kwargs)
-            transaction.commit()
-            return result
-        except Exception:
-            if transaction.is_active:
-                transaction.rollback()
-            # TODO: Is this correct? Looks like double refund potentially, check dynamically
-            if charged_amount:
-                refund_user(g.user_id, charged_amount)
-            raise
+            return checkout_handler(delivery_fee, tip, total_amount)
         finally:
-            if transaction.is_active:
-                transaction.rollback()
+            g.pop("checkout_context", None)
 
     return decorated_function
 
@@ -159,32 +146,23 @@ def charge_customer_with_hold(checkout_handler):
 @bp.post("/<int:cart_id>/checkout")
 @require_auth(["customer"])
 @charge_customer_with_hold
-def checkout_cart():
+def checkout_cart(delivery_fee: Decimal, tip: Decimal, total_amount: Decimal):
     """Checks out a cart and creates an order."""
-    # Parse inputs
     delivery_address = get_param("delivery_address") or ""
-
-    # Fetch and validate cart
     cart = resolve_trusted_cart()
-
-    # Get cart items from the database
     cart_items = get_cart_items(cart.id)
     require_condition(cart_items, f"Cart {cart.id} is empty")
 
-    # Integrity check: user must have sufficient balance
-    total_amount = g.subtotal + g.delivery_fee + g.tip
-    require_condition(g.balance >= total_amount, "Insufficient balance")
-
-    # Create and save order
+    # Create the order and its order items
     order, order_items = create_order_from_checkout(
         user_id=g.user_id,
         restaurant_id=cart.restaurant_id,
         total=total_amount,
         cart_items=cart_items,
-        delivery_fee=g.delivery_fee,
+        delivery_fee=delivery_fee,
         delivery_address=delivery_address,
-        tip=g.tip,
+        tip=tip,
     )
-
     save_order_securely(order, order_items)
+
     return created_response(serialize_order(order))
