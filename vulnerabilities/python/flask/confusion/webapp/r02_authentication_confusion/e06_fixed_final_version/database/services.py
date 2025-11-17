@@ -12,12 +12,14 @@ from typing import Literal
 
 from flask import g
 
+from ..errors import CheekyApiError
 from .models import Cart, Order, Refund, User
 from .repository import (
     delete_order,
     find_all_orders,
     find_cart_by_id,
     find_order_by_id,
+    find_menu_item_by_id,
     find_user_by_id,
     generate_next_cart_id,
     generate_next_order_id,
@@ -172,21 +174,32 @@ def find_order_owner(order_id: str) -> str:
 # ============================================================
 # CART SERVICES
 # ============================================================
-def create_cart() -> Cart:
-    """Creates and persists a new empty cart."""
+def create_cart(user_id: str) -> Cart:
+    """Creates and persists a new empty cart tied to the user."""
     cart_id = generate_next_cart_id()
-    new_cart = Cart(cart_id=cart_id, items=[])
+    new_cart = Cart(cart_id=cart_id, user_id=user_id, items=[], active=True)
     save_cart(new_cart)
     logger.debug(f"Cart created: {cart_id}")
     return new_cart
 
 
-def add_item_to_cart(cart_id: str, item_id: str) -> Cart | None:
-    """Adds an item to a cart."""
+def add_item_to_cart(cart_id: str, item_id: str, user_id: str) -> Cart:
+    """Adds an item to a cart with ownership and availability checks."""
     cart = find_cart_by_id(cart_id)
     if not cart:
         logger.warning(f"Cart not found: {cart_id}")
-        return None
+        raise CheekyApiError("Cart not found")
+
+    if cart.user_id != user_id:
+        logger.warning(f"Cart {cart_id} ownership mismatch for {user_id}")
+        raise CheekyApiError("Cart does not belong to user")
+
+    if not cart.active:
+        raise CheekyApiError("Cart is no longer active")
+
+    menu_item = find_menu_item_by_id(item_id)
+    if not menu_item or not menu_item.available:
+        raise CheekyApiError("Menu item is unavailable")
 
     cart.items.append(item_id)
     save_cart(cart)
@@ -231,6 +244,13 @@ def process_refund(refund: Refund, user_id: str) -> None:
 
     save_refund(refund)
 
+    # Mark the order as refunded once money is returned to the user
+    if refund.paid:
+        order = find_order_by_id(refund.order_id)
+        if order:
+            order.refunded = True
+            save_order(order)
+
 
 def serialize_refund(refund: Refund) -> dict:
     """Serializes a refund to a JSON-compatible dict."""
@@ -243,6 +263,9 @@ def update_order_refund_status(
     """Updates the status of a refund in the database."""
     refund = get_refund_by_order_id(order_id)
     if refund:
+        if refund.status != "pending":
+            raise CheekyApiError("Refund status can only be changed from pending")
+
         refund.status = status
         refund_owner = find_order_owner(order_id)
         process_refund(refund, refund_owner)

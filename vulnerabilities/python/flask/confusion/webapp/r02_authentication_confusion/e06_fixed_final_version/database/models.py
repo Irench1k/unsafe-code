@@ -34,11 +34,14 @@ class Order(BaseModel):
     delivery_fee: Decimal
     delivery_address: str
     tip: Decimal = Field(default=Decimal("0.00"))
+    refunded: bool = Field(default=False)
 
 
 class Cart(BaseModel):
     cart_id: str
+    user_id: str
     items: list[str]  # Array of item IDs
+    active: bool = Field(default=True)
 
 
 class Refund(BaseModel):

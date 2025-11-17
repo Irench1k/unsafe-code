@@ -63,6 +63,22 @@ def convert_item_ids_to_order_items(item_ids: Iterable[str]) -> list[OrderItem]:
     return order_items
 
 
+def normalize_order_id(raw_order_id: str | None) -> str | None:
+    """
+    Normalize user-supplied order IDs by stripping whitespace and ensuring they are numeric.
+
+    Returns the cleaned order ID as a string when valid, otherwise None.
+    """
+    if raw_order_id is None:
+        return None
+
+    order_id = str(raw_order_id).strip()
+    if not order_id or not order_id.isdigit():
+        return None
+
+    return order_id
+
+
 def parse_as_decimal(value: str) -> Decimal | None:
     try:
         return Decimal(value)

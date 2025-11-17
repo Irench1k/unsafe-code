@@ -3,7 +3,7 @@ from decimal import Decimal
 from flask import Blueprint, g, jsonify, request
 
 from ..auth.decorators import require_auth
-from ..database.repository import find_cart_by_id
+from ..database.repository import find_cart_by_id, save_cart
 from ..database.services import (
     add_item_to_cart,
     create_cart,
@@ -27,7 +27,7 @@ def create_new_cart():
     This is step 1 of the new checkout flow. The cart gets an ID that
     the client will use in subsequent requests to add items.
     """
-    new_cart = create_cart()
+    new_cart = create_cart(g.email)
     return jsonify(serialize_cart(new_cart)), 201
 
 
@@ -47,11 +47,7 @@ def add_item_to_cart_endpoint(cart_id):
         raise CheekyApiError("JSON body required")
 
     item_id = request.json.get("item_id")
-    cart = find_cart_by_id(cart_id)
-    if not cart:
-        raise CheekyApiError("Cart not found")
-
-    updated_cart = add_item_to_cart(cart_id, item_id)
+    updated_cart = add_item_to_cart(cart_id, item_id, g.email)
     return jsonify(serialize_cart(updated_cart)), 200
 
 
@@ -62,6 +58,12 @@ def checkout_cart(cart_id):
     cart = find_cart_by_id(cart_id)
     if not cart or not cart.items:
         raise CheekyApiError("Cart not found")
+
+    if cart.user_id != g.email:
+        raise CheekyApiError("Cart does not belong to user")
+
+    if not cart.active:
+        raise CheekyApiError("Cart is no longer active")
 
     # Get user input - handle both JSON and form data
     user_data = request.json if request.is_json else request.form
@@ -90,4 +92,8 @@ def checkout_cart(cart_id):
     )
 
     save_order_securely(new_order)
+
+    # Deactivate cart to prevent reuse after checkout
+    cart.active = False
+    save_cart(cart)
     return jsonify(serialize_order(new_order)), 201

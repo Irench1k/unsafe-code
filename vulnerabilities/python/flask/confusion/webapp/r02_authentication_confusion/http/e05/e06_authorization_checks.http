@@ -1,0 +1,121 @@
+@base = http://localhost:8000/api/v206
+
+### SpongeBob logs in to view his refunds
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "spongebob@bikinibottom.sea",
+    "password": "i_l0ve_burg3rs"
+}
+
+### SpongeBob can read his own refund status
+GET {{base}}/orders/1/refund/status
+
+### Integrity check: double refund attempts are rejected (already refunded)
+POST {{base}}/orders/1/refund
+Content-Type: application/json
+
+{
+    "amount": "1.00",
+    "reason": "Let me double dip!"
+}
+
+### SpongeBob checks out cart #1, which deactivates the cart after purchase
+POST {{base}}/cart/1/checkout
+Content-Type: application/json
+
+{
+    "delivery_address": "122 Conch Street",
+    "tip": "0.00"
+}
+
+### Cart #1 is inactive now, so adding new items is blocked
+POST {{base}}/cart/1/items
+Content-Type: application/json
+
+{
+    "item_id": "1"
+}
+
+### SpongeBob creates a new cart (becomes cart #2 with a fresh active flag)
+POST {{base}}/cart
+
+### Item availability check: unavailable menu items cannot be added
+POST {{base}}/cart/2/items
+Content-Type: application/json
+
+{
+    "item_id": "5"
+}
+
+### SpongeBob logs out before another user signs in
+POST {{base}}/auth/logout
+Content-Length: 0
+
+### Plankton logs in and tries to spy on SpongeBob
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "plankton@chum-bucket.sea",
+    "password": "i_love_my_wife"
+}
+
+### Authorization check: Plankton cannot refund SpongeBob's order
+POST {{base}}/orders/1/refund
+Content-Type: application/json
+
+{
+    "amount": "1.23",
+    "reason": "Evil scheme"
+}
+
+### Cart ownership check: Plankton cannot mutate SpongeBob's cart
+POST {{base}}/cart/2/items
+Content-Type: application/json
+
+{
+    "item_id": "1"
+}
+
+### Authorization check: Plankton cannot view SpongeBob's refund
+GET {{base}}/orders/1/refund/status
+
+### Plankton logs out
+POST {{base}}/auth/logout
+Content-Length: 0
+
+### Restaurant manager approves the pending refund exactly once
+PATCH {{base}}/orders/1/refund/status
+X-API-Key: key-mrkrabs-1bd647c2-dc5b-4c2b-a316-5ff83786c219
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+### Manager cannot change refund status again once approved
+PATCH {{base}}/orders/1/refund/status
+X-API-Key: key-mrkrabs-1bd647c2-dc5b-4c2b-a316-5ff83786c219
+Content-Type: application/x-www-form-urlencoded
+
+status=rejected
+
+### SpongeBob logs back in and still cannot refund an already refunded order
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "spongebob@bikinibottom.sea",
+    "password": "i_l0ve_burg3rs"
+}
+
+###
+
+POST {{base}}/orders/1/refund
+Content-Type: application/json
+
+{
+    "amount": "0.50",
+    "reason": "Still trying"
+}
+

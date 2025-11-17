@@ -6,7 +6,7 @@ from flask import g, request
 
 from ..database.repository import find_order_by_id as get_order
 from ..errors import CheekyApiError
-from ..utils import get_request_parameter, parse_as_decimal
+from ..utils import get_request_parameter, normalize_order_id, parse_as_decimal
 from .authenticators import (
     CustomerAuthenticator,
     PlatformAuthenticator,
@@ -21,9 +21,22 @@ def verify_order_access(f):
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        g.order = get_order(request.view_args.get("order_id"))
-        if g.order and g.order.user_id != g.email:
+        view_args = request.view_args or {}
+        order_id = normalize_order_id(view_args.get("order_id"))
+        if not order_id:
+            raise CheekyApiError("Invalid order ID")
+
+        order = get_order(order_id)
+        if not order:
+            raise CheekyApiError("Order not found")
+
+        if not getattr(g, "email", None):
+            raise CheekyApiError("Authentication required")
+
+        if order.user_id != g.email:
             raise CheekyApiError("Unauthorized")
+
+        g.order = order
         return f(*args, **kwargs)
 
     return decorated_function

@@ -40,6 +40,7 @@ db = {
             order_id="1",
             total=Decimal("26.49"),
             user_id="spongebob@bikinibottom.sea",
+            refunded=False,
             items=[
                 OrderItem(item_id="6", name="Krusty Krab Complect", price=Decimal("20.50")),
                 OrderItem(item_id="1", name="Krabby Patty", price=Decimal("5.99")),
@@ -49,7 +50,12 @@ db = {
         ),
     },
     "carts": {
-        "1": Cart(cart_id="1", items=["1", "3"]),
+        "1": Cart(
+            cart_id="1",
+            user_id="spongebob@bikinibottom.sea",
+            items=["1", "3"],
+            active=True,
+        ),
     },
     "refunds": {
         "1": Refund(

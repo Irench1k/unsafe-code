@@ -18,12 +18,19 @@ def view_balance():
 @bp.post("/credits")
 @require_auth(["platform_api_key"])
 def add_credits():
-    amount = request.form["amount"]
-    user = request.form["user"]
-    if not amount or not user:
+    amount_raw = request.form.get("amount")
+    user = request.form.get("user")
+    if not amount_raw or not user:
         raise CheekyApiError("Invalid request")
 
-    balance = increment_user_balance(user, parse_as_decimal(amount))
+    amount = parse_as_decimal(amount_raw)
+    if amount is None or amount <= 0:
+        raise CheekyApiError("Amount must be a positive number")
+
+    balance = increment_user_balance(user, amount)
+    if balance is None:
+        raise CheekyApiError("User not found")
+
     return jsonify({"email": user, "balance": str(balance)}), 200
 
 
