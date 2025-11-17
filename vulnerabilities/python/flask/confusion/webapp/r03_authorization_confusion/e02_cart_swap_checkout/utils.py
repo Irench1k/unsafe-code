@@ -152,4 +152,20 @@ def send_verification_email(email: str):
     smtp = SMTP(host="mailpit", port=1025)
     smtp.send(envelope)
 
-    return jsonify({"status": "verification_email_sent", "email": email}), 200
+
+# ============================================================
+# RESPONSE UTILITIES
+# ============================================================
+def success_response(data: dict, status_code: int = 200) -> tuple[dict, int]:
+    """Return a success response with the given data."""
+    return jsonify(data), status_code
+
+
+def error_response(message: str, status_code: int = 400) -> tuple[dict, int]:
+    """Return an error response with the given message."""
+    return jsonify({"error": message}), status_code
+
+
+def created_response(response, status=201) -> tuple[dict, int]:
+    """Return a created response with the given response."""
+    return jsonify(response), status

@@ -1,7 +1,7 @@
 import logging
 from decimal import Decimal
 
-from flask import Blueprint, g, jsonify
+from flask import Blueprint, g
 
 from ..auth.decorators import protect_refunds, require_auth, verify_order_access
 from ..database.models import OrderStatus
@@ -26,6 +26,7 @@ from ..utils import (
     get_param,
     require_condition,
     require_ownership,
+    success_response,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,7 +44,7 @@ def list_orders():
     else:
         raise CheekyApiError("Something went wrong")
 
-    return jsonify(serialize_orders(orders))
+    return success_response(serialize_orders(orders))
 
 
 @bp.post("/<int:order_id>/refund")
@@ -71,7 +72,7 @@ def refund_order(order_id: int):
     )
 
     process_refund(refund, g.user_id)
-    return jsonify(serialize_refund(refund)), 200
+    return success_response(serialize_refund(refund))
 
 
 @bp.patch("/<int:order_id>/refund/status")
@@ -92,7 +93,7 @@ def update_refund_status(order_id: int):
     # Update refund status
     refund = update_order_refund_status(order_id, status)
     require_condition(refund, f"Refund {order_id} not found")
-    return jsonify(serialize_refund(refund)), 200
+    return success_response(serialize_refund(refund))
 
 
 @bp.get("/<int:order_id>/refund/status")
@@ -109,7 +110,7 @@ def get_refund_status(order_id: int):
     refund = get_refund_by_order_id(order_id)
     require_condition(refund, f"Refund {order_id} not found")
 
-    return jsonify(serialize_refund(refund)), 200
+    return success_response(serialize_refund(refund))
 
 
 @bp.patch("/<int:order_id>/status")
@@ -151,4 +152,4 @@ def update_order_status(order_id: int):
     # Update order status
     order.status = status
     save_order(order)
-    return jsonify(serialize_order(order)), 200
+    return success_response(serialize_order(order))

@@ -5,7 +5,7 @@ from flask import jsonify
 
 from .. import bp
 from ..errors import CheekyApiError
-from ..utils import get_param
+from ..utils import error_response, get_param
 
 logger = logging.getLogger(__name__)
 
@@ -13,14 +13,14 @@ logger = logging.getLogger(__name__)
 @bp.errorhandler(CheekyApiError)
 def handle_cheeky_api_error(error: CheekyApiError):
     """Handle Cheeky API errors."""
-    return jsonify({"error": error.message}), 400
+    return error_response(error.message)
 
 
 @bp.errorhandler(Exception)
 def handle_exception(error: Exception):
     """Handle all other exceptions."""
     logger.error(f"Unhandled exception: {error}\n{traceback.format_exc()}")
-    return jsonify({"error": "Something went wrong"}), 500
+    return error_response("Something went wrong", 500)
 
 
 @bp.before_request

@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from flask import Blueprint, g, jsonify
+from flask import Blueprint, g
 
 from ..auth.decorators import require_auth
 from ..database.repository import find_cart_by_id, find_menu_item_by_id, get_cart_items
@@ -14,12 +14,14 @@ from ..database.services import (
     serialize_order,
 )
 from ..utils import (
+    created_response,
     get_decimal_param,
     get_param,
     get_restaurant_id,
     require_condition,
     require_int_param,
     require_ownership,
+    success_response,
 )
 
 bp = Blueprint("cart", __name__, url_prefix="/cart")
@@ -36,7 +38,7 @@ def create_new_cart():
     """
     restaurant_id = get_restaurant_id()
     new_cart = create_cart(restaurant_id, g.user_id)
-    return jsonify(serialize_cart(new_cart)), 201
+    return created_response(serialize_cart(new_cart))
 
 
 @bp.post("/<int:cart_id>/items")
@@ -73,7 +75,7 @@ def add_item_to_cart_endpoint(cart_id: int):
     )
 
     add_item_to_cart(cart_id, item_id_int)
-    return jsonify(serialize_cart(cart)), 200
+    return success_response(serialize_cart(cart))
 
 
 @bp.post("/<int:cart_id>/checkout")
@@ -117,4 +119,4 @@ def checkout_cart(cart_id: int):
     )
 
     save_order_securely(order, order_items)
-    return jsonify(serialize_order(order)), 201
+    return created_response(serialize_order(order))
