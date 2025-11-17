@@ -5,7 +5,7 @@ from flask import jsonify
 
 from .. import bp
 from ..errors import CheekyApiError
-from ..utils import get_request_parameter
+from ..utils import get_param
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,6 @@ def handle_exception(error: Exception):
 def protect_order_id():
     """Security middleware to prevent future attacks."""
     # We don't accept order_id from the user to prevent order overwrite attacks.
-    order_id = get_request_parameter("order_id")
+    order_id = get_param("order_id")
     if order_id is not None:
         raise CheekyApiError("hacking attempt detected")

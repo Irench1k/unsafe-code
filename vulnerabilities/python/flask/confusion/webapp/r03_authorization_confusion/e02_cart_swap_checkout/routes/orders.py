@@ -1,10 +1,9 @@
 import logging
 from decimal import Decimal
 
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, g, jsonify
 
 from ..auth.decorators import protect_refunds, require_auth, verify_order_access
-from ..auth.helpers import has_access_to_order
 from ..database.models import OrderStatus
 from ..database.repository import (
     find_order_by_id,
@@ -22,20 +21,15 @@ from ..database.services import (
     update_order_refund_status,
 )
 from ..errors import CheekyApiError
-from ..utils import get_request_parameter, parse_as_decimal
+from ..utils import (
+    get_decimal_param,
+    get_param,
+    require_condition,
+    require_ownership,
+)
 
 logger = logging.getLogger(__name__)
 bp = Blueprint("orders", __name__, url_prefix="/orders")
-
-
-def _parse_order_id(raw_order_id: str) -> int:
-    try:
-        order_id = int(raw_order_id)
-    except (TypeError, ValueError):
-        raise CheekyApiError("Invalid order_id") from None
-    if order_id <= 0:
-        raise CheekyApiError("Invalid order_id")
-    return order_id
 
 
 @bp.get("")
@@ -52,32 +46,25 @@ def list_orders():
     return jsonify(serialize_orders(orders))
 
 
-@bp.post("/<order_id>/refund")
+@bp.post("/<int:order_id>/refund")
 @require_auth(["customer"])
 @verify_order_access
 @protect_refunds
-def refund_order(order_id):
+def refund_order(order_id: int):
     """Initiates a refund for a customer's order. Customer-only."""
-    order_id_int = _parse_order_id(order_id)
+    # Parse inputs
+    reason = get_param("reason") or ""
+    refund_amount = get_decimal_param("amount", Decimal("0.2") * g.order.total)
 
-    # Authorization check: order must belong to the user
-    if g.order.user_id != g.user_id:
-        raise CheekyApiError("Order does not belong to user")
+    # Integrity check: order must not already be refunded
+    require_condition(g.order.status != OrderStatus.refunded, "Order has already been refunded")
 
-    # Integrity check: order must NOT be in the refunded state already
-    if g.order.status == OrderStatus.refunded:
-        raise CheekyApiError("Order has already been refunded")
+    # Integrity check: there should NOT be other refunds for this order
+    require_condition(not get_refund_by_order_id(order_id), "Refund already exists for this order")
 
-    # Integrity check: there should NOT be other refunds for this order already
-    if get_refund_by_order_id(order_id_int):
-        raise CheekyApiError("Refund already exists for this order")
-
-    reason = get_request_parameter("reason") or ""
-    refund_amount_entered = parse_as_decimal(get_request_parameter("amount"))
-    refund_amount = refund_amount_entered or Decimal("0.2") * g.order.total
-
+    # Create and save refund
     refund = create_refund(
-        order_id=order_id_int,
+        order_id=order_id,
         amount=refund_amount,
         reason=reason,
         auto_approved=g.refund_is_auto_approved,
@@ -87,52 +74,47 @@ def refund_order(order_id):
     return jsonify(serialize_refund(refund)), 200
 
 
-@bp.patch("/<order_id>/refund/status")
+@bp.patch("/<int:order_id>/refund/status")
 @require_auth(["restaurant_api_key"])
-def update_refund_status(order_id):
+def update_refund_status(order_id: int):
     """Approves or rejects a refund. Restaurant-only."""
-    order_id_int = _parse_order_id(order_id)
-    status = request.form.get("status")
-    if not status or status not in ["approved", "rejected"]:
-        raise CheekyApiError("Status is missing or invalid")
+    # Parse inputs
+    status = get_param("status")
+    require_condition(status in ["approved", "rejected"], "Status is missing or invalid")
+
+    # Fetch order
+    order = find_order_by_id(order_id)
+    require_condition(order, f"Order {order_id} not found")
 
     # Authorization check: order must belong to the restaurant
-    # order = find_order_by_id(order_id_int)
-    # if order.restaurant_id != g.restaurant_id:
-    #     raise CheekyApiError("Order does not belong to restaurant")
+    require_ownership(order.restaurant_id, g.restaurant_id, "order")
 
-    if not has_access_to_order(order_id_int):
-        raise CheekyApiError("Order does not belong to restaurant")
-
-    refund = update_order_refund_status(order_id_int, status)
-    if not refund:
-        raise CheekyApiError("Refund not found")
+    # Update refund status
+    refund = update_order_refund_status(order_id, status)
+    require_condition(refund, f"Refund {order_id} not found")
     return jsonify(serialize_refund(refund)), 200
 
 
-@bp.get("/<order_id>/refund/status")
+@bp.get("/<int:order_id>/refund/status")
 @require_auth(["customer"])
-def get_refund_status(order_id):
+def get_refund_status(order_id: int):
     """Gets the status of a refund. Customer-only."""
-    order_id_int = _parse_order_id(order_id)
-    order = find_order_by_id(order_id_int)
-    if not order:
-        raise CheekyApiError("Order not found")
+    order = find_order_by_id(order_id)
+    require_condition(order, f"Order {order_id} not found")
 
     # Authorization check: order must belong to the user
-    if order.user_id != g.user_id:
-        raise CheekyApiError("Order does not belong to user")
+    require_ownership(order.user_id, g.user_id, "order")
 
-    refund = get_refund_by_order_id(order_id_int)
-    if not refund:
-        raise CheekyApiError("Refund not found")
+    # Fetch refund
+    refund = get_refund_by_order_id(order_id)
+    require_condition(refund, f"Refund {order_id} not found")
 
     return jsonify(serialize_refund(refund)), 200
 
 
-@bp.patch("/<order_id>/status")
+@bp.patch("/<int:order_id>/status")
 @require_auth(["restaurant_api_key", "customer"])
-def update_order_status(order_id):
+def update_order_status(order_id: int):
     """
     Update order status. Available to both customers and restaurant managers.
 
@@ -147,27 +129,26 @@ def update_order_status(order_id):
     - can change order status to delivered
     - only if order has been created and not delivered yet
     """
-    order_id_int = _parse_order_id(order_id)
-    status = request.form.get("status")
-    if not status or status not in ["created", "delivered", "cancelled", "refunded"]:
-        raise CheekyApiError("Status is missing or invalid")
+    status = get_param("status")
+    require_condition(
+        status in ["created", "delivered", "cancelled", "refunded"], "Status is missing or invalid"
+    )
 
-    order = find_order_by_id(order_id_int)
-    if not order:
-        raise CheekyApiError("Order not found")
+    order = find_order_by_id(order_id)
+    require_condition(order, f"Order {order_id} not found")
 
     # Authorization check: order must belong to the user or restaurant
     if g.get("user_id"):
-        if order.user_id != g.user_id:
-            raise CheekyApiError("Order does not belong to user")
+        require_ownership(order.user_id, g.user_id, "order")
     else:
-        if order.restaurant_id != g.restaurant_id:
-            raise CheekyApiError("Order does not belong to restaurant")
+        require_ownership(order.restaurant_id, g.restaurant_id, "order")
 
     # Integrity check: order status can be changed only from "created"
-    if order.status != OrderStatus.created:
-        raise CheekyApiError("Order status can be changed only from 'created'")
+    require_condition(
+        order.status == OrderStatus.created, "Order status can be changed only from 'created'"
+    )
 
+    # Update order status
     order.status = status
     save_order(order)
     return jsonify(serialize_order(order)), 200

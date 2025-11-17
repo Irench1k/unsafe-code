@@ -6,7 +6,7 @@ from flask import g, request
 
 from ..database.repository import find_order_by_id as get_order
 from ..errors import CheekyApiError
-from ..utils import get_request_parameter, parse_as_decimal
+from ..utils import get_decimal_param
 from .authenticators import (
     CustomerAuthenticator,
     PlatformAuthenticator,
@@ -21,11 +21,7 @@ def verify_order_access(f):
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        raw_order_id = request.view_args.get("order_id")
-        try:
-            order_id = int(raw_order_id)
-        except (TypeError, ValueError):
-            raise CheekyApiError("Invalid order_id") from None
+        order_id = request.view_args.get("order_id")
 
         g.order = get_order(order_id)
         if not g.order:
@@ -46,7 +42,7 @@ def protect_refunds(f):
             raise CheekyApiError("Order not found")
 
         default_refund = Decimal("0.2") * g.order.total
-        refund_amount = parse_as_decimal(get_request_parameter("amount")) or default_refund
+        refund_amount = get_decimal_param("amount", default_refund)
 
         if refund_amount < 0 or refund_amount > g.order.total:
             raise CheekyApiError("Refund amount is invalid")

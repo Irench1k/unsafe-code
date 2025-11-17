@@ -13,11 +13,10 @@ from typing import Literal
 from flask import g, session
 
 from ..errors import CheekyApiError
-from .models import Cart, Order, OrderItem, Refund, RefundStatus, User
+from .models import Cart, CartItem, Order, OrderItem, Refund, RefundStatus, User
 from .repository import (
     add_cart_item,
     delete_order,
-    find_cart_by_id,
     find_menu_item_by_id,
     find_order_by_id,
     find_order_items,
@@ -36,6 +35,47 @@ from .repository import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+DELIVERY_FEE = Decimal("5.00")
+FREE_DELIVERY_ABOVE = Decimal("25.00")
+
+
+# ============================================================
+# PRICING SERVICES
+# ============================================================
+def prepare_cart_for_checkout(
+    cart_items: list[CartItem],
+) -> tuple[list[dict], Decimal, Decimal] | tuple[None, None, None]:
+    """
+    Validate cart items and calculate totals for checkout.
+
+    Returns:
+      (hydrated_items, subtotal, delivery_fee) on success
+      (None, None, None) if any item is unavailable or not found
+
+    This combines validation and price calculation in a single pass.
+    """
+    hydrated_items = []
+    subtotal = Decimal("0.00")
+
+    for item in cart_items:
+        menu_item = find_menu_item_by_id(item.item_id)
+        if not menu_item or not menu_item.available:
+            return None, None, None
+
+        hydrated_items.append(
+            {
+                "item_id": menu_item.id,
+                "name": menu_item.name,
+                "price": menu_item.price,
+            }
+        )
+        subtotal += menu_item.price
+
+    # Calculate delivery fee
+    delivery_fee = Decimal("0.00") if subtotal > FREE_DELIVERY_ABOVE else DELIVERY_FEE
+    return hydrated_items, subtotal, delivery_fee
 
 
 # ============================================================
@@ -230,38 +270,14 @@ def create_cart(restaurant_id: int, user_id: int) -> Cart:
     return new_cart
 
 
-def add_item_to_cart(cart_id: int | str, item_id: int | str) -> Cart | None:
-    """Adds an item to a cart."""
-    cart = find_cart_by_id(cart_id)
-    if not cart:
-        logger.warning(f"Cart not found: {cart_id}")
-        return None
+def add_item_to_cart(cart_id: int | str, item_id: int | str) -> None:
+    """
+    Adds an item to a cart.
 
-    menu_item = find_menu_item_by_id(item_id)
-    if not menu_item:
-        raise CheekyApiError(f"Menu item not found: {item_id}")
-
-    # Authorization check: user must be the owner of the cart
-    if cart.user_id != g.user_id:
-        raise CheekyApiError(f"User {g.user_id} is not the owner of cart {cart_id}")
-
-    # Integrity check: menu item must be available
-    if not menu_item.available:
-        raise CheekyApiError(f"Menu item {item_id} is not available")
-
-    # Integrity check: menu item must belong to the same restaurant as the cart
-    if menu_item.restaurant_id != cart.restaurant_id:
-        raise CheekyApiError(
-            f"Menu item {item_id} does not belong to restaurant {cart.restaurant_id}"
-        )
-
-    # Integrity check: cart must be active
-    if not cart.active:
-        raise CheekyApiError(f"Cart {cart_id} is not active")
-
+    Assume authorization and validation already performed by controller.
+    """
     add_cart_item(cart_id, item_id)
     logger.debug(f"Item {item_id} added to cart {cart_id}")
-    return cart
 
 
 def serialize_cart(cart: Cart) -> dict:

@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, g, jsonify
 
 from ..auth.decorators import require_auth
 from ..database.repository import find_cart_by_id, find_menu_item_by_id, get_cart_items
@@ -8,27 +8,21 @@ from ..database.services import (
     add_item_to_cart,
     create_cart,
     create_order_from_checkout,
+    prepare_cart_for_checkout,
     save_order_securely,
     serialize_cart,
     serialize_order,
 )
-from ..errors import CheekyApiError
 from ..utils import (
-    check_cart_price_and_delivery_fee,
+    get_decimal_param,
+    get_param,
     get_restaurant_id,
+    require_condition,
+    require_int_param,
+    require_ownership,
 )
 
 bp = Blueprint("cart", __name__, url_prefix="/cart")
-
-
-def _parse_positive_int(value: str, label: str) -> int:
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
-        raise CheekyApiError(f"Invalid {label}") from None
-    if parsed <= 0:
-        raise CheekyApiError(f"Invalid {label}")
-    return parsed
 
 
 @bp.post("")
@@ -45,90 +39,77 @@ def create_new_cart():
     return jsonify(serialize_cart(new_cart)), 201
 
 
-@bp.post("/<cart_id>/items")
+@bp.post("/<int:cart_id>/items")
 @require_auth(["customer"])
-def add_item_to_cart_endpoint(cart_id):
+def add_item_to_cart_endpoint(cart_id: int):
     """
     Adds a single item to an existing cart.
 
     This is step 2 of the new checkout flow. Can be called multiple times
-    to add different items. Expects JSON body with item_id.
-
-    Note: Flask's request.json automatically parses JSON bodies when
-    Content-Type is application/json.
+    to add different items.
     """
-    if not request.is_json or not request.json:
-        raise CheekyApiError("JSON body required")
+    item_id_int = require_int_param("item_id")
 
-    item_id = request.json.get("item_id")
-    cart_id_int = _parse_positive_int(cart_id, "cart_id")
-    item_id_int = _parse_positive_int(item_id, "item_id")
-    cart = find_cart_by_id(cart_id_int)
-    if not cart:
-        raise CheekyApiError("Cart not found")
-
-    updated_cart = add_item_to_cart(cart_id_int, item_id_int)
-    return jsonify(serialize_cart(updated_cart)), 200
-
-
-@bp.post("/<cart_id>/checkout")
-@require_auth(["customer"])
-def checkout_cart(cart_id):
-    """Checks out a cart and creates an order."""
-    cart_id_int = _parse_positive_int(cart_id, "cart_id")
-    cart = find_cart_by_id(cart_id_int)
-    if not cart:
-        raise CheekyApiError("Cart not found")
+    cart = find_cart_by_id(cart_id)
+    require_condition(cart, f"Cart {cart_id} not found")
 
     # Authorization check: user must be the owner of the cart
-    if cart.user_id != g.user_id:
-        raise CheekyApiError(f"User {g.user_id} is not the owner of cart {cart_id}")
+    require_ownership(cart.user_id, g.user_id, "cart")
 
     # Integrity check: cart must be active
-    if not cart.active:
-        raise CheekyApiError(f"Cart {cart_id} is not active")
+    require_condition(cart.active, f"Cart {cart_id} is not active")
+
+    # Fetch and validate menu item
+    menu_item = find_menu_item_by_id(item_id_int)
+    require_condition(menu_item, f"Menu item {item_id_int} not found")
+
+    # Integrity check: menu item must be available
+    require_condition(menu_item.available, f"Menu item {item_id_int} is not available")
+
+    # Integrity check: menu item must belong to same restaurant as cart
+    require_condition(
+        menu_item.restaurant_id == cart.restaurant_id,
+        f"Menu item {item_id_int} does not belong to restaurant {cart.restaurant_id}",
+    )
+
+    add_item_to_cart(cart_id, item_id_int)
+    return jsonify(serialize_cart(cart)), 200
+
+
+@bp.post("/<int:cart_id>/checkout")
+@require_auth(["customer"])
+def checkout_cart(cart_id: int):
+    """Checks out a cart and creates an order."""
+    # Parse inputs
+    tip = abs(get_decimal_param("tip", Decimal("0.00")))
+    delivery_address = get_param("delivery_address") or ""
+
+    # Fetch and validate cart
+    cart = find_cart_by_id(cart_id)
+    require_condition(cart, f"Cart {cart_id} not found")
+
+    # Authorization check: user must be the owner of the cart
+    require_ownership(cart.user_id, g.user_id, "cart")
+
+    # Integrity check: cart must be active
+    require_condition(cart.active, f"Cart {cart_id} is not active")
 
     # Get cart items from the database
-    cart_items = get_cart_items(cart_id_int)
-    if not cart_items:
-        raise CheekyApiError("Cart is empty")
+    cart_items = get_cart_items(cart_id)
+    require_condition(cart_items, f"Cart {cart_id} is empty")
 
-    # Integrity check: all items must be available
-    hydrated_items = []
-    for item in cart_items:
-        menu_item = find_menu_item_by_id(item.item_id)
-        if not menu_item:
-            raise CheekyApiError(f"Menu item {item.item_id} not found")
-        if not menu_item.available:
-            raise CheekyApiError(f"Menu item {item.item_id} is not available")
-        hydrated_items.append(
-            {
-                "item_id": menu_item.id,
-                "name": menu_item.name,
-                "price": menu_item.price,
-            }
-        )
+    # Validate items and calculate totals
+    hydrated_items, subtotal, delivery_fee = prepare_cart_for_checkout(cart_items)
+    require_condition(subtotal, f"Cart {cart_id} is empty")
 
-    # Get user input - handle both JSON and form data
-    user_data = request.json if request.is_json else request.form
+    # Integrity check: user must have sufficient balance
+    require_condition(g.balance >= subtotal + delivery_fee + tip, "Insufficient balance")
 
-    # Some users were "accidentally" giving negative tips, no more!
-    tip = abs(Decimal(user_data.get("tip", 0)))
-
-    # Price and delivery fee calculation is the same for both branches
-    total_price, delivery_fee = check_cart_price_and_delivery_fee(cart_items)
-    if not total_price:
-        raise CheekyApiError("Item not available, sorry!")
-
-    if g.balance < total_price + delivery_fee + tip:
-        raise CheekyApiError("Insufficient balance")
-
-    delivery_address = user_data.get("delivery_address", "")
-
+    # Create and save order
     order, order_items = create_order_from_checkout(
         user_id=g.user_id,
         restaurant_id=cart.restaurant_id,
-        total=total_price + delivery_fee + tip,
+        total=subtotal + delivery_fee + tip,
         items=hydrated_items,
         delivery_fee=delivery_fee,
         delivery_address=delivery_address,

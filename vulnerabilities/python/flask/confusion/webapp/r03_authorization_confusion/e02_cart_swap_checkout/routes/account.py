@@ -1,10 +1,10 @@
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, g, jsonify
 
 from ..auth.decorators import require_auth
 from ..database.repository import increment_user_balance
 from ..database.services import get_user_orders
 from ..errors import CheekyApiError
-from ..utils import parse_as_decimal
+from ..utils import get_decimal_param, get_param
 
 bp = Blueprint("account", __name__, url_prefix="/account")
 
@@ -18,12 +18,13 @@ def view_balance():
 @bp.post("/credits")
 @require_auth(["platform_api_key"])
 def add_credits():
-    amount = request.form["amount"]
-    user = request.form["user"]
+    """Add credits to a user's account. Platform-only."""
+    amount = get_decimal_param("amount")
+    user = get_param("user")
     if not amount or not user:
         raise CheekyApiError("Invalid request")
 
-    balance = increment_user_balance(user, parse_as_decimal(amount))
+    balance = increment_user_balance(user, amount)
     return jsonify({"email": user, "balance": str(balance)}), 200
 
 

@@ -1,5 +1,4 @@
 import datetime
-from collections.abc import Iterable
 from decimal import Decimal
 from uuid import uuid4
 
@@ -7,86 +6,94 @@ import jwt
 from envelopes import SMTP, Envelope
 from flask import jsonify, request
 
-from .database.models import CartItem
-from .database.repository import find_menu_item_by_id
 from .errors import CheekyApiError
 
-DELIVERY_FEE = Decimal("5.00")
-FREE_DELIVERY_ABOVE = Decimal("25.00")
 JWT_SECRET = str(uuid4())
 
 
-def _menu_item_price(item_id: str | int) -> Decimal | None:
-    """Returns the current price for an available menu item."""
-    if not item_id:
-        return None
+# ============================================================
+# INPUT PARSING UTILITIES
+# ============================================================
+def get_param(name: str) -> str | None:
+    """
+    Get a string parameter from anywhere in the request.
 
+    Checks in order: query args, JSON body, form data.
+    Returns None if parameter not found in any location.
+    """
+    value_in_args = request.args.get(name)
+    value_in_json = request.is_json and isinstance(request.json, dict) and request.json.get(name)
+    value_in_form = request.form.get(name)
+    return value_in_args or value_in_json or value_in_form
+
+
+def parse_id(value: str, name: str = "id") -> int:
+    """Parse a string as a positive integer."""
     try:
-        normalized_id = int(item_id)
+        int_value = int(value)
     except (TypeError, ValueError):
-        return None
+        raise CheekyApiError(f"{name} must be a positive integer") from None
 
-    menu_item = find_menu_item_by_id(normalized_id)
-    if not menu_item or not menu_item.available:
-        return None
-
-    return menu_item.price
+    if int_value <= 0:
+        raise ValueError(f"{name} must be a positive integer")
+    return int_value
 
 
-def _calculate_delivery_fee(total_price: Decimal) -> Decimal:
-    """Adds a flat delivery fee unless the order crosses the free-shipping threshold."""
-    if total_price > FREE_DELIVERY_ABOVE:
-        return Decimal("0.00")
-    return DELIVERY_FEE
-
-
-def check_cart_price_and_delivery_fee(items: Iterable[CartItem]) -> tuple[Decimal, Decimal]:
+def require_int_param(name: str) -> int:
     """
-    Validates that all cart items are orderable and returns their price and delivery fee.
+    Get a required integer parameter from the request.
 
-    Returns (None, None) as a signal to the caller when any menu item is missing or unavailable.
+    Checks query args, JSON body, and form data.
+    Raises CheekyApiError if parameter is missing or not a valid positive integer.
     """
-    total_price = Decimal("0.00")
-    for item in items:
-        price = _menu_item_price(item.item_id)
-        if price is None:
-            return None, None
-        total_price += price
-
-    return total_price, _calculate_delivery_fee(total_price)
+    value = get_param(name)
+    if not value:
+        raise CheekyApiError(f"{name} is required")
+    return parse_id(value, name)
 
 
-def parse_as_decimal(value: str) -> Decimal | None:
+def get_decimal_param(name: str, default: Decimal | None = None) -> Decimal | None:
+    """Get an optional decimal parameter from anywhere in the request."""
+    value = get_param(name)
+    if not value:
+        return default
     try:
         return Decimal(value)
     except Exception:
-        return None
+        return default
 
 
-def parse_as_int(value: str) -> int | None:
-    try:
-        return int(value)
-    except Exception:
-        return None
+# ============================================================
+# AUTHORIZATION UTILITIES
+# ============================================================
 
 
-def get_request_parameter(parameter):
-    parameter_in_args = request.args.get(parameter)
-    parameter_in_json = (
-        request.is_json and isinstance(request.json, dict) and request.json.get(parameter)
-    )
-    parameter_in_form = request.form.get(parameter)
+def require_ownership(owner_id: int, current_user_id: int, resource_name: str = "Resource"):
+    """
+    Verify that the current user owns the resource.
 
-    return parameter_in_args or parameter_in_json or parameter_in_form
+    Raises CheekyApiError if the owner_id does not match the current_user_id.
+    """
+    if owner_id != current_user_id:
+        raise CheekyApiError(f"{resource_name} does not belong to user")
 
 
+def require_condition(condition: bool, message: str):
+    if not condition:
+        raise CheekyApiError(message)
+
+
+# ============================================================
+# DOMAIN-SPECIFIC UTILITIES
+# ============================================================
 def get_restaurant_id() -> int:
-    restaurant_id = parse_as_int(get_request_parameter("restaurant_id"))
-    if restaurant_id is None:
-        raise CheekyApiError("Restaurant ID is required")
-    return restaurant_id
+    """Get the restaurant ID from the request."""
+    return require_int_param("restaurant_id")
 
 
+# ============================================================
+# DOMAIN-SPECIFIC UTILITIES
+# ============================================================
 def _generate_verification_token(email: str) -> str:
     """Generate a stateless verification token for the given email."""
     expires_at = datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(minutes=30)
