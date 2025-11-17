@@ -14,8 +14,14 @@ register_database_hooks(bp, _config)
 from .auth import middleware  # noqa: E402, F401
 
 # Import route modules so each blueprint can be registered below.
-from .routes import orders  # noqa: E402
-from .routes import account, auth, cart, menu, restaurants  # noqa: E402
+from .routes import (  # noqa: E402
+    account,
+    auth,
+    cart,
+    menu,
+    orders,  # noqa: E402
+    restaurants,
+)
 
 
 @bp.route("/")

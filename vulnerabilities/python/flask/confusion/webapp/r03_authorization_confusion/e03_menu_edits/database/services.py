@@ -14,7 +14,17 @@ from flask import g, session
 
 from ..config import OrderConfig
 from ..errors import CheekyApiError
-from .models import Cart, CartItem, Order, OrderItem, Refund, RefundStatus, User
+from .models import (
+    Cart,
+    CartItem,
+    MenuItem,
+    Order,
+    OrderItem,
+    Refund,
+    RefundStatus,
+    Restaurant,
+    User,
+)
 from .repository import (
     add_cart_item,
     find_menu_item_by_id,
@@ -27,6 +37,7 @@ from .repository import (
     get_refund_by_order_id,
     get_signup_bonus_remaining,
     save_cart,
+    save_menu_item,
     save_order,
     save_order_items,
     save_refund,
@@ -69,20 +80,59 @@ def calculate_cart_price(
 
 
 # ============================================================
+# RESTAURANT SERVICES
+# ============================================================
+def serialize_restaurant(restaurant: Restaurant) -> dict:
+    """Serializes a restaurant to a JSON-compatible dict."""
+    return {
+        "id": restaurant.id,
+        "name": restaurant.name,
+        "description": restaurant.description,
+    }
+
+
+def serialize_restaurants(restaurants: list[Restaurant]) -> list[dict]:
+    """Serializes a list of restaurants."""
+    return [serialize_restaurant(restaurant) for restaurant in restaurants]
+
+
+# ============================================================
 # MENU SERVICES
 # ============================================================
+def serialize_menu_item(menu_item: MenuItem) -> dict:
+    """Serializes a single menu item."""
+    return {
+        "id": menu_item.id,
+        "restaurant_id": menu_item.restaurant_id,
+        "name": menu_item.name,
+        "price": str(menu_item.price),
+        "available": menu_item.available,
+    }
+
+
 def serialize_menu_items(menu_items: list) -> list[dict]:
     """Serializes a list of menu items to JSON-compatible dicts."""
-    return [
-        {
-            "id": item.id,
-            "restaurant_id": item.restaurant_id,
-            "name": item.name,
-            "price": str(item.price),
-            "available": item.available,
-        }
-        for item in menu_items
-    ]
+    return [serialize_menu_item(item) for item in menu_items]
+
+
+def apply_menu_item_changes(menu_item: MenuItem, fields: dict) -> MenuItem:
+    """Apply validated field updates and persist the menu item."""
+    allowed = {"name", "price", "available"}
+    for field in allowed:
+        if field in fields:
+            setattr(menu_item, field, fields[field])
+    save_menu_item(menu_item)
+    return menu_item
+
+
+def create_menu_item_for_restaurant(restaurant_id: int, fields: dict) -> MenuItem:
+    """Create and persist a menu item for a restaurant."""
+    allowed = {"name", "price", "available"}
+    payload = {key: fields[key] for key in allowed if key in fields}
+    payload.setdefault("available", True)
+    menu_item = MenuItem(restaurant_id=restaurant_id, **payload)
+    save_menu_item(menu_item)
+    return menu_item
 
 
 # ============================================================

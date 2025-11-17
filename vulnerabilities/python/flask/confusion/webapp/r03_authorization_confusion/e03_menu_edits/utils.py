@@ -21,10 +21,16 @@ def get_param(name: str) -> str | None:
     Checks in order: query args, JSON body, form data.
     Returns None if parameter not found in any location.
     """
-    value_in_args = request.args.get(name)
-    value_in_json = request.is_json and isinstance(request.json, dict) and request.json.get(name)
-    value_in_form = request.form.get(name)
-    return value_in_args or value_in_json or value_in_form
+    if name in request.args:
+        return request.args.get(name)
+
+    if request.is_json and isinstance(request.json, dict) and name in request.json:
+        return request.json.get(name)
+
+    if name in request.form:
+        return request.form.get(name)
+
+    return None
 
 
 def parse_id(value: str, name: str = "id") -> int:
@@ -61,6 +67,21 @@ def get_decimal_param(name: str, default: Decimal | None = None) -> Decimal | No
         return Decimal(value)
     except Exception:
         return default
+
+
+def get_boolean_param(name: str, default: bool | None = None) -> bool | None:
+    """Get an optional boolean parameter from anywhere in the request."""
+    value = get_param(name)
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    normalized = str(value).strip().lower()
+    if normalized in {"true", "1", "yes", "on"}:
+        return True
+    if normalized in {"false", "0", "no", "off"}:
+        return False
+    return default
 
 
 # ============================================================
