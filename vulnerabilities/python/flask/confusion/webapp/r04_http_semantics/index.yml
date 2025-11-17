@@ -42,10 +42,10 @@ examples:
       code_start_line: 30
       code_end_line: 39
     file_hashes:
-      decorator.py: 6d1e92b0a00dee266da588e93aaaaf4ffe90ef6b2fab99f20f34168f3698a5f5
-      routes.py: 057f7eceee67c8ceb6266160f61fe63d8acb77d4459c7b0d491ad6171f73ebf1
-    fingerprint: ebedbfd695b1e64c0e8b8c1be6e10311073890220c2f03f96ee1d72b4e739d98
+      decorator.py: 13a13773be4a2cc2693e73b21753fc4b0f6be2f598af91fcde09b52b9dab1577
+      routes.py: 09710b1fc9d2f4482343b326748a5b5a14fcad38da9f4868cc4231acfdfdb463
+    fingerprint: 4a7bd1a0e96d5d2458242640d30ccfc58995a8d377ef1220ca0d7d096e1d73e9
 attachments:
-  http/exploit-1.http: bdf5e84b4e01fbe81399af903dce453419570fe6b4077415e98a291b8bfd46c6
-build_signature: 371045776a02ce2b83d7c723edd11106459d9326a9728613eccf75cbe3aec28b
-last_readme_fingerprint: 4e6ba84379b2ae0db75a9d4d38b992ae0378141b88fa3d9133843519289b1780
+  http/exploit-1.http: bff399de93b2522430236c888838bfa35ffe232ade388392199d7e37f6516e6d
+build_signature: 150f977af26aa4ca71a17002d0731f2ecedea9689fcc4227ce59884ff75e7316
+last_readme_fingerprint: 0d88c1cdb808b420822363bd658507949ebff7ae93337e5054651db438390614

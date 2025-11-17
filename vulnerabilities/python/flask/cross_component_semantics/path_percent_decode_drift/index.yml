@@ -4,5 +4,5 @@ category: cross-component-semantics.path-percent-decode-drift
 namespace: flask-cross-component-path-drift
 examples: {}
 attachments: {}
-build_signature: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-last_readme_fingerprint: f4e5949e854f6083d49877341e71aba0321b5528a56bfaaad7dd9344bc7cb0b9
+build_signature: 3b1e09d830ddb9340fdefb7db0ac488c2fdc866c3de86492163d509df41d63a1
+last_readme_fingerprint: b6dfa93d2c5c2cc7885ad4522134fd56cee254e92fc2e5b2bd164c759a70a4bb

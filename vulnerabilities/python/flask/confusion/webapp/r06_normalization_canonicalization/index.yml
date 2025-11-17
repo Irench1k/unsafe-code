@@ -38,8 +38,8 @@ examples:
       code_start_line: 27
       code_end_line: 40
     file_hashes:
-      e01_lowercase/routes.py: cdb97df7af5d72f64c5b9465262548950533b79805c94ae934cd6b33bdf806aa
-    fingerprint: dc18920515f1c1e7b3fe9d0ea2cfaeef6b0056d5721561ea6a499b5b7e45bb4d
+      e01_lowercase/routes.py: 272c0d9c8f6b6ccff1ba95850abf12296102bba53404099801d958ba1103c3b4
+    fingerprint: a968f8e6d1a4b498eefd05318a0d4d151a309625d9373bf26b9d9a3815835d38
   2:
     id: 2
     kind: block
@@ -75,9 +75,9 @@ examples:
       code_start_line: 87
       code_end_line: 93
     file_hashes:
-      e02_insensitive_object_retrieval/database.py: fcb0e76ab4fa3d2e23cad40b1f2b8829467e8eb1b62ffb262d2832c5a32ddd5d
-      e02_insensitive_object_retrieval/routes.py: cb9c82f61b5c04629a760fad7b823bda460e5b3dc416b21ca1bb0b82fc5b0d69
-    fingerprint: fcc5200c5ae8ee1d5571667838f0153c05d20b8187b08de68edb77b6aeaeda01
+      e02_insensitive_object_retrieval/database.py: cb6c23f516301a2d985ffb7b44fbd7ed1f046f6643592765f5e7422d92c16c7c
+      e02_insensitive_object_retrieval/routes.py: bdf6ffb013b96159544092be29b5ae4d9d6264823024a028ae9dbc16acd17557
+    fingerprint: d6d8daa321d46b03a4044a8961547a7278de046d99c90942173d24fb1b3da948
   3:
     id: 3
     kind: block
@@ -114,9 +114,9 @@ examples:
       code_start_line: 36
       code_end_line: 49
     file_hashes:
-      e03_strip_replace_mismatch/decorator.py: 07773d7eeadd46784533ab09825e02b50884e575a5bd8acd93ac710108484560
-      e03_strip_replace_mismatch/routes.py: 62b565644e54aab48cac2968e8c6017827f538173cd07d7f6cad1afdcf62e8b1
-    fingerprint: db12008d6271c1fba3cb03846f52737d3054a05164872828add2515709d0b0a6
+      e03_strip_replace_mismatch/decorator.py: 7550e260345130a4a9a6bb6992fb7ddf3c08777a23b056c11a97aa9e136cbc29
+      e03_strip_replace_mismatch/routes.py: c14d7f5d89c4c7e10a279654115614d47d2198720aba6adfe1991fa5a83cecca
+    fingerprint: 69736487b8fc68cfcf8ac59a0844a062631dd31a4c000fe936cf1ad5713b080d
   4:
     id: 4
     kind: block
@@ -169,14 +169,14 @@ examples:
       code_start_line: 33
       code_end_line: 51
     file_hashes:
-      e04_pydantic_strip_bypass/database/models.py: 6d0308ac37f245cf26b363ee4fae7fda77a8298eff9e67e97bbd010c865a9ae6
-      e04_pydantic_strip_bypass/database/storage.py: 954ff4f533193adef53e5076b74d0ef457b8171a1609b0e7f971f0adee2ff158
-      e04_pydantic_strip_bypass/routes.py: 7bded7a662c53aeea1019493207a60af43b1a4ad2ec16c489b7a69ab10371c49
-    fingerprint: f231cf50c9ee0a4a4f8ccaf2673780fe6c600cf62331195ef76e7f6cb344c451
+      e04_pydantic_strip_bypass/database/models.py: 20d3ef49236378ec4296420f55955801fd73c29c6c836654cd0a313e1b64d71f
+      e04_pydantic_strip_bypass/database/storage.py: 6f2bfa590cb8a803fc063118d3e22b443a9e10de288eff077f0fcfc293d5b271
+      e04_pydantic_strip_bypass/routes.py: c490e9ded5d4dcefa752ad658f1691a0903a4d61dbdeeaf0360d547054dcf8bf
+    fingerprint: 5ee8f5d94663be4eb002f1b444836047af50f4198e0f6582327516ea5ab16374
 attachments:
-  http/exploit-1.http: e6763388648214bb712a7120f73328493e2f027efdcd475e5d56cb7028cae178
-  http/exploit-2.http: 3675aa10205994b17a4028b8054382171dd2bd6e61676e9ca65879d3ba8be179
-  http/exploit-3.http: 833fd0ccdbce44c80e50f151aeebcc38b5dc72133e7149551c441e0a0007e4ad
-  http/exploit-4.http: 492c0b00c30fa061b16398757d193c8a503d87d79c31a172e84b8a7781711eaa
-build_signature: b4304d009bbf53a46877d2672284e0c4b79b700e20f4e3db03197213af97d26d
-last_readme_fingerprint: e4232197a6bfe58becd0c8718b87fda608eef086f594bc4a6cd7eb3b3b68c689
+  http/exploit-1.http: 48eadbcd685affa5cb09be40995723a0af64f08c2694dd1ab5189a24ec2963f6
+  http/exploit-2.http: b6a1df69647857178397868bd34c571072e611ee93ede1853d2f62656de134f6
+  http/exploit-3.http: 3a857bb47836252c4d84a93c8e4b0c27c0fb034c67a4e4b061cb37e246404300
+  http/exploit-4.http: b00b3f05c62cb481f5731abd929672087905338a0c4ff5289c499f26ea5ec529
+build_signature: 49c13bc13cc7671e3feeac184b90239c1e435b02ef074e3b514e348183341629
+last_readme_fingerprint: 76386f01bf785cc4ff422f0358a0c0339bf464fa60276ccaf305f6666808177a
