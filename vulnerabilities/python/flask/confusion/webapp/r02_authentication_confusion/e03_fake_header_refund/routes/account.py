@@ -1,7 +1,6 @@
 from flask import Blueprint, g, jsonify, request
 
 from ..auth.decorators import customer_authentication_required
-from ..auth.helpers import authenticate_customer
 from ..database.repository import get_platform_api_key, increment_user_balance
 from ..database.services import get_user_orders
 from ..errors import CheekyApiError
