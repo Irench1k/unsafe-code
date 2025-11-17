@@ -14,7 +14,7 @@ def list_menu_items():
     try:
         restaurant_id = get_restaurant_id()
         menu_items = find_menu_items_by_restaurant(restaurant_id)
-    except CheekyApiError as e:
+    except CheekyApiError:
         # It's okay to not have a restaurant ID, just return all menu items
         menu_items = find_all_menu_items()
 

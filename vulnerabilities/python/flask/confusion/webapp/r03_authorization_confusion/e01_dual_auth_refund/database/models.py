@@ -90,6 +90,7 @@ class OrderStatus(enum.Enum):
     created = "created"  # Order has been created and paid by customer
     delivered = "delivered"  # Order has been delivered to customer
     refunded = "refunded"  # Order has been refunded
+    cancelled = "cancelled"  # Order has been cancelled by customer or restaurant manager
 
 
 class Order(Base):

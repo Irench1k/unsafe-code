@@ -7,7 +7,7 @@ import jwt
 from envelopes import SMTP, Envelope
 from flask import jsonify, request
 
-from .database.models import CartItem, OrderItem
+from .database.models import CartItem
 from .database.repository import find_menu_item_by_id
 from .errors import CheekyApiError
 
