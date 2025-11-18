@@ -66,21 +66,28 @@ By the end of r03, these roles are enforced:
 
 ##### Data Model Evolution
 
-| Model                | v301 | v302               | v303 | v304 | v305 | v306                       | v307                     |
-| -------------------- | ---- | ------------------ | ---- | ---- | ---- | -------------------------- | ------------------------ |
-| AuthorizationContext | ✅   | -                  | -    | -    | -    | -                          | -                        |
-| CartAuthorization    | -    | `+session.cart_id` | -    | -    | -    | -                          | -                        |
-| MenuItem             | -    | -                  | -    | -    | -    | -                          | -                        |
-| Restaurant           | -    | -                  | -    | -    | -    | ✅ (domain onboarding)     | `+domain PATCH mutation` |
-| DomainToken          | -    | -                  | -    | -    | -    | ✅ (user token reuse path) | -                        |
+| Model               | v301 | v302               | v303 | v304 | v305 | v306                       | v307                     |
+| ------------------- | ---- | ------------------ | ---- | ---- | ---- | -------------------------- | ------------------------ |
+| OrderAccessHelper   | ✅ `has_access_to_order()` trusts whichever identity is available (customer session bleeds into manager checks) | - | - | - | - | -                          | -                        |
+| CartAuthorization   | -    | Session keeps `cart_id`; `resolve_trusted_cart()` trusts it before `g.cart_id` | -    | -    | -    | -                          | -                        |
+| MenuItem            | ✅ SQLAlchemy table keyed by `id` with `restaurant_id`, `name`, `price`, `available` | - | - | - | - | -                          | -                        |
+| Order               | ✅ Orders persist `restaurant_id`, `user_id`, totals, delivery fees, tips, and `status` enum | - | - | - | - | -                          | -                        |
+| OrderItem           | ✅ Snapshot line items capture menu `item_id`, `name`, and `price` per order | - | - | - | - | -                          | -                        |
+| Cart                | ✅ Carts store `restaurant_id`, `user_id`, and `active` flag for cross-request ownership | - | - | - | - | -                          | -                        |
+| CartItem            | ✅ Join table keeps persisted `cart_id` → `item_id` mappings | - | - | - | - | -                          | -                        |
+| Refund              | ✅ Refund records track `order_id`, amount, `status`, `auto_approved`, `paid`, timestamps | - | - | - | - | -                          | -                        |
+| User                | ✅ Users now have numeric IDs plus `email`, `name`, hashed `password`, Decimal `balance` | - | - | - | - | -                          | -                        |
+| Restaurant          | ✅ Restaurants include description, owner email, and per-tenant API key | - | - | - | - | ✅ (domain onboarding)     | `+domain PATCH mutation` |
+| PlatformConfig      | ✅ Key/value store backs platform API key + signup bonus counters | - | - | - | - | -                          | -                        |
+| DomainToken         | -    | -                  | -    | -    | -    | ✅ (user token reuse path) | -                        |
 
 ##### Behavioral Changes
 
 | Version | Component                      | Behavioral Change                                                                        |
 | ------- | ------------------------------ | ---------------------------------------------------------------------------------------- |
-| v301    | AuthorizationContext           | `has_access_to(order)` trusts merged principals from multiple auth methods               |
-| v302    | CartAuthorization              | Hold logic reads `session.cart_id`; checkout re-resolves via path after clearing session |
-| v303    | MenuItem Authorization         | `@require_restaurant_access` expects `restaurant_id` in path; PATCH uses `item_id` only  |
+| v301    | OrderAccessHelper              | `has_access_to_order()` pulls session customers even during manager API-key calls        |
+| v302    | CartAuthorization              | `charge_customer_with_hold()` charges `session.cart_id`; handler re-runs `resolve_trusted_cart()` using the path ID |
+| v303    | MenuItem Authorization         | `@restaurant_owns(MenuItem, "item_id")` relies on `restaurant_id` view args; `/menu/{id}` never passes one so only existence is checked |
 | v304    | bind_to_restaurant()           | Decorator validates query `restaurant_id`; helper inspects all request containers        |
 | v305    | Order Status Update            | Authorization happens in stored procedure; handler returns order before auth check       |
 | v306    | Domain Verification            | Token verification checks signature/expiry but not email local-part (admin@ requirement) |
@@ -89,13 +96,81 @@ By the end of r03, these roles are enforced:
 #### Data Models
 
 ```ts
-// Extends RequestContext from r02 with explicit ownership concepts.
-interface AuthorizationContext extends RequestContext {
-  principals: Array<{
-    type: "customer" | "manager" | "admin";
-    user_id?: string;
-    restaurant_id?: string;
-  }>;
+type OrderStatus = "created" | "delivered" | "refunded" | "cancelled";
+type RefundStatus = "pending" | "auto_approved" | "approved" | "rejected";
+
+interface Restaurant {
+  restaurant_id: number;
+  name: string;
+  description: string;
+  owner_email: string;
+  api_key: string;
+}
+
+interface User {
+  user_id: number;
+  email: string;
+  name: string;
+  balance: decimal;
+  password: string;
+}
+
+interface MenuItem {
+  item_id: number;
+  restaurant_id: number;
+  name: string;
+  price: decimal;
+  available: boolean;
+}
+
+interface Cart {
+  cart_id: number;
+  restaurant_id: number;
+  user_id: number;
+  active: boolean;
+  items: number[];
+}
+
+interface CartItem {
+  cart_item_id: number;
+  cart_id: number;
+  item_id: number;
+}
+
+interface OrderItem {
+  item_id: number;
+  name: string;
+  price: decimal;
+}
+
+interface Order {
+  order_id: number;
+  restaurant_id: number;
+  user_id: number;
+  total: decimal;
+  delivery_fee: decimal;
+  tip: decimal;
+  delivery_address: string;
+  created_at: string;
+  status: OrderStatus;
+  items: OrderItem[];
+}
+
+interface Refund {
+  refund_id: number;
+  order_id: number;
+  amount: decimal;
+  reason: string;
+  status: RefundStatus;
+  auto_approved: boolean;
+  paid: boolean;
+  created_at: string;
+}
+
+interface PlatformConfig {
+  config_id: number;
+  key: string;
+  value: string;
 }
 
 /** Helper output for bind_to_restaurant(); source indicates where ID came from. */
@@ -105,14 +180,6 @@ interface BoundRestaurant {
 }
 
 /** Restaurant metadata plus onboarding tokens introduced in v306. */
-interface Restaurant {
-  restaurant_id: string;
-  name: string;
-  domain: string;
-  api_key: string;
-  owner_email: string;
-}
-
 interface RestaurantDomainToken extends VerificationToken {
   restaurant_domain: string;
 }
@@ -126,7 +193,6 @@ interface OrderUpdateResult {
 
 /** Menu item editing payload used by /menu/{id}; route omits restaurant_id so enforcement fails. */
 interface MenuItemPatch {
-  item_id: string;
   name?: string;
   price?: decimal;
   available?: boolean;
@@ -145,7 +211,7 @@ type UpdateRefundStatusRequest_v301 = {
 type CheckoutCartRequest_v302 = CheckoutCartRequest_v201;
 // Confusion stems from which cart ID the framework reads (session vs. path), not from new fields.
 
-// PATCH /menu/items/{id} (v303)
+// PATCH /menu/{id} (v303)
 type PatchMenuItemRequest_v303 = MenuItemPatch;
 
 // GET /orders (v304)
@@ -186,14 +252,14 @@ type PatchRestaurantResponse_v307 = Restaurant;
 
 ### [v301] Dual-Auth Refund Approval
 
-> Invite-only multi-tenancy launches. For now, Sandy still onboards each restaurant herself, generating a per-restaurant API key that grants full management access via integrations while customers keep using Basic Auth or cookies. She refactors middleware so “manager” checks aren’t hardcoded to the Krusty Krab key anymore.
+> The in-memory dict can't scale anymore. Sandy migrates to Postgres with SQLAlchemy, refactoring the entire data layer to use ORM models. While she's at it, she introduces multi-tenancy—each restaurant now gets its own API key.
 
 **The Vulnerability**
 
-- Sandy extracted a `has_access_to(order_id)` helper that returns `True` if _either_ the current customer owns the order or the current restaurant owns the order.
+- Sandy extracted a `has_access_to_order(order_id)` helper that returns `True` if _either_ the current customer owns the order or the current restaurant owns the order.
 - Manager-only endpoints now rely on that helper even though they should only consider the restaurant branch.
 - Plankton keeps his customer session cookie (from placing the order) and sends a Chum Bucket manager API key when patching refunds.
-- The API-key authenticator marks the request as “manager” while `has_access_to()` immediately approves the request because the still-present customer session owns the order.
+- The API-key authenticator marks the request as "manager" while `has_access_to_order()` immediately approves the request because the still-present customer session owns the order.
 
 **Exploit**
 
@@ -227,17 +293,15 @@ type PatchRestaurantResponse_v307 = Restaurant;
 **Severity:** 🟠 High \
 **Endpoints:** `POST /cart/{id}/checkout`
 
-_Aftermath: Sandy reviews her whole authorization strategy, ahead of exposing management features via the web UI. She decides to remove Basic Auth, by migrating the mobile app to cookies, similarly to the web app._
-
 ---
 
 #### [v303] Menu Edits Without Restaurant ID
 
-> Restaurants beg for a lightweight way to tweak menus without needing to contact Sandy for support, so she adds a dedicated endpoint: `PATCH /menu/{item_id}`.
+> Restaurants want self-service menu updates. Sandy adds a convenience endpoint `PATCH /menu/{item_id}` and extracts a reusable `@restaurant_owns()` decorator from her existing routes.
 
 **The Vulnerability**
 
-- Sandy reuses the `/restaurants/{id}/menu/...` decorator which expects `request.view_args['restaurant_id']`.
+- The decorator expects `restaurant_id` in `request.view_args` to validate ownership.
 - The new `/menu/{item_id}` route never sets `restaurant_id`, so the decorator just verifies the item exists and exits without comparing ownership.
 - Handlers therefore trust whichever API key showed up, even when the item belongs to another restaurant.
 
@@ -249,7 +313,7 @@ _Aftermath: Sandy reviews her whole authorization strategy, ahead of exposing ma
 
 **Impact:** Cross-restaurant menu tampering. \
 **Severity:** 🟠 High \
-**Endpoints:** `PATCH /menu/items/{id}`
+**Endpoints:** `PATCH /menu/{id}`
 
 _Aftermath: Sandy figures out she needs to standardize on a common way to pass the restaurant ID to the endpoints, so she adds a `bind_to_restaurant()` helper to auto-detect it and keep handlers tiny._
 

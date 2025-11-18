@@ -12,7 +12,7 @@ This is distinct from authorization (which checks permissions). We're talking ab
 ### Framework Features Introduced
 
 - Middleware and request preprocessing
-- Request context enrichment (setting `request.user`, `request.user_type`, etc.)
+- Request context enrichment (setting `request.user`, `request.auth_context`, etc.)
 - Session management (cookies)
 - Multiple authentication methods coexisting
 - Authentication guards and decorators
@@ -50,163 +50,153 @@ By the end of r02, these authentication methods coexist:
 
 ### Endpoints
 
-| Lifecycle | Method | Path                       | Auth                | Purpose              | Vulnerabilities |
-| --------- | ------ | -------------------------- | ------------------- | -------------------- | --------------- |
-| v101+     | GET    | /account/credits           | Customer            | View balance         | v202            |
-| v202+     | POST   | /account/credits           | Admin               | Add credits          | v202            |
-| v101+     | GET    | /menu                      | Public              | List available items |                 |
-| v101+     | GET    | /orders                    | Customer/Restaurant | List orders          | v201, v204      |
-| v201+     | GET    | /orders/{id}               | Customer/Restaurant | Get single order     |                 |
-| v105+     | POST   | /orders/{id}/refund        | Customer            | Request refund       |                 |
-| v201+     | PATCH  | /orders/{id}/refund/status | Restaurant          | Update refund status | v203            |
-| v103+     | PATCH  | /orders/{id}/status        | Restaurant          | Update order status  |                 |
-| v101-v102 | POST   | /orders                    | Customer            | Create new order     | v101, v102      |
-| v103+     | POST   | /cart                      | Customer            | Create cart          | v201            |
-| v103+     | POST   | /cart/{id}/items           | Customer            | Add item to cart     |                 |
-| v103+     | POST   | /cart/{id}/checkout        | Customer            | Checkout cart        | v201            |
-| v201+     | GET    | /cart/{id}                 | Customer/Restaurant | Get single cart      |                 |
-| v106+     | POST   | /auth/register             | Public              | Register user        | v106, v107      |
-| v201+     | POST   | /auth/login                | Public              | Create session       | v205            |
-| v201+     | POST   | /auth/logout               | Customer            | Destroy session      |                 |
+| Lifecycle | Method | Path                          | Auth                | Purpose                  | Vulnerabilities |
+| --------- | ------ | ----------------------------- | ------------------- | ------------------------ | --------------- |
+| v101+     | GET    | /account/credits              | Customer            | View balance             | v202            |
+| v101+     | GET    | /account/info                 | Customer            | View profile+order stats |                 |
+| v202+     | POST   | /account/credits              | Admin               | Add credits              | v202            |
+| v101+     | GET    | /menu                         | Public              | List available items     |                 |
+| v101+     | GET    | /orders                       | Customer/Restaurant | List orders              | v201, v204      |
+| v105+     | POST   | /orders/{id}/refund           | Customer            | Request refund           |                 |
+| v203+     | PATCH  | /orders/{id}/refund/status    | Restaurant          | Approve/reject refunds   | v203            |
+| v203+     | GET    | /orders/{id}/refund/status    | Customer/Restaurant | Fetch refund decision    |                 |
+| v103+     | POST   | /cart                         | Customer            | Create cart              | v201            |
+| v103+     | POST   | /cart/{id}/items              | Customer            | Add item to cart         |                 |
+| v103+     | POST   | /cart/{id}/checkout           | Customer            | Checkout cart            | v201            |
+| v106+     | POST   | /auth/register                | Public              | Register user            | v106, v107      |
+| v201+     | POST   | /auth/login                   | Public              | Create session           | v205            |
+| v201+     | POST   | /auth/logout                  | Customer            | Destroy session          |                 |
 
 #### Schema Evolution
 
 ##### Data Model Evolution
 
-| Model               | v201                        | v202                                   | v203 | v204 | v205 |
-| ------------------- | --------------------------- | -------------------------------------- | ---- | ---- | ---- |
-| RequestContext      | ✅ (new entity)             | `+admin_api_key principal`             | -    | -    | -    |
-| Session             | ✅ (cookie-backed)          | `+manager role field`                  | -    | -    | -    |
-| AccountCredits      | Read-only balance endpoint  | `+mutation payload (amount, customer)` | -    | -    | -    |
-| RefundStatusRequest | -                           | -                                      | -    | -    | -    |
-| LoginRequest        | Base email/password payload | -                                      | -    | -    | -    |
+| Model               | v201                                                | v202 | v203 | v204 | v205 |
+| ------------------- | --------------------------------------------------- | ---- | ---- | ---- | ---- |
+| RequestContext      | Authenticators hydrate `g.email/g.user` pre-check   | -    | -    | API-key authenticators set `g.auth_context` + `g.manager_request` before validation | -    |
+| Session             | Cookie session stores `email` for browser requests  | -    | -    | -    | -    |
+| AccountCredits      | Read-only balance endpoint                          | Shared GET/POST handler mutates balances via form fields `user`/`amount` | -    | -    | -    |
+| RefundStatusRequest | -                                                   | -    | Form body `status` drives manager decisions without revalidating API keys | -    | -    |
+| LoginRequest        | Base email/password payload                         | -    | -    | -    | Handler trusts JSON email even when authenticator short-circuits via cookie |
 
 ##### Behavioral Changes
 
-| Version | Component           | Behavioral Change                                                                  |
-| ------- | ------------------- | ---------------------------------------------------------------------------------- |
-| v201    | RequestContext      | Middleware copies `user_id` from Basic Auth username before password verification  |
-| v201    | RequestContext      | Failed Basic Auth falls back to cookie without clearing polluted `user_id`         |
-| v202    | AccountCredits      | Admin guard only runs when `request.method == 'POST'`                              |
-| v203    | RefundStatusRequest | Controller decorator validates auth; handler decorator only checks header presence |
-| v204    | RequestContext      | Middleware sets `user_type = 'manager'` before validating API key                  |
-| v204    | RequestContext      | Failed API key validation doesn't clear `user_type` before Basic Auth fallback     |
-| v205    | LoginRequest        | Middleware copies request email into session before password verification          |
+| Version | Component              | Behavioral Change                                                                  |
+| ------- | ---------------------- | ---------------------------------------------------------------------------------- |
+| v201    | CustomerAuthenticator  | `authenticate_customer()` instantiates cookie + Basic authenticators up front      |
+| v201    | CredentialAuthenticator| Basic constructor sets `g.email/g.user` before password verification               |
+| v202    | AccountCredits         | Admin guard only runs when `request.method == 'POST'`                              |
+| v203    | RefundStatusRequest    | Blueprint guard validates auth; handler helper only checks header presence         |
+| v204    | RequestContext         | `RestaurantAuthenticator` sets `g.manager_request = True` as soon as header exists |
+| v204    | RequestContext         | Failed API key validation doesn't clear `g.manager_request` before Basic fallback  |
+| v205    | LoginHandler           | Customer authenticator short-circuits on existing session; handler still copies request email into session |
 
 #### Data Models
 
 ```ts
 // Reuse MenuItem, Order, Cart, Refund, and User from r01.
 
-/**
- * Request-scoped authentication context produced by middleware.
- * v201 copies Basic Auth usernames before verification; v204 adds user_type.
- */
 interface RequestContext {
-  user_id?: string;
-  restaurant_id?: string;
-  auth_mechanism?: "basic" | "cookie" | "api_key" | "admin_key";
-  user_type?: "customer" | "manager" | "internal";
+  email?: string;
+  user?: User;
+  name?: string;
+  balance?: decimal;
+  order?: Order;
+  email_confirmed?: boolean;
+  refund_is_auto_approved?: boolean;
+  auth_context?: "customer" | "manager" | "platform";
+  manager_request?: boolean;
+  customer_request?: boolean;
+  platform_request?: boolean;
+  authenticated_customer?: boolean;
+  authenticated_manager?: boolean;
+  authenticated_platform?: boolean;
 }
 
-/**
- * Cookie session persisted for browser/mobile clients after v201.
- */
 interface Session {
-  session_id: string;
-  user_id: string;
-  user_type: "customer" | "manager";
-  issued_at: timestamp;
+  email?: string;
 }
 
 /**
- * Payload stored when Sandy (or middleware) mutates account credits.
- * POST /account/credits shares the same structure as the GET body confusion.
+ * Payload used by POST /account/credits and (incorrectly) honored by GET when sent as form data.
  */
 interface AccountCreditMutation {
-  customer: string; // email
+  user: string;
   amount: decimal;
-  note?: string;
 }
 
-/** Decorators stash header presence only, not validity (v203). */
-interface DecoratorState {
-  has_customer_auth: boolean;
-  has_restaurant_key: boolean;
+/**
+ * Manager-only refund status updates.
+ */
+interface RefundStatusUpdate {
+  status: "approved" | "rejected";
 }
 
-/** Login payload; middleware now mutates sessions before verifying credentials. */
+/** Login payload used by the JSON form + Basic Auth fallback. */
 interface LoginRequest {
   email: string;
   password: string;
-}
-
-/** Exposed view of individual carts/orders (used by new GET endpoints). */
-interface CartDetail extends Cart {
-  holds?: decimal; // Authorization layer may place temporary holds before checkout
 }
 ```
 
 #### Request and Response Schemas
 
 ```ts
-// GET /cart/{id}
-type GetCartResponse_v201 = CartDetail;
-
-// GET /orders/{id}
-type GetOrderResponse_v201 = Order;
-
-// POST /cart (v201 refresher)
-type CreateCartRequest_v201 = CreateCartRequest; // from r01
-
-// POST /cart/{id}/checkout (v201)
-type CheckoutCartRequest_v201 = CheckoutCartRequest_v104; // inherits tip + cart_id overwrite bug
-
-// POST /cart/{id}/checkout (context confusion path)
-type CheckoutCartContext = {
-  request_user_id?: string; // Set by middleware before auth completes
-  session_user_id?: string; // Derived from cookie
+// GET /account/credits
+type ViewCreditsResponse_v201 = {
+  email: string;
+  balance: string;
 };
 
-// GET /orders (v201)
-type ListOrdersRequest_v201 = {
-  restaurant_id?: string;
-};
-
-// GET /orders (v204 adds polluted user_type)
-type ListOrdersRequest_v204 = ListOrdersRequest_v201 & {
-  user_type?: "customer" | "manager";
-};
-
-// POST /account/credits (v202 admin mutation shares handler with GET)
+// POST /account/credits
 type PostCreditsRequest_v202 = AccountCreditMutation;
+type PostCreditsResponse_v202 = ViewCreditsResponse_v201;
 
-// GET /account/credits (v202 confusion path)
-type GetCreditsRequestBody_v202 = AccountCreditMutation; // unexpected body for GET
-
-// PATCH /orders/{id}/refund/status (v203)
-type UpdateRefundStatusRequest_v203 = {
-  status: "accepted" | "rejected";
-  approver?: string;
+// GET /account/info
+type ViewAccountInfoResponse_v201 = {
+  email: string;
+  name: string;
+  balance: string;
+  orders: number;
 };
+
+// GET /orders
+type ListOrdersResponse_v201 = Order[];
+
+// POST /cart
+type CreateCartResponse_v201 = Cart;
+
+// POST /cart/{id}/items
+type AddCartItemRequest_v201 = {
+  item_id: string;
+};
+
+// POST /cart/{id}/checkout
+type CheckoutCartRequest_v201 = {
+  delivery_address: string;
+  tip?: decimal;
+};
+
+// POST /orders/{id}/refund
+type RefundOrderRequest_v201 = {
+  amount?: decimal;
+  reason?: string;
+};
+
+// PATCH /orders/{id}/refund/status
+type UpdateRefundStatusRequest_v203 = RefundStatusUpdate;
+type RefundStatusResponse_v203 = Refund;
+
+// GET /orders/{id}/refund/status shares RefundStatusResponse_v203
 
 // POST /auth/login
-type LoginResponse = {
-  session_id: string;
-  user_id: string;
-  user_type: "customer" | "manager";
+type LoginResponse_v201 = {
+  message: string; // "Login successful"
 };
 
 // POST /auth/logout
-type LogoutRequest = {
-  session_id: string;
-};
-
-// Middleware-shared context snapshot (used by diagnostics/tests)
-type AuthDebugPayload = {
-  request_user_id?: string;
-  cookie_user_id?: string;
-  user_type?: string;
+type LogoutResponse_v201 = {
+  message: string; // "Logout successful"
 };
 ```
 
@@ -214,7 +204,7 @@ type AuthDebugPayload = {
 
 #### [v201] Session Hijack via Auth Mixup
 
-> Web launch day! Sandy debuts `app.cheeky.sea` with cookie sessions, while legacy clients (tablets, mobile app) stick to Basic Auth. Krusty Krab’s POS still polls `GET /orders` with its API key. The middleware needs to juggle every auth style, which makes Sandy feel a bit anxious, but she considers it an integral part of 'moving fast and breaking things'.
+> Web launch day! Sandy debuts `app.cheeky.sea` with cookie sessions for the website while keeping Basic Auth support for the mobile app. Supporting both authentication methods simultaneously means instantiating both authenticators in her helper—she figures the `any()` check will handle which one succeeds.
 
 **The Vulnerability**
 
@@ -232,11 +222,13 @@ type AuthDebugPayload = {
 **Severity:** 🔴 Critical \
 **Endpoints:** `GET /orders`, `POST /cart`, `POST /cart/{id}/checkout`
 
+_Aftermath: The app is getting crowded. Sandy splits her monolithic routes file into separate blueprints by domain (`routes/account.py`, `routes/orders.py`, etc.) to keep things organized as she adds more features._
+
 ---
 
 #### [v202] Credit Top-Ups via GET
 
-> Growing pains: Sandy still tops up customer credits manually. To prepare for a semi-automated backoffice tool, she exposes `POST /account/credits` guarded by her personal `X-Admin-API-Key`, and adds it to the existing `GET /account/credits` handler.
+> Sandy needs to top up customer credits manually while she builds proper payment integration. Rather than create a separate admin endpoint, she adds POST support to the existing `GET /account/credits` route—one handler, two auth paths, less duplication.
 
 **The Vulnerability**
 
@@ -253,18 +245,18 @@ type AuthDebugPayload = {
 **Severity:** 🔴 Critical \
 **Endpoints:** `GET /account/credits`
 
-_Aftermath: Maintaining separate auth blobs per handler is exhausting, so she extracts decorators (`@authenticated_with("restaurant")`, `@authenticated_with("customer")`) to future-proof the code for multi-tenant growth._
+_Aftermath: Sandy notices she's decorating every orders endpoint with authentication checks. She adds a blueprint-level `@bp.before_request` guard to handle auth once for all routes, keeping handlers cleaner._
 
 ---
 
 #### [v203] Fake Header Refund Approvals
 
-> Investors keep asking when other restaurants can join. To scale, Sandy makes her decorators “lightweight” so new endpoints can be added quickly.
+> Investors keep asking when other restaurants can join. Sandy knows she'll be adding lots of manager endpoints soon, so she splits authentication into two layers: a blueprint guard that validates credentials once, and a lightweight `authenticated_with()` helper that just checks which role was used.
 
 **The Vulnerability**
 
-1. The `@require_customer_or_restaurant` controller-level guard accepts either a customer cookie or an API key and stops at the first success.
-2. The handler-level `authenticated_with("restaurant")` helper literally checks `if "x-api-key" in request.headers`—it never re-validates the key’s value.
+1. The blueprint-level `@bp.before_request` guard accepts either a customer cookie or an API key and stops at the first success.
+2. The handler-level `authenticated_with("restaurant")` helper literally checks `if "x-api-key" in request.headers`—it never re-validates the key's value.
 3. A request with a valid cookie plus a fake `X-API-Key` therefore passes both layers even though the key was never validated.
 
 **Exploit**
@@ -277,13 +269,13 @@ _Aftermath: Maintaining separate auth blobs per handler is exhausting, so she ex
 **Severity:** 🟠 High \
 **Endpoints:** `PATCH /orders/{id}/refund/status`
 
-_Aftermath: Sandy realizes that she needs a simpler and more reliable way to track user types, so she introduces a `request.user_type` context flag._
+_Aftermath: Sandy wants handlers to branch on auth type without re-checking credentials. She refactors authenticators to set `g.manager_request` flags early, letting handlers know what kind of request they're processing._
 
 ---
 
 #### [v204] Manager Mode Stuck After Bad Key
 
-> As Sandy prepares to scale her platform to multiple restaurants, she wants handlers to rely on a single `request.user_type` value ('customer', 'manager', 'internal'). She sets it the moment an API key shows up, then intends to downgrade it if validation fails.
+> As Sandy prepares for multi-tenancy, she builds a unified `@require_auth()` decorator that accepts a list of allowed methods. Authenticators set context flags like `g.manager_request` in their constructors so handlers can branch on auth type—if validation fails, the decorator won't call the handler anyway.
 
 **The Vulnerability**
 
@@ -302,15 +294,15 @@ _Aftermath: Sandy realizes that she needs a simpler and more reliable way to tra
 **Severity:** 🟠 High \
 **Endpoints:** `GET /orders`
 
-> **Why didn’t testing catch this?** Sandy regression-tested `PATCH /orders/{id}/refund/status`, which requires a restaurant API key and therefore fails outright when the key is bad. `GET /orders` allows Basic Auth as a fallback, so once the invalid key sets `g.manager_request`, the later Basic Auth success leaves the flag in place.
+> **Why didn't testing catch this?** Sandy regression-tested `PATCH /orders/{id}/refund/status`, which requires a restaurant API key and therefore fails outright when the key is bad. `GET /orders` allows Basic Auth as a fallback, so once the invalid key sets `g.manager_request`, the later Basic Auth success leaves the flag in place.
 
-_Aftermath: Sandy doubles down on "intelligent" middleware to reduce the amount of micro-managing she needs to do._
+_Aftermath: Sandy's decorator API still requires listing multiple customer auth methods (`["cookies", "basic_auth"]`). She wants to simplify this—why not merge all customer authentication into a single class that tries multiple methods internally?_
 
 ---
 
 #### [v205] Session Overwrite via Login Form
 
-> Sandy refactors her authentication middleware to act more transparently, no matter whether the request is authenticated with Basic Auth, a cookie session or an API key.
+> Sandy merges her separate authenticator classes into a unified `CustomerAuthenticator` that internally tries session auth, then Basic Auth, then JSON credentials. Now she can use `@require_auth(["customer"])` everywhere instead of listing three different methods—and the login handler can reuse the same authenticator for validation.
 
 **The Vulnerability**
 
