@@ -2,6 +2,12 @@
 
 Thank you for your interest in contributing! Unsafe Code Lab demonstrates security vulnerabilities through production-quality, runnable code examples.
 
+## Getting Started: Your First Contribution
+
+All new development for our upcoming first release happens in the `develop` branch. To contribute, please fork the repository and create a new branch from `develop`. 
+
+Before you start coding, the best way to understand our methodology is to review the existing Flask examples. For a detailed breakdown of the security concepts we're focused on, please review our [confusion curriculum](https://github.com/Irench1k/unsafe-code/tree/develop/docs/confusion_curriculum). 
+
 ## What Makes a Good Example
 
 We create **realistic vulnerabilities** that emerge from natural coding patterns:
