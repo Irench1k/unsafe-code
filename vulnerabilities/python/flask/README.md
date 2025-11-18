@@ -8,11 +8,11 @@ This collection demonstrates how security vulnerabilities emerge in Flask applic
 
 Inconsistent interpretation happens when code that should be working with **one logical input value** ends up consulting **different representations or different sources** of that value. Sometimes this means security checks and business logic read from entirely different places (path vs. query vs. body vs. a merged helper). Other times, both read the same source but one normalizes, casts, or handles multiple values differently than the other. Either way, the result is the same: two effective values for what should be a single input, opening the door to authorization bypasses, identity confusion, and data integrity violations.
 
-1. [Input Source](vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/README.md) — Different components read the "same" logical input from different locations (path vs. query vs. body vs. headers vs. cookies), leading to precedence conflicts, merging issues, or source pollution.
-2. [Authentication](vulnerabilities/python/flask/confusion/webapp/r02_authentication_confusion/README.md) — The part that verifies identity and the part that uses identity disagree.
-3. [Authorization](vulnerabilities/python/flask/confusion/webapp/r03_authorization_confusion/README.md) — The code that checks permissions examines a different resource or identity than the code that performs the action.
-4. [Cardinality (WIP)](vulnerabilities/python/flask/confusion/webapp/r04_cardinality_confusion/README.md) — Disagreement on how many values a field can contain, resources a request may target, etc.
-5. [Normalization (WIP)](vulnerabilities/python/flask/confusion/webapp/r05_normalization_issues/README.md) — Two code paths apply different string transformations to the same logical input.
+1. [Input Source](confusion/webapp/r01_input_source_confusion/README.md) — Different components read the "same" logical input from different locations (path vs. query vs. body vs. headers vs. cookies), leading to precedence conflicts, merging issues, or source pollution.
+2. [Authentication](confusion/webapp/r02_authentication_confusion/README.md) — The part that verifies identity and the part that uses identity disagree.
+3. [Authorization](confusion/webapp/r03_authorization_confusion/README.md) — The code that checks permissions examines a different resource or identity than the code that performs the action.
+4. [Cardinality (WIP)](confusion/webapp/r04_cardinality_confusion/README.md) — Disagreement on how many values a field can contain, resources a request may target, etc.
+5. [Normalization (WIP)](confusion/webapp/r05_normalization_issues/README.md) — Two code paths apply different string transformations to the same logical input.
 
 ### Running the examples
 
