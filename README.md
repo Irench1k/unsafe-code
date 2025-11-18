@@ -12,12 +12,11 @@
 
 To get an idea of what this project is all about, we recommend to start with the [Confusion vulnerabilities](vulnerabilities/python/flask/README.md) in Flask:
 
-1. [Source Precedence](vulnerabilities/python/flask/confusion/webapp/r01_source_precedence/README.md) — Different components pull the "same" logical parameter from different places (path vs. query vs. body vs. headers vs. cookies), leading to precedence conflicts, merging issues, or source pollution.
-2. [Cross-Component Parse](vulnerabilities/python/flask/confusion/webapp/r02_cross_component_parse/README.md) — Middleware, decorators, or framework helpers parse or reshape inputs in ways that differ from what the view sees.
-3. [Authorization Binding](vulnerabilities/python/flask/confusion/webapp/r03_authz_binding/README.md) — Authorization checks identity or value X, but the handler acts on identity or value Y.
-4. [HTTP Semantics](vulnerabilities/python/flask/confusion/webapp/r04_http_semantics/README.md) — Wrong assumptions about HTTP methods or content types (e.g., GET with body, form vs. JSON) cause components to read different sources.
-5. [Multi-Value Semantics](vulnerabilities/python/flask/confusion/webapp/r05_multi_value_semantics/README.md) — One component treats a parameter as a list while another grabs only the first value, or `.get()` vs `.getlist()` disagreements create different effective values.
-6. [Normalization & Canonicalization](vulnerabilities/python/flask/confusion/webapp/r06_normalization_canonicalization/README.md) — Case folding, whitespace stripping, URL decoding, or path normalization makes "equal" values diverge when checked versus used.
+1. [Input Source](vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/README.md) — Different components read the "same" logical input from different locations (path vs. query vs. body vs. headers vs. cookies), leading to precedence conflicts, merging issues, or source pollution.
+2. [Authentication](vulnerabilities/python/flask/confusion/webapp/r02_authentication_confusion/README.md) — The part that verifies identity and the part that uses identity disagree.
+3. [Authorization](vulnerabilities/python/flask/confusion/webapp/r03_authorization_confusion/README.md) — The code that checks permissions examines a different resource or identity than the code that performs the action.
+4. [Cardinality (WIP)](vulnerabilities/python/flask/confusion/webapp/r04_cardinality_confusion/README.md) — Disagreement on how many values a field can contain, resources a request may target, etc.
+5. [Normalization (WIP)](vulnerabilities/python/flask/confusion/webapp/r05_normalization_issues/README.md) — Two code paths apply different string transformations to the same logical input.
 
 ## What You'll Find Inside
 
