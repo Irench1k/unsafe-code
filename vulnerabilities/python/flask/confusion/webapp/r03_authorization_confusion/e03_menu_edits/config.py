@@ -1,6 +1,4 @@
 """
-Configuration for v302 scenario.
-
 This module provides configuration specific to this example/blueprint.
 Since all blueprints run in the same Flask process, we can't rely on
 environment variables alone (they would be shared). Instead, we read
@@ -14,12 +12,29 @@ from decimal import Decimal
 
 
 @dataclass
+class ScenarioConfig:
+    version = "v303"
+    category = "Authorization Confusion"
+    name = "Menu Edits Without Restaurant ID"
+
+    @property
+    def slug(self) -> str:
+        return self.version + "_" + self.name.replace(" ", "_").lower()
+
+
+# Scenario configuration
+scenario = ScenarioConfig()
+
+
+@dataclass
 class Config:
+    """Configuration for the scenario."""
+
     # Database connection string (shared across all blueprints)
     database_url: str
 
     # Schema name for this specific scenario (isolated from other blueprints)
-    schema_name: str = "v302"
+    schema_name: str = scenario.version
 
     # Whether to reinitialize the database on startup
     # (drop existing schema and recreate with fixtures)

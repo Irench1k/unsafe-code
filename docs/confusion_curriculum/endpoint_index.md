@@ -24,7 +24,7 @@ This index tracks when every API surface appears, how it evolves, and which runb
 - **v103 (r01)** – Builds orders from carts and naively honors a user-supplied `order_id` when present.
 - **v104 (r01)** – Adds optional `tip` in both query and body; middleware validates the query value first, while charging logic reads the body. Keep both channels even after fixes.
 - **v201 (r02)** – Authentication middleware may populate `request.user_id` from Basic Auth, fall back to cookies, and leave polluted state. Later commits still expect this handler to rely on shared context instead of re-reading credentials.
-- **v302 (r03)** – Authorization consults `session.cart_id` to place credit holds, but fulfillment prioritizes the body’s `cart_id`. Maintain both inputs so the cookie/body mismatch remains plausible.
+- **v302 (r03)** – Authorization consults `session.cart_id` to place credit holds, but fulfillment re-resolves the cart from the URL path after clearing the session entry. Keep that order (session first, path second) so “cheap cart in session, expensive cart in path” attacks stay reachable.
 
 ### `GET /cart/{id}`
 
@@ -77,6 +77,10 @@ This index tracks when every API surface appears, how it evolves, and which runb
 - **v101 baseline** – Customers check balances via Basic Auth (later via cookies).
 - **v202 (r02)** – Handler gains a POST branch guarded by `X-Admin-API-Key`. A GET with a body should still slip into the mutation path, so retain unified routing and shared body parsing.
 
+### `GET /account/info`
+
+- **v106 (r01)** – Added during the registration sprint to show email, balance, and order counts in one payload. Shares the same customer authenticator as `/account/credits`, so later auth confusion bugs can demonstrate polluted sessions by comparing both endpoints.
+
 ### `POST /account/credits`
 
 - **v202 (r02)** – Admin-only mutation path cohabiting the same logic as GET. Maintain the method switch plus guard so subsequent confusion about HTTP verbs remains accurate.
@@ -92,7 +96,7 @@ This index tracks when every API surface appears, how it evolves, and which runb
 
 ### `POST /auth/login`
 
-- **v201 (r02)** – Public login endpoint returns cookie sessions. Middleware now copies request parameters into session context before verifying credentials, enabling session contamination (v205). Keep that eager assignment.
+- **v201 (r02)** – Public login endpoint now reuses the unified `CustomerAuthenticator`. That helper always tries the existing session cookie before checking JSON credentials, so a logged-in attacker can call login with someone else’s email and have `session["email"]` reassigned (v205). Preserve that short-circuit order.
 
 ### `POST /auth/logout`
 
@@ -114,7 +118,7 @@ This index tracks when every API surface appears, how it evolves, and which runb
 
 - **v505 (r05)** – Domains are verified with signed tokens whose `email` claim is validated using `endswith()`. Maintain string-suffix comparisons (instead of strict equality) so subdomain ownership can escalate into parent-domain control.
 
-### `PATCH /menu/items/{id}`
+### `PATCH /menu/{id}`
 
 - **v303 (r03)** – Endpoint lacks `restaurant_id` in the path, so the legacy decorator falls back to “not applicable.” Keep this decorator even if you later introduce helpers.
 - **v405 (r04)** – New `get_restaurant_id()` helper pops query parameters twice (authorization first, ORM later). Preserve the destructive read so mismatched IDs occur when multiple values are supplied.

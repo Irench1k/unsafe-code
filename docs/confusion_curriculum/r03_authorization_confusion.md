@@ -58,7 +58,7 @@ By the end of r03, these roles are enforced:
 | v103+     | PATCH  | /orders/{id}/status        | Restaurant          | Update order status           | v305             |
 | v103+     | POST   | /cart/{id}/checkout        | Customer            | Checkout cart                 | v302             |
 | v103+     | POST   | /cart/{id}/items           | Customer            | Add item to cart              |                  |
-| v303+     | PATCH  | /menu/items/{id}           | Restaurant          | Update menu item              | v303, v405       |
+| v303+     | PATCH  | /menu/{id}                 | Restaurant          | Update menu item              | v303, v405       |
 | v306+     | POST   | /restaurants               | Public              | Register restaurant + API key | v306             |
 | v307+     | PATCH  | /restaurants/{id}          | Manager             | Update restaurant profile     | v307             |
 
@@ -79,7 +79,7 @@ By the end of r03, these roles are enforced:
 | Version | Component                      | Behavioral Change                                                                        |
 | ------- | ------------------------------ | ---------------------------------------------------------------------------------------- |
 | v301    | AuthorizationContext           | `has_access_to(order)` trusts merged principals from multiple auth methods               |
-| v302    | CartAuthorization              | Authorization reads `session.cart_id`; handler prefers request body over session         |
+| v302    | CartAuthorization              | Hold logic reads `session.cart_id`; checkout re-resolves via path after clearing session |
 | v303    | MenuItem Authorization         | `@require_restaurant_access` expects `restaurant_id` in path; PATCH uses `item_id` only  |
 | v304    | bind_to_restaurant()           | Decorator validates query `restaurant_id`; helper inspects all request containers        |
 | v305    | Order Status Update            | Authorization happens in stored procedure; handler returns order before auth check       |
@@ -124,10 +124,10 @@ interface OrderUpdateResult {
   rejection_reason?: string;
 }
 
-/** Menu item editing structure used by v303/v405. */
+/** Menu item editing payload used by /menu/{id}; route omits restaurant_id so enforcement fails. */
 interface MenuItemPatch {
   item_id: string;
-  restaurant_id?: string; // Missing path param triggers confusion
+  name?: string;
   price?: decimal;
   available?: boolean;
 }
@@ -139,13 +139,11 @@ interface MenuItemPatch {
 // PATCH /orders/{id}/refund/status (v301)
 type UpdateRefundStatusRequest_v301 = {
   status: "approved" | "rejected";
-  approve_for?: string; // Requires either manager key or ownership
 };
 
 // POST /cart/{id}/checkout (v302 authorization confusion)
-type CheckoutCartRequest_v302 = CheckoutCartRequest_v201 & {
-  cart_id?: string; // Body overrides session.cart_id when present
-};
+type CheckoutCartRequest_v302 = CheckoutCartRequest_v201;
+// Confusion stems from which cart ID the framework reads (session vs. path), not from new fields.
 
 // PATCH /menu/items/{id} (v303)
 type PatchMenuItemRequest_v303 = MenuItemPatch;
@@ -192,17 +190,16 @@ type PatchRestaurantResponse_v307 = Restaurant;
 
 **The Vulnerability**
 
-- Sandy now implements separate authentication and authorization checks.
-- A new `has_access_to(order_id)` helper verifies that authenticated principal is allowed to access the given order.
-- There is no check for multiple authentication methods resulting in multiple principals though.
-- Plankton uses a valid customer cookie (for his own order) plus Chum Bucket’s API key (manager) in the same request.
-- Both security checks pass in the refund endpoint: the request comes from a manager and the order owner.
+- Sandy extracted a `has_access_to(order_id)` helper that returns `True` if _either_ the current customer owns the order or the current restaurant owns the order.
+- Manager-only endpoints now rely on that helper even though they should only consider the restaurant branch.
+- Plankton keeps his customer session cookie (from placing the order) and sends a Chum Bucket manager API key when patching refunds.
+- The API-key authenticator marks the request as “manager” while `has_access_to()` immediately approves the request because the still-present customer session owns the order.
 
 **Exploit**
 
-1. Place an order at Krusty Krab as a regular customer.
-2. Send `PATCH /orders/{id}/refund/status` with (a) customer cookie, (b) Chum Bucket API key.
-3. Middleware deems the user a manager and owner simultaneously, allowing self-approved refunds.
+1. Place an order at Krusty Krab as a regular customer (keep the cookie or stay logged in).
+2. Send `PATCH /orders/{id}/refund/status` with your Chum Bucket `X-API-Key`; no extra auth header is required because the cookie still rides along.
+3. The manager endpoint sees the API key and trusts the helper, which immediately approves the request because your user session owns the order.
 
 **Impact:** Cross-tenant privilege escalation; Plankton refunds his own purchases at competitors. \
 **Severity:** 🟠 High \
@@ -216,14 +213,15 @@ type PatchRestaurantResponse_v307 = Restaurant;
 
 **The Vulnerability**
 
-- The new authorization logic ("is this your cart?") reads `session.cart_id`. It puts a hold on the customer's credit, according to the amount of the cart.
-- The order execution prefers request body over the session cookie when both exist.
+- The new `charge_customer_with_hold` decorator resolves carts by reading `session.cart_id` first, charging/authorizing that cart total, and then clearing the session entry.
+- The checkout handler runs afterwards and calls `resolve_trusted_cart()` again; with the session entry gone, it falls back to the cart ID in the URL path (`/<cart_id>/checkout`).
+- A request can therefore pay for the cheap cart currently stored in the session while the handler fulfills the expensive cart referenced in the path.
 
 **Exploit**
 
-1. Maintain two carts: `A` ($10) and `B` ($100).
-2. Keep `session.cart_id = A` by browsing in the UI, then POST `/cart/{id}/checkout` with body `{ "cart_id": "B" }`.
-3. Authorization sees cookie A ("owned"), but handlers load items from B and only bill $10.
+1. Maintain two carts: keep a $7 “official” cart in the UI so `session.cart_id` points to it, and separately build a $70 cart by calling the API with different IDs.
+2. Without checking out the cheap cart, send `POST /cart/{expensive_cart_id}/checkout` from the browser session.
+3. The hold decorator charges the $7 session cart, but the handler immediately re-resolves the path cart and ships the $70 items.
 
 **Impact:** Plankton is charged $10 for the $100 cart. \
 **Severity:** 🟠 High \
@@ -235,19 +233,19 @@ _Aftermath: Sandy reviews her whole authorization strategy, ahead of exposing ma
 
 #### [v303] Menu Edits Without Restaurant ID
 
-> Restaurants beg for a lightweight way to tweak menus without needing to contact Sandy for support, so she adds adds a dedicated endpoint: `PATCH /menu/items/{id}`.
+> Restaurants beg for a lightweight way to tweak menus without needing to contact Sandy for support, so she adds a dedicated endpoint: `PATCH /menu/{item_id}`.
 
 **The Vulnerability**
 
-- Sandy reuses `/restaurants/` authorization decorator which looks up `restaurant_id` inside `request.view_args['restaurant_id']`.
-- The `PATCH /menu/items/{id}` endpoint path only exposes `item_id`, so `restaurant_id` is `None`.
-- The decorator treats "missing" as "not applicable" and skips the enforcement.
+- Sandy reuses the `/restaurants/{id}/menu/...` decorator which expects `request.view_args['restaurant_id']`.
+- The new `/menu/{item_id}` route never sets `restaurant_id`, so the decorator just verifies the item exists and exits without comparing ownership.
+- Handlers therefore trust whichever API key showed up, even when the item belongs to another restaurant.
 
 **Exploit**
 
 1. Auth as manager of Chum Bucket (restaurant_id = 2).
-2. Call `PATCH /menu/items/99` (a Krusty Krab item with restaurant_id = 1) with `{"price": 0.01}`.
-3. Decorator sees no `restaurant_id`, short-circuits, and the item update succeeds.
+2. Call `PATCH /menu/1` (a Krusty Krab item) with `{ "available": false }`.
+3. The decorator has no restaurant ID to compare, so the request succeeds and disables the competitor’s menu item.
 
 **Impact:** Cross-restaurant menu tampering. \
 **Severity:** 🟠 High \

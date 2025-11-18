@@ -15,11 +15,13 @@ multi-step flows atomic and easier to reason about.
 
 import logging
 from decimal import Decimal
+from typing import TypeVar
 
 from flask import g
 from sqlalchemy import select
 
 from .models import (
+    Base,
     Cart,
     CartItem,
     MenuItem,
@@ -32,6 +34,7 @@ from .models import (
 )
 
 logger = logging.getLogger(__name__)
+TModel = TypeVar("TModel", bound=Base)
 
 
 def get_request_session():
@@ -55,6 +58,19 @@ def _coerce_int_id(value, label: str) -> int | None:
         return None
     logger.warning("Unsupported %s type: %s", label, type(value))
     return None
+
+
+def find_resource_by_id(
+    model_class: type[TModel],
+    resource_id: int | str,
+    label: str = "resource_id",
+) -> TModel | None:
+    """Fetch a generic ORM resource by its primary key."""
+    session = get_request_session()
+    pk = _coerce_int_id(resource_id, label)
+    if pk is None:
+        return None
+    return session.get(model_class, pk)
 
 
 # ============================================================
@@ -108,6 +124,13 @@ def find_menu_items_by_restaurant(restaurant_id: int | str) -> list[MenuItem]:
         return []
     stmt = select(MenuItem).where(MenuItem.restaurant_id == rest_id)
     return list(session.execute(stmt).scalars().all())
+
+
+def save_menu_item(menu_item: MenuItem) -> None:
+    """Persist a menu item within the current transaction."""
+    session = get_request_session()
+    session.add(menu_item)
+    session.flush()
 
 
 # ============================================================
