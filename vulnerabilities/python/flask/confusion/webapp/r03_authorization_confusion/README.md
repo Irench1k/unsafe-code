@@ -1,4 +1,4 @@
-## r03: Authorization Confusion
+## r03: Authorization Confusion (Work in Progress)
 
 _Feature focus:_ authorization decorators, resource loading and ownership checks \
 _Student skill:_ comparing permission checks vs. action targets, spotting inconsistent resource resolution
@@ -62,7 +62,7 @@ By the end of r03, these roles are enforced:
 | v306+     | POST   | /restaurants               | Public              | Register restaurant + API key | v306             |
 | v307+     | PATCH  | /restaurants/{id}          | Manager             | Update restaurant profile     | v307             |
 
-### Vulnerabilities to Implement
+### Vulnerabilities to Implement (Work in Progress)
 
 ### [v301] Dual-Auth Refund Approval
 
