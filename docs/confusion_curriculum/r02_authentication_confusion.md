@@ -218,15 +218,15 @@ type AuthDebugPayload = {
 
 **The Vulnerability**
 
-- Middleware eagerly sets `request.user_id` from the Basic Auth username before verifying the provided password.
-- When Basic Auth validation later fails, the code simply falls back to the cookie but leaves the polluted `user_id` in place.
-- Handlers trust `request.user_id` because it used to be populated only after auth succeeded (i.e. previously the request would have failed when Basic Auth failed, but now there's a fallback to the cookie - without proper cleanup in between).
+- `authenticate_customer()` instantiates both the cookie authenticator and the Basic Auth authenticator before checking whether either one succeeds.
+- The Basic Auth authenticator copies its username into `g.email` (and loads that user) in its constructor, before the password is ever verified.
+- The generator short-circuits as soon as the cookie authenticator succeeds, so the poisoned `g.email` from the failed Basic Auth attempt survives into handler logic.
 
 **Exploit**
 
 1. Log in normally in the browser to obtain a session cookie.
-2. Call `GET /orders` with that cookie plus `Authorization: Basic spongebob@krusty-krab.sea:` (no password).
-3. Middleware copies the victim email into context, fails auth, then uses the cookie. However, handlers still see the victim’s ID.
+2. Call `GET /orders` with that cookie plus `Authorization: Basic spongebob@krusty-krab.sea:nope`.
+3. The Basic authenticator copies SpongeBob’s email into context, the cookie authenticator returns True, and handlers read SpongeBob’s orders while charging your account.
 
 **Impact:** Attacker reads/modifies victim orders and spends their credits. \
 **Severity:** 🔴 Critical \
@@ -241,13 +241,13 @@ type AuthDebugPayload = {
 **The Vulnerability**
 
 - The admin guard only runs when `request.method == 'POST'`.
-- Sending a GET with a body triggers the credit-addition logic without hitting the admin guard.
+- After the method check, any request that carries `user` and `amount` in `request.form` drops into the credit-addition branch—regardless of verb.
 
 **Exploit**
 
 1. Authenticate as a normal customer.
-2. Send `GET /account/credits` with body `{ "amount": 500, "customer": "plankton@chum-bucket.sea" }`.
-3. Handler skips the admin gate yet executes the credit mutation path, increasing the attacker’s balance.
+2. Send `GET /account/credits` with `Content-Type: application/x-www-form-urlencoded` and body `user=plankton@chum-bucket.sea&amount=500`.
+3. The GET path never hits the admin gate yet still executes the credit mutation path, increasing the attacker’s balance.
 
 **Impact:** Unlimited self-awarded credits. \
 **Severity:** 🔴 Critical \
@@ -263,9 +263,9 @@ _Aftermath: Maintaining separate auth blobs per handler is exhausting, so she ex
 
 **The Vulnerability**
 
-1. The `@require_customer_or_restaurant` controller level decorator accepts either a customer cookie or an API key and stops at the first success.
-2. The `@authenticated_with("restaurant")` handler level decorator merely ensures `X-API-Key` exists on the request.
-3. A request with a valid cookie plus a fake `X-API-Key` passes both layers even though the key was never validated.
+1. The `@require_customer_or_restaurant` controller-level guard accepts either a customer cookie or an API key and stops at the first success.
+2. The handler-level `authenticated_with("restaurant")` helper literally checks `if "x-api-key" in request.headers`—it never re-validates the key’s value.
+3. A request with a valid cookie plus a fake `X-API-Key` therefore passes both layers even though the key was never validated.
 
 **Exploit**
 
@@ -287,21 +287,22 @@ _Aftermath: Sandy realizes that she needs a simpler and more reliable way to tra
 
 **The Vulnerability**
 
-- When verifying the provided API key, the middleware sets `request.user_type = 'manager'` before running validation.
-- If validation fails, it forgets to clear the flag before moving on to Basic Auth validation.
-- Manager-only endpoints (`GET /orders` listing all restaurants) read the stale flag and skip additional checks.
+- The shared `@require_auth(["cookies","restaurant_api_key","basic_auth"])` decorator instantiates the restaurant authenticator whenever an `X-API-Key` header appears.
+- That authenticator sets `g.manager_request = True` up front so handlers can tell a manager flow is in progress, then runs the HMAC comparison.
+- When the key is invalid the authenticator returns `False`, but nobody clears `g.manager_request` before the Basic Auth authenticator runs.
+- Manager endpoints (like `GET /orders`) check `g.manager_request` to decide whether to return all tenants, so a stale flag after a failed key lets any Basic Auth user read every order.
 
 **Exploit**
 
 1. Send `X-API-Key: fake` plus a valid Basic Auth credentials to `GET /orders`.
 2. Middleware marks the context as `manager`, fails key validation, then authenticates via Basic Auth.
-3. Handler sees `request.user_type == 'manager'` and returns all orders across tenants.
+3. Handler sees `g.manager_request` still set and returns all orders across tenants.
 
 **Impact:** Full data disclosure/modification for every restaurant. \
 **Severity:** 🟠 High \
 **Endpoints:** `GET /orders`
 
-> **Why didn’t testing catch this?** Sandy only regression-tested `PATCH /orders/{id}/refund/status`, whose middleware order (API key -> cookie) cleans up the context. `GET /orders` executes Basic Auth first, so the polluted state survives into handler logic.
+> **Why didn’t testing catch this?** Sandy regression-tested `PATCH /orders/{id}/refund/status`, which requires a restaurant API key and therefore fails outright when the key is bad. `GET /orders` allows Basic Auth as a fallback, so once the invalid key sets `g.manager_request`, the later Basic Auth success leaves the flag in place.
 
 _Aftermath: Sandy doubles down on "intelligent" middleware to reduce the amount of micro-managing she needs to do._
 
@@ -313,16 +314,16 @@ _Aftermath: Sandy doubles down on "intelligent" middleware to reduce the amount 
 
 **The Vulnerability**
 
-- The new middleware automatically uses request context for Basic Auth & API key requests, and cookie session for cookie requests.
-- If a login handler is called with valid cookie session, it will place `session.email` based on the provided value.
-- Email/password verification runs _after_ this copy.
-- An attacker with a valid cookie can post `{ "email": "plankton@krusty-krab.sea", "password": "wrong" }` and still rewrite the session identity.
+- The login form now reuses the unified `CustomerAuthenticator` to “validate” credentials instead of checking the JSON body directly.
+- That authenticator always tries the session cookie first; if you’re already logged in, `authenticate()` returns `True` before it ever inspects the JSON email/password.
+- The handler assumes the JSON credentials were validated and blindly sets `session["email"] = request.json["email"]`.
+- A logged-in attacker can therefore rebind their session to any email address without knowing the password.
 
 **Exploit**
 
 1. Log in as Plankton and keep the session cookie.
 2. Call `POST /auth/login` with JSON `{ "email": "spongebob@krusty-krab.sea", "password": "nope" }`.
-3. Middleware copies the victim email into the session, fails password check, but leaves the mutated session cookie active. Subsequent requests run as SpongeBob.
+3. The authenticator short-circuits on your existing cookie, the handler still overwrites `session.email` with SpongeBob, and future requests run as the victim.
 
 **Impact:** Session fixation-style account takeover. \
 **Severity:** 🔴 Critical \

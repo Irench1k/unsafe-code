@@ -33,6 +33,7 @@ At this stage, authentication is basic (Sandy onboards each user manually, and u
 | Lifecycle | Method | Path                | Auth                | Purpose                   | Vulnerabilities |
 | --------- | ------ | ------------------- | ------------------- | ------------------------- | --------------- |
 | v101+     | GET    | /account/credits    | Customer            | View balance              |                 |
+| v106+     | GET    | /account/info       | Customer            | View account summary      |                 |
 | v101+     | GET    | /menu               | Public              | List available menu items |                 |
 | v101+     | GET    | /orders             | Customer/Restaurant | List orders               |                 |
 | v101-v102 | POST   | /orders             | Customer            | Create new order          | v101, v102      |
@@ -254,14 +255,14 @@ _Aftermath: With positive kiosk feedback, Mr. Krabs signs off on the delivery se
 
 **The Vulnerability**
 
-- Fee calculation happens to prioritize query args, if it's present
-- The order creation only reads the request data from the body
+- `calculate_delivery_fee()` totals `request.values`, so query parameters override form data.
+- The order creation only reads the request data from the body, ignoring the query string.
 
 **Exploit**
 
 1. Populate a cart with $10 worth of items.
-2. Hit checkout with `?items=[{"sku":"deluxe-mega","price":30}]`.
-3. Middleware thinks the cart is worth $30 and skips the delivery fee; the body still charges $10 worth of items.
+2. Hit checkout with `?items=deluxe-mega&items=krabby-combo` while the body contains only the cheap item IDs.
+3. Middleware thinks the order crosses the free-delivery threshold, while the handler still charges the $10 body payload.
 
 **Impact:** Free delivery on low-value orders. \
 **Severity:** 🟢 Low \
@@ -327,14 +328,14 @@ _Aftermath: Sandy blames poor coding practices on the crunch time, and promises 
 
 **The Vulnerability**
 
-- The auto-approval check reads `amount` from the JSON body, defaulting to `order_total * 0.2` when absent.
-- The database write consumes the `amount` from either JSON or the form data.
+- The auto-approval check reads `amount` only when the body is JSON; form-encoded or query data fall back to `order_total * 0.2`.
+- The handler later consumes `amount` from _any_ container (query, form, JSON) when creating the refund record.
 
 **Exploit**
 
-1. Plankton sends a request to `/orders/{order_id}/refund` with body `amount=2000`
-2. The auto-approval check only checks JSON body, so it considers it a 20% refund and auto-approves it.
-3. The handler refunds Plankton $2000.
+1. Plankton sends `POST /orders/{order_id}/refund` with `Content-Type: application/x-www-form-urlencoded` and `amount=2000`.
+2. The guard sees a non-JSON payload, assumes a 20% refund, and auto-approves it.
+3. The handler reads the form value and pays out $2000.
 
 **Impact:** Sandy pays out refunds far exceeding the original purchase. \
 **Severity:** 🔴 Critical \
