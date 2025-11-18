@@ -36,7 +36,9 @@ We're actively expanding coverage to include:
 | **Python**     | Django, Django REST Framework, FastAPI, CherryPy, Bottle       |
 | **JavaScript** | Express.js, Koa, Meteor.js, Nest.js                   |
 
-**Want to help?** We're looking for contributors to help build vulnerability examples for these frameworks. Each framework needs runnable applications demonstrating security pitfalls in production-quality code. Check out the Flask examples to see what we're aiming for, then see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute!
+## Contributing
+
+**Want to help? We're preparing for our first release!** All development is happening in our **`develop`** branch. If you'd like to contribute, please see our **[CONTRIBUTING.md](CONTRIBUTING.md)** for details on how to get started by working from that branch.
 
 ## Two Ways to Learn
 
