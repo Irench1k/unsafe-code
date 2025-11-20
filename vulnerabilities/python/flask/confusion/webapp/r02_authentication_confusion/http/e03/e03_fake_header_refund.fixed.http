@@ -1,66 +1,46 @@
-@base = http://localhost:8000/api/v204
+# @import ../common/setup.http
+@base = {{base_host}}/v204
 
-POST {{base}}/auth/login
-Content-Type: application/json
-
-{
-    "email": "plankton@chum-bucket.sea",
-    "password": "i_love_my_wife"
-}
-
-### Create a new cart and add items to it
+### Step 1: Plankton requests a refund again
 # @name cart
 POST {{base}}/cart
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+Authorization: {{plankton_auth}}
 
-### Add items to the cart
 POST {{base}}/cart/{{cart.response.body.cart_id}}/items
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+Authorization: {{plankton_auth}}
 Content-Type: application/json
 
-{
-  "item_id": "6"
-}
+{ "item_id": "6" }
 
-### Checkout the cart
 # @name order
 POST {{base}}/cart/{{cart.response.body.cart_id}}/checkout
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+Authorization: {{plankton_auth}}
 Content-Type: application/x-www-form-urlencoded
 
-tip=1&delivery_address=Chum Backet Restaurant
+tip=1&delivery_address=Chum Bucket
 
-### Now Plankton wants to refund his order total
+# @name refund_request
 POST {{base}}/orders/{{order.response.body.order_id}}/refund
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+Authorization: {{plankton_auth}}
 Content-Type: application/x-www-form-urlencoded
 
 amount=26.50
 
-### Legitimate request: Restaurant manager rejects Plankton's refund request
+### Attempt Exploit: Fake Key Approval
+# @name exploit_attempt
 PATCH {{base}}/orders/{{order.response.body.order_id}}/refund/status
-X-API-Key: key-mrkrabs-1bd647c2-dc5b-4c2b-a316-5ff83786c219
-Content-Type: application/x-www-form-urlencoded
-
-status=rejected
-
-### Check the refund status: his request was rejected
-GET {{base}}/orders/{{order.response.body.order_id}}/refund/status
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
-
-# --- Vulnerable Example ---
-
-### Vulnerable Example FIXED: now Plankton cannot approve his own refund request by sending a fake X-API-Key header
-PATCH {{base}}/orders/{{order.response.body.order_id}}/refund/status
-X-API-Key: fake
+Authorization: {{plankton_auth}}
+X-API-Key: trust_me_bro
 Content-Type: application/x-www-form-urlencoded
 
 status=approved
 
-### Check the refund status: his request is NOT approved
-GET {{base}}/orders/{{order.response.body.order_id}}/refund/status
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+# Verification: Sandy updated the authenticator to validate the key. The fake key is rejected (or ignored), and Plankton is denied access.
+?? status >= 400
 
-### We see that Plankton's balance stayed the same
-GET {{base}}/account/info
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+# Double check status is NOT approved
+GET {{base}}/orders/{{order.response.body.order_id}}/refund/status
+Authorization: {{plankton_auth}}
+
+?? status == 200
+?? body.status != "approved"

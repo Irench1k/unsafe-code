@@ -1,11 +1,8 @@
-@base = http://localhost:8000/api/v202
+# @import ../common/setup.http
+@base = {{base_host}}/v202
 
-### Mobile app still uses Basic Auth for user authentication
-GET {{base}}/orders
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
-
-### Plankton logins into his own account
-# This request sets the session cookie that will be automatically added in the followup requests
+### Step 1: Plankton logs in
+# @name login
 POST {{base}}/auth/login
 Content-Type: application/json
 
@@ -14,13 +11,11 @@ Content-Type: application/json
     "password": "i_love_my_wife"
 }
 
-### Plankton accesses his own orders via cookie authentication
-GET {{base}}/orders
-
-### Vulnerable Example FIXED: now when Plankton tries to access Spongebob's orders without knowing his password, he sees his own orders anyway
-GET {{base}}/orders
-Authorization: Basic spongebob@bikinibottom.sea:no_password
-
-#### We can check it by accessing account info: we see Plankton's account
+### Attempt Exploit: Send conflicting credentials
+# @name exploit_attempt
 GET {{base}}/account/info
-Authorization: Basic spongebob@bikinibottom.sea:no_password
+Authorization: Basic spongebob@bikinibottom.sea:wrong_password
+
+# Verification: Sandy separated the authenticators. The system now correctly identifies Plankton from the cookie, ignoring the invalid Basic Auth.
+?? status == 200
+?? body.email == "plankton@chum-bucket.sea"

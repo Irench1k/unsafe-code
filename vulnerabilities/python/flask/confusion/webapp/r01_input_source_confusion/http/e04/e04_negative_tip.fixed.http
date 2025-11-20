@@ -1,71 +1,29 @@
-@base = http://localhost:8000/api/v105
+# @import ../common/setup.http
+@base = {{base_host}}/v105
 
-### Vulnerable Example FIXED:
-
-### Create a cart
-# @name cheapCart
+### Sandy tests the fix with a cart
+# @name cart
 POST {{base}}/cart
-Authorization: Basic sandy:testpassword
+Authorization: {{sandy_auth}}
 
-### Add an item to the cart
-POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/items
-Authorization: Basic sandy:testpassword
+POST {{base}}/cart/{{cart.response.body.cart_id}}/items
+Authorization: {{sandy_auth}}
+Content-Type: application/json
+
+{ "item_id": "2" }
+
+### Attempt Exploit: The "Bait and Switch" Tip
+# @name exploit_attempt
+POST {{base}}/cart/{{cart.response.body.cart_id}}/checkout?tip=20
+Authorization: {{sandy_auth}}
 Content-Type: application/json
 
 {
-  "item_id": "1"
+  "tip": -50,
+  "delivery_address": "Chum Bucket"
 }
 
-### Now when someone "accidentally" gives a negative tip, it will be converted to a positive one
-# And we take it from the customer!
-POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout
-Authorization: Basic sandy:testpassword
-Content-Type: application/x-www-form-urlencoded
-
-tip=-10&delivery_address=124 Conch Street
-
-
-# {
-#   ...
-#   "order_id": "2",
-#   "tip": "10",
-#   ...
-# }
-
-### Now all these examples work the same way: no negative tips anymore!
-POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout
-Authorization: Basic sandy:testpassword
-Content-Type: application/json
-
-{
-  "tip": -1,
-  "delivery_address": "124 Conch Street"
-}
-
-### Even if you provide a positive tip in the query params, and a negative tip in the body, 
-# we will ignore the query params and take the tip from the body, which will be converted to a positive one
-# @name cheapOrder
-POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout?tip=1
-Authorization: Basic sandy:testpassword
-Content-Type: application/x-www-form-urlencoded
-
-tip=-2&delivery_address=124 Conch Street
-
-### Same with JSON body!
-POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout?tip=1
-Authorization: Basic sandy:testpassword
-Content-Type: application/json
-
-{
-  "tip": -2,
-  "delivery_address": "124 Conch Street"
-}
-
-### Now you see that all orders have positive tips!
-GET {{base}}/orders
-Authorization: Basic sandy:testpassword
-
-### Check balance: Sandy was charged for all of them
-GET {{base}}/account/credits
-Authorization: Basic sandy:testpassword
-
+# Verification: Sandy added `abs()` to the handler. The -50 becomes +50. Thanks for the tip, Plankton!
+?? status == 201
+?? body.tip == "50.00"
+?? body.total == "56.00"

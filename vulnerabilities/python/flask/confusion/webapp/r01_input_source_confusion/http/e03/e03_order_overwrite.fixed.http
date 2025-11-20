@@ -1,81 +1,47 @@
-@base = http://localhost:8000/api/v104
+# @import ../common/setup.http
+@base = {{base_host}}/v104
 
-### Vulnerable Example FIXED:
-
-### Create a cart and populate it with an item
-# @name cheapCart
+### Step 1: Sandy creates a cheap order to test the fix
+# @name cheap_cart
 POST {{base}}/cart
-Authorization: Basic sandy:testpassword
+Authorization: {{sandy_auth}}
 
-###
-POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/items
-Authorization: Basic sandy:testpassword
+POST {{base}}/cart/{{cheap_cart.response.body.cart_id}}/items
+Authorization: {{sandy_auth}}
 Content-Type: application/json
 
-{
-  "item_id": "1"
-}
+{ "item_id": "2" }
 
-### Checkout the cart
-# @name cheapOrder
-POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout
-Authorization: Basic sandy:testpassword
+# @name cheap_order
+POST {{base}}/cart/{{cheap_cart.response.body.cart_id}}/checkout
+Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
-delivery_address=124 Conch Street
+tip=0&delivery_address=Chum Bucket
 
-### View orders to see the cart checkout
-GET {{base}}/orders
-Authorization: Basic sandy:testpassword
-
-### Check balance
-GET {{base}}/account/credits
-Authorization: Basic sandy:testpassword
-
-### Vulnerable Example FIXED:
-
-### Create a cart with expensive items
-# @name expensiveCart
+### Step 2: Sandy fills a new cart with expensive items
+# @name expensive_cart
 POST {{base}}/cart
-Authorization: Basic sandy:testpassword
+Authorization: {{sandy_auth}}
 
-### Add expensive combo ($20.50) to the cart
-POST {{base}}/cart/{{expensiveCart.response.body.cart_id}}/items
-Authorization: Basic sandy:testpassword
+POST {{base}}/cart/{{expensive_cart.response.body.cart_id}}/items
+Authorization: {{sandy_auth}}
+Content-Type: application/json
+
+{ "item_id": "5" }
+
+### Attempt Exploit: Inject the old order_id
+# @name exploit_attempt
+POST {{base}}/cart/{{expensive_cart.response.body.cart_id}}/checkout
+Authorization: {{sandy_auth}}
 Content-Type: application/json
 
 {
-  "item_id": "6"
+  "tip": 0,
+  "delivery_address": "Chum Bucket",
+  "order_id": {{cheap_order.response.body.order_id}}
 }
 
-### Add burger ($5.99) to the cart (total now > $25, free delivery!)
-POST {{base}}/cart/{{expensiveCart.response.body.cart_id}}/items
-Authorization: Basic sandy:testpassword
-Content-Type: application/json
-
-{
-  "item_id": "1"
-}
-
-### Now adding the order_id is not allowed. Suck it Plankton!
-POST {{base}}/cart/{{expensiveCart.response.body.cart_id}}/checkout
-Authorization: Basic sandy:testpassword
-Content-Type: application/json
-
-{
-  "delivery_address": "124 Conch Street",
-  "order_id": "{{cheapOrder.response.body.order_id}}"
-}
-
-# Now if someone tries to overwrite the order_id with another, they will get an error:
-# {
-#   "error": "hacking attempt detected"
-# }
-
-### Check Sandy's order history: she has her cheap order, but no expensive order
-GET {{base}}/orders
-Authorization: Basic sandy:testpassword
-
-### Check Sandy's balance: she paid only for the cheap order, which is fine, because she didn't get her expensive order
-GET {{base}}/account/credits
-Authorization: Basic sandy:testpassword
+# Verification: The system ignores the injected ID and creates a fresh order.
+?? status == 201
+?? body.order_id != {{cheap_order.response.body.order_id}}

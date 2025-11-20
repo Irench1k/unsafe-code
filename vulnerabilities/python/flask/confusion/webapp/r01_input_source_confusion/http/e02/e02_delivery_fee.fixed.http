@@ -1,13 +1,25 @@
-@base = http://localhost:8000/api/v103
+# @import ../common/setup.http
+@base = {{base_host}}/v103
 
-### Vulnerable Example FIXED:
-# Sandy checks that the delivery fee is correctly calculated
-POST {{base}}/orders?items=6&items=1
-Authorization: Basic sandy:testpassword
+### Sandy verifies the fix: No more free rides for single patties
+# @name menu
+GET {{base}}/menu
+
+{{
+  const menu = menu.response.body;
+  exports.cheap_item = menu.find(i => i.price < 10);
+  exports.expensive_item = menu.find(i => i.price > 20);
+}}
+
+### Attempt Exploit: Fake a large order in the URL
+# @name exploit_attempt
+POST {{base}}/orders?items={{expensive_item.item_id}}&items={{expensive_item.item_id}}
+Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
-items=3&delivery_address=124 Conch Street
+item={{cheap_item.item_id}}&delivery_address=Chum Bucket
 
-### Check balance after regression test
-GET {{base}}/account/credits
-Authorization: Basic sandy:testpassword
+# Verification: The calculator now ignores the URL. Since the actual order is cheap, the $5.00 fee is applied.
+?? status == 201
+?? body.delivery_fee == "5.00"
+?? js parseFloat(response.body.total) == parseFloat(response.body.items[0].price) + 5.00

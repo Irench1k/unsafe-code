@@ -1,16 +1,32 @@
-@base = http://localhost:8000/api/v108
+# @import ../common/setup.http
+@base = {{base_host}}/v108
+@mailpit = http://127.0.0.1:8025/api/v1
 
-### Plankton registers his own account
+### Plankton registers
+# @name register_request
 POST {{base}}/auth/register
 Content-Type: application/json
 
-{
-    "email": "plankton@chum-bucket.sea"
-}
+{ "email": "plankton@chum-bucket.sea" }
 
+# @name email_search
+GET {{mailpit}}/messages?limit=1
 
-### Plankton uses the token to register his own account
-# @prompt token Get the token from verification email, using Mailpit UI: http://127.0.0.1:8025/
+{{
+  const messages = email_search.response.parsedBody.messages;
+  exports.message_id = messages[0].ID;
+}}
+
+# @name email_content
+GET {{mailpit}}/message/{{message_id}}
+
+{{
+  const body = email_content.response.parsedBody.Body || email_content.response.parsedBody.Text;
+  const tokenMatch = body.match(/token=([a-zA-Z0-9\-_.]+)/);
+  exports.token = tokenMatch ? tokenMatch[1] : "";
+}}
+
+### He completes registration
 # @name registration
 POST {{base}}/auth/register
 Content-Type: application/json
@@ -21,44 +37,22 @@ Content-Type: application/json
     "name": "Plankton"
 }
 
-
-### We can verify that Plankton's account was created and he received his bonus of $2
-GET {{base}}/account/info
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
-
-# {
-#   "balance": "2.00",
-#   "email": "plankton@chum-bucket.sea",
-#   "name": "Plankton",
-#   "orders": 0
-# }
-
-### Vulnerable Example FIXED: now Plankton is NOT able to collect an additional signup-bonuses
+### Attempt Exploit: The "Double Dip"
+# @name exploit_attempt
 POST {{base}}/auth/register
 Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
 Content-Type: application/json
 
 {
-    "token": "{{registration.request.body.token}}",
+    "token": "{{token}}",
     "password": "i_love_my_wife",
     "name": "Plankton"
 }
 
-
-
-# {
-#   "error": "Registration failed, don't try again!"
-# }
-
-### We see that Plankton's balance is still $2
+# Verification: Sandy fixed the middleware. Authenticated users cannot register.
+# Balance remains $2.00.
 GET {{base}}/account/info
 Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
 
-# {
-#   "balance": "2.00",
-#   "email": "plankton@chum-bucket.sea",
-#   "name": "Plankton",
-#   "orders": 0
-# }
-
-
+?? status == 200
+?? body.balance == "2.00"

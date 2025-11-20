@@ -1,6 +1,8 @@
-@base = http://localhost:8000/api/v206
+# @import ../common/setup.http
+@base = {{base_host}}/v206
 
-### Plankton logs in as usual
+### Step 1: Plankton logs in
+# @name login
 POST {{base}}/auth/login
 Content-Type: application/json
 
@@ -9,23 +11,18 @@ Content-Type: application/json
     "password": "i_love_my_wife"
 }
 
-### Check account info: it's Plankton's account
-GET {{base}}/account/info
-
-### Plankton can list his own orders
-GET {{base}}/orders
-
-#### Vulnerable Example FIXED: Plankton tries to login as SpongeBob, but logs in as himself
+### Attempt Exploit: Body Snatcher
+# @name exploit_attempt
 POST {{base}}/auth/login
 Content-Type: application/json
 
 {
     "email": "spongebob@bikinibottom.sea",
-    "password": "does not matter"
+    "password": "does_not_matter"
 }
 
-### Check account info again: it's Plankton's account
+# Verification: Sandy fixed the login handler to explicitly check credentials, ignoring the cookie.
+# The login fails (or keeps us as Plankton), but definitely doesn't switch us to SpongeBob.
 GET {{base}}/account/info
-
-### Check orders: it's Plankton's orders!
-GET {{base}}/orders
+?? status == 200
+?? body.email == "plankton@chum-bucket.sea"

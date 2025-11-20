@@ -1,12 +1,12 @@
 # @import ../common/setup.http
-@base = {{base_host}}/v302
+@base = {{base_host}}/v303
 
 ### Step 1: Plankton checks his balance
 # @name initial_balance
 GET {{base}}/account/info
 Authorization: {{plankton_auth}}
 
-### Step 2: He creates an Expensive Cart (Stashed)
+### Step 2: Create Expensive Cart
 # @name expensive_cart
 POST {{base}}/cart?restaurant_id=1
 Authorization: {{plankton_auth}}
@@ -17,7 +17,7 @@ Content-Type: application/json
 
 { "item_id": "5" }
 
-### Step 3: He creates a Cheap Cart (Active Session)
+### Step 3: Create Cheap Cart (Active)
 # @name cheap_cart
 POST {{base}}/cart?restaurant_id=1
 Authorization: {{plankton_auth}}
@@ -28,10 +28,8 @@ Content-Type: application/json
 
 { "item_id": "2" }
 
-### Exploit: The "Bait and Switch" Checkout
-# The Authorization Decorator charges the "Active Cart" (Cheap) from the session.
-# The Checkout Handler fulfills the "Target Cart" (Expensive) from the URL.
-# @name exploit
+### Attempt Exploit: Bait and Switch
+# @name exploit_attempt
 POST {{base}}/cart/{{expensive_cart.response.body.cart_id}}/checkout
 Authorization: {{plankton_auth}}
 Content-Type: application/json
@@ -41,9 +39,8 @@ Content-Type: application/json
   "delivery_address": "Chum Bucket"
 }
 
-# Verification: Plankton received the Expensive Item (ID 5) but paid the Cheap Price (~$6).
-?? status == 200
-?? body.items[0].item_id == 5
+# Verification: Sandy fixed the mismatch. The system now charges for the cart being checked out.
+# Plankton pays the full price (~$50).
 GET {{base}}/account/info
 Authorization: {{plankton_auth}}
-?? js parseFloat(response.body.balance) > parseFloat(initial_balance.response.body.balance) - 20.00
+?? js (exploit_attempt.status >= 400) || (parseFloat(response.body.balance) < parseFloat(initial_balance.response.body.balance) - 40.00)

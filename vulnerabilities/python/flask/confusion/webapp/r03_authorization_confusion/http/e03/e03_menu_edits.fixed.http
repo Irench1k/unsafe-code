@@ -1,0 +1,26 @@
+# @import ../common/setup.http
+@base = {{base_host}}/v304
+
+### Step 1: Plankton verifies the Krabby Patty is available
+# @name menu_before
+GET {{base}}/menu
+
+{{
+  const item = menu_before.response.body.find(i => i.item_id == 1);
+  exports.is_available = item.available;
+}}
+
+### Attempt Exploit: Menu Sabotage
+# @name exploit_attempt
+PATCH {{base}}/menu/1
+X-API-Key: {{chum_bucket_api_key}}
+Content-Type: application/json
+
+{
+  "available": false
+}
+
+# Verification: Sandy added a helper to explicitly check item ownership. Plankton is denied.
+?? status >= 400
+GET {{base}}/menu
+?? js response.body.find(i => i.item_id == 1).available == true

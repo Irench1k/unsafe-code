@@ -1,0 +1,7 @@
+# @name setup
+@base_host = http://localhost:8000/api
+@base = {{base_host}}/v100
+
+# Common variables
+@sandy_auth = Basic sandy:testpassword
+@plankton_auth = Basic plankton@chum-bucket.sea:i_love_my_wife

@@ -1,12 +1,25 @@
-# Note: The base URL assumes that the blueprints are registered by your routing setup
-# to be accessible under /confusion/r01/e01. You may need to adjust this.
-@base = http://localhost:8000/api/v102
+# @import ../common/setup.http
+@base = {{base_host}}/v102
 
-### Vulnerable Example FIXED:
-# Sandy introduces an update, and she tests that previous vulnerability is fixed:
-# Now "item" parameter has been removed.
+### Sandy tests the fix by attempting the same "Dual Button" trick
+# @name menu
+GET {{base}}/menu
+
+{{
+  const menu = menu.response.body;
+  exports.cheap_item = menu.find(i => i.price < 5);
+  exports.expensive_item = menu.find(i => i.price > 20);
+}}
+
+### Attempt Exploit: Pay for cheap, get expensive?
+# @name exploit_attempt
 POST {{base}}/orders
-Authorization: Basic sandy:testpassword
+Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
-item=3&items=1&items=2&items=3
+item={{cheap_item.item_id}}&items={{expensive_item.item_id}}
+
+# Verification: The system is consistent now. If it sees the cheap item, it charges AND delivers the cheap item.
+# (Or if it prioritizes the list, it charges AND delivers the expensive one).
+?? status == 201
+?? js response.body.total == response.body.items.reduce((sum, item) => sum + parseFloat(item.price), 0).toFixed(2)

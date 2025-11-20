@@ -1,0 +1,19 @@
+# @name setup
+@base_host = http://localhost:8000/api
+@base = {{base_host}}/v201
+
+# Common variables
+@plankton_auth = Basic plankton@chum-bucket.sea:i_love_my_wife
+@spongebob_auth = Basic spongebob@bikinibottom.sea:i_l0ve_burg3rs
+@admin_key = key-sandy-42841a8d-0e65-41db-8cce-8588c23e53dc
+@krabs_key = key-mrkrabs-1bd647c2-dc5b-4c2b-a316-5ff83786c219
+
+### Login as Plankton
+# @name login_plankton
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "plankton@chum-bucket.sea",
+    "password": "i_love_my_wife"
+}
