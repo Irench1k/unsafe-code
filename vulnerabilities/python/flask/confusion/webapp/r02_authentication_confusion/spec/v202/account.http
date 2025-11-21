@@ -10,13 +10,20 @@ Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&amount=500
 
-?? js [401,403].includes(status)
+> {%
+client.test("v202 unauthorized credit blocked", () => {
+  const status = response.statusCode ?? response.status;
+  if (![401, 403].includes(status)) {
+    throw new Error(`Expected 401/403, got ${status}`);
+  }
+});
+%}
 
 ### Customer view balance
 GET {{base}}/account/credits
 Authorization: {{plankton_auth}}
 
-?? status == 200
+?? js response.statusCode == 200
 
 ### GET must not add credits even when authenticated as customer
 GET {{base}}/account/credits
@@ -25,5 +32,5 @@ Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&amount=500
 
-?? status == 200
+?? js response.statusCode == 200
 ?? js parseFloat((response.parsedBody || body || {}).balance || 0) <= 500

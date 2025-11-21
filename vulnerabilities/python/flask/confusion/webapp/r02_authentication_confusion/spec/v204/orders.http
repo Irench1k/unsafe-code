@@ -7,17 +7,31 @@
 # @ref seed_balance_v204
 GET {{base}}/orders
 
-?? js [401,403].includes(status)
+> {%
+client.test("v204 baseline requires auth", () => {
+  const status = response.statusCode ?? response.status;
+  if (![401, 403].includes(status)) {
+    throw new Error(`Expected 401/403, got ${status}`);
+  }
+});
+%}
 
 ### Customer read own orders
 GET {{base}}/orders
 Authorization: {{plankton_auth}}
 
-?? status == 200
+?? js response.statusCode == 200
 
 ### Invalid API key should not widen tenant scope when combined with Basic Auth
 GET {{base}}/orders
 Authorization: {{plankton_auth}}
 X-API-Key: fake-manager-key
 
-?? status == 401 || status == 403
+> {%
+client.test("v204 invalid key blocked", () => {
+  const statusInvalidKey = response.statusCode ?? response.status;
+  if (![401, 403].includes(statusInvalidKey)) {
+    throw new Error(`Expected 401/403, got ${statusInvalidKey}`);
+  }
+});
+%}

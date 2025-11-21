@@ -3,6 +3,19 @@
 @base = {{base_host}}/v201
 # @tag spec,v201,orders
 
+### Orders listing requires auth (no session)
+# @ref reset_v201
+GET {{base}}/orders
+
+> {%
+client.test("orders requires auth", () => {
+  const status = response.statusCode ?? response.status;
+  if (![401, 403].includes(status)) {
+    throw new Error(`Expected 401/403, got ${status}`);
+  }
+});
+%}
+
 ### Login to establish session
 # @name v201_login
 # @ref seed_balance_v201
@@ -14,22 +27,18 @@ Content-Type: application/json
     "password": "i_love_my_wife"
 }
 
-?? status == 200
+?? js response.statusCode == 200
 
 ### Session hijack should not switch identity based on bad Basic header
 # @ref v201_login
 GET {{base}}/account/info
 Authorization: Basic spongebob@bikinibottom.sea:wrong_password
 
-?? status == 200
-?? body.email == "plankton@chum-bucket.sea"
-
-### Orders listing requires auth
-GET {{base}}/orders
-
-?? js [401,403].includes(status)
+?? js response.statusCode == 200
+?? js (response.parsedBody || body || {}).email == "plankton@chum-bucket.sea"
 
 ### Orders listing uses current session identity
+# @ref v201_login
 GET {{base}}/orders
 
-?? status == 200
+?? js response.statusCode == 200

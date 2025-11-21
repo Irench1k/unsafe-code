@@ -14,7 +14,7 @@ Content-Type: application/json
     "password": "i_love_my_wife"
 }
 
-?? status == 200
+?? js response.statusCode == 200
 
 ### Session overwrite should not occur when posting login
 # @ref v205_login
@@ -27,4 +27,4 @@ Cookie: {{response.headers["set-cookie"]}}
   "password": "nope"
 }
 
-?? js status >= 400 || (response.parsedBody || body || {}).email == "plankton@chum-bucket.sea"
+?? js response.statusCode >= 400 || (response.parsedBody || body || {}).email == "plankton@chum-bucket.sea"

@@ -7,10 +7,17 @@
 # @ref seed_balance_v205
 GET {{base}}/orders
 
-?? js [401,403].includes(status)
+> {%
+client.test("v205 baseline requires auth", () => {
+  const status = response.statusCode ?? response.status;
+  if (![401, 403].includes(status)) {
+    throw new Error(`Expected 401/403, got ${status}`);
+  }
+});
+%}
 
 ### Authenticated orders list
 GET {{base}}/orders
 Authorization: {{plankton_auth}}
 
-?? status == 200
+?? js response.statusCode == 200

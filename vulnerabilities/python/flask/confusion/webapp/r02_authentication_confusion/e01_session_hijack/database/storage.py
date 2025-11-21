@@ -67,6 +67,7 @@ db = {
     },
     "next_refund_id": 2,
     "signup_bonus_remaining": Decimal("100.00"),
+    "platform_api_key": "key-sandy-42841a8d-0e65-41db-8cce-8588c23e53dc",
 }
 SEED_DB = deepcopy(db)
 

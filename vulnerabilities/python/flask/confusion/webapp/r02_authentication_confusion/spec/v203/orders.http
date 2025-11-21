@@ -7,13 +7,20 @@
 # @ref seed_balance_v203
 GET {{base}}/orders
 
-?? js [401,403].includes(status)
+> {%
+client.test("v203 baseline requires auth", () => {
+  const status = response.statusCode ?? response.status;
+  if (![401, 403].includes(status)) {
+    throw new Error(`Expected 401/403, got ${status}`);
+  }
+});
+%}
 
 ### Customer read own orders
 GET {{base}}/orders
 Authorization: {{plankton_auth}}
 
-?? status == 200
+?? js response.statusCode == 200
 
 ### Fake manager header should not grant manager power with customer session
 PATCH {{base}}/orders/1/refund/status
@@ -23,4 +30,4 @@ Content-Type: application/x-www-form-urlencoded
 
 status=approved
 
-?? js status >= 400 || (response.parsedBody || body || {}).status != "approved"
+?? js response.statusCode >= 400 || (response.parsedBody || body || {}).status != "approved"

@@ -257,10 +257,8 @@ def logout_user():
 
 
 def _require_platform_admin():
-    if request.headers.get("X-Admin-API-Key") == get_platform_api_key():
-        return True
-    user = get_authenticated_user()
-    return bool(user and user.user_id == "sandy@bikinibottom.sea")
+    """Validate platform admin operations for test helpers."""
+    return request.headers.get("X-Admin-API-Key") == get_platform_api_key()
 
 
 @bp.route("/platform/reset", methods=["POST"])
