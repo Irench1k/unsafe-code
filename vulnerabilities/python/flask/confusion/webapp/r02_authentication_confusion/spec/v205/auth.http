@@ -1,0 +1,30 @@
+# @import ../common.http
+# @import ./_reset.http
+@base = {{base_host}}/v205
+# @tag spec,v205,auth
+
+### Seed + login
+# @name v205_login
+# @ref seed_balance_v205
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "plankton@chum-bucket.sea",
+    "password": "i_love_my_wife"
+}
+
+?? status == 200
+
+### Session overwrite should not occur when posting login
+# @ref v205_login
+POST {{base}}/auth/login
+Content-Type: application/json
+Cookie: {{response.headers["set-cookie"]}}
+
+{
+  "email": "spongebob@bikinibottom.sea",
+  "password": "nope"
+}
+
+?? js status >= 400 || (response.parsedBody || body || {}).email == "plankton@chum-bucket.sea"

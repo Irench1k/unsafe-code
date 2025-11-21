@@ -1,0 +1,21 @@
+# @import ../common.http
+# @import ./_reset.http
+@base = {{base_host}}/v301
+# @tag spec,v301,orders
+
+### Seed DB
+# @ref reset_v301
+GET {{base}}/orders
+Authorization: {{plankton_auth}}
+
+?? status == 200
+
+### Dual-auth refund should require proper tenant
+PATCH {{base}}/orders/1/refund/status
+Authorization: {{plankton_auth}}
+X-API-Key: {{krusty_key}}
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+?? js status >= 400 || (response.parsedBody || body || {}).status != "approved"

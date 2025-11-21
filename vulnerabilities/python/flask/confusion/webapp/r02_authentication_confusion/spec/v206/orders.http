@@ -1,0 +1,16 @@
+# @import ../common.http
+# @import ./_reset.http
+@base = {{base_host}}/v206
+# @tag spec,v206,orders
+
+### Seed + baseline
+# @ref seed_balance_v206
+GET {{base}}/orders
+
+?? js [401,403].includes(status)
+
+### Authenticated orders list
+GET {{base}}/orders
+Authorization: {{plankton_auth}}
+
+?? status == 200

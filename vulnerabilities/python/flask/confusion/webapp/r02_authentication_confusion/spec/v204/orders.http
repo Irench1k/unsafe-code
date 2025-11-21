@@ -1,0 +1,23 @@
+# @import ../common.http
+# @import ./_reset.http
+@base = {{base_host}}/v204
+# @tag spec,v204,orders
+
+### Seed + baseline
+# @ref seed_balance_v204
+GET {{base}}/orders
+
+?? js [401,403].includes(status)
+
+### Customer read own orders
+GET {{base}}/orders
+Authorization: {{plankton_auth}}
+
+?? status == 200
+
+### Invalid API key should not widen tenant scope when combined with Basic Auth
+GET {{base}}/orders
+Authorization: {{plankton_auth}}
+X-API-Key: fake-manager-key
+
+?? status == 401 || status == 403

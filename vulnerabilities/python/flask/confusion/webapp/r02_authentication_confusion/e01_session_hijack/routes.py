@@ -17,6 +17,7 @@ from .database.repository import (
     find_cart_by_id,
     find_user_by_id,
     save_refund,
+    get_platform_api_key,
 )
 from .database.services import (
     add_item_to_cart,
@@ -256,18 +257,21 @@ def logout_user():
 
 
 def _require_platform_admin():
+    if request.headers.get("X-Admin-API-Key") == get_platform_api_key():
+        return True
     user = get_authenticated_user()
-    if not user or user.user_id != "sandy@bikinibottom.sea":
-        return None
-    return user
+    return bool(user and user.user_id == "sandy@bikinibottom.sea")
 
 
 @bp.route("/platform/reset", methods=["POST"])
 def platform_reset():
     if not _require_platform_admin():
         return jsonify({"error": "Forbidden"}), 403
-    reset_for_tests()
-    return jsonify({"status": "reset"}), 200
+    try:
+        reset_for_tests()
+        return jsonify({"status": "reset"}), 200
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 
 @bp.route("/platform/balance", methods=["POST"])

@@ -1,0 +1,26 @@
+# @import ../common.http
+# @import ./_reset.http
+@base = {{base_host}}/v203
+# @tag spec,v203,orders
+
+### Seed + baseline
+# @ref seed_balance_v203
+GET {{base}}/orders
+
+?? js [401,403].includes(status)
+
+### Customer read own orders
+GET {{base}}/orders
+Authorization: {{plankton_auth}}
+
+?? status == 200
+
+### Fake manager header should not grant manager power with customer session
+PATCH {{base}}/orders/1/refund/status
+Authorization: {{plankton_auth}}
+X-API-Key: fake
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+?? js status >= 400 || (response.parsedBody || body || {}).status != "approved"

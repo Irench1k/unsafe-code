@@ -1,0 +1,11 @@
+# @import ../common.http
+# @import ./_reset.http
+@base = {{base_host}}/v303
+# @tag spec,v303,menu
+
+### Seed DB
+# @ref reset_v303
+GET {{base}}/menu
+
+?? status == 200
+?? js Array.isArray(body)
