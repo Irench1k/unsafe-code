@@ -1,35 +1,44 @@
 # @import ../common/setup.http
 @base = {{base_host}}/v106
 
-### Sandy creates an order to test the fix
+### Sandy fixed the vulnerability, and now Plankton can't request a unlimited refund anymore.
 # @name cart
 POST {{base}}/cart
-Authorization: {{sandy_auth}}
+Authorization: {{plankton_auth_email}}
 
-POST {{base}}/cart/{{cart.response.body.cart_id}}/items
-Authorization: {{sandy_auth}}
+POST {{base}}/cart/{{cart.cart_id}}/items
+Authorization: {{plankton_auth_email}}
 Content-Type: application/json
 
 { "item_id": "4" }
 
+###
 # @name order
-POST {{base}}/cart/{{cart.response.body.cart_id}}/checkout
-Authorization: {{sandy_auth}}
+POST {{base}}/cart/{{cart.cart_id}}/checkout
+Authorization: {{plankton_auth_email}}
 Content-Type: application/x-www-form-urlencoded
 
 tip=0&delivery_address=Chum Bucket
 
-### Attempt Exploit: Request $2000 via Form Data
+### Previous attempt still doesn't work
+POST {{base}}/orders/{{order.order_id}}/refund
+Authorization: {{plankton_auth_email}}
+Content-Type: application/json
+
+{
+  "amount": "50"
+}
+
+?? status == 400
+
+### Now Plankton can't request a unlimited refund anymore.
 # @name exploit_attempt
-POST {{base}}/orders/{{order.response.body.order_id}}/refund
-Authorization: {{sandy_auth}}
+POST {{base}}/orders/{{order.order_id}}/refund
+Authorization: {{plankton_auth_email}}
 Content-Type: application/x-www-form-urlencoded
 
 amount=2000
 
 # Verification: The system now ignores the form amount for non-JSON requests and defaults to 20%.
 # Or it validates it properly. Either way, we don't get $2000.
-?? status == 200
-?? body.status == "approved"
-?? body.amount != "2000.00"
-?? js parseFloat(response.body.amount) < 50
+?? status == 400

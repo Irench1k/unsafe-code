@@ -6,8 +6,12 @@
 
 # Common actors
 @sandy_auth = Basic sandy:testpassword
-@plankton_auth = Basic plankton@chum-bucket.sea:i_love_my_wife
-@spongebob_auth = Basic spongebob@krusty-krab.sea:pineapple
+@plankton_auth = Basic plankton:i_love_my_wife
+@spongebob_auth = Basic spongebob:i_l0ve_burg3rs
+
+@sandy_auth_email = Basic sandy@bikinibottom.sea:testpassword
+@plankton_auth_email = Basic plankton.chum-bucket.sea@bikinibottom.com:i_love_my_wife
+@spongebob_auth_email = Basic spongebob@bikinibottom.sea:i_l0ve_burg3rs
 
 ### @title helper: menu pickers
 {{

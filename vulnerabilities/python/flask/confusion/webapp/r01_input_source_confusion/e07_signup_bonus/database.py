@@ -29,6 +29,12 @@ db = {
             balance=Decimal("20.00"),
             password="i_l0ve_burg3rs",
         ),
+        "plankton.chum-bucket.sea@bikinibottom.com": User(
+            user_id="plankton.chum-bucket.sea@bikinibottom.com",
+            name="Sheldon Plankton",
+            balance=Decimal("1000.00"),
+            password="i_love_my_wife",
+        ),
     },
     "orders": {
         "1": Order(

@@ -2,6 +2,8 @@
 @base = {{base_host}}/v108
 @mailpit = http://127.0.0.1:8025/api/v1
 
+### Sandy fixed the vulnerability and now bonus fee adds only once per account
+
 ### Plankton registers
 # @name register_request
 POST {{base}}/auth/register
@@ -9,25 +11,30 @@ Content-Type: application/json
 
 { "email": "plankton@chum-bucket.sea" }
 
-# @name email_search
+?? status == 200
+
+###
 GET {{mailpit}}/messages?limit=1
 
 {{
-  const messages = email_search.response.parsedBody.messages;
+  const messages = response.parsedBody.messages;
   exports.message_id = messages[0].ID;
 }}
 
-# @name email_content
+?? status == 200
+
+###
 GET {{mailpit}}/message/{{message_id}}
 
 {{
-  const body = email_content.response.parsedBody.Body || email_content.response.parsedBody.Text;
+  const body = response.parsedBody.Body || response.parsedBody.Text;
   const tokenMatch = body.match(/token=([a-zA-Z0-9\-_.]+)/);
   exports.token = tokenMatch ? tokenMatch[1] : "";
 }}
 
+?? status == 200
+
 ### He completes registration
-# @name registration
 POST {{base}}/auth/register
 Content-Type: application/json
 
@@ -36,6 +43,8 @@ Content-Type: application/json
     "password": "i_love_my_wife",
     "name": "Plankton"
 }
+
+?? status == 200
 
 ### Attempt Exploit: The "Double Dip"
 # @name exploit_attempt
@@ -49,10 +58,12 @@ Content-Type: application/json
     "name": "Plankton"
 }
 
+?? status == 400
+
 # Verification: Sandy fixed the middleware. Authenticated users cannot register.
 # Balance remains $2.00.
 GET {{base}}/account/info
 Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
 
 ?? status == 200
-?? body.balance == "2.00"
+?? js response.parsedBody.balance == 2.00

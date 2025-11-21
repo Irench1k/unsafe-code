@@ -9,23 +9,28 @@ Content-Type: application/json
 
 { "email": "plankton.jr@chum-bucket.sea" }
 
-### He intercepts the token
-# @name email_search
+?? status == 200
+
+### This request succeeds and sends a verification email to provided email
 GET {{mailpit}}/messages?limit=1
 
 {{
-  const messages = email_search.response.parsedBody.messages;
+  const messages = response.parsedBody.messages;
   exports.message_id = messages[0].ID;
 }}
 
-# @name email_content
+?? status == 200
+
+### 
 GET {{mailpit}}/message/{{message_id}}
 
 {{
-  const body = email_content.response.parsedBody.Body || email_content.response.parsedBody.Text;
+  const body = response.parsedBody.Body || response.parsedBody.Text;
   const tokenMatch = body.match(/token=([a-zA-Z0-9\-_.]+)/);
   exports.token = tokenMatch ? tokenMatch[1] : "";
 }}
+
+?? status == 200
 
 ### Attempt Exploit: Swap Email
 # @name exploit_attempt
@@ -39,14 +44,23 @@ Content-Type: application/json
     "name": "SpongeBob"
 }
 
+?? status == 200
+
 # Verification: The handler detects the email mismatch and either rejects it or uses the token's email.
 # SpongeBob's password remains safe.
-POST {{base}}/auth/login
-Content-Type: application/json
+GET {{base}}/account/info
+Authorization: Basic spongebob@bikinibottom.sea:hijacked
 
-{
-  "email": "spongebob@bikinibottom.sea",
-  "password": "i_l0ve_burg3rs"
-}
+?? status == 400
+
+### Meanwhile, SpongBob is fine, he can access his own account
+ GET {{base}}/account/info
+Authorization: {{spongebob_auth_email}}
+
+?? status == 200
+
+### Meanwhile Plankton is surprised to see he has his own account (with a bonus money!)
+GET {{base}}/account/info
+Authorization: Basic plankton.jr@chum-bucket.sea:hijacked
 
 ?? status == 200

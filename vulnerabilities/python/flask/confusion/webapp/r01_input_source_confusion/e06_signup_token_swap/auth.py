@@ -34,7 +34,7 @@ def get_authenticated_user():
     if not username or not password:
         return None
 
-    user = get_user(username) or get_user(f"{username}@bikinibottom.sea")
+    user = get_user(username)
     if not user:
         return None
 

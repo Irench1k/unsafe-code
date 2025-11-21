@@ -1,24 +1,35 @@
 # @import ../common/setup.http
 @base = {{base_host}}/v102
 
-### Sandy checks the menu
+### Sandy fixes the vulnerability, so now `item` parameter is ignored.
+# Plankton again wants to check the menu and receive the expensive item, paying for the cheaper one.
 # @name menu
 GET {{base}}/menu
 
 {{
-  const menu = menu.response.body;
-  exports.cheap_item = menu.find(i => i.price < 5);
-  exports.expensive_item = menu.find(i => i.price > 20);
+  const menuData = menu;
+  exports.cheap_item = menuData.find(i => i.price < 5);
+  exports.expensive_item = menuData.find(i => i.price > 20);
 }}
 
-### She tries sending both parameters again
+### He tries sending both parameters again, but `item` parameter is now ignored.
+# He ends up paying for the expensive item.
 # @name exploit_attempt
 POST {{base}}/orders
-Authorization: {{sandy_auth}}
+Authorization: {{plankton_auth}}
 Content-Type: application/x-www-form-urlencoded
 
-item={{cheap_item.item_id}}&items={{expensive_item.item_id}}
+item={{cheap_item.id}}&items={{expensive_item.id}}
 
 ### Price and items are now consistent
 ?? status == 201
-?? js response.body.total == response.body.items.reduce((sum, item) => sum + parseFloat(item.price), 0).toFixed(2)
+?? js response.parsedBody.total == {{expensive_item.price}}
+?? js response.parsedBody.items[0].name == {{expensive_item.name}}
+
+### Let's check his balance and order to see if he paid for the expensive item.
+GET {{base}}/account/credits
+Authorization: {{plankton_auth}}
+
+###
+GET {{base}}/orders
+Authorization: {{plankton_auth}}

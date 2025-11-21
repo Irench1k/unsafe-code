@@ -14,6 +14,7 @@ db = {
         "3": MenuItem(id="3", name="Side of Fries", price=Decimal("1.00"), available=True),
         "4": MenuItem(id="4", name="Kelp Shake", price=Decimal("2.50"), available=True),
         "5": MenuItem(id="5", name="Soda", price=Decimal("2.75"), available=False),
+        "6": MenuItem(id="6", name="Krusty Krab Complect", price=Decimal("20.50"), available=True),
     },
     "users": {
         "sandy": User(
@@ -27,8 +28,15 @@ db = {
             user_id="spongebob",
             email="spongebob.squarepants@bikinibottom.com",
             name="SpongeBob SquarePants",
-            balance=Decimal("20.00"),
+            balance=Decimal("200.00"),
             password="i_l0ve_burg3rs",
+        ),
+        "plankton": User(
+            user_id="plankton",
+            email="plankton.chum-bucket.sea@bikinibottom.com",
+            name="Sheldon Plankton",
+            balance=Decimal("200.00"),
+            password="i_love_my_wife",
         ),
     },
     "orders": {
