@@ -1,8 +1,10 @@
 # @import ../common.http
+# @import ./_reset.http
 @version = v102
 @base = {{base_host}}/{{version}}
 # @tag spec,v102,menu
 
+# @ref seed_balance_v102
 GET {{base}}/menu
 
 ?? status == 200

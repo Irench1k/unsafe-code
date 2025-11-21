@@ -1,10 +1,12 @@
 # @import ../common.http
+# @import ./_reset.http
 @version = v104
 @base = {{base_host}}/{{version}}
 # @tag spec,v104,cart
 
 ### Menu
 # @name v104_menu
+# @ref seed_balance_v104
 GET {{base}}/menu
 
 {{

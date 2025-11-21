@@ -1,9 +1,11 @@
 # @import ../common.http
+# @import ./_reset.http
 @version = v102
 @base = {{base_host}}/{{version}}
 # @tag spec,v102,account
 
 ### Unauthorized balance blocked
+# @ref seed_balance_v102
 GET {{base}}/account/credits
 
 ?? js [401,403].includes(status)

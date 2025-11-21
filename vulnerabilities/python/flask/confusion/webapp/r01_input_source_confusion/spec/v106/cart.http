@@ -1,8 +1,10 @@
 # @import ../common.http
+# @import ./_reset.http
 @version = v106
 @base = {{base_host}}/{{version}}
 # @tag spec,v106,cart
 
+# @ref seed_balance_v106
 POST {{base}}/cart
 
 ?? js [401,403].includes(status)

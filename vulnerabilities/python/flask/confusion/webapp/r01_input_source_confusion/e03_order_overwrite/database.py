@@ -1,3 +1,4 @@
+from copy import deepcopy
 from decimal import Decimal
 
 from .models import Cart, MenuItem, Order, OrderItem, User
@@ -51,6 +52,20 @@ db = {
     "next_cart_id": 2,
     "api_key": "key-krusty-krub-z1hu0u8o94",
 }
+SEED_DB = deepcopy(db)
+
+
+def reset_db():
+    db.clear()
+    db.update(deepcopy(SEED_DB))
+
+
+def set_balance(user_id: str, amount: Decimal) -> bool:
+    user = get_user(user_id)
+    if not user:
+        return False
+    user.balance = Decimal(str(amount))
+    return True
 
 # ============================================================
 # DATA ACCESS LAYER

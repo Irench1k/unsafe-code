@@ -1,8 +1,10 @@
 # @import ../common.http
+# @import ./_reset.http
 @version = v105
 @base = {{base_host}}/{{version}}
 # @tag spec,v105,account
 
+# @ref seed_balance_v105
 GET {{base}}/account/credits
 
 ?? js [401,403].includes(status)

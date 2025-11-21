@@ -1,4 +1,5 @@
 # @import ../common.http
+# @import ./_reset.http
 @version = v107
 @base = {{base_host}}/{{version}}
 # @tag spec,v107,auth
@@ -7,6 +8,7 @@
 
 ### Request signup email
 # @name v107_signup_request
+# @ref seed_balance_v107
 POST {{base}}/auth/register
 Content-Type: application/json
 

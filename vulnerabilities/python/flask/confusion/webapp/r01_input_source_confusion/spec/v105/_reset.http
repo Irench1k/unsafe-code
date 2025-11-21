@@ -1,0 +1,17 @@
+# @import ../common.http
+@version = v105
+@base = {{base_host}}/{{version}}
+
+### Reset in-memory state
+# @name reset_v105
+POST {{base}}/platform/reset
+Authorization: {{sandy_auth}}
+
+### Ensure Sandy has funds for tests
+# @name seed_balance_v105
+# @ref reset_v105
+POST {{base}}/platform/balance
+Authorization: {{sandy_auth}}
+Content-Type: application/json
+
+{ "user_id": "sandy", "balance": 200 }

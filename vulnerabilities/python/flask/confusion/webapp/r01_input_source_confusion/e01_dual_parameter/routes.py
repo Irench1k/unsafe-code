@@ -1,11 +1,15 @@
 from flask import Blueprint, jsonify, request
 
 from .auth import get_authenticated_user, validate_api_key
+from decimal import Decimal
+
 from .database import (
     create_order_and_charge_customer,
     get_all_menu_items,
     get_all_orders,
     get_user_orders,
+    reset_db,
+    set_balance,
 )
 from .utils import check_price_and_availability, get_order_items
 
@@ -70,3 +74,34 @@ def create_new_order():
 
     new_order = create_order_and_charge_customer(total_price, user.user_id, items)
     return jsonify(new_order.model_dump(mode="json")), 201
+
+
+def _require_platform_admin():
+    user = get_authenticated_user()
+    if not user or user.user_id != "sandy":
+        return None
+    return user
+
+
+@bp.route("/platform/reset", methods=["POST"])
+def platform_reset():
+    """Test helper: reset in-memory state for deterministic runs."""
+    if not _require_platform_admin():
+        return jsonify({"error": "Forbidden"}), 403
+    reset_db()
+    return jsonify({"status": "reset"}), 200
+
+
+@bp.route("/platform/balance", methods=["POST"])
+def platform_balance():
+    """Test helper: set user balance."""
+    if not _require_platform_admin():
+        return jsonify({"error": "Forbidden"}), 403
+    payload = request.get_json(silent=True) or {}
+    user_id = payload.get("user_id") or "sandy"
+    amount = payload.get("balance")
+    if amount is None:
+        return jsonify({"error": "balance required"}), 400
+    if not set_balance(user_id, Decimal(str(amount))):
+        return jsonify({"error": "user not found"}), 404
+    return jsonify({"status": "ok", "user_id": user_id, "balance": str(amount)}), 200
