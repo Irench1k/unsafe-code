@@ -1,0 +1,67 @@
+# @import ../common.http
+@version = v107
+@base = {{base_host}}/{{version}}
+# @tag spec,v107,auth
+
+@v107_email = {{nextMail("spec-v107")}}
+
+### Request signup email
+# @name v107_signup_request
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "email": "{{v107_email}}" }
+
+?? status == 200
+
+# @name v107_mail
+GET {{mailpit_host}}/messages?limit=1
+
+{{
+  const messages = v107_mail?.messages || [];
+  exports.v107_message_id = messages[0]?.ID;
+}}
+
+# @name v107_mail_body
+GET {{mailpit_host}}/message/{{v107_message_id}}
+
+{{
+  const body = v107_mail_body?.Body || v107_mail_body?.Text;
+  exports.v107_token = extractToken(body);
+}}
+
+### Complete registration once (seed bonus)
+# @name v107_register_once
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "token": "{{v107_token}}",
+  "password": "good_password",
+  "name": "Spec User"
+}
+
+?? status == 200
+
+# @name v107_balance_first
+GET {{base}}/account/info
+Authorization: Basic {{v107_email}}:good_password
+
+?? status == 200
+
+### Security: replay bonus with Basic Auth must not increase balance
+POST {{base}}/auth/register
+Authorization: Basic {{v107_email}}:good_password
+Content-Type: application/json
+
+{
+  "token": "{{v107_token}}",
+  "password": "good_password",
+  "name": "Spec User"
+}
+
+# @name v107_balance_second
+GET {{base}}/account/info
+Authorization: Basic {{v107_email}}:good_password
+
+?? js parseFloat(v107_balance_second.balance) <= parseFloat(v107_balance_first.balance)

@@ -1,0 +1,52 @@
+# @import ../common.http
+@version = v105
+@base = {{base_host}}/{{version}}
+# @tag spec,v105,refunds
+
+### Menu
+# @name v105_menu
+GET {{base}}/menu
+
+{{
+  const { cheap } = pickMenuExtremes(v105_menu);
+  exports.v105_item = cheap;
+}}
+
+### Create order to refund
+# @name v105_cart
+POST {{base}}/cart
+Authorization: {{sandy_auth}}
+
+POST {{base}}/cart/{{v105_cart.cart_id}}/items
+Authorization: {{sandy_auth}}
+Content-Type: application/json
+
+{ "item_id": "{{v105_item.id || v105_item.item_id}}" }
+
+# @name v105_order
+POST {{base}}/cart/{{v105_cart.cart_id}}/checkout
+Authorization: {{sandy_auth}}
+Content-Type: application/x-www-form-urlencoded
+
+tip=0&delivery_address=Spec%20Street
+
+?? status == 201
+
+### Legit JSON refund within policy should auto-approve
+POST {{base}}/orders/{{v105_order.order_id}}/refund
+Authorization: {{sandy_auth}}
+Content-Type: application/json
+
+{ "amount": 1 }
+
+?? status == 200
+?? js (response.parsedBody || body || {}).status !== undefined
+
+### Security: form-data extreme refund should not auto-approve
+POST {{base}}/orders/{{v105_order.order_id}}/refund
+Authorization: {{sandy_auth}}
+Content-Type: application/x-www-form-urlencoded
+
+amount=2000
+
+?? status >= 400 || (response.parsedBody || body || {}).status != "approved"

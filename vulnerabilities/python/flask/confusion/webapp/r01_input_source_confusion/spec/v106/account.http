@@ -1,0 +1,13 @@
+# @import ../common.http
+@version = v106
+@base = {{base_host}}/{{version}}
+# @tag spec,v106,account
+
+GET {{base}}/account/credits
+
+?? js [401,403].includes(status)
+
+GET {{base}}/account/credits
+Authorization: {{sandy_auth}}
+
+?? status == 200

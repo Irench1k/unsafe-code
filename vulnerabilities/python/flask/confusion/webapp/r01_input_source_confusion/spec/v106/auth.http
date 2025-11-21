@@ -1,0 +1,57 @@
+# @import ../common.http
+@version = v106
+@base = {{base_host}}/{{version}}
+# @tag spec,v106,auth
+
+@spec_email = {{nextMail("spec-v106")}}
+
+### Request signup link
+# @name v106_signup_request
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "email": "{{spec_email}}" }
+
+?? status == 200
+
+### Fetch token from mailpit
+# @name v106_mail
+GET {{mailpit_host}}/messages?limit=1
+
+{{
+  const messages = v106_mail?.messages || [];
+  exports.v106_message_id = messages[0]?.ID;
+}}
+
+# @name v106_mail_body
+GET {{mailpit_host}}/message/{{v106_message_id}}
+
+{{
+  const body = v106_mail_body?.Body || v106_mail_body?.Text;
+  exports.v106_token = extractToken(body);
+}}
+
+### Complete registration with matching email
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "token": "{{v106_token}}",
+  "password": "good_password",
+  "name": "Spec User"
+}
+
+?? status == 200
+
+### Security: mismatched email must be rejected and must not overwrite victims
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "token": "{{v106_token}}",
+  "email": "spongebob@bikinibottom.sea",
+  "password": "hijacked",
+  "name": "SpongeBob"
+}
+
+?? status >= 400

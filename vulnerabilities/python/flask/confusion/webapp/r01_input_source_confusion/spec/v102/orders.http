@@ -1,0 +1,56 @@
+# @import ../common.http
+@version = v102
+@base = {{base_host}}/{{version}}
+# @tag spec,v102,orders
+
+### Menu reference
+# @name v102_menu
+GET {{base}}/menu
+
+{{
+  const { cheap, pricey } = pickMenuExtremes(v102_menu);
+  exports.v102_cheap = cheap;
+  exports.v102_pricey = pricey;
+}}
+
+### Auth required to list orders
+GET {{base}}/orders
+
+?? js [401,403].includes(status)
+
+### Auth list succeeds
+GET {{base}}/orders
+Authorization: {{sandy_auth}}
+
+?? status == 200
+
+### Delivery pricing uses submitted body, not query-only phantom items
+POST {{base}}/orders
+Authorization: {{sandy_auth}}
+Content-Type: application/x-www-form-urlencoded
+
+item={{v102_cheap.id || v102_cheap.item_id}}&delivery_address=Chum%20Bucket
+
+?? status == 201
+?? js parseFloat((response.parsedBody || body || {}).delivery_fee) >= 0
+
+### Security: Query-only expensive items must not grant free delivery
+POST {{base}}/orders?items={{v102_pricey.id || v102_pricey.item_id}}&items={{v102_pricey.id || v102_pricey.item_id}}
+Authorization: {{sandy_auth}}
+Content-Type: application/x-www-form-urlencoded
+
+item={{v102_cheap.id || v102_cheap.item_id}}&delivery_address=Chum%20Bucket
+
+?? status == 201
+?? js parseFloat((response.parsedBody || body || {}).delivery_fee) > 0
+?? js parseFloat((response.parsedBody || body || {}).total) >= parseFloat(v102_cheap?.price || 0)
+
+### Security: Mixed item + items should charge the combined total
+POST {{base}}/orders?items={{v102_pricey.id || v102_pricey.item_id}}
+Authorization: {{sandy_auth}}
+Content-Type: application/x-www-form-urlencoded
+
+item={{v102_cheap.id || v102_cheap.item_id}}&delivery_address=Chum%20Bucket
+
+?? status == 201
+?? js parseFloat((response.parsedBody || body || {}).total) >= parseFloat(v102_cheap?.price || 0) + parseFloat(v102_pricey?.price || 0)

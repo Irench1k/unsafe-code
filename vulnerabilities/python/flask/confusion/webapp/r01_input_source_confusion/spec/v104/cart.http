@@ -1,0 +1,54 @@
+# @import ../common.http
+@version = v104
+@base = {{base_host}}/{{version}}
+# @tag spec,v104,cart
+
+### Menu
+# @name v104_menu
+GET {{base}}/menu
+
+{{
+  const { cheap } = pickMenuExtremes(v104_menu);
+  exports.v104_item = cheap;
+}}
+
+### Happy path checkout
+# @name v104_cart_ok
+POST {{base}}/cart
+Authorization: {{sandy_auth}}
+
+POST {{base}}/cart/{{v104_cart_ok.cart_id}}/items
+Authorization: {{sandy_auth}}
+Content-Type: application/json
+
+{ "item_id": "{{v104_item.id || v104_item.item_id}}" }
+
+POST {{base}}/cart/{{v104_cart_ok.cart_id}}/checkout
+Authorization: {{sandy_auth}}
+Content-Type: application/json
+
+{ "delivery_address": "Spec Street", "tip": 0 }
+
+?? status == 201
+
+### Security: conflicting tips (query positive, body negative) must be rejected or normalized
+# @name v104_cart_conflict
+POST {{base}}/cart
+Authorization: {{sandy_auth}}
+
+POST {{base}}/cart/{{v104_cart_conflict.cart_id}}/items
+Authorization: {{sandy_auth}}
+Content-Type: application/json
+
+{ "item_id": "{{v104_item.id || v104_item.item_id}}" }
+
+POST {{base}}/cart/{{v104_cart_conflict.cart_id}}/checkout?tip=20
+Authorization: {{sandy_auth}}
+Content-Type: application/json
+
+{
+  "tip": -50,
+  "delivery_address": "Spec Street"
+}
+
+?? status >= 400 || (response.parsedBody || body || {}).tip == "50.00"

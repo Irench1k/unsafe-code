@@ -1,0 +1,26 @@
+# @import ../common.http
+@version = v106
+@base = {{base_host}}/{{version}}
+# @tag spec,v106,cart
+
+POST {{base}}/cart
+
+?? js [401,403].includes(status)
+
+# @name v106_cart
+POST {{base}}/cart
+Authorization: {{sandy_auth}}
+
+POST {{base}}/cart/{{v106_cart.cart_id}}/items
+Authorization: {{sandy_auth}}
+Content-Type: application/json
+
+{ "item_id": "1" }
+
+POST {{base}}/cart/{{v106_cart.cart_id}}/checkout
+Authorization: {{sandy_auth}}
+Content-Type: application/json
+
+{ "delivery_address": "Spec Street", "tip": 0 }
+
+?? status == 201

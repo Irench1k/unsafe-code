@@ -1,0 +1,16 @@
+# @import ../common.http
+@version = v101
+@base = {{base_host}}/{{version}}
+# @tag spec,v101,menu
+
+### Menu is publicly readable
+GET {{base}}/menu
+
+?? status == 200
+?? js Array.isArray(body)
+?? body[0].name exists
+
+### Unsupported methods should be rejected
+POST {{base}}/menu
+
+?? js [404,405].includes(status) || status >= 400

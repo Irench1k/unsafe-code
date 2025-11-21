@@ -1,0 +1,13 @@
+# @import ../common.http
+@version = v107
+@base = {{base_host}}/{{version}}
+# @tag spec,v107,orders
+
+GET {{base}}/orders
+
+?? js [401,403].includes(status)
+
+GET {{base}}/orders
+Authorization: {{sandy_auth}}
+
+?? status == 200

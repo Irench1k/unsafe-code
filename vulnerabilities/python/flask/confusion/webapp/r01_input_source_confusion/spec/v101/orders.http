@@ -1,0 +1,84 @@
+# @import ../common.http
+@version = v101
+@base = {{base_host}}/{{version}}
+# @tag spec,v101,orders
+
+### Menu reference for ids and prices
+# @name v101_menu
+GET {{base}}/menu
+
+{{
+  const { cheap, pricey } = pickMenuExtremes(v101_menu);
+  exports.v101_cheap = cheap;
+  exports.v101_pricey = pricey;
+}}
+
+### Ensure test account has balance before running costed scenarios
+# @name v101_balance
+GET {{base}}/account/credits
+Authorization: {{sandy_auth}}
+
+{{
+  const bal = parseFloat((response.parsedBody || response.body || {}).balance || 0);
+  if (bal < 20) {
+    console.warn("Insufficient balance for reliable spec run; reset seed data.");
+    exports.$cancel = true;
+  }
+}}
+
+### List orders requires authentication
+GET {{base}}/orders
+
+?? js [401,403].includes(status)
+
+### List orders as customer
+GET {{base}}/orders
+Authorization: {{sandy_auth}}
+
+?? status == 200
+?? js Array.isArray(body)
+
+### List orders as restaurant manager key
+GET {{base}}/orders
+X-API-Key: {{krusty_key}}
+
+?? status == 200
+?? js Array.isArray(body)
+
+### Create order with single legacy param
+POST {{base}}/orders
+Authorization: {{sandy_auth}}
+Content-Type: application/x-www-form-urlencoded
+
+item={{v101_cheap.id || v101_cheap.item_id}}
+
+?? status == 201
+?? js Math.abs(parseFloat((response.parsedBody || response.body || body).total) - (response.parsedBody?.items?.reduce((s,i)=>s+parseFloat(i.price||0),0) || 0)) < 0.01
+
+### Create order with new items[] array
+POST {{base}}/orders
+Authorization: {{sandy_auth}}
+Content-Type: application/x-www-form-urlencoded
+
+items={{v101_cheap.id || v101_cheap.item_id}}&items={{v101_pricey.id || v101_pricey.item_id}}
+
+?? status == 201
+?? js Math.abs(parseFloat((response.parsedBody || response.body || body).total) - (response.parsedBody?.items?.reduce((s,i)=>s+parseFloat(i.price||0),0) || 0)) < 0.01
+
+### Security: mixed item + items should bill everything (not just legacy field)
+POST {{base}}/orders
+Authorization: {{sandy_auth}}
+Content-Type: application/x-www-form-urlencoded
+
+item={{v101_cheap.id || v101_cheap.item_id}}&items={{v101_pricey.id || v101_pricey.item_id}}
+
+?? status == 201
+?? js Math.abs(parseFloat((response.parsedBody || response.body || body).total) - (response.parsedBody?.items?.reduce((s,i)=>s+parseFloat(i.price||0),0) || 0)) < 0.01
+
+### Security: unauthenticated create order must fail
+POST {{base}}/orders
+Content-Type: application/x-www-form-urlencoded
+
+item={{v101_cheap.id || v101_cheap.item_id}}
+
+?? js status >= 401 && status < 500

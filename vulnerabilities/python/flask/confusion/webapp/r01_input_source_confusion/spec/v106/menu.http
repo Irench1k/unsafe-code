@@ -1,0 +1,8 @@
+# @import ../common.http
+@version = v106
+@base = {{base_host}}/{{version}}
+# @tag spec,v106,menu
+
+GET {{base}}/menu
+
+?? status == 200

@@ -1,0 +1,9 @@
+# @import ../common.http
+@version = v102
+@base = {{base_host}}/{{version}}
+# @tag spec,v102,menu
+
+GET {{base}}/menu
+
+?? status == 200
+?? js Array.isArray(body)

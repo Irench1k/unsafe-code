@@ -1,0 +1,16 @@
+# @import ../common.http
+@version = v102
+@base = {{base_host}}/{{version}}
+# @tag spec,v102,account
+
+### Unauthorized balance blocked
+GET {{base}}/account/credits
+
+?? js [401,403].includes(status)
+
+### Customer sees own balance
+GET {{base}}/account/credits
+Authorization: {{sandy_auth}}
+
+?? status == 200
+?? js (response.parsedBody || body || {}).balance !== undefined
