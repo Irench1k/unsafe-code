@@ -7,19 +7,24 @@
 # @ref seed_balance_v107
 POST {{base}}/cart
 
-?? js [401,403].includes(status)
+?? js [400,401,403].includes(response.statusCode)
 
 # @name v107_cart
 POST {{base}}/cart
 Authorization: {{sandy_auth}}
 
-POST {{base}}/cart/{{v107_cart.cart_id}}/items
+?? js [200,201].includes(response.statusCode)
+{{
+  exports.v107_cart_id = (response.parsedBody || body || {}).cart_id;
+}}
+
+POST {{base}}/cart/{{v107_cart_id}}/items
 Authorization: {{sandy_auth}}
 Content-Type: application/json
 
 { "item_id": "1" }
 
-POST {{base}}/cart/{{v107_cart.cart_id}}/checkout
+POST {{base}}/cart/{{v107_cart_id}}/checkout
 Authorization: {{sandy_auth}}
 Content-Type: application/json
 

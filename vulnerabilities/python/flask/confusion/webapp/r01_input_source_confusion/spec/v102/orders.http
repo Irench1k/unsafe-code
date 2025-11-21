@@ -18,13 +18,14 @@ GET {{base}}/menu
 ### Auth required to list orders
 GET {{base}}/orders
 
-?? js [401,403].includes(status)
+?? js [401,403].includes(response.statusCode)
 
 ### Auth list succeeds
 GET {{base}}/orders
 Authorization: {{sandy_auth}}
 
 ?? status == 200
+?? js Array.isArray(response.parsedBody || body)
 
 ### Delivery pricing uses submitted body, not query-only phantom items
 POST {{base}}/orders

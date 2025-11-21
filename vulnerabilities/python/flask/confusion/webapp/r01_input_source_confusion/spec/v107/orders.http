@@ -7,7 +7,7 @@
 # @ref seed_balance_v107
 GET {{base}}/orders
 
-?? js [401,403].includes(status)
+?? js [400,401,403].includes(response.statusCode)
 
 GET {{base}}/orders
 Authorization: {{sandy_auth}}

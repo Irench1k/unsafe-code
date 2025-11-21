@@ -8,4 +8,4 @@
 GET {{base}}/menu
 
 ?? status == 200
-?? js Array.isArray(body)
+?? js Array.isArray(response.parsedBody || body)

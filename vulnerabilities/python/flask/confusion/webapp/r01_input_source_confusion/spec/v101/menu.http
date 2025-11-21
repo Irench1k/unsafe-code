@@ -9,10 +9,11 @@
 GET {{base}}/menu
 
 ?? status == 200
-?? js Array.isArray(body)
-?? body[0].name exists
+?? js Array.isArray(response.parsedBody || body)
+?? js !!((response.parsedBody || body)?.[0]?.name)
 
 ### Unsupported methods should be rejected
 POST {{base}}/menu
 
-?? js [404,405].includes(status) || status >= 400
+?? status >= 400
+?? status < 500

@@ -31,21 +31,21 @@ Authorization: {{sandy_auth}}
 ### List orders requires authentication
 GET {{base}}/orders
 
-?? js [401,403].includes(status)
+?? js [401,403].includes(response.statusCode)
 
 ### List orders as customer
 GET {{base}}/orders
 Authorization: {{sandy_auth}}
 
 ?? status == 200
-?? js Array.isArray(body)
+?? js Array.isArray(response.parsedBody || body)
 
 ### List orders as restaurant manager key
 GET {{base}}/orders
 X-API-Key: {{krusty_key}}
 
 ?? status == 200
-?? js Array.isArray(body)
+?? js Array.isArray(response.parsedBody || body)
 
 ### Create order with single legacy param
 POST {{base}}/orders

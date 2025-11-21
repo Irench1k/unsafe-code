@@ -12,6 +12,7 @@ GET {{base}}/menu
 {{
   const { cheap } = pickMenuExtremes(v104_menu);
   exports.v104_item = cheap;
+  exports.v104_item_id = String(cheap?.id || cheap?.item_id || "");
 }}
 
 ### Happy path checkout
@@ -23,7 +24,7 @@ POST {{base}}/cart/{{v104_cart_ok.cart_id}}/items
 Authorization: {{sandy_auth}}
 Content-Type: application/json
 
-{ "item_id": "{{v104_item.id || v104_item.item_id}}" }
+{ "item_id": "{{v104_item_id}}" }
 
 POST {{base}}/cart/{{v104_cart_ok.cart_id}}/checkout
 Authorization: {{sandy_auth}}
@@ -42,7 +43,7 @@ POST {{base}}/cart/{{v104_cart_conflict.cart_id}}/items
 Authorization: {{sandy_auth}}
 Content-Type: application/json
 
-{ "item_id": "{{v104_item.id || v104_item.item_id}}" }
+{ "item_id": "{{v104_item_id}}" }
 
 POST {{base}}/cart/{{v104_cart_conflict.cart_id}}/checkout?tip=20
 Authorization: {{sandy_auth}}

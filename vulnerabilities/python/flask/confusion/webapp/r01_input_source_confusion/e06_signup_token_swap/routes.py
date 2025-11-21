@@ -202,9 +202,18 @@ def refund_order(order_id):
     return jsonify(refund.model_dump(mode="json")), 200
 
 
+def _normalize_platform_user_id(raw_user_id: str | None) -> str:
+    """Map legacy fixture ids to current email-based user ids for platform helpers."""
+    if not raw_user_id:
+        return "sandy@bikinibottom.sea"
+    if raw_user_id == "sandy":
+        return "sandy@bikinibottom.sea"
+    return raw_user_id
+
+
 def _require_platform_admin():
     user = get_authenticated_user()
-    if not user or user.user_id != "sandy":
+    if not user or _normalize_platform_user_id(user.user_id) != "sandy@bikinibottom.sea":
         return None
     return user
 
@@ -222,7 +231,7 @@ def platform_balance():
     if not _require_platform_admin():
         return jsonify({"error": "Forbidden"}), 403
     payload = request.get_json(silent=True) or {}
-    user_id = payload.get("user_id") or "sandy"
+    user_id = _normalize_platform_user_id(payload.get("user_id"))
     amount = payload.get("balance")
     if amount is None:
         return jsonify({"error": "balance required"}), 400

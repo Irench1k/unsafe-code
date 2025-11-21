@@ -21,16 +21,23 @@ Content-Type: application/json
 GET {{mailpit_host}}/messages?limit=1
 
 {{
-  const messages = v106_mail?.messages || [];
-  exports.v106_message_id = messages[0]?.ID;
+  const mailList = (typeof v106_mail !== "undefined" && v106_mail?.messages) || (response.parsedBody || {}).messages || [];
+  const newest = mailList[0] || {};
+  exports.v106_message_id = newest.ID;
 }}
 
 # @name v106_mail_body
 GET {{mailpit_host}}/message/{{v106_message_id}}
 
 {{
-  const body = v106_mail_body?.Body || v106_mail_body?.Text;
-  exports.v106_token = extractToken(body);
+  const mail = (typeof v106_mail_body !== "undefined" && v106_mail_body) || response.parsedBody || {};
+  const body = String(mail.Body || mail.Text || mail.body || "");
+  const source = body || JSON.stringify(mail);
+  const match = source.match(/token=([A-Za-z0-9._-]+)/);
+  exports.v106_token = match ? match[1] : "";
+  if (!exports.v106_token) {
+    throw new Error("v106_token missing from mail body");
+  }
 }}
 
 ### Complete registration with matching email

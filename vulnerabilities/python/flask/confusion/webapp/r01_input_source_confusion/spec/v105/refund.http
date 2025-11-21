@@ -12,6 +12,7 @@ GET {{base}}/menu
 {{
   const { cheap } = pickMenuExtremes(v105_menu);
   exports.v105_item = cheap;
+  exports.v105_item_id = String(cheap?.id || cheap?.item_id || "");
 }}
 
 ### Create order to refund
@@ -19,23 +20,31 @@ GET {{base}}/menu
 POST {{base}}/cart
 Authorization: {{sandy_auth}}
 
-POST {{base}}/cart/{{v105_cart.cart_id}}/items
+?? js [200,201].includes(response.statusCode)
+{{
+  exports.v105_cart_id = (response.parsedBody || body || {}).cart_id;
+}}
+
+POST {{base}}/cart/{{v105_cart_id}}/items
 Authorization: {{sandy_auth}}
 Content-Type: application/json
 
-{ "item_id": "{{v105_item.id || v105_item.item_id}}" }
+{ "item_id": "{{v105_item_id}}" }
 
 # @name v105_order
-POST {{base}}/cart/{{v105_cart.cart_id}}/checkout
+POST {{base}}/cart/{{v105_cart_id}}/checkout
 Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
 tip=0&delivery_address=Spec%20Street
 
 ?? status == 201
+{{
+  exports.v105_order_id = (response.parsedBody || body || {}).order_id;
+}}
 
 ### Legit JSON refund within policy should auto-approve
-POST {{base}}/orders/{{v105_order.order_id}}/refund
+POST {{base}}/orders/{{v105_order_id}}/refund
 Authorization: {{sandy_auth}}
 Content-Type: application/json
 
@@ -45,7 +54,7 @@ Content-Type: application/json
 ?? js (response.parsedBody || body || {}).status !== undefined
 
 ### Security: form-data extreme refund should not auto-approve
-POST {{base}}/orders/{{v105_order.order_id}}/refund
+POST {{base}}/orders/{{v105_order_id}}/refund
 Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 

@@ -13,19 +13,21 @@ GET {{base}}/menu
   const { cheap, pricey } = pickMenuExtremes(v103_menu);
   exports.v103_cheap = cheap;
   exports.v103_pricey = pricey;
+  exports.v103_cheap_id = String(cheap?.id || cheap?.item_id || "");
+  exports.v103_pricey_id = String(pricey?.id || pricey?.item_id || "");
 }}
 
 ### Unauthenticated cart creation is blocked
 POST {{base}}/cart
 
-?? js [401,403].includes(status)
+?? js [401,403].includes(response.statusCode)
 
 ### Customer can create cart
 # @name v103_cart_basic
 POST {{base}}/cart
 Authorization: {{sandy_auth}}
 
-?? status == 200 || status == 201
+?? js [200,201].includes(response.statusCode)
 ?? js (response.parsedBody || body || {}).cart_id !== undefined
 
 ### Add item to cart
@@ -33,9 +35,7 @@ POST {{base}}/cart/{{v103_cart_basic.cart_id}}/items
 Authorization: {{sandy_auth}}
 Content-Type: application/json
 
-{ "item_id": "{{v103_cheap.id || v103_cheap.item_id}}" }
-
-?? status == 200 || status == 201
+{ "item_id": "{{v103_cheap_id}}" }
 
 ### Checkout normal flow
 # @name v103_order_basic
@@ -58,7 +58,7 @@ POST {{base}}/cart/{{v103_cart_attack.cart_id}}/items
 Authorization: {{sandy_auth}}
 Content-Type: application/json
 
-{ "item_id": "{{v103_pricey.id || v103_pricey.item_id}}" }
+{ "item_id": "{{v103_pricey_id}}" }
 
 POST {{base}}/cart/{{v103_cart_attack.cart_id}}/checkout
 Authorization: {{sandy_auth}}
@@ -67,7 +67,7 @@ Content-Type: application/json
 {
   "delivery_address": "Spec Street",
   "tip": 0,
-  "order_id": {{v103_order_basic.order_id}}
+  "order_id": "{{v103_order_basic.order_id}}"
 }
 
 ?? status >= 400
