@@ -1,12 +1,12 @@
 # @import ../common/setup.http
 @base = {{base_host}}/v203
 
-### Step 1: Plankton checks his balance
+### Sandy checks the starting balance
 # @name initial_balance
 GET {{base}}/account/credits
 Authorization: {{plankton_auth}}
 
-### Attempt Exploit: Add credits via GET
+### She tries adding credits via GET request
 # @name exploit_attempt
 GET {{base}}/account/credits
 Authorization: {{plankton_auth}}
@@ -14,6 +14,6 @@ Content-Type: application/x-www-form-urlencoded
 
 user=plankton@chum-bucket.sea&amount=100
 
-# Verification: Sandy moved the logic. GET requests now strictly View credits. The balance remains unchanged.
+### The balance remains unchanged
 ?? status == 200
 ?? js parseFloat(response.body.balance) == parseFloat(initial_balance.response.body.balance)

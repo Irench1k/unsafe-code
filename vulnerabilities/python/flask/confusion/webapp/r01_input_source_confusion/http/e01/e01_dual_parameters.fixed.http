@@ -1,7 +1,7 @@
 # @import ../common/setup.http
 @base = {{base_host}}/v102
 
-### Sandy tests the fix by attempting the same "Dual Button" trick
+### Sandy checks the menu
 # @name menu
 GET {{base}}/menu
 
@@ -11,7 +11,7 @@ GET {{base}}/menu
   exports.expensive_item = menu.find(i => i.price > 20);
 }}
 
-### Attempt Exploit: Pay for cheap, get expensive?
+### She tries sending both parameters again
 # @name exploit_attempt
 POST {{base}}/orders
 Authorization: {{sandy_auth}}
@@ -19,7 +19,6 @@ Content-Type: application/x-www-form-urlencoded
 
 item={{cheap_item.item_id}}&items={{expensive_item.item_id}}
 
-# Verification: The system is consistent now. If it sees the cheap item, it charges AND delivers the cheap item.
-# (Or if it prioritizes the list, it charges AND delivers the expensive one).
+### Price and items are now consistent
 ?? status == 201
 ?? js response.body.total == response.body.items.reduce((sum, item) => sum + parseFloat(item.price), 0).toFixed(2)

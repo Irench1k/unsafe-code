@@ -1,7 +1,7 @@
 # @import ../common/setup.http
 @base = {{base_host}}/v104
 
-### Step 1: Sandy creates a cheap order to test the fix
+### Sandy creates a cheap order
 # @name cheap_cart
 POST {{base}}/cart
 Authorization: {{sandy_auth}}
@@ -19,7 +19,7 @@ Content-Type: application/x-www-form-urlencoded
 
 tip=0&delivery_address=Chum Bucket
 
-### Step 2: Sandy fills a new cart with expensive items
+### She fills a new cart with expensive items
 # @name expensive_cart
 POST {{base}}/cart
 Authorization: {{sandy_auth}}
@@ -30,7 +30,7 @@ Content-Type: application/json
 
 { "item_id": "5" }
 
-### Attempt Exploit: Inject the old order_id
+### Sandy tries injecting the old order ID
 # @name exploit_attempt
 POST {{base}}/cart/{{expensive_cart.response.body.cart_id}}/checkout
 Authorization: {{sandy_auth}}
@@ -42,6 +42,6 @@ Content-Type: application/json
   "order_id": {{cheap_order.response.body.order_id}}
 }
 
-# Verification: The system ignores the injected ID and creates a fresh order.
+### The injected ID is ignored and a fresh order is created
 ?? status == 201
 ?? body.order_id != {{cheap_order.response.body.order_id}}

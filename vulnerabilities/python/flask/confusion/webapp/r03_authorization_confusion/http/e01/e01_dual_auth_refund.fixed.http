@@ -1,7 +1,7 @@
 # @import ../common/setup.http
 @base = {{base_host}}/v302
 
-### Step 1: Plankton orders a Krabby Patty
+### Sandy logs in and orders from Krusty Krab
 # @name login
 POST {{base}}/auth/login
 Content-Type: application/json
@@ -35,7 +35,7 @@ Content-Type: application/x-www-form-urlencoded
 
 amount=26.50
 
-### Attempt Exploit: Conflict of Interest
+### She tries approving with the Chum Bucket manager key
 # @name exploit_attempt
 PATCH {{base}}/orders/{{order.response.body.order_id}}/refund/status
 Authorization: {{plankton_auth}}
@@ -44,5 +44,5 @@ Content-Type: application/x-www-form-urlencoded
 
 status=approved
 
-# Verification: Sandy enforced strict ownership checks. A Manager can only approve refunds for THEIR restaurant.
+### The request is rejected
 ?? status >= 400

@@ -1,7 +1,7 @@
 # @import ../common/setup.http
 @base = {{base_host}}/v206
 
-### Step 1: Plankton logs in
+### Sandy logs in as Plankton
 # @name login
 POST {{base}}/auth/login
 Content-Type: application/json
@@ -11,7 +11,7 @@ Content-Type: application/json
     "password": "i_love_my_wife"
 }
 
-### Attempt Exploit: Body Snatcher
+### She tries logging in as SpongeBob with a wrong password
 # @name exploit_attempt
 POST {{base}}/auth/login
 Content-Type: application/json
@@ -21,8 +21,7 @@ Content-Type: application/json
     "password": "does_not_matter"
 }
 
-# Verification: Sandy fixed the login handler to explicitly check credentials, ignoring the cookie.
-# The login fails (or keeps us as Plankton), but definitely doesn't switch us to SpongeBob.
+### The session remains as Plankton (not hijacked)
 GET {{base}}/account/info
 ?? status == 200
 ?? body.email == "plankton@chum-bucket.sea"

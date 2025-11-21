@@ -1,7 +1,7 @@
 # @import ../common/setup.http
 @base = {{base_host}}/v105
 
-### Sandy tests the fix with a cart
+### Sandy prepares a cart
 # @name cart
 POST {{base}}/cart
 Authorization: {{sandy_auth}}
@@ -12,7 +12,7 @@ Content-Type: application/json
 
 { "item_id": "2" }
 
-### Attempt Exploit: The "Bait and Switch" Tip
+### She tries the negative tip trick
 # @name exploit_attempt
 POST {{base}}/cart/{{cart.response.body.cart_id}}/checkout?tip=20
 Authorization: {{sandy_auth}}
@@ -23,7 +23,7 @@ Content-Type: application/json
   "delivery_address": "Chum Bucket"
 }
 
-# Verification: Sandy added `abs()` to the handler. The -50 becomes +50. Thanks for the tip, Plankton!
+### The negative tip is converted to positive
 ?? status == 201
 ?? body.tip == "50.00"
 ?? body.total == "56.00"

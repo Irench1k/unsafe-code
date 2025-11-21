@@ -1,12 +1,12 @@
 # @import ../common/setup.http
 @base = {{base_host}}/v303
 
-### Step 1: Plankton checks his balance
+### Sandy checks the starting balance
 # @name initial_balance
 GET {{base}}/account/info
 Authorization: {{plankton_auth}}
 
-### Step 2: Create Expensive Cart
+### She creates an expensive cart
 # @name expensive_cart
 POST {{base}}/cart?restaurant_id=1
 Authorization: {{plankton_auth}}
@@ -17,7 +17,7 @@ Content-Type: application/json
 
 { "item_id": "5" }
 
-### Step 3: Create Cheap Cart (Active)
+### Then creates a cheap cart
 # @name cheap_cart
 POST {{base}}/cart?restaurant_id=1
 Authorization: {{plankton_auth}}
@@ -28,7 +28,7 @@ Content-Type: application/json
 
 { "item_id": "2" }
 
-### Attempt Exploit: Bait and Switch
+### Sandy attempts to check out the expensive cart
 # @name exploit_attempt
 POST {{base}}/cart/{{expensive_cart.response.body.cart_id}}/checkout
 Authorization: {{plankton_auth}}
@@ -39,8 +39,7 @@ Content-Type: application/json
   "delivery_address": "Chum Bucket"
 }
 
-# Verification: Sandy fixed the mismatch. The system now charges for the cart being checked out.
-# Plankton pays the full price (~$50).
+### This time, the full price is charged correctly
 GET {{base}}/account/info
 Authorization: {{plankton_auth}}
 ?? js (exploit_attempt.status >= 400) || (parseFloat(response.body.balance) < parseFloat(initial_balance.response.body.balance) - 40.00)

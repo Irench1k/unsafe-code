@@ -1,7 +1,7 @@
 # @import ../common/setup.http
 @base = {{base_host}}/v204
 
-### Step 1: Plankton requests a refund again
+### Sandy places an order and requests a refund
 # @name cart
 POST {{base}}/cart
 Authorization: {{plankton_auth}}
@@ -26,7 +26,7 @@ Content-Type: application/x-www-form-urlencoded
 
 amount=26.50
 
-### Attempt Exploit: Fake Key Approval
+### She tries approving with a fake API key
 # @name exploit_attempt
 PATCH {{base}}/orders/{{order.response.body.order_id}}/refund/status
 Authorization: {{plankton_auth}}
@@ -35,10 +35,9 @@ Content-Type: application/x-www-form-urlencoded
 
 status=approved
 
-# Verification: Sandy updated the authenticator to validate the key. The fake key is rejected (or ignored), and Plankton is denied access.
+### The request is rejected
 ?? status >= 400
 
-# Double check status is NOT approved
 GET {{base}}/orders/{{order.response.body.order_id}}/refund/status
 Authorization: {{plankton_auth}}
 
