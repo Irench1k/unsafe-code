@@ -4,8 +4,8 @@
 # @tag spec,v303,orders
 
 ### Seed DB
-# @ref reset_v303
+# @ref seed_balance_v303
 GET {{base}}/orders
 Authorization: {{plankton_auth}}
 
-?? status == 200
+?? js response.statusCode == 200

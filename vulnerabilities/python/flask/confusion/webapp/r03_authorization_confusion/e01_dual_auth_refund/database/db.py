@@ -73,6 +73,17 @@ def get_engine(config: Config):
     return _engine
 
 
+def dispose_engine():
+    """Dispose engine and session factory to clear prepared statements between resets."""
+    global _engine, _session_factory
+    if _session_factory is not None:
+        _session_factory.remove()
+        _session_factory = None
+    if _engine is not None:
+        _engine.dispose()
+        _engine = None
+
+
 def init_database(config: Config, drop_existing: bool = True):
     """
     Initialize the database schema and load fixtures.
@@ -81,6 +92,9 @@ def init_database(config: Config, drop_existing: bool = True):
         config: Configuration object
         drop_existing: If True, drop existing schema before creating
     """
+    if drop_existing:
+        dispose_engine()
+
     engine = get_engine(config)
 
     # Create schema if it doesn't exist, or drop and recreate if requested

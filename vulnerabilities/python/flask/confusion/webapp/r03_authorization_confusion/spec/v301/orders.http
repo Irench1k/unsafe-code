@@ -4,11 +4,11 @@
 # @tag spec,v301,orders
 
 ### Seed DB
-# @ref reset_v301
+# @ref seed_balance_v301
 GET {{base}}/orders
 Authorization: {{plankton_auth}}
 
-?? status == 200
+?? js response.statusCode == 200
 
 ### Dual-auth refund should require proper tenant
 PATCH {{base}}/orders/1/refund/status
@@ -18,4 +18,5 @@ Content-Type: application/x-www-form-urlencoded
 
 status=approved
 
-?? js status >= 400 || (response.parsedBody || body || {}).status != "approved"
+?? js response.statusCode >= 400
+?? js (response.parsedBody || {}).status !== "approved"

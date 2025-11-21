@@ -19,9 +19,12 @@ def _authorized():
 def platform_reset():
     if not _authorized():
         return jsonify({"error": "Forbidden"}), 403
-    config = load_config()
-    init_database(config, drop_existing=True)
-    return jsonify({"status": "reset"}), 200
+    try:
+        config = load_config()
+        init_database(config, drop_existing=True)
+        return jsonify({"status": "reset"}), 200
+    except Exception as exc:  # pragma: no cover - test helper guardrail
+        return jsonify({"error": str(exc)}), 500
 
 
 @bp.route("/platform/balance", methods=["POST"])

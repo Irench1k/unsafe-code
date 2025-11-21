@@ -4,8 +4,8 @@
 # @tag spec,v303,menu
 
 ### Seed DB
-# @ref reset_v303
+# @ref seed_balance_v303
 GET {{base}}/menu
 
-?? status == 200
-?? js Array.isArray(body)
+?? js response.statusCode == 200
+?? js Array.isArray(response.parsedBody || body || [])

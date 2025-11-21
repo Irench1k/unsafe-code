@@ -1,6 +1,6 @@
 import logging
 
-from flask import Blueprint, g
+from flask import Blueprint, g, jsonify, request
 
 # Initialize database when the blueprint is registered
 from .config import load_config
@@ -30,10 +30,16 @@ def _init_db_once():
 def setup_database_session():
     """Set up a database session for each request."""
     # Initialize DB on first request
-    _init_db_once()
+    try:
+        if request.endpoint and request.endpoint.endswith("platform_reset"):
+            return
+        _init_db_once()
 
-    # Create a new session for this request
-    g.db_session = get_session(_config)
+        # Create a new session for this request
+        g.db_session = get_session(_config)
+    except Exception as exc:  # pragma: no cover - test helper guardrail
+        logger.exception("Database setup failed")
+        return jsonify({"error": str(exc)}), 500
 
 
 @bp.teardown_request

@@ -1,6 +1,6 @@
 import logging
 
-from flask import Blueprint, g
+from flask import Blueprint, g, jsonify, request
 
 from ..config import Config
 from .db import close_session, get_session, init_database
@@ -27,12 +27,18 @@ def register_database_hooks(bp: Blueprint, config: Config) -> None:
     def setup_database_session() -> None:
         """Create a scoped session and start an explicit transaction per request."""
 
-        _init_db_once()
+        try:
+            if request.endpoint and request.endpoint.endswith("platform_reset"):
+                return
+            _init_db_once()
 
-        g.db_session = get_session(config)
-        # Handlers should only use g.db_session. g._db_transaction_handle is only used
-        # by teardown_request to commit or rollback the transaction.
-        g._db_transaction_handle = g.db_session.begin()
+            g.db_session = get_session(config)
+            # Handlers should only use g.db_session. g._db_transaction_handle is only used
+            # by teardown_request to commit or rollback the transaction.
+            g._db_transaction_handle = g.db_session.begin()
+        except Exception as exc:  # pragma: no cover - test helper guardrail
+            logger.exception("Database setup failed")
+            return jsonify({"error": str(exc)}), 500
 
     @bp.teardown_request
     def teardown_database_session(exception: BaseException | None = None) -> None:
