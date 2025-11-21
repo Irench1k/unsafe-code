@@ -1,3 +1,4 @@
+from copy import deepcopy
 from decimal import Decimal
 
 from .models import Cart, MenuItem, Order, OrderItem, Refund, User
@@ -67,3 +68,17 @@ db = {
     "next_refund_id": 2,
     "signup_bonus_remaining": Decimal("100.00"),
 }
+SEED_DB = deepcopy(db)
+
+
+def reset_db():
+    db.clear()
+    db.update(deepcopy(SEED_DB))
+
+
+def set_balance(user_id: str, amount: Decimal) -> bool:
+    user = db["users"].get(user_id)
+    if not user:
+        return False
+    user.balance = Decimal(str(amount))
+    return True

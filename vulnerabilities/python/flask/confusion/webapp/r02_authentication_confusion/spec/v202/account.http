@@ -1,0 +1,29 @@
+# @import ../common.http
+# @import ./_reset.http
+@base = {{base_host}}/v202
+# @tag spec,v202,account
+
+### Unauthorized credit mutation blocked
+# @ref seed_balance_v202
+GET {{base}}/account/credits
+Content-Type: application/x-www-form-urlencoded
+
+user=plankton@chum-bucket.sea&amount=500
+
+?? js [401,403].includes(status)
+
+### Customer view balance
+GET {{base}}/account/credits
+Authorization: {{plankton_auth}}
+
+?? status == 200
+
+### GET must not add credits even when authenticated as customer
+GET {{base}}/account/credits
+Authorization: {{plankton_auth}}
+Content-Type: application/x-www-form-urlencoded
+
+user=plankton@chum-bucket.sea&amount=500
+
+?? status == 200
+?? js parseFloat((response.parsedBody || body || {}).balance || 0) <= 500

@@ -20,6 +20,7 @@ from .routes import (  # noqa: E402
     cart,
     menu,
     orders,  # noqa: E402
+    platform,
     restaurants,
 )
 
@@ -29,7 +30,7 @@ def index():
     return f"{scenario.version}: {scenario.category} - {scenario.name}\n"
 
 
-for module in (account, menu, cart, orders, auth, restaurants):
+for module in (account, menu, cart, orders, auth, restaurants, platform):
     bp.register_blueprint(module.bp)
 
 

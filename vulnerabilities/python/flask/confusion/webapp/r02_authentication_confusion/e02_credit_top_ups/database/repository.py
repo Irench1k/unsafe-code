@@ -8,8 +8,10 @@ When migrating to SQLAlchemy, only this file will need significant changes.
 
 from decimal import Decimal
 
+from decimal import Decimal
+
 from .models import Cart, MenuItem, Order, Refund, User
-from .storage import db
+from .storage import db, reset_db, set_balance
 
 
 # ============================================================
@@ -118,3 +120,14 @@ def get_signup_bonus_remaining() -> Decimal:
 def set_signup_bonus_remaining(amount: Decimal) -> None:
     """Sets the remaining signup bonus amount."""
     db["signup_bonus_remaining"] = amount
+
+
+# ============================================================
+# MAINTENANCE
+# ============================================================
+def reset_database():
+    reset_db()
+
+
+def set_user_balance(user_id: str, amount: Decimal) -> bool:
+    return set_balance(user_id, amount)

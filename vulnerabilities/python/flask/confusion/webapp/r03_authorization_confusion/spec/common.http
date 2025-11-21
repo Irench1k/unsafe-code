@@ -1,0 +1,5 @@
+# r03 spec shared context
+@base_host = http://localhost:8000/api
+@admin_key = key-sandy-42841a8d-0e65-41db-8cce-8588c23e53dc
+@plankton_auth = Basic plankton@chum-bucket.sea:i_love_my_wife
+@krusty_key = key-mrkrabs-1bd647c2-dc5b-4c2b-a316-5ff83786c219

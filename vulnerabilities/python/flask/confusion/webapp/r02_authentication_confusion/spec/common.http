@@ -1,0 +1,7 @@
+# r02 spec shared context (no @name so globals import correctly)
+@base_host = http://localhost:8000/api
+@admin_key = key-sandy-42841a8d-0e65-41db-8cce-8588c23e53dc
+
+@plankton_auth = Basic plankton@chum-bucket.sea:i_love_my_wife
+@spongebob_auth = Basic spongebob@bikinibottom.sea:i_l0ve_burg3rs
+@sandy_auth = Basic sandy@testpassword

@@ -22,11 +22,13 @@ from .repository import (
     generate_next_order_id,
     generate_next_refund_id,
     get_signup_bonus_remaining,
+    reset_database,
     save_cart,
     save_order,
     save_refund,
     save_user,
     set_signup_bonus_remaining,
+    set_user_balance,
 )
 
 logger = logging.getLogger(__name__)
@@ -255,3 +257,14 @@ def refund_user(user_id: str, amount: Decimal) -> None:
     user.balance += amount
     save_user(user)
     logger.info(f"User refunded: {user_id} + {amount}")
+
+
+# ============================================================
+# PLATFORM UTILITIES (test determinism)
+# ============================================================
+def reset_for_tests():
+    reset_database()
+
+
+def set_balance_for_tests(user_id: str, amount: Decimal) -> bool:
+    return set_user_balance(user_id, amount)

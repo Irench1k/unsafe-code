@@ -7,7 +7,9 @@ When migrating to SQLAlchemy, only this file will need significant changes.
 """
 
 from .models import Cart, MenuItem, Order, Refund, User
-from .storage import db
+from decimal import Decimal
+
+from .storage import db, reset_db, set_balance
 
 
 # ============================================================
@@ -81,6 +83,17 @@ def get_and_increment_order_id() -> str:
     reserved_order_id = str(db["next_order_id"])
     db["next_order_id"] += 1
     return reserved_order_id
+
+
+# ============================================================
+# MAINTENANCE
+# ============================================================
+def reset_database():
+    reset_db()
+
+
+def set_user_balance(user_id: str, amount: Decimal) -> bool:
+    return set_balance(user_id, amount)
 
 
 # ============================================================

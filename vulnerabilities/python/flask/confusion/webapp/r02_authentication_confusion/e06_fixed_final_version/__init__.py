@@ -14,6 +14,7 @@ from .routes import (  # noqa: E402
     index,
     menu,
     orders,
+    platform,
 )
 
 # Register all sub-blueprints with the main blueprint
@@ -23,5 +24,6 @@ bp.register_blueprint(menu.bp)
 bp.register_blueprint(cart.bp)
 bp.register_blueprint(orders.bp)
 bp.register_blueprint(auth.bp)
+bp.register_blueprint(platform.bp)
 
 __all__ = ["bp"]

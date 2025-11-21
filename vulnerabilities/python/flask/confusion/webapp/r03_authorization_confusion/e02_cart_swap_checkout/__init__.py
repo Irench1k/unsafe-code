@@ -76,7 +76,7 @@ def teardown_database_session(exception=None):
 from .auth import middleware  # noqa: E402, F401
 
 # Import all sub-blueprints from routes package
-from .routes import account, auth, cart, menu, orders, restaurants  # noqa: E402
+from .routes import account, auth, cart, menu, orders, platform, restaurants  # noqa: E402
 
 
 @bp.route("/")
@@ -91,5 +91,6 @@ bp.register_blueprint(cart.bp)
 bp.register_blueprint(orders.bp)
 bp.register_blueprint(auth.bp)
 bp.register_blueprint(restaurants.bp)
+bp.register_blueprint(platform.bp)
 
 __all__ = ["bp"]

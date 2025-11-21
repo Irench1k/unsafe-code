@@ -1,0 +1,35 @@
+# @import ../common.http
+# @import ./_reset.http
+@base = {{base_host}}/v201
+# @tag spec,v201,orders
+
+### Login to establish session
+# @name v201_login
+# @ref seed_balance_v201
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "plankton@chum-bucket.sea",
+    "password": "i_love_my_wife"
+}
+
+?? status == 200
+
+### Session hijack should not switch identity based on bad Basic header
+# @ref v201_login
+GET {{base}}/account/info
+Authorization: Basic spongebob@bikinibottom.sea:wrong_password
+
+?? status == 200
+?? body.email == "plankton@chum-bucket.sea"
+
+### Orders listing requires auth
+GET {{base}}/orders
+
+?? js [401,403].includes(status)
+
+### Orders listing uses current session identity
+GET {{base}}/orders
+
+?? status == 200
