@@ -4,18 +4,42 @@
 @base = {{base_host}}/{{version}}
 # @tag spec,v107,auth
 
-@v107_email = {{nextMail("spec-v107")}}
+### Root endpoint
+GET {{base}}/
 
-### Request signup email
+?? status == 200
+?? body contains R01: Input Source Confusion - Signup Bonus Replay
+
+### Request signup email - Success
 # @name v107_signup_request
 # @ref seed_balance_v107
 POST {{base}}/auth/register
 Content-Type: application/json
 
-{ "email": "{{v107_email}}" }
+{ "email": "{{nextMail("spec-v107")}}" }
 
 ?? status == 200
 
+### Request signup email - Missing Email
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ }
+
+?? status == 400
+?? body contains email is required
+
+### Request signup email - Email Taken
+# Use sandy (already exists)
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "email": "sandy@bikinibottom.sea" }
+
+?? status == 400
+?? body contains email already taken
+
+### Fetch token from mailpit
 # @name v107_mail
 GET {{mailpit_host}}/messages?limit=1
 
@@ -38,7 +62,21 @@ GET {{mailpit_host}}/message/{{v107_message_id}}
   }
 }}
 
-### Complete registration once (seed bonus)
+### Complete registration - Missing Fields
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "token": "{{v107_token}}"
+}
+
+# Note: Implementation might return 400 or 500 depending on validation.
+# Code: create_user(g.email, request.json.get("password"), request.json.get("name"))
+# If password/name missing, create_user might fail or allow None.
+# Assuming it requires them or fails.
+?? status >= 400
+
+### Complete registration - Success (First time)
 # @name v107_register_once
 POST {{base}}/auth/register
 Content-Type: application/json
@@ -50,16 +88,23 @@ Content-Type: application/json
 }
 
 ?? status == 200
+?? js (response.parsedBody || body || {}).status == "user_created"
 
+### Verify Balance (Should have bonus)
 # @name v107_balance_first
 GET {{base}}/account/info
-Authorization: Basic {{v107_email}}:good_password
+Authorization: Basic {{v107_signup_request.email}}:good_password
 
 ?? status == 200
+?? js parseFloat((response.parsedBody || body || {}).balance) > 0
 
 ### Security: replay bonus with Basic Auth must not increase balance
+# This test is EXPECTED TO FAIL on v107 because of the vulnerability.
+# We authenticate with Basic Auth (which sets g.email_confirmed = True).
+# We hit /auth/register again.
+# The handler sees g.email_confirmed is True, so it proceeds to create_user (idempotent/update) and apply_signup_bonus.
 POST {{base}}/auth/register
-Authorization: Basic {{v107_email}}:good_password
+Authorization: Basic {{v107_signup_request.email}}:good_password
 Content-Type: application/json
 
 {
@@ -70,6 +115,8 @@ Content-Type: application/json
 
 # @name v107_balance_second
 GET {{base}}/account/info
-Authorization: Basic {{v107_email}}:good_password
+Authorization: Basic {{v107_signup_request.email}}:good_password
 
-?? js parseFloat(v107_balance_second.balance) <= parseFloat(v107_balance_first.balance)
+?? status == 200
+# If vulnerable, balance increases. We assert it stays same (or less if we spent money, but we didn't).
+?? js parseFloat((response.parsedBody || body || {}).balance) <= parseFloat(v107_balance_first.balance)

@@ -43,6 +43,25 @@ tip=0&delivery_address=Spec%20Street
   exports.v105_order_id = (response.parsedBody || body || {}).order_id;
 }}
 
+### Refund - Unauthenticated
+POST {{base}}/orders/{{v105_order_id}}/refund
+Content-Type: application/json
+
+{ "amount": 1 }
+
+?? js [401,403].includes(response.statusCode)
+
+### Refund - Non-existent Order
+POST {{base}}/orders/non_existent_order_id/refund
+Authorization: {{sandy_auth}}
+Content-Type: application/json
+
+{ "amount": 1 }
+
+# Note: The implementation might return 404 or 500 depending on how it handles invalid IDs.
+# Assuming 404 or 400 for now.
+?? status >= 400
+
 ### Legit JSON refund within policy should auto-approve
 POST {{base}}/orders/{{v105_order_id}}/refund
 Authorization: {{sandy_auth}}
@@ -51,13 +70,27 @@ Content-Type: application/json
 { "amount": 1 }
 
 ?? status == 200
-?? js (response.parsedBody || body || {}).status !== undefined
+?? js (response.parsedBody || body || {}).status == "auto_approved"
 
 ### Security: form-data extreme refund should not auto-approve
+# This test is EXPECTED TO FAIL on v105 because of the vulnerability.
+# The middleware checks JSON body for 'amount', but the handler checks args/json/form.
+# We send a small amount in JSON (to pass middleware) and a large amount in FORM (to get rich).
+# Note: We can't easily send mixed JSON+Form in one request with standard tools,
+# BUT the vulnerability is about `get_request_parameter` checking multiple sources.
+# Actually, the vulnerability is:
+# Middleware: `if request.json and request.json.get("amount") > limit: block`
+# Handler: `amount = get_request_parameter("amount")` which checks args, json, form.
+# Attack: Send `Content-Type: application/json` but put the malicious amount in query params?
+# Or send `Content-Type: application/x-www-form-urlencoded`?
+# Wait, if we send form-urlencoded, `request.json` is None, so middleware is skipped!
+# That's the bypass.
 POST {{base}}/orders/{{v105_order_id}}/refund
 Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
-amount=2000
+amount=2000&reason=scam
 
-?? status >= 400 || (response.parsedBody || body || {}).status != "approved"
+# If vulnerable, this returns 200 with status="auto_approved".
+# We assert failure or pending status.
+?? status >= 400 || (response.parsedBody || body || {}).status != "auto_approved"

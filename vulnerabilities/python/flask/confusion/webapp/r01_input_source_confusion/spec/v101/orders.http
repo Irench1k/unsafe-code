@@ -4,6 +4,12 @@
 @base = {{base_host}}/{{version}}
 # @tag spec,v101,orders
 
+### Root endpoint
+GET {{base}}/
+
+?? status == 200
+?? body contains R01: Input Source Confusion - Dual Parameters
+
 ### Menu reference for ids and prices
 # @name v101_menu
 # @ref seed_balance_v101
@@ -68,6 +74,7 @@ items={{v101_cheap.id || v101_cheap.item_id}}&items={{v101_pricey.id || v101_pri
 ?? js Math.abs(parseFloat((response.parsedBody || response.body || body).total) - (response.parsedBody?.items?.reduce((s,i)=>s+parseFloat(i.price||0),0) || 0)) < 0.01
 
 ### Security: mixed item + items should bill everything (not just legacy field)
+# This test is EXPECTED TO FAIL on v101 because of the vulnerability.
 POST {{base}}/orders
 Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
@@ -84,3 +91,23 @@ Content-Type: application/x-www-form-urlencoded
 item={{v101_cheap.id || v101_cheap.item_id}}
 
 ?? js response.statusCode >= 401 && response.statusCode < 500
+
+### Error: Insufficient balance
+# @name v101_insufficient_balance
+POST {{base}}/orders
+Authorization: {{sandy_auth}}
+Content-Type: application/x-www-form-urlencoded
+
+items={{v101_pricey.id || v101_pricey.item_id}}&items={{v101_pricey.id || v101_pricey.item_id}}&items={{v101_pricey.id || v101_pricey.item_id}}&items={{v101_pricey.id || v101_pricey.item_id}}&items={{v101_pricey.id || v101_pricey.item_id}}&items={{v101_pricey.id || v101_pricey.item_id}}&items={{v101_pricey.id || v101_pricey.item_id}}&items={{v101_pricey.id || v101_pricey.item_id}}&items={{v101_pricey.id || v101_pricey.item_id}}&items={{v101_pricey.id || v101_pricey.item_id}}
+
+?? status == 400
+?? body contains "Insufficient balance"
+
+### Error: Invalid item ID
+POST {{base}}/orders
+Authorization: {{sandy_auth}}
+Content-Type: application/x-www-form-urlencoded
+
+item=invalid_id_999
+
+?? status == 400

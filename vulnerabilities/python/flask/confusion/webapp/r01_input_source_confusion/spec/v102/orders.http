@@ -4,6 +4,12 @@
 @base = {{base_host}}/{{version}}
 # @tag spec,v102,orders
 
+### Root endpoint
+GET {{base}}/
+
+?? status == 200
+?? body contains R01: Input Source Confusion - Delivery Fee
+
 ### Menu reference
 # @name v102_menu
 # @ref seed_balance_v102
@@ -13,6 +19,19 @@ GET {{base}}/menu
   const { cheap, pricey } = pickMenuExtremes(v102_menu);
   exports.v102_cheap = cheap;
   exports.v102_pricey = pricey;
+}}
+
+### Ensure test account has balance before running costed scenarios
+# @name v102_balance
+GET {{base}}/account/credits
+Authorization: {{sandy_auth}}
+
+{{
+  const bal = parseFloat((response.parsedBody || response.body || {}).balance || 0);
+  if (bal < 50) {
+    console.warn("Insufficient balance for reliable spec run; reset seed data.");
+    exports.$cancel = true;
+  }
 }}
 
 ### Auth required to list orders
@@ -27,7 +46,7 @@ Authorization: {{sandy_auth}}
 ?? status == 200
 ?? js Array.isArray(response.parsedBody || body)
 
-### Delivery pricing uses submitted body, not query-only phantom items
+### Legitimate paid delivery (cheap order)
 POST {{base}}/orders
 Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
@@ -35,9 +54,24 @@ Content-Type: application/x-www-form-urlencoded
 item={{v102_cheap.id || v102_cheap.item_id}}&delivery_address=Chum%20Bucket
 
 ?? status == 201
-?? js parseFloat((response.parsedBody || body || {}).delivery_fee) >= 0
+?? js parseFloat((response.parsedBody || body || {}).delivery_fee) == 5.00
+?? js parseFloat((response.parsedBody || body || {}).total) == parseFloat(v102_cheap.price) + 5.00
+
+### Legitimate free delivery (expensive order)
+# Need enough items to exceed $25
+POST {{base}}/orders
+Authorization: {{sandy_auth}}
+Content-Type: application/x-www-form-urlencoded
+
+items={{v102_pricey.id || v102_pricey.item_id}}&items={{v102_pricey.id || v102_pricey.item_id}}&delivery_address=Chum%20Bucket
+
+?? status == 201
+?? js parseFloat((response.parsedBody || body || {}).delivery_fee) == 0.00
+?? js parseFloat((response.parsedBody || body || {}).total) == parseFloat(v102_pricey.price) * 2
 
 ### Security: Query-only expensive items must not grant free delivery
+# This test is EXPECTED TO FAIL on v102 because of the vulnerability.
+# The query params (items=pricey) trick the delivery fee calculator, but the form (item=cheap) creates the order.
 POST {{base}}/orders?items={{v102_pricey.id || v102_pricey.item_id}}&items={{v102_pricey.id || v102_pricey.item_id}}
 Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
@@ -45,15 +79,44 @@ Content-Type: application/x-www-form-urlencoded
 item={{v102_cheap.id || v102_cheap.item_id}}&delivery_address=Chum%20Bucket
 
 ?? status == 201
-?? js parseFloat((response.parsedBody || body || {}).delivery_fee) > 0
-?? js parseFloat((response.parsedBody || body || {}).total) >= parseFloat(v102_cheap?.price || 0)
+?? js parseFloat((response.parsedBody || body || {}).delivery_fee) == 5.00
+?? js parseFloat((response.parsedBody || body || {}).total) == parseFloat(v102_cheap.price) + 5.00
 
 ### Security: Mixed item + items should charge the combined total
-POST {{base}}/orders?items={{v102_pricey.id || v102_pricey.item_id}}
+# This ensures we haven't regressed on v101 issues (though v102 might have different logic)
+POST {{base}}/orders
 Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
-item={{v102_cheap.id || v102_cheap.item_id}}&delivery_address=Chum%20Bucket
+item={{v102_cheap.id || v102_cheap.item_id}}&items={{v102_pricey.id || v102_pricey.item_id}}&delivery_address=Chum%20Bucket
 
 ?? status == 201
-?? js parseFloat((response.parsedBody || body || {}).total) >= parseFloat(v102_cheap?.price || 0) + parseFloat(v102_pricey?.price || 0)
+?? js parseFloat((response.parsedBody || body || {}).total) >= parseFloat(v102_cheap.price) + parseFloat(v102_pricey.price)
+
+### Security: unauthenticated create order must fail
+POST {{base}}/orders
+Content-Type: application/x-www-form-urlencoded
+
+item={{v102_cheap.id || v102_cheap.item_id}}
+
+?? js response.statusCode >= 401 && response.statusCode < 500
+
+### Error: Insufficient balance
+# @name v102_insufficient_balance
+POST {{base}}/orders
+Authorization: {{sandy_auth}}
+Content-Type: application/x-www-form-urlencoded
+
+items={{v102_pricey.id || v102_pricey.item_id}}&items={{v102_pricey.id || v102_pricey.item_id}}&items={{v102_pricey.id || v102_pricey.item_id}}&items={{v102_pricey.id || v102_pricey.item_id}}&items={{v102_pricey.id || v102_pricey.item_id}}&items={{v102_pricey.id || v102_pricey.item_id}}&items={{v102_pricey.id || v102_pricey.item_id}}&items={{v102_pricey.id || v102_pricey.item_id}}&items={{v102_pricey.id || v102_pricey.item_id}}&items={{v102_pricey.id || v102_pricey.item_id}}
+
+?? status == 400
+?? body contains "Insufficient balance"
+
+### Error: Invalid item ID
+POST {{base}}/orders
+Authorization: {{sandy_auth}}
+Content-Type: application/x-www-form-urlencoded
+
+item=invalid_id_999
+
+?? status == 400
