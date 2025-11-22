@@ -1,6 +1,6 @@
 import logging
 
-from flask import Blueprint, g
+from flask import Blueprint, g, jsonify, request
 
 # Initialize database when the blueprint is registered
 from .config import load_config
@@ -30,10 +30,16 @@ def _init_db_once():
 def setup_database_session():
     """Set up a database session for each request."""
     # Initialize DB on first request
-    _init_db_once()
+    try:
+        if request.endpoint and request.endpoint.endswith("platform_reset"):
+            return
+        _init_db_once()
 
-    # Create a new session for this request
-    g.db_session = get_session(_config)
+        # Create a new session for this request
+        g.db_session = get_session(_config)
+    except Exception as exc:  # pragma: no cover - test helper guardrail
+        logger.exception("Database setup failed")
+        return jsonify({"error": str(exc)}), 500
 
 
 @bp.teardown_request
@@ -50,7 +56,7 @@ def teardown_database_session(exception=None):
 from .auth import middleware  # noqa: E402, F401
 
 # Import all sub-blueprints from routes package
-from .routes import account, auth, cart, menu, orders, restaurants  # noqa: E402
+from .routes import account, auth, cart, menu, orders, platform, restaurants  # noqa: E402
 
 
 @bp.route("/")
@@ -65,5 +71,6 @@ bp.register_blueprint(cart.bp)
 bp.register_blueprint(orders.bp)
 bp.register_blueprint(auth.bp)
 bp.register_blueprint(restaurants.bp)
+bp.register_blueprint(platform.bp)
 
 __all__ = ["bp"]

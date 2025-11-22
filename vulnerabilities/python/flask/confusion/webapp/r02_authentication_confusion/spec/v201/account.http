@@ -1,0 +1,197 @@
+# @import ../common.http
+# @import ./_reset.http
+@base = {{base_host}}/v201
+# @tag spec,v201,account
+
+### Account balance requires authentication
+# @forceRef reset_v201
+# @noCookieJar
+GET {{base}}/account/credits
+
+> {%
+client.test("v201 credits require auth", () => {
+  const status = response.statusCode ?? response.status;
+  if (status < 400) {
+    throw new Error(`Expected auth failure, got ${status}`);
+  }
+});
+%}
+
+### Account info requires authentication
+# @forceRef reset_v201
+# @noCookieJar
+GET {{base}}/account/info
+
+> {%
+client.test("v201 account info requires auth", () => {
+  const status = response.statusCode ?? response.status;
+  if (status < 400) {
+    throw new Error(`Expected auth failure, got ${status}`);
+  }
+});
+%}
+
+### Login should fail with wrong password
+# @forceRef reset_v201
+# @noCookieJar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "plankton@chum-bucket.sea",
+    "password": "wrong"
+}
+
+> {%
+client.test("v201 login rejects bad password", () => {
+  const status = response.statusCode ?? response.status;
+  if (status < 400) {
+    throw new Error(`Expected login failure, got ${status}`);
+  }
+});
+%}
+
+### Basic Auth can view own credits
+# @forceRef reset_v201
+# @noCookieJar
+GET {{base}}/account/credits
+Authorization: {{plankton_auth}}
+
+> {%
+client.test("v201 basic auth balance", () => {
+  const status = response.statusCode ?? response.status;
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+  const rawBody = response.parsedBody ?? response.body ?? {};
+  const payload = typeof rawBody === "string" ? JSON.parse(rawBody) : rawBody;
+  if (payload.email !== "plankton@chum-bucket.sea") {
+    throw new Error(`Expected plankton balance, got ${payload.email}`);
+  }
+});
+%}
+
+### Basic Auth with wrong password should fail
+# @forceRef reset_v201
+# @noCookieJar
+GET {{base}}/account/info
+Authorization: Basic plankton@chum-bucket.sea:wrong_password
+
+> {%
+client.test("v201 bad basic auth blocked", () => {
+  const status = response.statusCode ?? response.status;
+  if (status < 400) {
+    throw new Error(`Expected failure for bad password, got ${status}`);
+  }
+});
+%}
+
+### Login to establish session for account info
+# @name v201_account_login
+# @forceRef reset_v201
+# @noCookieJar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "plankton@chum-bucket.sea",
+    "password": "i_love_my_wife"
+}
+
+?? js response.statusCode == 200
+
+> {%
+client.test("v201 account login sets cookie", () => {
+          const helperStore = (typeof $global !== "undefined" && $global) || {};
+  let captureCookie = helperStore.captureCookie || (client.global.get("helpers") || {}).captureCookie;
+  if (typeof captureCookie !== "function") {
+    captureCookie = (resp, key) => {
+      const headers = (resp?.headers?.headers) || (resp?.headers) || {};
+      const raw = headers["set-cookie"] || headers["Set-Cookie"];
+      const cookie = Array.isArray(raw) ? raw.join("; ") : raw;
+      if (!cookie) { throw new Error("helpers not initialized"); }
+      client.global.set(key, cookie);
+      return cookie;
+    };
+  }
+  captureCookie(response, "v201_account_cookie");
+});
+%}
+
+### Session should serve account info
+# @ref v201_account_login
+# @noCookieJar
+GET {{base}}/account/info
+Cookie: {{v201_account_cookie}}
+
+> {%
+client.test("v201 session account info", () => {
+  const status = response.statusCode ?? response.status;
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+  const rawBody = response.parsedBody ?? response.body ?? {};
+  const payload = typeof rawBody === "string" ? JSON.parse(rawBody) : rawBody;
+  if (payload.email !== "plankton@chum-bucket.sea") {
+    throw new Error(`Session returned wrong user: ${payload.email}`);
+  }
+});
+%}
+
+### Session must ignore conflicting Basic header
+# @ref v201_account_login
+# @noCookieJar
+GET {{base}}/account/info
+Cookie: {{v201_account_cookie}}
+Authorization: Basic spongebob@bikinibottom.sea:wrong_password
+
+> {%
+client.test("v201 session not confused by invalid basic", () => {
+  const status = response.statusCode ?? response.status;
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+  const rawBody = response.parsedBody ?? response.body ?? {};
+  const payload = typeof rawBody === "string" ? JSON.parse(rawBody) : rawBody;
+  if (payload.email !== "plankton@chum-bucket.sea") {
+    throw new Error(`Session hijacked by bad header: ${payload.email}`);
+  }
+});
+%}
+
+### Logout without a session should fail
+# @forceRef reset_v201
+# @noCookieJar
+POST {{base}}/auth/logout
+
+> {%
+client.test("v201 logout requires session", () => {
+  const status = response.statusCode ?? response.status;
+  if (status < 400) {
+    throw new Error(`Expected logout without session to fail, got ${status}`);
+  }
+});
+%}
+
+### Logout clears the session
+# @ref v201_account_login
+# @noCookieJar
+POST {{base}}/auth/logout
+Cookie: {{v201_account_cookie}}
+
+?? js response.statusCode >= 200 && response.statusCode < 300
+
+### Logged-out requests should fail
+# @ref v201_account_login
+# @noCookieJar
+GET {{base}}/account/info
+Cookie: {{v201_account_cookie}}
+
+> {%
+client.test("v201 account info blocked after logout", () => {
+  const status = response.statusCode ?? response.status;
+  if (status < 400) {
+    throw new Error(`Expected auth failure after logout, got ${status}`);
+  }
+});
+%}

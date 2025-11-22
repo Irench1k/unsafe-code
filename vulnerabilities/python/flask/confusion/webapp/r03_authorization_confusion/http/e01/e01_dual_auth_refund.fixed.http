@@ -1,10 +1,8 @@
-@base = http://localhost:8000/api/v302
+# @import ../common/setup.http
+@base = {{base_host}}/v302
 
-# Plankton now has Chum Bucket Restaurant API key
-@chum_bucket_api_key = key-plankton-a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d
-@krusty_krab_api_key = key-mrkrabs-1bd647c2-dc5b-4c2b-a316-5ff83786c219
-
-### He also keeps using his customer credentials to order from Krusty Krab
+### Plankton logs in and orders from Krusty Krab
+# @name login
 POST {{base}}/auth/login
 Content-Type: application/json
 
@@ -13,60 +11,42 @@ Content-Type: application/json
     "password": "i_love_my_wife"
 }
 
-### Plankton creates a cart in Krusty Krab and adds a krabby patty to it
-# NOTE: New argument, restaurant_id is **required**!
+###
 # @name cart
 POST {{base}}/cart?restaurant_id=1
+Authorization: {{plankton_auth}}
 
 ###
-POST {{base}}/cart/{{cart.response.body.cart_id}}/items
+POST {{base}}/cart/{{cart.cart_id}}/items
+Authorization: {{plankton_auth}}
 Content-Type: application/json
 
-{
-  "item_id": "4"
-}
+{ "item_id": "4" }
 
-### Plankton checks out the cart and creates an order (so far so good)
+###
 # @name order
-POST {{base}}/cart/{{cart.response.body.cart_id}}/checkout
+POST {{base}}/cart/{{cart.cart_id}}/checkout
+Authorization: {{plankton_auth}}
 Content-Type: application/x-www-form-urlencoded
 
-tip=1&delivery_address=Chum Backet Restaurant
+tip=1&delivery_address=Chum Bucket
 
-### Plankton's balance is now $73.50 (remember this amount)
-GET {{base}}/account/info
-
-### Plankton requests a refund as soon as it's delivered
-POST {{base}}/orders/{{order.response.body.order_id}}/refund
+###
+# @name refund_request
+POST {{base}}/orders/{{order.order_id}}/refund
+Authorization: {{plankton_auth}}
 Content-Type: application/x-www-form-urlencoded
 
 amount=26.50
 
-### Refund is pending and will likely be rejected by Mr. Krabs
-GET {{base}}/orders/{{order.response.body.order_id}}/refund/status
-
-### Plankton tries to approve his own refund request, but this fails because he's not a Krusty Krab manager
-PATCH {{base}}/orders/{{order.response.body.order_id}}/refund/status
-Content-Type: application/x-www-form-urlencoded
-
-status=approved
-
-### Vulnerable Example FIXED: now Plankton can't use the Chum Bucket Restaurant API key to approve his own refund request
-PATCH {{base}}/orders/{{order.response.body.order_id}}/refund/status
+### Plankton can't use the Chum Bucket Restaurant API key to approve his own refund request
+# @name exploit_attempt
+PATCH {{base}}/orders/{{order.order_id}}/refund/status
+Authorization: {{plankton_auth}}
 X-API-Key: {{chum_bucket_api_key}}
 Content-Type: application/x-www-form-urlencoded
 
 status=approved
 
-### Only Krusty Krab manager can approve the refund
-PATCH {{base}}/orders/{{order.response.body.order_id}}/refund/status
-X-API-Key: {{krusty_krab_api_key}}
-Content-Type: application/x-www-form-urlencoded
-
-status=rejected
-
-### Refund is now rejected
-GET {{base}}/orders/{{order.response.body.order_id}}/refund/status
-
-### Plankton's balance is back to $73.50
-GET {{base}}/account/info
+# The request is rejected
+?? status == 400

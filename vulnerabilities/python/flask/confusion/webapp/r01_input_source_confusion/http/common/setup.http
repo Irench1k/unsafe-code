@@ -1,0 +1,42 @@
+# @title r01 shared setup
+# @description Base host, default actors, and tiny helpers reused across the r01 Input Source Confusion suites.
+@base_host = http://localhost:8000/api
+@mailpit_host = http://127.0.0.1:8025/api/v1
+@base = {{base_host}}/v100
+
+# Common actors
+@sandy_auth = Basic sandy:testpassword
+@plankton_auth = Basic plankton:i_love_my_wife
+@spongebob_auth = Basic spongebob:i_l0ve_burg3rs
+
+@sandy_auth_email = Basic sandy@bikinibottom.sea:testpassword
+@plankton_auth_email = Basic plankton.chum-bucket.sea@bikinibottom.com:i_love_my_wife
+@spongebob_auth_email = Basic spongebob@bikinibottom.sea:i_l0ve_burg3rs
+
+### @title helper: menu pickers
+{{
+  /**
+   * Pick representative menu items for exploit/happy-path flows.
+   */
+  exports.pickMenuExtremes = (menu) => {
+    const cheap = menu.find(i => i.price < 5);
+    const expensive = [...menu].reverse().find(i => i.price > 15);
+    return { cheap, expensive };
+  };
+
+  /**
+   * Parse a verification token out of Mailpit message bodies.
+   */
+  exports.extractToken = (body) => {
+    if (!body) return "";
+    const match = body.match(/token=([a-zA-Z0-9\\-_.]+)/);
+    return match ? match[1] : "";
+  };
+
+  /**
+   * Quick unique email generator to avoid clashing with seeded data.
+   */
+  exports.nextMail = (label = "learner") => {
+    return `${label}+${Date.now()}@example.test`;
+  };
+}}

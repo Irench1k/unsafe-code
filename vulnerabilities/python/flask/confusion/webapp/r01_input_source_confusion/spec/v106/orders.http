@@ -1,0 +1,15 @@
+# @import ../common.http
+# @import ./_reset.http
+@version = v106
+@base = {{base_host}}/{{version}}
+# @tag spec,v106,orders
+
+# @ref seed_balance_v106
+GET {{base}}/orders
+
+?? js [401,403].includes(response.statusCode)
+
+GET {{base}}/orders
+Authorization: {{sandy_auth}}
+
+?? status == 200

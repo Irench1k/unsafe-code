@@ -1,0 +1,27 @@
+# @import ../common.http
+# @import ./_reset.http
+@base = {{base_host}}/v201
+# @tag spec,v201,menu
+
+### Menu is public
+# @forceRef reset_v201
+# @noCookieJar
+GET {{base}}/menu
+
+> {%
+client.test("v201 menu is readable without auth", () => {
+  const status = response.statusCode ?? response.status;
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+  const rawItems = response.parsedBody ?? response.body ?? [];
+  const items = typeof rawItems === "string" ? JSON.parse(rawItems) : rawItems;
+  if (!Array.isArray(items) || items.length < 3) {
+    throw new Error("Expected seeded menu items");
+  }
+  const hasUnavailable = items.some((item) => item.available === false);
+  if (!hasUnavailable) {
+    throw new Error("Expected at least one unavailable item in seed data");
+  }
+});
+%}

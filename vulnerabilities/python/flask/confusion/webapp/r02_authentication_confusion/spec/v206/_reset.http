@@ -1,0 +1,20 @@
+# @import ../helpers.http
+# @import ../common.http
+@base = {{base_host}}/v206
+
+### Reset in-memory state
+# @name reset_v206
+# @ref helpers_init
+# @noCookieJar
+POST {{base}}/platform/reset
+X-Admin-API-Key: {{admin_key}}
+
+### Seed balances
+# @name seed_balance_v206
+# @ref reset_v206
+# @noCookieJar
+POST {{base}}/platform/balance
+X-Admin-API-Key: {{admin_key}}
+Content-Type: application/json
+
+{ "user_id": "sandy@bikinibottom.sea", "balance": 200 }

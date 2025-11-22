@@ -1,12 +1,35 @@
-# Note: The base URL assumes that the blueprints are registered by your routing setup
-# to be accessible under /confusion/r01/e01. You may need to adjust this.
-@base = http://localhost:8000/api/v102
+# @import ../common/setup.http
+@base = {{base_host}}/v102
 
-### Vulnerable Example FIXED:
-# Sandy introduces an update, and she tests that previous vulnerability is fixed:
-# Now "item" parameter has been removed.
+### Sandy fixes the vulnerability, so now `item` parameter is ignored.
+# Plankton again wants to check the menu and receive the expensive item, paying for the cheaper one.
+# @name menu
+GET {{base}}/menu
+
+{{
+  const menuData = menu;
+  exports.cheap_item = menuData.find(i => i.price < 5);
+  exports.expensive_item = menuData.find(i => i.price > 20);
+}}
+
+### He tries sending both parameters again, but `item` parameter is now ignored.
+# He ends up paying for the expensive item.
+# @name exploit_attempt
 POST {{base}}/orders
-Authorization: Basic sandy:testpassword
+Authorization: {{plankton_auth}}
 Content-Type: application/x-www-form-urlencoded
 
-item=3&items=1&items=2&items=3
+item={{cheap_item.id}}&items={{expensive_item.id}}
+
+### Price and items are now consistent
+?? status == 201
+?? js response.parsedBody.total == {{expensive_item.price}}
+?? js response.parsedBody.items[0].name == {{expensive_item.name}}
+
+### Let's check his balance and order to see if he paid for the expensive item.
+GET {{base}}/account/credits
+Authorization: {{plankton_auth}}
+
+###
+GET {{base}}/orders
+Authorization: {{plankton_auth}}

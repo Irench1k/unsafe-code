@@ -26,6 +26,8 @@ def handle_exception(error: Exception):
 @bp.before_request
 def protect_registration_flow():
     """Authenticate user via email verification flow during the registration process."""
+    if request.path.endswith("/platform/reset") or request.path.endswith("/platform/balance"):
+        return None
     token = request.is_json and request.json.get("token")
     if token and verify_user_registration(token):
         email_from_token = get_email_from_token(token)
@@ -44,6 +46,8 @@ def protect_registration_flow():
 @bp.before_request
 def protect_order_id():
     """Security middleware to prevent future attacks."""
+    if request.path.endswith("/platform/reset") or request.path.endswith("/platform/balance"):
+        return None
     # We don't accept order_id from the user to prevent order overwrite attacks.
     order_id = get_request_parameter("order_id")
     if order_id is not None:

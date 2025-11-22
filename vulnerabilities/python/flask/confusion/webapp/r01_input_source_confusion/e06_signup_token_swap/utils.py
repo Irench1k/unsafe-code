@@ -111,6 +111,8 @@ def _verify_and_decode_token(token: str) -> str | None:
         print("The token has an invalid signature!")
     except jwt.InvalidTokenError:
         print("The token is invalid!")
+    except Exception as e:
+        print(f"Token verification error: {e}")
     return None
 
 

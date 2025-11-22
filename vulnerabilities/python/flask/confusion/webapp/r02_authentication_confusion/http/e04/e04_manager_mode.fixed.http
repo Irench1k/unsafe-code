@@ -1,14 +1,26 @@
-@base = http://localhost:8000/api/v205
+# @import ../common/setup.http
+@base = {{base_host}}/v205
 
-### Legitimate request: Mr. Krabs can list all orders for Krasty Krabs
-GET {{base}}/orders
-X-API-Key: key-mrkrabs-1bd647c2-dc5b-4c2b-a316-5ff83786c219
+# Sandy fixed the vulnerability, and now API key is validated before the request is processed.
 
-### Legitimate request: Plankton can list his own orders
+### Mr. Krabs can see orders from all customers
+# --- Legitimate Usage: Mr. Krabs can see orders from all customers ---
 GET {{base}}/orders
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+X-API-Key: {{krabs_key}}
 
-### Vulnerable request FIXED: Plankton can't list all orders anymore
+?? status == 200
+
+### Plankton can see his own orders
+# --- Legitimate Usage: Plankton can see his own orders ---
 GET {{base}}/orders
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+Authorization: {{plankton_auth}}
+
+?? status == 200
+
+### Attempt Exploit: Plankton can't list all orders anymore
+GET {{base}}/orders
+Authorization: {{plankton_auth}}
 X-API-Key: fake
+
+# Verification: Sandy ensured the flag is reset on failure. Plankton only sees his own orders.
+?? status == 200

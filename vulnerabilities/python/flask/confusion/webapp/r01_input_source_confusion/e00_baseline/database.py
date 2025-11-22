@@ -25,8 +25,15 @@ db = {
             user_id="spongebob",
             email="spongebob.squarepants@bikinibottom.com",
             name="SpongeBob SquarePants",
-            balance=Decimal("20.00"),
+            balance=Decimal("200.00"),
             password="i_l0ve_burg3rs",
+        ),
+        "plankton": User(
+            user_id="plankton",
+            email="plankton.chum-bucket.sea@bikinibottom.com",
+            name="Sheldon Plankton",
+            balance=Decimal("200.00"),
+            password="i_love_my_wife",
         ),
     },
     "orders": {

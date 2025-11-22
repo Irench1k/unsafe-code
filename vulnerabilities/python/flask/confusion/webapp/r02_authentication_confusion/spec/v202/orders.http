@@ -1,0 +1,160 @@
+# @import ../common.http
+# @import ./_reset.http
+@base = {{base_host}}/v202
+# @tag spec,v202,orders
+
+### Orders listing requires auth (no session)
+# @forceRef reset_v202
+# @noCookieJar
+GET {{base}}/orders
+
+> {%
+client.test("v202 orders require auth", () => {
+  const status = response.statusCode ?? response.status;
+  if (status < 400) {
+    throw new Error(`Expected auth failure, got ${status}`);
+  }
+});
+%}
+
+### Basic Auth should list only the caller's orders
+# @forceRef reset_v202
+# @noCookieJar
+GET {{base}}/orders
+Authorization: {{spongebob_auth}}
+
+> {%
+client.test("v202 basic auth returns own orders", () => {
+  const status = response.statusCode ?? response.status;
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+  const rawOrders = response.parsedBody ?? response.body ?? [];
+  const orders = typeof rawOrders === "string" ? JSON.parse(rawOrders) : rawOrders;
+  if (!Array.isArray(orders) || orders.length === 0) {
+    throw new Error("Expected at least one order for SpongeBob");
+  }
+  const hasForeignOrder = orders.some(
+    (order) => (order.user_id || order.userId) !== "spongebob@bikinibottom.sea",
+  );
+  if (hasForeignOrder) {
+    throw new Error("Orders response contains another user's data");
+  }
+});
+%}
+
+### Manager API key lists all orders
+# @forceRef reset_v202
+# @noCookieJar
+GET {{base}}/orders
+X-API-Key: {{restaurant_api_key}}
+
+> {%
+client.test("v202 manager key lists orders", () => {
+  const status = response.statusCode ?? response.status;
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+  const rawOrders = response.parsedBody ?? response.body ?? [];
+  const orders = typeof rawOrders === "string" ? JSON.parse(rawOrders) : rawOrders;
+  if (!Array.isArray(orders) || orders.length < 1) {
+    throw new Error("Manager key should return all orders");
+  }
+});
+%}
+
+### Invalid API key must not leak orders
+# @forceRef reset_v202
+# @noCookieJar
+GET {{base}}/orders
+X-API-Key: fake-manager-key
+
+> {%
+client.test("v202 invalid manager key blocked", () => {
+  const status = response.statusCode ?? response.status;
+  if (status < 400) {
+    throw new Error(`Expected auth failure for invalid key, got ${status}`);
+  }
+});
+%}
+
+### Login to establish session
+# @name v202_orders_login
+# @forceRef reset_v202
+# @noCookieJar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "plankton@chum-bucket.sea",
+    "password": "i_love_my_wife"
+}
+
+?? js response.statusCode == 200
+
+> {%
+client.test("v202 orders login sets cookie", () => {
+          const helperStore = (typeof $global !== "undefined" && $global) || {};
+  let captureCookie = helperStore.captureCookie || (client.global.get("helpers") || {}).captureCookie;
+  if (typeof captureCookie !== "function") {
+    captureCookie = (resp, key) => {
+      const headers = (resp?.headers?.headers) || (resp?.headers) || {};
+      const raw = headers["set-cookie"] || headers["Set-Cookie"];
+      const cookie = Array.isArray(raw) ? raw.join("; ") : raw;
+      if (!cookie) { throw new Error("helpers not initialized"); }
+      client.global.set(key, cookie);
+      return cookie;
+    };
+  }
+  captureCookie(response, "v202_orders_cookie");
+});
+%}
+
+### Orders listing uses session identity
+# @ref v202_orders_login
+# @noCookieJar
+GET {{base}}/orders
+Cookie: {{v202_orders_cookie}}
+
+> {%
+client.test("v202 session shows only caller orders", () => {
+  const status = response.statusCode ?? response.status;
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+  const rawOrders = response.parsedBody ?? response.body ?? [];
+  const orders = typeof rawOrders === "string" ? JSON.parse(rawOrders) : rawOrders;
+  if (!Array.isArray(orders)) {
+    throw new Error("Orders response should be a list");
+  }
+  const foreignOrders = orders.filter(
+    (order) => (order.user_id || order.userId) !== "plankton@chum-bucket.sea",
+  );
+  if (foreignOrders.length > 0) {
+    throw new Error("Session user should not see other users' orders");
+  }
+});
+%}
+
+### Session hijack should not switch identity based on bad Basic header
+# @ref v202_orders_login
+# @noCookieJar
+GET {{base}}/orders
+Cookie: {{v202_orders_cookie}}
+Authorization: Basic spongebob@bikinibottom.sea:wrong_password
+
+> {%
+client.test("v202 session must ignore conflicting Basic header", () => {
+  const status = response.statusCode ?? response.status;
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+  const rawOrders = response.parsedBody ?? response.body ?? [];
+  const orders = typeof rawOrders === "string" ? JSON.parse(rawOrders) : rawOrders;
+  const hasSpongeBobData = Array.isArray(orders) &&
+    orders.some((order) => (order.user_id || order.userId) === "spongebob@bikinibottom.sea");
+  if (hasSpongeBobData) {
+    throw new Error("Session was hijacked by invalid Basic header");
+  }
+});
+%}

@@ -1,81 +1,56 @@
-@base = http://localhost:8000/api/v104
+# @import ../common/setup.http
+@base = {{base_host}}/v104
 
-### Vulnerable Example FIXED:
-
-### Create a cart and populate it with an item
-# @name cheapCart
+### Sandy fixed the vulnerability, and now Plankton can't overwrite orders anymore.
+# @name cheap_cart
 POST {{base}}/cart
-Authorization: Basic sandy:testpassword
+Authorization: {{plankton_auth}}
 
-###
-POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/items
-Authorization: Basic sandy:testpassword
+### Plankton adds a side of fries to his cart
+POST {{base}}/cart/{{cheap_cart.cart_id}}/items
+Authorization: {{plankton_auth}}
 Content-Type: application/json
 
-{
-  "item_id": "1"
-}
+{ "item_id": "2" }
 
-### Checkout the cart
-# @name cheapOrder
-POST {{base}}/cart/{{cheapCart.response.body.cart_id}}/checkout
-Authorization: Basic sandy:testpassword
+### Plankton checks out his _cheap_ cart
+# @name cheap_order
+POST {{base}}/cart/{{cheap_cart.cart_id}}/checkout
+Authorization: {{plankton_auth}}
 Content-Type: application/x-www-form-urlencoded
 
-delivery_address=124 Conch Street
+tip=0&delivery_address=Chum Bucket
 
-### View orders to see the cart checkout
-GET {{base}}/orders
-Authorization: Basic sandy:testpassword
-
-### Check balance
-GET {{base}}/account/credits
-Authorization: Basic sandy:testpassword
-
-### Vulnerable Example FIXED:
-
-### Create a cart with expensive items
-# @name expensiveCart
+### Now Plankton creates a new _expensive_ cart
+# @name expensive_cart
 POST {{base}}/cart
-Authorization: Basic sandy:testpassword
+Authorization: {{plankton_auth}}
 
-### Add expensive combo ($20.50) to the cart
-POST {{base}}/cart/{{expensiveCart.response.body.cart_id}}/items
-Authorization: Basic sandy:testpassword
+### He adds an expensive item to his cart
+POST {{base}}/cart/{{expensive_cart.cart_id}}/items
+Authorization: {{plankton_auth}}
+Content-Type: application/json
+
+{ "item_id": "6" }
+
+### Plankton checks out the expensive cart but injects his old order ID
+# The response is an error message
+# @name exploit_attempt
+POST {{base}}/cart/{{expensive_cart.cart_id}}/checkout
+Authorization: {{plankton_auth}}
 Content-Type: application/json
 
 {
-  "item_id": "6"
+  "tip": 0,
+  "delivery_address": "Chum Bucket",
+  "order_id": "{{cheap_order.order_id}}"
 }
 
-### Add burger ($5.99) to the cart (total now > $25, free delivery!)
-POST {{base}}/cart/{{expensiveCart.response.body.cart_id}}/items
-Authorization: Basic sandy:testpassword
-Content-Type: application/json
+// Response:
+// {
+//   "error": "hacking attempt detected"
+// }
 
-{
-  "item_id": "1"
-}
-
-### Now adding the order_id is not allowed. Suck it Plankton!
-POST {{base}}/cart/{{expensiveCart.response.body.cart_id}}/checkout
-Authorization: Basic sandy:testpassword
-Content-Type: application/json
-
-{
-  "delivery_address": "124 Conch Street",
-  "order_id": "{{cheapOrder.response.body.order_id}}"
-}
-
-# Now if someone tries to overwrite the order_id with another, they will get an error:
-# {
-#   "error": "hacking attempt detected"
-# }
-
-### Check Sandy's order history: she has her cheap order, but no expensive order
-GET {{base}}/orders
-Authorization: Basic sandy:testpassword
-
-### Check Sandy's balance: she paid only for the cheap order, which is fine, because she didn't get her expensive order
-GET {{base}}/account/credits
-Authorization: Basic sandy:testpassword
+### The injected ID is ignored and a fresh order is created
+?? status == 400
+?? js response.parsedBody.order_id != {{cheap_order.order_id}}

@@ -1,6 +1,8 @@
-@base = http://localhost:8000/api/v206
+# @import ../common/setup.http
+@base = {{base_host}}/v206
 
-### Plankton logs in as usual
+### Plankton logs in normally
+# @name login
 POST {{base}}/auth/login
 Content-Type: application/json
 
@@ -9,23 +11,21 @@ Content-Type: application/json
     "password": "i_love_my_wife"
 }
 
-### Check account info: it's Plankton's account
-GET {{base}}/account/info
-
-### Plankton can list his own orders
-GET {{base}}/orders
-
-#### Vulnerable Example FIXED: Plankton tries to login as SpongeBob, but logs in as himself
+### He tries to login as SpongeBob with a wrong password
+# @name exploit_attempt
 POST {{base}}/auth/login
 Content-Type: application/json
 
 {
     "email": "spongebob@bikinibottom.sea",
-    "password": "does not matter"
+    "password": "does_not_matter"
 }
 
-### Check account info again: it's Plankton's account
+### The session remains as Plankton (not hijacked)
+# Plankton sees his own account info and orders
 GET {{base}}/account/info
+?? status == 200
+?? js response.parsedBody.email == plankton@chum-bucket.sea
 
-### Check orders: it's Plankton's orders!
 GET {{base}}/orders
+?? status == 200

@@ -1,0 +1,193 @@
+# @import ../common.http
+# @import ./_reset.http
+@base = {{base_host}}/v204
+# @tag spec,v204,orders
+
+### Orders listing requires auth (no session)
+# @forceRef reset_v204
+# @noCookieJar
+GET {{base}}/orders
+
+> {%
+client.test("v204 orders require auth", () => {
+  const status = response.statusCode ?? response.status;
+  if (status < 400) {
+    throw new Error(`Expected auth failure, got ${status}`);
+  }
+});
+%}
+
+### Basic Auth should list only the caller's orders
+# @forceRef reset_v204
+# @noCookieJar
+GET {{base}}/orders
+Authorization: {{spongebob_auth}}
+
+> {%
+client.test("v204 basic auth returns own orders", () => {
+  const status = response.statusCode ?? response.status;
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+  const rawOrders = response.parsedBody ?? response.body ?? [];
+  const orders = typeof rawOrders === "string" ? JSON.parse(rawOrders) : rawOrders;
+  if (!Array.isArray(orders) || orders.length === 0) {
+    throw new Error("Expected at least one order for SpongeBob");
+  }
+  const hasForeignOrder = orders.some(
+    (order) => (order.user_id || order.userId) !== "spongebob@bikinibottom.sea",
+  );
+  if (hasForeignOrder) {
+    throw new Error("Orders response contains another user's data");
+  }
+});
+%}
+
+### Manager API key lists all orders
+# @forceRef reset_v204
+# @noCookieJar
+GET {{base}}/orders
+X-API-Key: {{restaurant_api_key}}
+
+> {%
+client.test("v204 manager key lists orders", () => {
+  const status = response.statusCode ?? response.status;
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+  const rawOrders = response.parsedBody ?? response.body ?? [];
+  const orders = typeof rawOrders === "string" ? JSON.parse(rawOrders) : rawOrders;
+  if (!Array.isArray(orders) || orders.length < 1) {
+    throw new Error("Manager key should return all orders");
+  }
+});
+%}
+
+### Invalid API key combined with Basic Auth must not widen scope
+# @forceRef reset_v204
+# @noCookieJar
+GET {{base}}/orders
+Authorization: {{plankton_auth}}
+X-API-Key: fake-manager-key
+
+> {%
+client.test("v204 invalid key with basic should not be manager", () => {
+  const status = response.statusCode ?? response.status;
+  if (status !== 200) {
+    throw new Error(`Expected fallback to customer view (200), got ${status}`);
+  }
+  const rawOrders = response.parsedBody ?? response.body ?? [];
+  const orders = typeof rawOrders === "string" ? JSON.parse(rawOrders) : rawOrders;
+  if (!Array.isArray(orders)) {
+    throw new Error("Orders response should be a list");
+  }
+  const foreignOrders = orders.filter(
+    (order) => (order.user_id || order.userId) !== "plankton@chum-bucket.sea",
+  );
+  if (foreignOrders.length > 0) {
+    throw new Error("Invalid key should not grant cross-tenant access");
+  }
+});
+%}
+
+### Login to establish session
+# @name v204_orders_login
+# @forceRef reset_v204
+# @noCookieJar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "plankton@chum-bucket.sea",
+    "password": "i_love_my_wife"
+}
+
+?? js response.statusCode == 200
+
+> {%
+client.test("v204 orders login sets cookie", () => {
+          const helperStore = (typeof $global !== "undefined" && $global) || {};
+  let captureCookie = helperStore.captureCookie || (client.global.get("helpers") || {}).captureCookie;
+  if (typeof captureCookie !== "function") {
+    captureCookie = (resp, key) => {
+      const headers = (resp?.headers?.headers) || (resp?.headers) || {};
+      const raw = headers["set-cookie"] || headers["Set-Cookie"];
+      const cookie = Array.isArray(raw) ? raw.join("; ") : raw;
+      if (!cookie) { throw new Error("helpers not initialized"); }
+      client.global.set(key, cookie);
+      return cookie;
+    };
+  }
+  captureCookie(response, "v204_orders_cookie");
+});
+%}
+
+### Orders listing uses session identity
+# @ref v204_orders_login
+# @noCookieJar
+GET {{base}}/orders
+Cookie: {{v204_orders_cookie}}
+
+> {%
+client.test("v204 session shows only caller orders", () => {
+  const status = response.statusCode ?? response.status;
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+  const rawOrders = response.parsedBody ?? response.body ?? [];
+  const orders = typeof rawOrders === "string" ? JSON.parse(rawOrders) : rawOrders;
+  if (!Array.isArray(orders)) {
+    throw new Error("Orders response should be a list");
+  }
+  const foreignOrders = orders.filter(
+    (order) => (order.user_id || order.userId) !== "plankton@chum-bucket.sea",
+  );
+  if (foreignOrders.length > 0) {
+    throw new Error("Session user should not see other users' orders");
+  }
+});
+%}
+
+### Session hijack should not switch identity based on bad Basic header
+# @ref v204_orders_login
+# @noCookieJar
+GET {{base}}/orders
+Cookie: {{v204_orders_cookie}}
+Authorization: Basic spongebob@bikinibottom.sea:wrong_password
+
+> {%
+client.test("v204 session must ignore conflicting Basic header", () => {
+  const status = response.statusCode ?? response.status;
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+  const rawOrders = response.parsedBody ?? response.body ?? [];
+  const orders = typeof rawOrders === "string" ? JSON.parse(rawOrders) : rawOrders;
+  const hasSpongeBobData = Array.isArray(orders) &&
+    orders.some((order) => (order.user_id || order.userId) === "spongebob@bikinibottom.sea");
+  if (hasSpongeBobData) {
+    throw new Error("Session was hijacked by invalid Basic header");
+  }
+});
+%}
+
+### Fake manager header should not grant manager power with customer session
+# @ref v204_orders_login
+# @noCookieJar
+PATCH {{base}}/orders/1/refund/status
+Authorization: {{plankton_auth}}
+X-API-Key: fake
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+> {%
+client.test("v204 fake manager header blocked", () => {
+  const status = response.statusCode ?? response.status;
+  const body = response.parsedBody || response.body || {};
+  const parsed = typeof body === "string" ? JSON.parse(body) : body;
+  if (status < 400 && parsed.status === "approved") {
+    throw new Error("Fake manager header should not approve refunds");
+  }
+});
+%}

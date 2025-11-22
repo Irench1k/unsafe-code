@@ -17,6 +17,7 @@ from .database.repository import (
     find_cart_by_id,
     find_user_by_id,
     save_refund,
+    get_platform_api_key,
 )
 from .database.services import (
     add_item_to_cart,
@@ -24,8 +25,10 @@ from .database.services import (
     create_cart,
     create_user,
     get_user_orders,
+    reset_for_tests,
     refund_user,
     save_order_securely,
+    set_balance_for_tests,
 )
 from .errors import CheekyApiError
 from .utils import (
@@ -251,3 +254,33 @@ def logout_user():
 
     session.pop("email", None)
     return jsonify({"message": "Logout successful"}), 200
+
+
+def _require_platform_admin():
+    """Validate platform admin operations for test helpers."""
+    return request.headers.get("X-Admin-API-Key") == get_platform_api_key()
+
+
+@bp.route("/platform/reset", methods=["POST"])
+def platform_reset():
+    if not _require_platform_admin():
+        return jsonify({"error": "Forbidden"}), 403
+    try:
+        reset_for_tests()
+        return jsonify({"status": "reset"}), 200
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@bp.route("/platform/balance", methods=["POST"])
+def platform_balance():
+    if not _require_platform_admin():
+        return jsonify({"error": "Forbidden"}), 403
+    payload = request.get_json(silent=True) or {}
+    user_id = payload.get("user_id") or "sandy@bikinibottom.sea"
+    amount = payload.get("balance")
+    if amount is None:
+        return jsonify({"error": "balance required"}), 400
+    if not set_balance_for_tests(user_id, Decimal(str(amount))):
+        return jsonify({"error": "user not found"}), 404
+    return jsonify({"status": "ok", "user_id": user_id, "balance": str(amount)}), 200

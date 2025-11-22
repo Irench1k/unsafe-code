@@ -1,0 +1,29 @@
+# @title r02 shared setup
+# @description Base host, default actors, and helper utilities for the authentication confusion suites.
+@base_host = http://localhost:8000/api
+@base = {{base_host}}/v201
+
+# Common actors
+@plankton_auth = Basic plankton@chum-bucket.sea:i_love_my_wife
+@spongebob_auth = Basic spongebob@bikinibottom.sea:i_l0ve_burg3rs
+@sandy_auth = Basic sandy:testpassword
+@admin_key = key-sandy-42841a8d-0e65-41db-8cce-8588c23e53dc
+@krabs_key = key-mrkrabs-1bd647c2-dc5b-4c2b-a316-5ff83786c219
+
+### @title helper: session + ids
+{{
+  /**
+   * Extract a cookie value from a login response.
+   */
+  exports.pickCookie = (resp, name = "session_id") => {
+    const raw = resp?.headers?.["set-cookie"];
+    const cookieHeader = Array.isArray(raw) ? raw.find(h => h.startsWith(`${name}=`)) : raw;
+    if (!cookieHeader) return "";
+    return cookieHeader.split(";")[0];
+  };
+
+  /**
+   * Generate a unique email to avoid clashing with seeded fixtures.
+   */
+  exports.nextMail = (label = "learner") => `${label}+${Date.now()}@example.test`;
+}}

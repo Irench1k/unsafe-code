@@ -29,14 +29,12 @@ def protect_registration_flow():
     token = request.is_json and request.json.get("token")
     print("protect_registration_flow", token)
     if token and verify_user_registration(token):
-        print("token is valid")
         g.email_confirmed = True
         g.email = get_email_from_token(token)
         # We check email uniqueness before sending the verification email,
         # but just in case let's check again here to prevent another hacking attempt
         g.email = g.email if not user_exists(g.email) else None
     else:
-        print("token is invalid")
         # The token is expired, or maybe this isn't even a registration request
         g.email_confirmed = False
 

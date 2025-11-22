@@ -21,9 +21,11 @@ from .repository import (
     get_and_increment_cart_id,
     get_signup_bonus_remaining,
     order_exists,
+    reset_database,
     save_cart,
     save_order,
     save_user,
+    set_user_balance,
 )
 
 
@@ -136,6 +138,17 @@ def charge_user(user_id: str, amount: Decimal, order_id: str) -> bool:
     # Charge the user
     user.balance -= amount
     return True
+
+
+# ============================================================
+# PLATFORM UTILITIES (test determinism)
+# ============================================================
+def reset_for_tests():
+    reset_database()
+
+
+def set_balance_for_tests(user_id: str, amount: Decimal) -> bool:
+    return set_user_balance(user_id, amount)
 
 
 def refund_user(user_id: str, amount: Decimal) -> None:

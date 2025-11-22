@@ -1,0 +1,11 @@
+# @import ../common.http
+# @import ./_reset.http
+@version = v107
+@base = {{base_host}}/{{version}}
+# @tag spec,v107,menu
+
+# @ref seed_balance_v107
+GET {{base}}/menu
+
+?? status == 200
+?? js Array.isArray(response.parsedBody || body)

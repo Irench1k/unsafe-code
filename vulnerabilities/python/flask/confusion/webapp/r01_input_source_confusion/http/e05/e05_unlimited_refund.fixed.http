@@ -1,55 +1,44 @@
-@base = http://localhost:8000/api/v106
+# @import ../common/setup.http
+@base = {{base_host}}/v106
 
-### Vulnerable Example FIXED:
-
-### Create a cart
+### Sandy fixed the vulnerability, and now Plankton can't request a unlimited refund anymore.
 # @name cart
 POST {{base}}/cart
-Authorization: Basic sandy:testpassword
+Authorization: {{plankton_auth_email}}
 
-### Add an item to the cart
-POST {{base}}/cart/{{cart.response.body.cart_id}}/items
-Authorization: Basic sandy:testpassword
+POST {{base}}/cart/{{cart.cart_id}}/items
+Authorization: {{plankton_auth_email}}
 Content-Type: application/json
 
-{
-  "item_id": "1"
-}
+{ "item_id": "4" }
 
-### Checkout the cart
+###
 # @name order
-POST {{base}}/cart/{{cart.response.body.cart_id}}/checkout
-Authorization: Basic sandy:testpassword
+POST {{base}}/cart/{{cart.cart_id}}/checkout
+Authorization: {{plankton_auth_email}}
 Content-Type: application/x-www-form-urlencoded
 
-tip=3&delivery_address=124 Conch Street
+tip=0&delivery_address=Chum Bucket
 
-### Legitimate refund: $1
-POST {{base}}/orders/{{order.response.body.order_id}}/refund
-Authorization: Basic sandy:testpassword
-Content-Type: application/json
-
-{
-  "amount": "1"
-}
-
-### Refund $50: it is more expensive than the order total and will be rejected
-POST {{base}}/orders/{{order.response.body.order_id}}/refund
-Authorization: Basic sandy:testpassword
+### Previous attempt still doesn't work
+POST {{base}}/orders/{{order.order_id}}/refund
+Authorization: {{plankton_auth_email}}
 Content-Type: application/json
 
 {
   "amount": "50"
 }
 
-### Vulnerable Example FIXED: now we check both the body form and the JSON body:
-# Again, $50 is more than the order total and will be rejected
-POST {{base}}/orders/{{order.response.body.order_id}}/refund
-Authorization: Basic sandy:testpassword
+?? status == 400
+
+### Now Plankton can't request a unlimited refund anymore.
+# @name exploit_attempt
+POST {{base}}/orders/{{order.order_id}}/refund
+Authorization: {{plankton_auth_email}}
 Content-Type: application/x-www-form-urlencoded
 
-amount=50
+amount=2000
 
-### Check balance: Sandy received refund for $1
-GET {{base}}/account/credits
-Authorization: Basic sandy:testpassword
+# Verification: The system now ignores the form amount for non-JSON requests and defaults to 20%.
+# Or it validates it properly. Either way, we don't get $2000.
+?? status == 400

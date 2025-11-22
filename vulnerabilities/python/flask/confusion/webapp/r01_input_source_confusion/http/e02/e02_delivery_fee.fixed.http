@@ -1,13 +1,25 @@
-@base = http://localhost:8000/api/v103
+# @import ../common/setup.http
+@base = {{base_host}}/v103
 
-### Vulnerable Example FIXED:
-# Sandy checks that the delivery fee is correctly calculated
-POST {{base}}/orders?items=6&items=1
-Authorization: Basic sandy:testpassword
+### Sandy fixes the vulnerability, so now the delivery fee is calculated correctly.
+# @name menu
+GET {{base}}/menu
+
+{{
+  const menuData = menu;
+  exports.cheap_item = menuData.find(i => i.price < 10);
+  exports.expensive_item = menuData.find(i => i.price > 20);
+}}
+
+### She puts expensive items in the URL and cheap items in the body
+# @name exploit_attempt
+POST {{base}}/orders?items={{expensive_item.id}}&items={{expensive_item.id}}
+Authorization: {{plankton_auth}}
 Content-Type: application/x-www-form-urlencoded
 
-items=3&delivery_address=124 Conch Street
+items={{cheap_item.id}}&delivery_address=Chum Bucket
 
-### Check balance after regression test
-GET {{base}}/account/credits
-Authorization: Basic sandy:testpassword
+### The delivery fee is now based on the actual order
+?? status == 201
+?? js response.parsedBody.delivery_fee == 5.00
+?? js parseFloat(response.parsedBody.total) == parseFloat(response.parsedBody.items[0].price) + 5.00
