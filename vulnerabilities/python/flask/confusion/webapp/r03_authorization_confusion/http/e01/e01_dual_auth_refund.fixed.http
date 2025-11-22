@@ -1,7 +1,7 @@
 # @import ../common/setup.http
 @base = {{base_host}}/v302
 
-### Sandy logs in and orders from Krusty Krab
+### Plankton logs in and orders from Krusty Krab
 # @name login
 POST {{base}}/auth/login
 Content-Type: application/json
@@ -11,38 +11,42 @@ Content-Type: application/json
     "password": "i_love_my_wife"
 }
 
+###
 # @name cart
 POST {{base}}/cart?restaurant_id=1
 Authorization: {{plankton_auth}}
 
-POST {{base}}/cart/{{cart.response.body.cart_id}}/items
+###
+POST {{base}}/cart/{{cart.cart_id}}/items
 Authorization: {{plankton_auth}}
 Content-Type: application/json
 
 { "item_id": "4" }
 
+###
 # @name order
-POST {{base}}/cart/{{cart.response.body.cart_id}}/checkout
+POST {{base}}/cart/{{cart.cart_id}}/checkout
 Authorization: {{plankton_auth}}
 Content-Type: application/x-www-form-urlencoded
 
 tip=1&delivery_address=Chum Bucket
 
+###
 # @name refund_request
-POST {{base}}/orders/{{order.response.body.order_id}}/refund
+POST {{base}}/orders/{{order.order_id}}/refund
 Authorization: {{plankton_auth}}
 Content-Type: application/x-www-form-urlencoded
 
 amount=26.50
 
-### She tries approving with the Chum Bucket manager key
+### Plankton can't use the Chum Bucket Restaurant API key to approve his own refund request
 # @name exploit_attempt
-PATCH {{base}}/orders/{{order.response.body.order_id}}/refund/status
+PATCH {{base}}/orders/{{order.order_id}}/refund/status
 Authorization: {{plankton_auth}}
 X-API-Key: {{chum_bucket_api_key}}
 Content-Type: application/x-www-form-urlencoded
 
 status=approved
 
-### The request is rejected
-?? status >= 400
+# The request is rejected
+?? status == 400

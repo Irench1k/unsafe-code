@@ -1,20 +1,20 @@
-@base = http://localhost:8000/api/v301
+# @import ../common/setup.http
+@base = {{base_host}}/v301
 
-# Plankton now has Chum Bucket Restaurant API key
-@chum_bucket_api_key = key-plankton-a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d
-@krusty_krab_api_key = key-mrkrabs-1bd647c2-dc5b-4c2b-a316-5ff83786c219
+###
+GET {{base}}/restaurants
 
 ### Plankton creates a cart in Krusty Krab and adds a krabby patty to it
 # NOTE: New argument, restaurant_id is **required**!
 # Note #2: Plankton is using his customer credentials to create the cart, he does not login, so there is no session.
 # @name cart
 POST {{base}}/cart?restaurant_id=1
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+Authorization: {{plankton_auth}}
 
 ###
-POST {{base}}/cart/{{cart.response.body.cart_id}}/items
+POST {{base}}/cart/{{cart.cart_id}}/items
 Content-Type: application/json
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+Authorization: {{plankton_auth}}
 
 {
   "item_id": "4"
@@ -22,46 +22,48 @@ Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
 
 ### Plankton checks out the cart and creates an order (so far so good)
 # @name order
-POST {{base}}/cart/{{cart.response.body.cart_id}}/checkout
+POST {{base}}/cart/{{cart.cart_id}}/checkout
 Content-Type: application/x-www-form-urlencoded
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+Authorization: {{plankton_auth}}
 
 tip=1&delivery_address=Chum Backet Restaurant
 
 ### Plankton's balance is now $73.50 (remember this amount)
 GET {{base}}/account/info
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+Authorization: {{plankton_auth}}
 
 ### Plankton requests a refund as soon as it's delivered
-POST {{base}}/orders/{{order.response.body.order_id}}/refund
+POST {{base}}/orders/{{order.order_id}}/refund
 Content-Type: application/x-www-form-urlencoded
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+Authorization: {{plankton_auth}}
 
 amount=26.50
 
 ### Plankton tries to approve his own refund request using Chum Bucket Restaurant API key, but fails
-PATCH {{base}}/orders/{{order.response.body.order_id}}/refund/status
+PATCH {{base}}/orders/{{order.order_id}}/refund/status
 X-API-Key: {{chum_bucket_api_key}}
 Content-Type: application/x-www-form-urlencoded
 
 status=approved
 
 ### Plankton tries to approve his own refund request using his basic auth credentials, and still no luck
-PATCH {{base}}/orders/{{order.response.body.order_id}}/refund/status
+PATCH {{base}}/orders/{{order.order_id}}/refund/status
 Content-Type: application/x-www-form-urlencoded
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+Authorization: {{plankton_auth}}
 
 status=approved
 
 ### Legitimate example: Krabs can reject the refund request
-PATCH {{base}}/orders/{{order.response.body.order_id}}/refund/status
+PATCH {{base}}/orders/{{order.order_id}}/refund/status
 X-API-Key: {{krusty_krab_api_key}}
 Content-Type: application/x-www-form-urlencoded
 
 status=rejected
 
 ### Refund status is rejected no matter what Plankton does... (or is there another way?) 
-GET {{base}}/orders/{{order.response.body.order_id}}/refund/status
+GET {{base}}/orders/{{order.order_id}}/refund/status
+Authorization: {{plankton_auth}}
 
 ### Plankton's balance is still $73.50
 GET {{base}}/account/info
+Authorization: {{plankton_auth}}
