@@ -6,6 +6,7 @@
 ### Seed + login
 # @name v205_login
 # @ref seed_balance_v205
+# @noCookieJar
 POST {{base}}/auth/login
 Content-Type: application/json
 
@@ -16,11 +17,33 @@ Content-Type: application/json
 
 ?? js response.statusCode == 200
 
+> {%
+client.test("v205 login sets cookie", () => {
+  const helperStore = (typeof $global !== "undefined" && $global) || {};
+  let captureCookie = helperStore.captureCookie || (client.global.get("helpers") || {}).captureCookie;
+  if (typeof captureCookie !== "function") {
+    captureCookie = (resp, key) => {
+      const headers = (resp?.headers?.headers) || (resp?.headers) || {};
+      const raw = headers["set-cookie"] || headers["Set-Cookie"];
+      const cookie = Array.isArray(raw) ? raw.join("; ") : raw;
+      if (!cookie) { throw new Error("helpers not initialized"); }
+      client.global.set(key, cookie);
+      return cookie;
+    };
+  }
+  const cookie = captureCookie(response, "v205_cookie");
+  if (!cookie) {
+    throw new Error("login did not return a session cookie");
+  }
+});
+%}
+
 ### Session overwrite should not occur when posting login
 # @ref v205_login
+# @noCookieJar
 POST {{base}}/auth/login
 Content-Type: application/json
-Cookie: {{response.headers["set-cookie"]}}
+Cookie: {{v205_cookie}}
 
 {
   "email": "spongebob@bikinibottom.sea",

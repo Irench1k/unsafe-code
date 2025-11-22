@@ -3,3 +3,6 @@
 @admin_key = key-sandy-42841a8d-0e65-41db-8cce-8588c23e53dc
 @plankton_auth = Basic plankton@chum-bucket.sea:i_love_my_wife
 @krusty_key = key-mrkrabs-1bd647c2-dc5b-4c2b-a316-5ff83786c219
+@plankton_key = key-plankton-a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d
+@spongebob_auth = Basic spongebob@bikinibottom.sea:i_l0ve_burg3rs
+@squidward_auth = Basic squidward@krusty-krab.sea:i_hate_my_job

@@ -25,5 +25,17 @@
     return match ? match[1] : "";
   };
 
+  exports.parseBody = (resp) => {
+    const raw = resp?.parsedBody ?? resp?.body ?? {};
+    if (typeof raw === "string") {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return {};
+      }
+    }
+    return raw || {};
+  };
+
   exports.nextMail = (label = "spec") => `${label}+${Date.now()}@example.test`;
 }}

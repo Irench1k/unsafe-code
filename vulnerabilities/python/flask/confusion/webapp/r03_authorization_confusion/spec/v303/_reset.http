@@ -1,14 +1,18 @@
+# @import ../helpers.http
 # @import ../common.http
 @base = {{base_host}}/v303
 
 ### Reset database schema/fixtures
 # @name reset_v303
+# @ref helpers_init
+# @noCookieJar
 POST {{base}}/platform/reset
 X-Admin-API-Key: {{admin_key}}
 
 ### Seed balances for deterministic runs
 # @name seed_balance_v303
 # @ref reset_v303
+# @noCookieJar
 POST {{base}}/platform/balance
 X-Admin-API-Key: {{admin_key}}
 Content-Type: application/json

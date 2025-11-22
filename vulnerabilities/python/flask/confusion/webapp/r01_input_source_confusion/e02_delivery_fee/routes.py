@@ -64,11 +64,14 @@ def create_new_order():
         return jsonify({"error": "Authentication required"}), 401
 
     total_price = check_price_and_availability(request.form)
+    print(f"DEBUG: total_price from form: {total_price}")
     if not total_price:
         return jsonify({"error": "Item not available, sorry!"}), 400
 
     delivery_fee = calculate_delivery_fee()
+    print(f"DEBUG: delivery_fee: {delivery_fee}")
 
+    print(f"DEBUG: user.balance: {user.balance}")
     if user.balance < total_price + delivery_fee:
         return jsonify({"error": "Insufficient balance"}), 400
 

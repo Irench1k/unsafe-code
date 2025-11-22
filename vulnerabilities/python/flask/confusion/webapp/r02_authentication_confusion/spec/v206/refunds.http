@@ -1,0 +1,93 @@
+# @import ../common.http
+# @import ./_reset.http
+@base = {{base_host}}/v206
+# @tag spec,v206,refunds
+
+### Refund requires authentication
+# @forceRef reset_v206
+# @noCookieJar
+POST {{base}}/orders/1/refund
+Content-Type: application/json
+
+{ "reason": "Testing auth" }
+
+> {%
+client.test("v206 refund requires auth", () => {
+  const status = response.statusCode ?? response.status;
+  if (status < 400) {
+    throw new Error(`Expected auth failure, got ${status}`);
+  }
+});
+%}
+
+### Order owner can request refund
+# @forceRef reset_v206
+# @noCookieJar
+POST {{base}}/orders/1/refund
+Authorization: {{spongebob_auth}}
+Content-Type: application/json
+
+{ "reason": "Too cold" }
+
+> {%
+client.test("v206 owner can refund", () => {
+  const status = response.statusCode ?? response.status;
+  if (status !== 200) {
+    throw new Error(`Expected 200, got ${status}`);
+  }
+  const rawBody = response.parsedBody ?? response.body ?? {};
+  const refund = typeof rawBody === "string" ? JSON.parse(rawBody) : rawBody;
+  if (refund.order_id !== "1") {
+    throw new Error(`Refund linked to wrong order: ${refund.order_id}`);
+  }
+});
+%}
+
+### Session must not let customers refund other users' orders via bad Basic header
+# @name v206_refund_session_login
+# @forceRef reset_v206
+# @noCookieJar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "plankton@chum-bucket.sea",
+    "password": "i_love_my_wife"
+}
+
+?? js response.statusCode == 200
+
+> {%
+          const helperStore = (typeof $global !== "undefined" && $global) || {};
+  let captureCookie = helperStore.captureCookie || (client.global.get("helpers") || {}).captureCookie;
+  if (typeof captureCookie !== "function") {
+    captureCookie = (resp, key) => {
+      const headers = (resp?.headers?.headers) || (resp?.headers) || {};
+      const raw = headers["set-cookie"] || headers["Set-Cookie"];
+      const cookie = Array.isArray(raw) ? raw.join("; ") : raw;
+      if (!cookie) { throw new Error("helpers not initialized"); }
+      client.global.set(key, cookie);
+      return cookie;
+    };
+  }
+  captureCookie(response, "v206_refund_cookie");
+%}
+
+### Attempt to refund SpongeBob's order with Plankton session plus fake Basic header
+# @ref v206_refund_session_login
+# @noCookieJar
+POST {{base}}/orders/1/refund
+Cookie: {{v206_refund_cookie}}
+Authorization: Basic spongebob@bikinibottom.sea:wrong_password
+Content-Type: application/json
+
+{ "reason": "attack" }
+
+> {%
+client.test("v206 session should not refund foreign order", () => {
+  const status = response.statusCode ?? response.status;
+  if (status < 400) {
+    throw new Error(`Expected refund attempt to be blocked, got ${status}`);
+  }
+});
+%}

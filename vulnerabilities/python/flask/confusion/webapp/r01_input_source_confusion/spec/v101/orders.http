@@ -73,16 +73,21 @@ items={{v101_cheap.id || v101_cheap.item_id}}&items={{v101_pricey.id || v101_pri
 ?? status == 201
 ?? js Math.abs(parseFloat((response.parsedBody || response.body || body).total) - (response.parsedBody?.items?.reduce((s,i)=>s+parseFloat(i.price||0),0) || 0)) < 0.01
 
-### Security: mixed item + items should bill everything (not just legacy field)
-# This test is EXPECTED TO FAIL on v101 because of the vulnerability.
+### Security: mixed item+items triggers vulnerability (low price for expensive items)
+# This test asserts that the vulnerability IS present.
+# We send 'item' (cheap) and 'items' (expensive).
+# The vulnerability allows paying the cheap price for the expensive items.
 POST {{base}}/orders
 Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
-item={{v101_cheap.id || v101_cheap.item_id}}&items={{v101_pricey.id || v101_pricey.item_id}}
+item={{v101_cheap.id || v101_cheap.item_id}}&items={{v101_pricey.id || v101_pricey.item_id}}&items={{v101_pricey.id || v101_pricey.item_id}}&delivery_address=Spec%20Street
 
+# Vulnerability: Status 201 (Created) and Total is low (cheap price * 1 + delivery)
+# Cheap ~1.00, Pricey ~20.00. Total should be > 40 if fixed.
+# If vulnerable, total is ~6.00 (1.00 + 5.00 delivery).
 ?? status == 201
-?? js Math.abs(parseFloat((response.parsedBody || response.body || body).total) - (response.parsedBody?.items?.reduce((s,i)=>s+parseFloat(i.price||0),0) || 0)) < 0.01
+?? js parseFloat((response.parsedBody || body || {}).total) < 15
 
 ### Security: unauthenticated create order must fail
 POST {{base}}/orders

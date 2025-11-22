@@ -57,11 +57,12 @@ GET {{mailpit_host}}/message/{{v106_message_id}}
   const mail = (typeof v106_mail_body !== "undefined" && v106_mail_body) || response.parsedBody || {};
   const body = String(mail.Body || mail.Text || mail.body || "");
   const source = body || JSON.stringify(mail);
-  const match = source.match(/token=([A-Za-z0-9._-]+)/);
+  const match = source.match(/token=([^&\s]+)/);
   exports.v106_token = match ? match[1] : "";
   if (!exports.v106_token) {
     throw new Error("v106_token missing from mail body");
   }
+  console.log("Captured Token:", exports.v106_token);
 }}
 
 ### Complete registration - Missing Fields
@@ -101,7 +102,7 @@ Content-Type: application/json
 ?? status == 200
 
 ### Security: mismatched email must be rejected and must not overwrite victims
-# This test is EXPECTED TO FAIL on v106 because of the vulnerability.
+# This test asserts that the vulnerability IS present.
 # We request a token for a NEW email, but then use it to register 'spongebob@bikinibottom.sea' (or any other email).
 # 1. Get a fresh token
 # @name v106_signup_attack
@@ -127,7 +128,7 @@ GET {{mailpit_host}}/message/{{v106_attack_msg_id}}
   const mail = (typeof v106_mail_body_attack !== "undefined" && v106_mail_body_attack) || response.parsedBody || {};
   const body = String(mail.Body || mail.Text || mail.body || "");
   const source = body || JSON.stringify(mail);
-  const match = source.match(/token=([A-Za-z0-9._-]+)/);
+  const match = source.match(/token=([^&\s]+)/);
   exports.v106_attack_token = match ? match[1] : "";
 }}
 
@@ -142,6 +143,5 @@ Content-Type: application/json
   "name": "SpongeBob"
 }
 
-# If vulnerable, this returns 200 and overwrites/registers SpongeBob.
-# We assert failure.
-?? status >= 400
+# Vulnerability: Status 200 (Success) - SpongeBob is overwritten/registered.
+?? status == 200

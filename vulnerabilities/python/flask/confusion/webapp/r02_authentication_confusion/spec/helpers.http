@@ -1,0 +1,57 @@
+# Shared scripting helpers for specs
+
+### Initialize helper functions
+# @name helpers_init
+> {%
+// Normalize header access across response shapes
+const headerBag = (resp) => {
+  if (!resp) return {};
+  if (resp.headers?.headers) return resp.headers.headers;
+  if (resp.headers) return resp.headers;
+  return {};
+};
+
+const getHeader = (resp, name) => {
+  const headers = headerBag(resp);
+  const key = name.toLowerCase();
+  const value = headers[key] ?? headers[name] ?? headers[key.toLowerCase()];
+  if (Array.isArray(value)) {
+    return value.join("; ");
+  }
+  return value || "";
+};
+
+const captureCookie = (resp, key) => {
+  const cookie = getHeader(resp, "set-cookie");
+  if (!cookie || !`${cookie}`.trim()) {
+    throw new Error(`set-cookie header missing for ${key || "cookie"}`);
+  }
+  client.global.set(key, cookie);
+  return cookie;
+};
+
+const readCookie = (key) => client.global.get?.(key) || "";
+
+const parseBody = (resp) => {
+  const raw = resp?.parsedBody ?? resp?.body ?? {};
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw);
+    } catch (err) {
+      return {};
+    }
+  }
+  return raw || {};
+};
+
+const helpers = { getHeader, captureCookie, readCookie, parseBody };
+const getHelpers = () => client.global.get("helpers") || helpers;
+globalThis.helpers = helpers;
+globalThis.getHelpers = getHelpers;
+client.global.set("helpers", helpers);
+client.global.set("getHelpers", getHelpers);
+if (typeof $global !== "undefined" && $global) {
+  $global.helpers = helpers;
+  $global.captureCookie = captureCookie;
+}
+%}

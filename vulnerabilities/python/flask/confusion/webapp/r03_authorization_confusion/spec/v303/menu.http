@@ -1,11 +1,43 @@
+# @import ../helpers.http
 # @import ../common.http
 # @import ./_reset.http
 @base = {{base_host}}/v303
 # @tag spec,v303,menu
 
-### Seed DB
+### Menu is readable
 # @ref seed_balance_v303
+# @noCookieJar
 GET {{base}}/menu
 
 ?? js response.statusCode == 200
 ?? js Array.isArray(response.parsedBody || body || [])
+
+### Find a Krusty Krab item to target
+# @ref seed_balance_v303
+# @noCookieJar
+GET {{base}}/menu?restaurant_id=1
+
+{{
+  const items = helpers.parseBody(response) || [];
+  if (!Array.isArray(items) || !items.length) throw new Error("No menu items found");
+  const target = items[0];
+  client.global.set("v303_target_item", target.id || target.item_id);
+}}
+
+### Chum Bucket manager should NOT be able to edit Krusty item (but vulnerability allows it)
+# @ref seed_balance_v303
+# @noCookieJar
+PATCH {{base}}/menu/{{v303_target_item}}
+X-API-Key: {{plankton_key}}
+Content-Type: application/json
+
+{ "available": false }
+
+> {%
+client.test("v303 cross-restaurant menu edit succeeds (vuln)", () => {
+  const status = response.statusCode ?? response.status;
+  if (status < 200 || status >= 300) throw new Error(`Expected success due to vuln, got ${status}`);
+  const body = helpers.parseBody(response);
+  if (body.available !== false) throw new Error("Menu item availability did not change");
+});
+%}

