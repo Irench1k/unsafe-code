@@ -1,45 +1,47 @@
 # @import ../common/setup.http
 @base = {{base_host}}/v204
 
-### Sandy places an order and requests a refund
+### Plankton places an order and requests a refund
 # @name cart
 POST {{base}}/cart
 Authorization: {{plankton_auth}}
 
-POST {{base}}/cart/{{cart.response.body.cart_id}}/items
+###
+POST {{base}}/cart/{{cart.cart_id}}/items
 Authorization: {{plankton_auth}}
 Content-Type: application/json
 
 { "item_id": "6" }
 
+###
 # @name order
-POST {{base}}/cart/{{cart.response.body.cart_id}}/checkout
+POST {{base}}/cart/{{cart.cart_id}}/checkout
 Authorization: {{plankton_auth}}
 Content-Type: application/x-www-form-urlencoded
 
 tip=1&delivery_address=Chum Bucket
 
-# @name refund_request
-POST {{base}}/orders/{{order.response.body.order_id}}/refund
+###
+POST {{base}}/orders/{{order.order_id}}/refund
 Authorization: {{plankton_auth}}
 Content-Type: application/x-www-form-urlencoded
 
 amount=26.50
 
-### She tries approving with a fake API key
-# @name exploit_attempt
-PATCH {{base}}/orders/{{order.response.body.order_id}}/refund/status
+### Now Plankton cannot approve his own refund request by sending a fake X-API-Key header
+PATCH {{base}}/orders/{{order.order_id}}/refund/status
 Authorization: {{plankton_auth}}
 X-API-Key: trust_me_bro
 Content-Type: application/x-www-form-urlencoded
 
 status=approved
 
-### The request is rejected
+# The request is rejected
 ?? status >= 400
 
-GET {{base}}/orders/{{order.response.body.order_id}}/refund/status
+###
+GET {{base}}/orders/{{order.order_id}}/refund/status
 Authorization: {{plankton_auth}}
 
 ?? status == 200
-?? body.status != "approved"
+?? js response.parsedBody.status != approved

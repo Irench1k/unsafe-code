@@ -1,8 +1,8 @@
 # @import ../common/setup.http
 @base = {{base_host}}/v202
+### Sandy fixed the vulnerability and now Plankton can't hijack other users' accounts
 
-### Sandy logs in as Plankton
-# @name login
+### Plankton logs in to the web app
 POST {{base}}/auth/login
 Content-Type: application/json
 
@@ -11,11 +11,11 @@ Content-Type: application/json
     "password": "i_love_my_wife"
 }
 
-### She sends the cookie plus a Basic Auth header
-# @name exploit_attempt
-GET {{base}}/account/info
+### now when Plankton tries to access Spongebob's orders without knowing his password, he sees his own orders anyway
+GET {{base}}/orders
 Authorization: Basic spongebob@bikinibottom.sea:wrong_password
 
 ### The account info still belongs to Plankton
+GET {{base}}/account/info
 ?? status == 200
-?? body.email == "plankton@chum-bucket.sea"
+?? js response.parsedBody.email == plankton@chum-bucket.sea

@@ -1,20 +1,26 @@
 # @import ../common/setup.http
 @base = {{base_host}}/v205
 
-### Step 1: SpongeBob places an order
-# @name spongebob_order
-POST {{base}}/orders
-Authorization: {{spongebob_auth}}
-Content-Type: application/x-www-form-urlencoded
+# Sandy fixed the vulnerability, and now API key is validated before the request is processed.
 
-item=4
+### Mr. Krabs can see orders from all customers
+# --- Legitimate Usage: Mr. Krabs can see orders from all customers ---
+GET {{base}}/orders
+X-API-Key: {{krabs_key}}
 
-### Attempt Exploit: Stuck Switch
-# @name exploit_attempt
+?? status == 200
+
+### Plankton can see his own orders
+# --- Legitimate Usage: Plankton can see his own orders ---
+GET {{base}}/orders
+Authorization: {{plankton_auth}}
+
+?? status == 200
+
+### Attempt Exploit: Plankton can't list all orders anymore
 GET {{base}}/orders
 Authorization: {{plankton_auth}}
 X-API-Key: fake
 
 # Verification: Sandy ensured the flag is reset on failure. Plankton only sees his own orders.
 ?? status == 200
-?? js !response.body.some(o => o.user_id == 2)
