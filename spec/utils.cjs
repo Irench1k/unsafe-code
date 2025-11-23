@@ -30,14 +30,14 @@ const USERS = {
   sandy: {
     shortId: "sandy",
     email: "sandy@bikinibottom.sea",
-    password: "testpassword",
+    password: "fullStackSquirr3l!",
     role: "admin",
     apiKey: "key-sandy-42841a8d-0e65-41db-8cce-8588c23e53dc",
   },
   patrick: {
     shortId: "patrick",
     email: "patrick@bikinibottom.sea",
-    password: "im_with_stupid",
+    password: "mayonnaise",
     role: "customer",
   },
   plankton: {
@@ -50,20 +50,20 @@ const USERS = {
   spongebob: {
     shortId: "spongebob",
     email: "spongebob@krusty-krab.sea",
-    password: "i_l0ve_burg3rs",
+    password: "EmployeeOfTheMonth",
     role: "customer",
   },
   mrkrabs: {
     shortId: "mrkrabs",
     email: "mr.krabs@krusty-krab.sea",
-    password: "mon3y_m0n3y_m0ney",
+    password: "m$n$y",
     role: "restaurant_owner",
     restaurantKey: "key-krusty-krub-z1hu0u8o94",
   },
   squidward: {
     shortId: "squidward",
     email: "squidward@krusty-krab.sea",
-    password: "i_hate_my_job",
+    password: "clarinet4life",
     role: "employee",
   },
   karen: {

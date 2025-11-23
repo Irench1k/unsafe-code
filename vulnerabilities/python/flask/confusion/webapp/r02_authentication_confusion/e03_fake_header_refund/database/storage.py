@@ -24,13 +24,13 @@ db = {
             user_id="sandy@bikinibottom.sea",
             name="Sandy Cheeks",
             balance=Decimal("999.99"),
-            password="testpassword",
+            password="fullStackSquirr3l!",
         ),
         "patrick@bikinibottom.sea": User(
             user_id="patrick@bikinibottom.sea",
             name="Patrick Star",
             balance=Decimal("85.52"),
-            password="im_with_stupid",
+            password="mayonnaise",
         ),
         "plankton@chum-bucket.sea": User(
             user_id="plankton@chum-bucket.sea",
@@ -42,7 +42,7 @@ db = {
             user_id="spongebob@krusty-krab.sea",
             name="SpongeBob SquarePants",
             balance=Decimal("23.60"),
-            password="i_l0ve_burg3rs",
+            password="EmployeeOfTheMonth",
         ),
     },
     "orders": {

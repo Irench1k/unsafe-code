@@ -237,13 +237,13 @@ def _create_users(session: Session) -> dict[str, User]:
             "email": "sandy@bikinibottom.sea",
             "name": "Sandy Cheeks",
             "balance": Decimal("999.99"),
-            "password": "testpassword",
+            "password": "fullStackSquirr3l!",
         },
         {
             "email": "patrick@bikinibottom.sea",
             "name": "Patrick Star",
             "balance": Decimal("81.02"),
-            "password": "im_with_stupid",
+            "password": "mayonnaise",
         },
         {
             "email": "plankton@chum-bucket.sea",
@@ -255,19 +255,19 @@ def _create_users(session: Session) -> dict[str, User]:
             "email": "spongebob@krusty-krab.sea",
             "name": "SpongeBob SquarePants",
             "balance": Decimal("17.01"),
-            "password": "i_l0ve_burg3rs",
+            "password": "EmployeeOfTheMonth",
         },
         {
             "email": "mr.krabs@krusty-krab.sea",
             "name": "Eugene H. Krabs",
             "balance": Decimal("1000.00"),
-            "password": "mon3y_m0n3y_m0ney",
+            "password": "m$n$y",
         },
         {
             "email": "squidward@krusty-krab.sea",
             "name": "Squidward Tentacles",
             "balance": Decimal("80.00"),
-            "password": "i_hate_my_job",
+            "password": "clarinet4life",
         },
         {
             "email": "karen@chum-bucket.sea",
