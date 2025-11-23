@@ -163,7 +163,7 @@ def testing(username):
 
     # return f"Hello, {request.args.get("a", None)}"
 
-    return f"Hello, {request.values.get("a", None)}"
+    return f"Hello, {request.values.get('a', None)}"
 
 
 @app.route("/confusion", methods=["GET"])
@@ -187,7 +187,7 @@ def test_post(username):
     # curl '127.0.0.1:8000/test/smth' --json '{"a":"b"}'
     val = request.get_json()
     # {"a": "b"}
-    return f"Hello, {val.get("a", None)}"
+    return f"Hello, {val.get('a', None)}"
     # {"a": "b"} -> "b"
 
     # this returns the last value

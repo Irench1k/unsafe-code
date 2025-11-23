@@ -140,7 +140,7 @@ def submit():
             <form action='/submit' method='POST'>
                 Username: <input name="username" type="text" />
                 <input value="Submit" type="submit" />
-            </form> 
+            </form>
     """
 
 

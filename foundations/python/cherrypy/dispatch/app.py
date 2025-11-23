@@ -20,7 +20,7 @@ class UserController:
         """
         The dispatch method. It's called by CherryPy when it can't find a
         matching exposed method for the remaining path segments in `vpath`.
-        
+
         `vpath` is a list of path segments. For a request to "/user/irina/123",
         the `vpath` given to this dispatcher would be ['irina', '123'].
         """
