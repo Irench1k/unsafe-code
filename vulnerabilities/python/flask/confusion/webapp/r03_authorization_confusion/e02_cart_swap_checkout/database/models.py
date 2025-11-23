@@ -32,7 +32,6 @@ class RefundStatus(enum.Enum):
     """Enumeration for refund statuses."""
 
     pending = "pending"
-    auto_approved = "auto_approved"
     approved = "approved"
     rejected = "rejected"
 

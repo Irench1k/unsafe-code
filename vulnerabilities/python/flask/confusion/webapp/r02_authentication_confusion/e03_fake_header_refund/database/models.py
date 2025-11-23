@@ -46,7 +46,7 @@ class Refund(BaseModel):
     order_id: str
     amount: Decimal
     reason: str = Field(default="")
-    status: Literal["pending", "auto_approved", "approved", "rejected"] = Field(default="pending")
+    status: Literal["pending", "approved", "rejected"] = Field(default="pending")
     auto_approved: bool
     paid: bool = Field(default=False)
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)

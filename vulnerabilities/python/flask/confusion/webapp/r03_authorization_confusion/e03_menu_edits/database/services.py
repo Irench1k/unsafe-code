@@ -318,7 +318,7 @@ def serialize_cart(cart: Cart) -> dict:
 # ============================================================
 def create_refund(order_id: int, amount: Decimal, reason: str, auto_approved: bool) -> Refund:
     """Creates a new refund with a generated ID."""
-    status = RefundStatus.auto_approved if auto_approved else RefundStatus.pending
+    status = RefundStatus.approved if auto_approved else RefundStatus.pending
     refund = Refund(
         order_id=order_id,
         amount=amount,
@@ -332,7 +332,7 @@ def create_refund(order_id: int, amount: Decimal, reason: str, auto_approved: bo
 
 def process_refund(refund: Refund, user_id: int) -> None:
     """Processes a refund: saves it and credits user if auto-approved."""
-    if refund.status in (RefundStatus.auto_approved, RefundStatus.approved) and not refund.paid:
+    if refund.status == RefundStatus.approved and not refund.paid:
         refund_user(user_id, refund.amount)
         refund.paid = True
         logger.info(f"Approved refund processed: {refund.id} of {refund.amount} for {user_id}")

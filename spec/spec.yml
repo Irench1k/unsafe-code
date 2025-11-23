@@ -1,0 +1,61 @@
+# E2E Spec Suite Configuration
+# Simple, explicit test inheritance and organization
+
+v100:
+  description: "Baseline - Simple single-item orders"
+  tags: [baseline, r01]
+  specs:
+    - name: menu
+    - name: auth-required
+    - name: account-credits
+    - name: orders-list
+    - name: orders-create-single-item
+    - name: orders-create-rejects-items-array
+
+v101:
+  description: "Dual parameter bug (item vs items[])"
+  tags: [r01, vulnerable]
+  specs:
+    - inherits: v100.menu
+    - inherits: v100.auth-required
+    - inherits: v100.account-credits
+    - inherits: v100.orders-list
+    - name: orders-create-multi-item  # Replaces single-item version
+    - name: vuln-dual-parameter  # NEW: Exploit test
+
+v102:
+  description: "Delivery fee bypass (query vs body)"
+  tags: [r01, vulnerable]
+  specs:
+    - inherits: v101.menu
+    - inherits: v101.auth-required
+    - inherits: v101.account-credits
+    - inherits: v101.orders-list
+    - name: orders-create-with-delivery  # Adds delivery_address
+    - name: vuln-delivery-fee-bypass  # NEW: Exploit test
+
+v103:
+  description: "Cart-based checkout with order_id injection"
+  tags: [r01, vulnerable]
+  specs:
+    - inherits: v102.menu
+    - inherits: v102.auth-required
+    - inherits: v102.account-credits
+    - inherits: v102.orders-list  # GET /orders still works
+    - name: cart-create
+    - name: cart-add-items
+    - name: cart-checkout
+    - name: vuln-order-overwrite  # NEW: Exploit test
+
+# v104:
+#   description: "Negative tip cashout (middleware vs handler)"
+#   tags: [r01, vulnerable]
+#   specs:
+#     - inherits: v103.menu
+#     - inherits: v103.auth-required
+#     - inherits: v103.account-credits
+#     - inherits: v103.orders-list
+#     - inherits: v103.cart-create
+#     - inherits: v103.cart-add-items
+#     - name: cart-checkout-with-tip  # Adds tip parameter
+#     - name: vuln-negative-tip  # NEW: Exploit test

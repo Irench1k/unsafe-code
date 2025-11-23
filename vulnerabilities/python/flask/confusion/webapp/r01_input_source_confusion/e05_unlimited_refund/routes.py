@@ -15,13 +15,13 @@ from .database import (
     get_all_orders,
     get_cart,
     get_user_orders,
-    reset_db,
     refund_user,
     save_order_securely,
     save_refund,
-    set_balance,
 )
+from .e2e_helpers import require_e2e_auth
 from .models import Order, Refund
+from .storage import reset_db, set_balance
 from .utils import (
     check_cart_price_and_delivery_fee,
     convert_item_ids_to_order_items,
@@ -166,7 +166,7 @@ def refund_order(order_id):
     refund_amount_entered = parse_as_decimal(get_request_parameter("amount"))
     refund_amount = refund_amount_entered or Decimal("0.2") * g.order.total
 
-    status = "auto_approved" if g.refund_is_auto_approved else "pending"
+    status = "approved" if g.refund_is_auto_approved else "pending"
 
     refund = Refund(
         order_id=order_id,
@@ -183,25 +183,18 @@ def refund_order(order_id):
     return jsonify(refund.model_dump(mode="json")), 200
 
 
-def _require_platform_admin():
-    user = get_authenticated_user()
-    if not user or user.user_id != "sandy":
-        return None
-    return user
-
-
-@bp.route("/platform/reset", methods=["POST"])
-def platform_reset():
-    if not _require_platform_admin():
-        return jsonify({"error": "Forbidden"}), 403
+@bp.route("/e2e/reset", methods=["POST"])
+@require_e2e_auth
+def e2e_reset():
+    """E2E test helper: reset in-memory database to initial state."""
     reset_db()
     return jsonify({"status": "reset"}), 200
 
 
-@bp.route("/platform/balance", methods=["POST"])
-def platform_balance():
-    if not _require_platform_admin():
-        return jsonify({"error": "Forbidden"}), 403
+@bp.route("/e2e/balance", methods=["POST"])
+@require_e2e_auth
+def e2e_balance():
+    """E2E test helper: set user balance to a specific amount."""
     payload = request.get_json(silent=True) or {}
     user_id = payload.get("user_id") or "sandy"
     amount = payload.get("balance")

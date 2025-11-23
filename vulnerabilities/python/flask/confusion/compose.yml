@@ -11,6 +11,8 @@ services:
     networks: [lab]
     environment:
       DATABASE_URL: postgresql+psycopg://unsafe:code@db:5432/lab
+      E2E_TESTING: "true"
+      E2E_API_KEY: "e2e-test-key-unsafe-code-lab"
     depends_on:
       db:
         condition: service_healthy

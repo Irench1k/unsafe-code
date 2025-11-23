@@ -1,4 +1,5 @@
 @base = http://localhost:8000/api/v100
+@specname = menu
 
 ### Listing Menu Items (Public)
 GET {{base}}/menu

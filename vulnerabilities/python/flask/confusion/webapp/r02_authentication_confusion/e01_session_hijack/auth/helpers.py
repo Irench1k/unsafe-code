@@ -2,7 +2,7 @@ from hmac import compare_digest
 
 from flask import request
 
-from ..database.repository import get_api_key
+from ..database.repository import get_restaurant_api_key
 from ..utils import verify_and_decode_token
 from .authenticators import CredentialAuthenticator, CustomerAuthenticator
 
@@ -18,7 +18,7 @@ def _is_api_key_valid(api_key):
     if not api_key:
         return False
 
-    correct_api_key = get_api_key()
+    correct_api_key = get_restaurant_api_key()
     return compare_digest(api_key, correct_api_key)
 
 

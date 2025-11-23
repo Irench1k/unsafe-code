@@ -1,8 +1,8 @@
+from decimal import Decimal
+
 from flask import Blueprint, jsonify, request
 
 from .auth import get_authenticated_user, validate_api_key
-from decimal import Decimal
-
 from .database import (
     create_order_and_charge_customer,
     get_all_menu_items,
@@ -11,6 +11,7 @@ from .database import (
     reset_db,
     set_balance,
 )
+from .e2e_helpers import require_e2e_auth
 from .utils import check_price_and_availability, get_order_items
 
 bp = Blueprint("e01_dual_params", __name__)
@@ -76,27 +77,18 @@ def create_new_order():
     return jsonify(new_order.model_dump(mode="json")), 201
 
 
-def _require_platform_admin():
-    user = get_authenticated_user()
-    if not user or user.user_id != "sandy":
-        return None
-    return user
-
-
-@bp.route("/platform/reset", methods=["POST"])
-def platform_reset():
-    """Test helper: reset in-memory state for deterministic runs."""
-    if not _require_platform_admin():
-        return jsonify({"error": "Forbidden"}), 403
+@bp.route("/e2e/reset", methods=["POST"])
+@require_e2e_auth
+def e2e_reset():
+    """E2E test helper: reset in-memory database to initial state."""
     reset_db()
     return jsonify({"status": "reset"}), 200
 
 
-@bp.route("/platform/balance", methods=["POST"])
-def platform_balance():
-    """Test helper: set user balance."""
-    if not _require_platform_admin():
-        return jsonify({"error": "Forbidden"}), 403
+@bp.route("/e2e/balance", methods=["POST"])
+@require_e2e_auth
+def e2e_balance():
+    """E2E test helper: set user balance to a specific amount."""
     payload = request.get_json(silent=True) or {}
     user_id = payload.get("user_id") or "sandy"
     amount = payload.get("balance")

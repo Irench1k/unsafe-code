@@ -75,7 +75,7 @@ def scan_version_directory(version_dir: Path) -> list[SpecFile]:
 
         number = int(match.group(1))
         file_type = match.group(2)
-        name_part = match.group(3)
+        # name_part = match.group(3)  # Extracted but not currently used
 
         specname = extract_specname(file_path)
         if not specname:
@@ -148,8 +148,8 @@ def sync_version(
     existing_specs = scan_version_directory(version_dir)
 
     # Check for unknown files (not matching our pattern)
-    all_files = set(f.name for f in version_dir.glob("*.http"))
-    known_files = set(s.path.name for s in existing_specs)
+    all_files = {f.name for f in version_dir.glob("*.http")}
+    known_files = {s.path.name for s in existing_specs}
     unknown_files = all_files - known_files
 
     if unknown_files:

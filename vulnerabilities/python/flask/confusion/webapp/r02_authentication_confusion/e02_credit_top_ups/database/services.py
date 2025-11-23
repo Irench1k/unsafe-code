@@ -193,7 +193,7 @@ def create_refund(
 ) -> Refund:
     """Creates a new refund with a generated ID."""
     refund_id = generate_next_refund_id()
-    status = "auto_approved" if auto_approved else "pending"
+    status = "approved" if auto_approved else "pending"
     return Refund(
         refund_id=refund_id,
         order_id=order_id,

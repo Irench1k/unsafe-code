@@ -115,7 +115,7 @@ interface Refund {
   order_id: string;
   amount: decimal;
   reason?: string;
-  status: "pending" | "auto_approved" | "rejected";
+  status: "pending" | "approved" | "rejected";
   // v105 auto-approval flag records whether middleware granted 20% refunds.
   auto_approved: boolean;
   created_at: timestamp;

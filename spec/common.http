@@ -1,0 +1,26 @@
+# Common utilities for E2E specs
+# Import in all test files: @import spec/common.http
+
+{{
+  const createUtils = require("./utils.cjs");
+  const utils = createUtils(VERSION);
+
+  // Base URL for the requests
+  exports.host = "http://localhost:8000/api/" + VERSION;
+
+  // Export core APIs
+  exports.$ = utils.$;
+  exports.auth = utils.auth;
+  exports.user = utils.user;
+  exports.menu = utils.menu;
+  exports.platform = utils.platform;
+  exports.extractCookie = utils.extractCookie;
+  exports.versionAtLeast = utils.versionAtLeast;
+  exports.url = utils.url;
+  exports.platform = utils.platform;
+
+  // Convenience utilities
+  exports.testEmail = utils.testEmail;
+  exports.extractToken = utils.extractToken;
+  exports.uuid = utils.uuid;
+}}

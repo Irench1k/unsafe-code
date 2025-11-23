@@ -9,8 +9,6 @@ When migrating to SQLAlchemy, only this file will need significant changes.
 import logging
 from decimal import Decimal
 
-from decimal import Decimal
-
 from .models import Cart, MenuItem, Order, Refund, User
 from .storage import db, reset_db, set_balance
 

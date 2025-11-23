@@ -96,10 +96,6 @@ def set_user_balance(user_id: str, amount: Decimal) -> bool:
     return set_balance(user_id, amount)
 
 
-def get_platform_api_key() -> str:
-    return db["platform_api_key"]
-
-
 # ============================================================
 # CARTS
 # ============================================================
@@ -138,9 +134,9 @@ def get_and_increment_refund_id() -> str:
 # ============================================================
 # CONFIGURATION
 # ============================================================
-def get_api_key() -> str:
+def get_restaurant_api_key() -> str:
     """Gets the restaurant's API key from the database."""
-    return db["api_key"]
+    return db["restaurant_api_key"]
 
 
 def get_signup_bonus_remaining():
