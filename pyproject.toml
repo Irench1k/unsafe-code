@@ -22,6 +22,7 @@ dev = [
 [project.scripts]
 docs = "tools.docs.cli:docs_main"
 focus = "tools.focus:main"
+spec-sync = "tools.spec_sync:main"
 
 
 [build-system]

@@ -270,6 +270,7 @@ uclogs() {
 alias uc='cd $UNSAFE_CODE_ROOT'
 alias ucflask='cd $UNSAFE_CODE_ROOT/vulnerabilities/python/flask/confusion'
 alias ucwebapp='cd $UNSAFE_CODE_ROOT/vulnerabilities/python/flask/confusion/webapp'
+alias ucspec='cd $UNSAFE_CODE_ROOT/spec'
 
 # Quick jump to round/example (e.g., "ucgo r02/e03" or full names)
 ucgo() {
@@ -291,6 +292,15 @@ ucgo() {
 
     cd "$resolved"
     echo "📂 $(pwd)"
+}
+
+# ================================
+# Spec Suite Management
+# ================================
+
+# Sync e2e spec suite based on spec.yml
+ucspec-sync() {
+    (cd "$UNSAFE_CODE_ROOT" && uv run spec-sync "$@")
 }
 
 # ================================
@@ -341,8 +351,13 @@ Navigation:
   uc                     Jump to repo root
   ucflask                Jump to Flask confusion directory
   ucwebapp               Jump to webapp directory
+  ucspec                 Jump to e2e spec directory
   ucgo r02/e03           Jump to specific round/example
   uclist                 List examples in current round
+
+Spec Suite Management:
+  ucspec-sync            Sync e2e tests based on spec.yml (works from anywhere)
+  ucspec-sync --dry-run  Preview sync changes without modifying files
 
 Combined Workflow:
   ucfocus r02/e03        1. Focus VSCode on example
