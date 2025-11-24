@@ -69,28 +69,41 @@ def scan_version_directory(version_dir: Path) -> list[SpecFile]:
         name = file_path.stem
         match = re.match(r"^spec\.(\d+)\.(new|inherited)\.(.+)$", name)
 
-        if not match:
-            # Unknown file pattern - we'll report this later
-            continue
+        if match:
+            # File matches expected pattern
+            number = int(match.group(1))
+            file_type = match.group(2)
+            # name_part = match.group(3)  # Extracted but not currently used
 
-        number = int(match.group(1))
-        file_type = match.group(2)
-        # name_part = match.group(3)  # Extracted but not currently used
+            specname = extract_specname(file_path)
+            if not specname:
+                print(f"Warning: {file_path.name} has no @specname marker")
+                continue
 
-        specname = extract_specname(file_path)
-        if not specname:
-            print(f"Warning: {file_path.name} has no @specname marker")
-            continue
-
-        specs.append(
-            SpecFile(
-                path=file_path,
-                specname=specname,
-                is_new=(file_type == "new"),
-                is_inherited=(file_type == "inherited"),
-                number=number,
+            specs.append(
+                SpecFile(
+                    path=file_path,
+                    specname=specname,
+                    is_new=(file_type == "new"),
+                    is_inherited=(file_type == "inherited"),
+                    number=number,
+                )
             )
-        )
+        else:
+            # File doesn't match pattern - check if it has a @specname
+            # If so, treat it as a "new" spec that needs renaming
+            specname = extract_specname(file_path)
+            if specname:
+                specs.append(
+                    SpecFile(
+                        path=file_path,
+                        specname=specname,
+                        is_new=True,  # Assume it's new (not inherited)
+                        is_inherited=False,
+                        number=None,  # Needs numbering
+                    )
+                )
+            # If no @specname, it will be reported as unknown later
 
     return specs
 
