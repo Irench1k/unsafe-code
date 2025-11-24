@@ -2,16 +2,19 @@
 # @description Base host, default actors, and tiny helpers reused across the r01 Input Source Confusion suites.
 @base_host = http://localhost:8000/api
 @mailpit_host = http://127.0.0.1:8025/api/v1
-@base = {{base_host}}/v100
 
 # Common actors
-@sandy_auth = Basic sandy:testpassword
+@sandy_auth = Basic sandy:fullStackSquirr3l!
+@patrick_auth = Basic patrick:mayonnaise
 @plankton_auth = Basic plankton:i_love_my_wife
-@spongebob_auth = Basic spongebob:i_l0ve_burg3rs
+@spongebob_auth = Basic spongebob:EmployeeOfTheMonth
 
-@sandy_auth_email = Basic sandy@bikinibottom.sea:testpassword
-@plankton_auth_email = Basic plankton.chum-bucket.sea@bikinibottom.com:i_love_my_wife
-@spongebob_auth_email = Basic spongebob@bikinibottom.sea:i_l0ve_burg3rs
+@sandy_auth_email = Basic sandy@bikinibottom.sea:fullStackSquirr3l!
+@patrick_auth_email = Basic patrick@bikinibottom.sea:mayonnaise
+@plankton_auth_email = Basic plankton@chum-bucket.sea:i_love_my_wife
+@spongebob_auth_email = Basic spongebob@krusty-krab.sea:EmployeeOfTheMonth
+
+@krabs_api_key = key-krusty-krub-z1hu0u8o94
 
 ### @title helper: menu pickers
 {{

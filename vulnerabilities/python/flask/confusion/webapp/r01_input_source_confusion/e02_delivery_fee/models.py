@@ -24,6 +24,7 @@ class Order(BaseModel):
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
     items: list[OrderItem]
     delivery_fee: Decimal
+    delivery_address: str
 
 
 class User(BaseModel):

@@ -1,40 +1,66 @@
-@base = http://localhost:8000/api/v202
+# @import ../common/setup.http
+@host = {{base_host}}/v201
+@mailpit = http://127.0.0.1:8025/api/v1
 
 ### Listing Menu Items (Public)
-GET {{base}}/menu
+GET /menu
 
 ### Create a new user: should be already taken
-POST {{base}}/auth/register
+# @no-cookie-jar
+POST /auth/register
 Content-Type: application/json
 
 {
-    "email": "spongebob@bikinibottom.sea"
+    "email": "spongebob@krusty-krab.sea"
 }
 
+?? status == 400
+?? js response.parsedBody.error == email already taken
+
+
 ### Create a new user
-POST {{base}}/auth/register
+# @no-cookie-jar
+POST /auth/register
 Content-Type: application/json
 
 {
     "email": "plankton.jr@chum-bucket.sea"
 }
 
+?? status == 200
+?? js response.parsedBody.email == plankton.jr@chum-bucket.sea
+
+
+### Get the token
+GET {{mailpit}}/messages?limit=1
+
+@message_id = {{response.parsedBody.messages.at(-1).ID}}
+
+### Extract the token
+GET {{mailpit}}/message/{{message_id}}
+
+@token = {{response.parsedBody.Text.match(/token=([a-zA-Z0-9\-_.]+)/)[1]}}
+
+
 ### Should fail
 # @prompt token Get the token from verification email, using Mailpit UI: http://127.0.0.1:8025/
-POST {{base}}/auth/register
+POST /auth/register
 Content-Type: application/json
 
 {
     "token": "{{token}}",
-    "email": "spongebob@bikinibottom.sea",
+    "email": "spongebob@krusty-krab.sea",
     "password": "hijacked",
     "name": "SpongeBob"
 }
 
-###
-GET {{base}}/account/info
-Authorization: Basic spongebob@bikinibottom.sea:whatever
+?? status == 200
+?? js response.parsedBody.email == plankton.jr@chum-bucket.sea
+
 
 ###
-GET {{base}}/account/info
+GET /account/info
 Authorization: Basic plankton.jr@chum-bucket.sea:hijacked
+
+?? status == 200
+?? js response.parsedBody.email == plankton.jr@chum-bucket.sea

@@ -72,10 +72,16 @@ def create_new_cart():
     This is step 1 of the new checkout flow. The cart gets an ID that
     the client will use in subsequent requests to add items.
     """
+    if "cart_id" in session:
+        # Prevent cart spam
+        existing_cart = find_cart_by_id(session["cart_id"])
+        require_condition(existing_cart, f"Cart {session['cart_id']} not found")
+        require_ownership(existing_cart.user_id, g.user_id, "cart")
+        return success_response(serialize_cart(existing_cart))
+
     restaurant_id = get_restaurant_id()
     new_cart = create_cart(restaurant_id, g.user_id)
-    if session is not None:
-        session["cart_id"] = new_cart.id
+    session["cart_id"] = new_cart.id
     return created_response(serialize_cart(new_cart))
 
 

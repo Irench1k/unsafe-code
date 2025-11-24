@@ -78,7 +78,13 @@ def create_new_order():
 
     items = get_order_items(request.form)
 
-    new_order = create_order_and_charge_customer(total_price, user.user_id, items, delivery_fee)
+    delivery_address = request.form.get("delivery_address")
+    if not delivery_address:
+        return jsonify({"error": "delivery_address is required"}), 400
+
+    new_order = create_order_and_charge_customer(
+        total_price, user.user_id, items, delivery_fee, delivery_address
+    )
     return jsonify(new_order.model_dump(mode="json")), 201
 
 

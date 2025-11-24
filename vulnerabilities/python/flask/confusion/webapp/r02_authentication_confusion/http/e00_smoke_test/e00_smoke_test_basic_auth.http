@@ -1,28 +1,29 @@
-@base = http://localhost:8000/api/v201
+# @import ../common/setup.http
+@host = {{base_host}}/v201
 
 ### Listing Menu Items (Public)
-GET {{base}}/menu
+GET /menu
 
-### Listing Plankton's Account Info
-GET {{base}}/account/info
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+### Listing Sandy's Account Info
+GET /account/info
+Authorization: {{sandy_auth}}
 
-### Listing Plankton's Balance Before New Order
-GET {{base}}/account/credits
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+### Listing Sandy's Balance Before New Order
+GET /account/credits
+Authorization: {{sandy_auth}}
 
-### Listing Plankton's Orders via Basic Auth
-GET {{base}}/orders
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+### Listing Sandy's Orders via Basic Auth
+GET /orders
+Authorization: {{sandy_auth}}
 
 ### Create a new cart and add items to it
 # @name cart
-POST {{base}}/cart
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+POST /cart
+Authorization: {{sandy_auth}}
 
 ### Add items to the cart
-POST {{base}}/cart/{{cart.response.body.cart_id}}/items
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+POST /cart/{{cart.cart_id}}/items
+Authorization: {{sandy_auth}}
 Content-Type: application/json
 
 {
@@ -31,22 +32,26 @@ Content-Type: application/json
 
 ### Checkout the cart
 # @name order
-POST {{base}}/cart/{{cart.response.body.cart_id}}/checkout
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+POST /cart/{{cart.cart_id}}/checkout
+Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
 tip=-1&delivery_address=Chum Backet Restaurant
 
 ### Refund the order: should not work, because the amount is more than the order total
-POST {{base}}/orders/{{order.response.body.order_id}}/refund
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+POST /orders/{{order.order_id}}/refund
+Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
 amount=50
 
 ### Refund the order: should work
-POST {{base}}/orders/{{order.response.body.order_id}}/refund
-Authorization: Basic plankton@chum-bucket.sea:i_love_my_wife
+POST /orders/{{order.order_id}}/refund
+Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
 amount=1
+
+### Listing Sandy's Orders via Basic Auth
+GET /orders
+Authorization: {{sandy_auth}}

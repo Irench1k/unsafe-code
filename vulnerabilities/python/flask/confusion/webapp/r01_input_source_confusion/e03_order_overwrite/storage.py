@@ -59,7 +59,7 @@ db = {
                 OrderItem(item_id="5", name="Fries", price=Decimal("2.49")),
             ],
             delivery_fee=Decimal("5.00"),
-            delivery_address="120 Conch Street",
+            delivery_address="Under the Rock",
         ),
         "2": Order(
             order_id="2",
@@ -67,7 +67,7 @@ db = {
             user_id="spongebob",
             items=[OrderItem(item_id="8", name="Ultimate Krabby Feast", price=Decimal("27.99"))],
             delivery_fee=Decimal("0.00"),
-            delivery_address="122 Conch Street",
+            delivery_address="Pineapple Under the Sea",
         ),
     },
     "next_order_id": 3,

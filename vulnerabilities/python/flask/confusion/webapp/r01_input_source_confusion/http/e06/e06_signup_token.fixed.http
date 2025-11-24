@@ -1,66 +1,63 @@
 # @import ../common/setup.http
-@base = {{base_host}}/v107
+@host = {{base_host}}/v107
 @mailpit = http://127.0.0.1:8025/api/v1
 
-### Plankton registers a sock puppet account
-# @name register_request
-POST {{base}}/auth/register
+
+### Sandy fixes vulnerability and tests the mitigation
+POST /auth/register
 Content-Type: application/json
 
-{ "email": "plankton.jr@chum-bucket.sea" }
+{ "email": "sandy+test@bikinibottom.sea" }
 
 ?? status == 200
+
 
 ### This request succeeds and sends a verification email to provided email
 GET {{mailpit}}/messages?limit=1
 
-{{
-  const messages = response.parsedBody.messages;
-  exports.message_id = messages[0].ID;
-}}
-
+@message_id = {{response.parsedBody.messages.at(-1).ID}}
 ?? status == 200
 
-### 
+
+### Extract the verification token from the email
 GET {{mailpit}}/message/{{message_id}}
 
-{{
-  const body = response.parsedBody.Body || response.parsedBody.Text;
-  const tokenMatch = body.match(/token=([a-zA-Z0-9\-_.]+)/);
-  exports.token = tokenMatch ? tokenMatch[1] : "";
-}}
-
+@token = {{response.parsedBody.Text.match(/token=([a-zA-Z0-9\-_.]+)/)[1]}}
 ?? status == 200
 
-### Attempt Exploit: Swap Email
-# @name exploit_attempt
-POST {{base}}/auth/register
+
+### Sandy replays Plankton's attack, providing her own email with a valid token
+POST /auth/register
 Content-Type: application/json
 
 {
     "token": "{{token}}",
-    "email": "spongebob@bikinibottom.sea",
+    "email": "sandy@bikinibottom.sea",
     "password": "hijacked",
-    "name": "SpongeBob"
+    "name": "Sandy Test"
 }
 
 ?? status == 200
+// The user gets created, but the system uses the email from the verification token
+?? js response.parsedBody.email == sandy+test@bikinibottom.sea
 
-# Verification: The handler detects the email mismatch and either rejects it or uses the token's email.
-# SpongeBob's password remains safe.
-GET {{base}}/account/info
-Authorization: Basic spongebob@bikinibottom.sea:hijacked
+
+### The attack fails, because Sandy's real account is NOT hijacked
+GET /account/info
+Authorization: Basic sandy@bikinibottom.sea:hijacked
+
+// Error as expected
+HTTP/1.1 400 Bad Request
+{
+  "error": "User authentication required"
+}
 
 ?? status == 400
 
-### Meanwhile, SpongBob is fine, he can access his own account
- GET {{base}}/account/info
-Authorization: {{spongebob_auth_email}}
+
+### Meanwhile, Sandy can access her own account with real credentials
+GET /account/info
+Authorization: {{sandy_auth_email}}
 
 ?? status == 200
-
-### Meanwhile Plankton is surprised to see he has his own account (with a bonus money!)
-GET {{base}}/account/info
-Authorization: Basic plankton.jr@chum-bucket.sea:hijacked
-
-?? status == 200
+?? js response.parsedBody.email == sandy@bikinibottom.sea

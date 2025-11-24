@@ -59,6 +59,7 @@ db = {
                 OrderItem(item_id="5", name="Fries", price=Decimal("2.49")),
             ],
             delivery_fee=Decimal("5.00"),
+            delivery_address="Under the Rock",
         ),
         "2": Order(
             order_id="2",
@@ -66,6 +67,7 @@ db = {
             user_id="spongebob",
             items=[OrderItem(item_id="8", name="Ultimate Krabby Feast", price=Decimal("27.99"))],
             delivery_fee=Decimal("0.00"),
+            delivery_address="Pineapple Under the Sea",
         ),
     },
     "next_order_id": 3,
@@ -149,7 +151,11 @@ def _charge_user(user_id: str, amount: Decimal):
 
 # routes.py
 def create_order_and_charge_customer(
-    total_price: Decimal, user_id: str, items: list[OrderItem], delivery_fee: Decimal
+    total_price: Decimal,
+    user_id: str,
+    items: list[OrderItem],
+    delivery_fee: Decimal,
+    delivery_address: str,
 ):
     """Creates a new order and charges the customer."""
     total_price += delivery_fee
@@ -162,6 +168,7 @@ def create_order_and_charge_customer(
         user_id=user_id,
         items=items,
         delivery_fee=delivery_fee,
+        delivery_address=delivery_address,
     )
 
     # TODO: What if the order creation fails? Add a rollback mechanism before we go to production!

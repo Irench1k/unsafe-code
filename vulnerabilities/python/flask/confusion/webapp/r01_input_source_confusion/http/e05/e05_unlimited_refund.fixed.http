@@ -1,44 +1,62 @@
 # @import ../common/setup.http
-@base = {{base_host}}/v106
+@host = {{base_host}}/v106
 
-### Sandy fixed the vulnerability, and now Plankton can't request a unlimited refund anymore.
+# Sandy fixed the vulnerability, and now Plankton can't request a unlimited refund anymore.
+
+
+
+### Sandy creates a cart to test the refund validation
 # @name cart
-POST {{base}}/cart
-Authorization: {{plankton_auth_email}}
+POST /cart
+Authorization: {{sandy_auth_email}}
 
-POST {{base}}/cart/{{cart.cart_id}}/items
-Authorization: {{plankton_auth_email}}
+
+### She adds an item to the cart
+POST /cart/{{cart.cart_id}}/items
+Authorization: {{sandy_auth_email}}
 Content-Type: application/json
 
 { "item_id": "4" }
 
-###
+
+### And finishes check out
 # @name order
-POST {{base}}/cart/{{cart.cart_id}}/checkout
-Authorization: {{plankton_auth_email}}
+POST /cart/{{cart.cart_id}}/checkout
+Authorization: {{sandy_auth_email}}
 Content-Type: application/x-www-form-urlencoded
 
-tip=0&delivery_address=Chum Bucket
+tip=0&delivery_address=Treedome Research Lab
 
-### Previous attempt still doesn't work
-POST {{base}}/orders/{{order.order_id}}/refund
-Authorization: {{plankton_auth_email}}
-Content-Type: application/json
 
-{
-  "amount": "50"
-}
-
-?? status == 400
-
-### Now Plankton can't request a unlimited refund anymore.
-# @name exploit_attempt
-POST {{base}}/orders/{{order.order_id}}/refund
-Authorization: {{plankton_auth_email}}
+### Form encoded requests are now properly validated
+POST /orders/{{order.order_id}}/refund
+Authorization: {{sandy_auth_email}}
 Content-Type: application/x-www-form-urlencoded
 
 amount=2000
 
-# Verification: The system now ignores the form amount for non-JSON requests and defaults to 20%.
-# Or it validates it properly. Either way, we don't get $2000.
+// The hacking attempt is rejected
+HTTP/1.1 400 Bad Request
+{
+  "error": "Refund amount cannot be greater than order total"
+}
+
+?? status == 400
+
+
+### JSON requests remain properly validated as well
+POST /orders/{{order.order_id}}/refund
+Authorization: {{sandy_auth_email}}
+Content-Type: application/json
+
+{
+  "amount": "2000"
+}
+
+// This is also rejected
+HTTP/1.1 400 Bad Request
+{
+  "error": "Refund amount cannot be greater than order total"
+}
+
 ?? status == 400

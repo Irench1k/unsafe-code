@@ -55,7 +55,7 @@ db = {
                 OrderItem(item_id="5", name="Fries", price=Decimal("2.49")),
             ],
             delivery_fee=Decimal("5.00"),
-            delivery_address="120 Conch Street",
+            delivery_address="Under the Rock",
             tip=Decimal("3.00"),
         ),
         "2": Order(
@@ -64,13 +64,23 @@ db = {
             user_id="spongebob@krusty-krab.sea",
             items=[OrderItem(item_id="8", name="Ultimate Krabby Feast", price=Decimal("27.99"))],
             delivery_fee=Decimal("0.00"),
-            delivery_address="122 Conch Street",
+            delivery_address="Pineapple Under the Sea",
             tip=Decimal("5.01"),
+        ),
+        "3": Order(
+            order_id="3",
+            total=Decimal("10.49"),
+            user_id="plankton@chum-bucket.sea",
+            items=[OrderItem(item_id="5", name="Fries", price=Decimal("2.49"))],
+            delivery_fee=Decimal("5.00"),
+            delivery_address="Chum Bucket",
+            tip=Decimal("3.00"),
         ),
     },
     "carts": {
         "1": Cart(cart_id="1", items=["4", "5"]),
         "2": Cart(cart_id="2", items=["8"]),
+        "3": Cart(cart_id="3", items=["5"]),
     },
     "refunds": {
         "1": Refund(

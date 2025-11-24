@@ -1,56 +1,83 @@
 # @import ../common/setup.http
-@base = {{base_host}}/v104
+@host = {{base_host}}/v104
 
-### Sandy fixed the vulnerability, and now Plankton can't overwrite orders anymore.
+# Sandy fixed the vulnerability, and verifies that orders can't be overwritten anymore.
+
+
+### Get the menu
+GET /menu
+
+// Record the IDs of the items we'll be using.
+@fries = {{response.parsedBody.find(i => i.name == "Fries")}}
+@kelp_shake = {{response.parsedBody.find(i => i.name == "Kelp Shake")}}
+@ultimate_krabby_feast = {{response.parsedBody.find(i => i.name == "Ultimate Krabby Feast")}}
+
+
+### Create the cart for cheap order
 # @name cheap_cart
-POST {{base}}/cart
-Authorization: {{plankton_auth}}
+POST /cart
+Authorization: {{sandy_auth}}
 
-### Plankton adds a side of fries to his cart
-POST {{base}}/cart/{{cheap_cart.cart_id}}/items
-Authorization: {{plankton_auth}}
+
+### Add a side of fries to the cart
+POST /cart/{{cheap_cart.cart_id}}/items
+Authorization: {{sandy_auth}}
 Content-Type: application/json
 
-{ "item_id": "2" }
+{ "item_id": "{{fries.id}}" }
 
-### Plankton checks out his _cheap_ cart
+
+### Check out the cart
 # @name cheap_order
-POST {{base}}/cart/{{cheap_cart.cart_id}}/checkout
-Authorization: {{plankton_auth}}
-Content-Type: application/x-www-form-urlencoded
-
-tip=0&delivery_address=Chum Bucket
-
-### Now Plankton creates a new _expensive_ cart
-# @name expensive_cart
-POST {{base}}/cart
-Authorization: {{plankton_auth}}
-
-### He adds an expensive item to his cart
-POST {{base}}/cart/{{expensive_cart.cart_id}}/items
-Authorization: {{plankton_auth}}
-Content-Type: application/json
-
-{ "item_id": "6" }
-
-### Plankton checks out the expensive cart but injects his old order ID
-# The response is an error message
-# @name exploit_attempt
-POST {{base}}/cart/{{expensive_cart.cart_id}}/checkout
-Authorization: {{plankton_auth}}
+POST /cart/{{cheap_cart.cart_id}}/checkout
+Authorization: {{sandy_auth}}
 Content-Type: application/json
 
 {
-  "tip": 0,
+  "delivery_address": "Chum Bucket"
+}
+
+?? status == 201
+
+
+### Create the second cart for expensive order
+# @name expensive_cart
+POST /cart
+Authorization: {{sandy_auth}}
+
+
+### Add an expensive item to the cart
+POST /cart/{{expensive_cart.cart_id}}/items
+Authorization: {{sandy_auth}}
+Content-Type: application/json
+
+{ "item_id": "{{ultimate_krabby_feast.id}}" }
+
+
+### Check out the cart, injecting the old order ID
+POST /cart/{{expensive_cart.cart_id}}/checkout
+Authorization: {{sandy_auth}}
+Content-Type: application/json
+
+{
   "delivery_address": "Chum Bucket",
   "order_id": "{{cheap_order.order_id}}"
 }
 
-// Response:
-// {
-//   "error": "hacking attempt detected"
-// }
+// Results in an error now!
+HTTP/1.1 400 - BAD REQUEST
+{
+  "error": "hacking attempt detected"
+}
 
-### The injected ID is ignored and a fresh order is created
 ?? status == 400
 ?? js response.parsedBody.order_id != {{cheap_order.order_id}}
+
+
+### The order history is correct as well
+GET /orders
+Authorization: {{sandy_auth}}
+
+?? js response.parsedBody.length == 1
+?? js response.parsedBody[0].items[0].item_id == {{fries.id}}
+?? js response.parsedBody[0].items[0].price == {{parseFloat(fries.price)}}

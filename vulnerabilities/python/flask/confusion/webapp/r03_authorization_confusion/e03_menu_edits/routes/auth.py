@@ -92,7 +92,7 @@ def login_user():
     # Initiate cookie session on successful authentication
     session["email"] = g.email
 
-    return success_response({"message": f"Login successful for user {g.email}"})
+    return success_response({"message": "Login successful", "email": g.email})
 
 
 @bp.post("/logout")
