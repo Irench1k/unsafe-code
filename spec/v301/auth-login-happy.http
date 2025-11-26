@@ -1,0 +1,20 @@
+# @import ../common.http
+
+# POST /auth/login happy path
+
+### Login works
+{{
+    await platform.reset();
+}}
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "{{user("spongebob").email}}",
+  "password": "{{user("spongebob").password}}"
+}
+
+?? js $(response).isOk() == true
+?? js $(response).hasFields("email", "message") == true
+?? js $(response).field("email") == {{user("spongebob").email}}
+?? js $(response).field("message") == Login successful

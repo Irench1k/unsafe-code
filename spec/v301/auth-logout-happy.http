@@ -1,0 +1,47 @@
+# @import ../common.http
+
+# POST /auth/logout happy path
+
+{{
+  await platform.reset();
+}}
+
+### Login to establish session
+# @name login
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "{{user("spongebob").email}}",
+  "password": "{{user("spongebob").password}}"
+}
+
+@sessionCookie = {{extractCookie(response)}}
+?? js $(response).isOk() == true
+
+### Session works before logout
+# @forceRef login
+GET /account/info
+Cookie: {{sessionCookie}}
+
+?? js $(response).isOk() == true
+?? js $(response).field("email") == {{user("spongebob").email}}
+
+### Logout works
+# @forceRef login
+POST /auth/logout
+Cookie: {{sessionCookie}}
+
+?? js $(response).isOk() == true
+?? js $(response).field("message") == Logout successful
+
+// TODO: Flask doesn't invalidate sessions server-side, only removes claims from the
+// session cookie or deletes the cookie entirely (both are client-side).
+// Consider building a vulnerability demonstration out of it? Right now our demo app
+// doesn't have any scenarios where old claims could cause a security issue.
+//### Session is invalidated after logout
+//# @forceRef login
+//GET /account/info
+//Cookie: {{sessionCookie}}
+//
+//?? js $(response).isError() == true

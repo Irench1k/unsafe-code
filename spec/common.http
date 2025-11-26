@@ -23,4 +23,10 @@
   exports.testEmail = utils.testEmail;
   exports.extractToken = utils.extractToken;
   exports.uuid = utils.uuid;
+
+  // Test assertions
+  const { strictEqual, deepStrictEqual, ok } = require('assert');
+  exports.strictEqual = strictEqual;
+  exports.deepStrictEqual = deepStrictEqual;
+  exports.ok = ok;
 }}

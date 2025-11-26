@@ -1,0 +1,134 @@
+# @import ../common.http
+
+# POST /cart/{id}/items guardrails
+
+### Get first available & unavailable menu items
+GET /menu?restaurant_id=1
+
+@item_id = {{$(response).body().find(i => i.restaurant_id == 1 && i.available).id}}
+@unavailable_item_id = {{$(response).body().find(i => i.restaurant_id == 1 && !i.available).id}}
+
+### Create a cart first
+# @name create_cart
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("patrick")}}
+
+@cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add item to cart requires auth
+# @forceRef create_cart
+POST /cart/{{cart_id}}/items
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isError() == true
+
+### Add item to cart via Basic Auth requires valid credentials
+POST /cart/{{cart_id}}/items
+Authorization: Basic {{user("patrick").email}}:wrongpassword
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isError() == true
+
+### Add item requires JSON body
+# @forceRef create_cart
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/x-www-form-urlencoded
+
+item_id={{item_id}}
+
+?? js $(response).isError() == true
+
+### Add item with invalid item_id fails
+# @forceRef create_cart
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "9999" }
+
+?? js $(response).isError() == true
+
+### Add item with unavailable item_id fails
+# @forceRef create_cart
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "{{unavailable_item_id}}" }
+
+?? js $(response).isError() == true
+
+### A user cannot add items to another user's cart - Basic Auth
+# @forceRef create_cart
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isError() == true
+
+### A user cannot add items to another user's cart - Cookie Auth
+# @forceRef create_cart
+POST /cart/{{cart_id}}/items
+Cookie: {{auth.login("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isError() == true
+
+### Plankton's cart for parameter pollution tests
+# @name plankton_cart
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("plankton")}}
+
+@plankton_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).isOk() == true
+?? js $(response).hasFields("cart_id") == true
+
+### A user cannot add items to another user's cart - Basic Auth - Param Pollution
+# @forceRef create_cart
+# @forceRef plankton_cart
+POST /cart/{{cart_id}}/items?cart_id={{plankton_cart_id}}
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}", "cart_id": "{{plankton_cart_id}}" }
+
+?? js $(response).isError() == true
+
+### A user cannot add items to another user's cart - Cookie Auth - Param Pollution
+# @forceRef create_cart
+# @forceRef plankton_cart
+POST /cart/{{cart_id}}/items?cart_id={{plankton_cart_id}}
+Cookie: {{auth.login("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}", "cart_id": "{{plankton_cart_id}}" }
+
+?? js $(response).isError() == true
+
+### Create a cart for another restaurant
+# @name chum_bucket_cart
+POST /cart?restaurant_id=2
+Authorization: {{auth.basic("plankton")}}
+
+@chum_bucket_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Items can't be added from another restaurant
+# @forceRef chum_bucket_cart
+POST /cart/{{chum_bucket_cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isError() == true

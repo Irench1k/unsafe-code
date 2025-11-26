@@ -1,0 +1,36 @@
+# @import ../common.http
+
+# POST /cart happy path
+
+### Create cart requires auth
+POST /cart?restaurant_id=1
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Create cart via Basic Auth requires valid credentials
+POST /cart?restaurant_id=1
+Authorization: Basic plankton@chum-bucket.sea:wrongpassword
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Create cart without restaurant_id fails
+POST /cart
+Authorization: {{auth.basic("spongebob")}}
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Restaurant ID is required
+
+### Create cart without restaurant_id fails - Cookie Auth
+POST /cart
+Cookie: {{auth.login("spongebob")}}
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Restaurant ID is required
+
+### Create cart requires valid restaurant_id
+POST /cart?restaurant_id=999
+Authorization: {{auth.basic("spongebob")}}
+
+?? js $(response).isError() == true

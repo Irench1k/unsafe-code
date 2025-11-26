@@ -1,0 +1,144 @@
+# @import ../common.http
+
+# Cart checkout parameter injection resistance
+# Verifies cart_id from path cannot be overridden via query or body params
+# Verifies restaurant_id cannot be changed at checkout time
+
+### Seed users
+{{
+  await platform.seed({
+    patrick: 200,
+    plankton: 200
+  });
+}}
+
+### Patrick creates a cart (target for injection)
+# @name patricks_cart
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("patrick")}}
+
+@patricks_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Patrick adds item
+# @forceRef patricks_cart
+POST /cart/{{patricks_cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "4" }
+
+?? js $(response).isOk() == true
+
+### Plankton creates own cart
+# @name planktons_cart
+# @forceRef patricks_cart
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("plankton")}}
+
+@planktons_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Plankton adds item to own cart
+# @name planktons_cart_with_item
+# @forceRef planktons_cart
+POST /cart/{{planktons_cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "5" }
+
+?? js $(response).isOk() == true
+
+# -----------------------------------------------------------------------------
+# Cart ID injection attacks - should all fail
+# Path says Patrick's cart, but attacker tries to inject own cart_id
+# -----------------------------------------------------------------------------
+
+### Injection via query param - Basic Auth
+# @forceRef planktons_cart_with_item
+POST /cart/{{patricks_cart_id}}/checkout?cart_id={{planktons_cart_id}}
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0 }
+
+?? js $(response).isError() == true
+
+### Injection via body param - Basic Auth
+# @forceRef planktons_cart_with_item
+POST /cart/{{patricks_cart_id}}/checkout
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0, "cart_id": "{{planktons_cart_id}}" }
+
+?? js $(response).isError() == true
+
+### Injection via query + body - Basic Auth
+# @forceRef planktons_cart_with_item
+POST /cart/{{patricks_cart_id}}/checkout?cart_id={{planktons_cart_id}}
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0, "cart_id": "{{planktons_cart_id}}" }
+
+?? js $(response).isError() == true
+
+### Injection via query + body - Cookie Auth
+# @forceRef planktons_cart_with_item
+POST /cart/{{patricks_cart_id}}/checkout?cart_id={{planktons_cart_id}}
+Cookie: {{auth.login("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0, "cart_id": "{{planktons_cart_id}}" }
+
+?? js $(response).isError() == true
+
+# -----------------------------------------------------------------------------
+# Restaurant ID immutability - checkout should use cart's restaurant_id
+# -----------------------------------------------------------------------------
+
+### Restaurant ID cannot be changed via query - JSON
+# @forceRef planktons_cart_with_item
+POST /cart/{{planktons_cart_id}}/checkout?restaurant_id=2
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0 }
+
+?? js $(response).isOk() == true
+?? js $(response).field("restaurant_id") == 1
+
+### Restaurant ID cannot be changed via body - JSON
+# @forceRef planktons_cart_with_item
+POST /cart/{{planktons_cart_id}}/checkout
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0, "restaurant_id": 2 }
+
+?? js $(response).isOk() == true
+?? js $(response).field("restaurant_id") == 1
+
+### Restaurant ID cannot be changed via query + body - JSON
+# @forceRef planktons_cart_with_item
+POST /cart/{{planktons_cart_id}}/checkout?restaurant_id=2
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0, "restaurant_id": 2 }
+
+?? js $(response).isOk() == true
+?? js $(response).field("restaurant_id") == 1
+
+### Restaurant ID cannot be changed - Form Data
+# @forceRef planktons_cart_with_item
+POST /cart/{{planktons_cart_id}}/checkout?restaurant_id=2
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+tip=0&delivery_address=Chum Bucket&restaurant_id=2
+
+?? js $(response).isOk() == true
+?? js $(response).field("restaurant_id") == 1

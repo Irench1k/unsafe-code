@@ -1,0 +1,50 @@
+# @import ../common.http
+
+# GET /account/credits guardrails
+
+{{
+  await platform.seed({
+    plankton: 200,
+    squidward: 150,
+    spongebob: 100
+  });
+}}
+
+### Basic Auth requires correct credentials (short)
+GET /account/credits
+Authorization: Basic plankton:wrongpassword
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Basic Auth doesn't allow empty password (short)
+GET /account/credits
+Authorization: Basic plankton:
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Basic Auth requires correct credentials (email)
+GET /account/credits
+Authorization: Basic plankton@chum-bucket.sea:wrongpassword
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Basic Auth requires correct credentials (email)
+GET /account/credits
+Authorization: Basic plankton@chum-bucket.sea:
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Cookie Auth takes precedence over Basic Auth
+GET /account/credits
+Cookie: {{auth.login("plankton")}}
+Authorization: Basic squidward:wrongpassword
+
+?? js $(response).isOk() == true
+?? js $(response).hasFields("balance", "email") == true
+?? js $(response).field("email") == plankton@chum-bucket.sea
+?? js $(response).field("balance") == 200.00
+?? js $(response).hasOnlyUserData("plankton") == true

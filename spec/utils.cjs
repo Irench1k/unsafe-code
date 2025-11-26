@@ -32,50 +32,55 @@ const USERS = {
     email: "sandy@bikinibottom.sea",
     password: "fullStackSquirr3l!",
     role: "admin",
-    apiKey: "key-sandy-42841a8d-0e65-41db-8cce-8588c23e53dc",
+    id: 1,
   },
   patrick: {
     shortId: "patrick",
     email: "patrick@bikinibottom.sea",
     password: "mayonnaise",
     role: "customer",
+    id: 2,
   },
   plankton: {
     shortId: "plankton",
     email: "plankton@chum-bucket.sea",
     password: "i_love_my_wife",
     role: "customer",
-    restaurantKey: "key-plankton-a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+    id: 3,
   },
   spongebob: {
     shortId: "spongebob",
     email: "spongebob@krusty-krab.sea",
     password: "EmployeeOfTheMonth",
     role: "customer",
+    id: 4,
   },
   mrkrabs: {
     shortId: "mrkrabs",
     email: "mr.krabs@krusty-krab.sea",
     password: "m$n$y",
     role: "restaurant_owner",
-    restaurantKey: "key-krusty-krub-z1hu0u8o94",
+    id: 5,
   },
   squidward: {
     shortId: "squidward",
     email: "squidward@krusty-krab.sea",
     password: "clarinet4life",
     role: "employee",
+    id: 6,
   },
   karen: {
     shortId: "karen",
     email: "karen@chum-bucket.sea",
     password: "01001011",
     role: "customer",
+    id: 7,
   },
 };
 
 const ORG_KEYS = {
   krusty_krab: "key-krusty-krub-z1hu0u8o94",
+  chum_bucket: "key-chum-bucket-b5kg32z1je",
   admin: "key-sandy-42841a8d-0e65-41db-8cce-8588c23e53dc",
 };
 
@@ -209,6 +214,7 @@ function getConfig() {
     usesEmails: versionNum >= 106,
     hasSessions: versionNum >= 201,
     hasMultiRestaurant: versionNum >= 203,
+    hasDatabase: versionNum >= 301,
   };
 }
 
@@ -240,7 +246,8 @@ function user(name) {
   }
 
   const config = getConfig();
-  const userId = config.usesEmails ? u.email : u.shortId;
+  const username = config.usesEmails ? u.email : u.shortId;
+  const userId = config.hasDatabase ? u.id : username;
 
   return {
     name: name.toLowerCase(),
@@ -248,9 +255,8 @@ function user(name) {
     shortId: u.shortId,
     password: u.password,
     role: u.role,
-    id: userId, // Version-aware ID
-    apiKey: u.apiKey,
-    restaurantKey: u.restaurantKey,
+    username, // Username for authentication
+    id: userId, // User ID for database operations
   };
 }
 
@@ -330,7 +336,7 @@ const auth = {
 
   // Restaurant API key (org or user)
   // Example: X-API-Key: {{auth.restaurant("krusty_krab")}}
-  //          X-API-Key: {{auth.restaurant("mrkrabs")}}  # v203+
+  //          X-API-Key: {{auth.restaurant("chum_bucket")}}
   restaurant(nameOrKey) {
     const config = getConfig();
     const normalized = nameOrKey.toLowerCase().replace(/[\s_-]/g, "_");
@@ -340,27 +346,9 @@ const auth = {
       return ORG_KEYS[normalized];
     }
 
-    // Try as user with restaurant key
-    try {
-      const u = user(nameOrKey);
-      if (u.restaurantKey) {
-        if (!config.hasMultiRestaurant) {
-          throw new Error(
-            `Multi-restaurant keys not available in ${config.version}. ` +
-              `Use auth.restaurant("krusty_krab") instead.`
-          );
-        }
-        return u.restaurantKey;
-      }
-    } catch (e) {
-      // Not a user
-    }
-
     throw new Error(
-      `No restaurant key for: "${nameOrKey}"\n` +
-        `Available: ${Object.keys(ORG_KEYS).join(
-          ", "
-        )}, mrkrabs, plankton (v203+)`
+      `No restaurant key for: "${nameOrKey}"\r\n` +
+        `Available: ${Object.keys(ORG_KEYS).join(", ")}`
     );
   },
 
@@ -529,10 +517,10 @@ function $(thing) {
       if (!data) return false;
 
       const u = user(userName);
-      const allowedIds = [u.id, u.email, u.shortId];
+      const allowedIds = [u.id, u.username];
 
       return items.every((item) => {
-        const itemUserId = item.user_id || item.userId || item.email;
+        const itemUserId = item.user_id || item.email;
         return itemUserId && allowedIds.includes(itemUserId);
       });
     },
@@ -541,9 +529,7 @@ function $(thing) {
       if (!data || items.length === 0) return false;
 
       const userIds = new Set(
-        items
-          .map((item) => item.user_id || item.userId || item.email)
-          .filter(Boolean)
+        items.map((item) => item.user_id || item.email).filter(Boolean)
       );
 
       return userIds.size >= minUsers;
@@ -553,19 +539,17 @@ function $(thing) {
       if (!data) return false;
 
       const u = user(userName);
-      const allowedIds = [u.id, u.email, u.shortId];
+      const allowedIds = [u.id, u.username];
 
       return items.some((item) => {
-        const itemUserId = item.user_id || item.userId || item.email;
+        const itemUserId = item.user_id || item.email;
         return itemUserId && allowedIds.includes(itemUserId);
       });
     },
 
     // Order/cart helpers
     userId() {
-      return (
-        this.field("user_id") || this.field("userId") || this.field("email")
-      );
+      return this.field("user_id") || this.field("email");
     },
 
     total() {
@@ -605,6 +589,11 @@ function $(thing) {
     find(fn) {
       if (!isArray) return fn(data) ? data : undefined;
       return data.find(fn);
+    },
+
+    every(fn) {
+      if (!isArray) return data ? fn(data) : undefined;
+      return data.every(fn);
     },
 
     // Unwrap to raw data
@@ -683,12 +672,11 @@ const platform = {
    *
    * Example:
    *   {{
-   *     await platform.addCredits("plankton", 200);
+   *     await platform.seedCredits("plankton", 200);
    *   }}
    */
-  async addCredits(userName, amount) {
+  async seedCredits(userName, amount) {
     const config = getConfig();
-    const u = user(userName);
 
     const response = await fetch(
       `${config.baseUrl}/${config.version}/e2e/balance`,
@@ -699,14 +687,14 @@ const platform = {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          user_id: u.id,
+          user_id: user(userName).username,
           balance: amount,
         }),
       }
     );
 
     if (response.status >= 400) {
-      throw new Error(`platform.addCredits() failed: ${response.status}`);
+      throw new Error(`platform.seedCredits() failed: ${response.status}`);
     }
 
     return response;
@@ -729,7 +717,7 @@ const platform = {
     await this.reset();
 
     for (const [userName, balance] of Object.entries(users)) {
-      await this.addCredits(userName, balance);
+      await this.seedCredits(userName, balance);
     }
   },
 };

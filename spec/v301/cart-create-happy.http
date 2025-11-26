@@ -1,0 +1,27 @@
+# @import ../common.http
+
+# POST /cart happy path
+
+### Create cart with Basic Auth works
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("patrick")}}
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("cart_id", "restaurant_id", "items") == true
+?? js $(response).field("restaurant_id") == 1
+
+### Create cart with Cookie Auth works
+POST /cart?restaurant_id=1
+Cookie: {{auth.login("squidward")}}
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("cart_id", "restaurant_id", "items") == true
+?? js $(response).field("restaurant_id") == 1
+
+### Create cart for another restaurant
+POST /cart?restaurant_id=2
+Authorization: {{auth.basic("plankton")}}
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("cart_id", "restaurant_id", "items") == true
+?? js $(response).field("restaurant_id") == 2

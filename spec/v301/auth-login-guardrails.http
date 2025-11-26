@@ -1,0 +1,86 @@
+# @import ../common.http
+
+# POST /auth/login guardrails
+
+### Login fails with urlencoded body
+POST /auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email={{user("spongebob").email}}&password={{user("spongebob").password}}
+
+?? js $(response).isError() == true
+
+
+### Login fails with wrong password
+{{
+    await platform.reset();
+}}
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "{{user("spongebob").email}}",
+  "password": "wrongpassword"
+}
+
+?? js $(response).isError() == true
+
+
+### Login uses correct email
+POST /auth/login?email={{user("spongebob").email}}
+Content-Type: application/json
+
+{
+  "email": "{{user("plankton").email}}",
+  "password": "{{user("plankton").password}}"
+}
+
+?? js $(response).isOk() == true
+?? js $(response).hasFields("email", "message") == true
+?? js $(response).field("email") == {{user("plankton").email}}
+?? js $(response).field("message") == Login successful
+?? js extractCookie(response) != null == true
+
+
+### Basic Auth header does not bypass login authentication
+POST /auth/login
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{
+  "email": "{{user("spongebob").email}}",
+  "password": "{{user("plankton").password}}"
+}
+
+@potentiallyPollutedCookie = {{extractCookie(response)}}
+?? js $(response).field("email") == {{user("plankton").email}}
+
+### Cookie is not polluted and is bound to Plankton
+GET /account/info
+Cookie: {{potentiallyPollutedCookie}}
+
+?? js $(response).field("email") == {{user("plankton").email}}
+
+
+### Cookie header does not bypass login authentication
+# @name sessionFixation
+{{
+  exports.anotherCookie = auth.login("plankton");
+}}
+POST /auth/login
+Cookie: {{anotherCookie}}
+Content-Type: application/json
+
+{
+  "email": "{{user("spongebob").email}}",
+  "password": "{{user("plankton").password}}"
+}
+
+?? js $(response).field("email") == {{user("plankton").email}}
+
+### Plankton's session did not change
+# @ref sessionFixation
+GET /account/info
+Cookie: {{anotherCookie}}
+
+?? js $(response).field("email") == {{user("plankton").email}}

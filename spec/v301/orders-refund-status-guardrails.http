@@ -1,0 +1,178 @@
+# @import ../common.http
+
+# PATCH /orders/{id}/refund/status guardrails
+
+### Create an order and request a refund
+{{
+  await platform.seed({
+    squidward: 200
+  });
+}}
+# @name cart
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("squidward")}}
+
+@cart_id = {{$(response).field("cart_id")}}
+
+### Add item
+# @name add_item
+# @forceRef cart
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("squidward")}}
+Content-Type: application/json
+
+{ "item_id": "4" }
+
+### Checkout
+# @name checkout
+# @forceRef add_item
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("squidward")}}
+Content-Type: application/json
+
+{ "delivery_address": "Squidward House", "tip": 1 }
+
+@order_id = {{$(response).field("order_id")}}
+@order_total = {{$(response).total()}}
+?? js $(response).status() == 201
+
+### Restaurant marks order as delivered
+# @name delivered
+# @forceRef checkout
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+?? js $(response).isOk() == true
+
+### Request a large refund (requires manual approval)
+# @name refund
+# @forceRef delivered
+POST /orders/{{order_id}}/refund
+Authorization: {{auth.basic("squidward")}}
+Content-Type: application/x-www-form-urlencoded
+
+amount={{order_total}}&reason=Too salty
+
+@refund_id = {{$(response).field("refund_id")}}
+?? js $(response).isOk() == true
+?? js $(response).field("status") == pending
+
+### Customer's balance
+# @name balance
+# @forceRef refund
+GET /account/info
+Authorization: {{auth.basic("squidward")}}
+
+@customer_balance = {{$(response).field("balance")}}
+?? js $(response).field("balance") == {{200 - order_total}}
+
+### Customer cannot update refund status
+# @forceRef refund
+PATCH /orders/{{order_id}}/refund/status
+Authorization: {{auth.basic("squidward")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+?? js $(response).isError() == true
+
+### Restaurant manager of another restaurant cannot approve refund
+# @forceRef refund
+PATCH /orders/{{order_id}}/refund/status
+X-API-Key: {{auth.restaurant("chum_bucket")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+?? js $(response).isError() == true
+
+### Restaurant manager approves refund
+# @name approved
+# @forceRef refund
+PATCH /orders/{{order_id}}/refund/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == approved
+
+### Customer's balance is updated
+# @forceRef approved
+GET /account/info
+Authorization: {{auth.basic("squidward")}}
+
+?? js $(response).field("balance") == 200.00
+
+### Refund cannot be approved twice
+# @forceRef approved
+PATCH /orders/{{order_id}}/refund/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+?? js $(response).isError() == true
+
+### Refund cannot be turned to rejected after being approved
+# @forceRef approved
+PATCH /orders/{{order_id}}/refund/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=rejected
+
+?? js $(response).isError() == true
+
+### Refund cannot be turned to pending after being approved
+# @forceRef approved
+PATCH /orders/{{order_id}}/refund/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=pending
+
+?? js $(response).isError() == true
+
+### Refund can be set to rejected
+# @name rejected
+# @forceRef refund
+PATCH /orders/{{order_id}}/refund/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=rejected
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == rejected
+
+### Customer's balance is not updated
+# @forceRef rejected
+GET /account/info
+Authorization: {{auth.basic("squidward")}}
+
+?? js $(response).field("balance") == {{200 - order_total}}
+
+### Refund cannot be set to pending after being rejected
+# @forceRef rejected
+PATCH /orders/{{order_id}}/refund/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=pending
+
+?? js $(response).isError() == true
+
+### Refund cannot be set to approved after being rejected
+# @forceRef rejected
+PATCH /orders/{{order_id}}/refund/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+?? js $(response).isError() == true

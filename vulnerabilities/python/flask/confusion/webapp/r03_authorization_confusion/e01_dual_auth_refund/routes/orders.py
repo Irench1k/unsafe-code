@@ -16,6 +16,7 @@ from ..database.services import (
     create_refund,
     get_user_orders,
     process_refund,
+    refund_user,
     serialize_order,
     serialize_orders,
     serialize_refund,
@@ -64,9 +65,10 @@ def refund_order(order_id):
     if g.order.user_id != g.user_id:
         raise CheekyApiError("Order does not belong to user")
 
-    # Integrity check: order must NOT be in the refunded state already
-    if g.order.status == OrderStatus.refunded:
-        raise CheekyApiError("Order has already been refunded")
+    # Integrity check: order must be delivered, not refunded or cancelled
+    # (and not delivered yet orders can only be cancelled not refunded)
+    if g.order.status != OrderStatus.delivered:
+        raise CheekyApiError("Order cannot be refunded")
 
     # Integrity check: there should NOT be other refunds for this order already
     if get_refund_by_order_id(order_id_int):
@@ -144,13 +146,16 @@ def update_order_status(order_id):
     - only if order has not been delivered yet
 
     Restaurants:
-    - can change order status to delivered
+    - can change order status to delivered or cancelled
     - only if order has been created and not delivered yet
     """
     order_id_int = _parse_order_id(order_id)
-    status = request.form.get("status")
-    if not status or status not in ["created", "delivered", "cancelled", "refunded"]:
+    try:
+        status = OrderStatus(request.form.get("status"))
+    except ValueError:
         raise CheekyApiError("Status is missing or invalid")
+    if status not in [OrderStatus.delivered, OrderStatus.cancelled]:
+        raise CheekyApiError(f"Status is invalid: got '{status.value}'")
 
     order = find_order_by_id(order_id_int)
     if not order:
@@ -160,9 +165,15 @@ def update_order_status(order_id):
     if g.get("user_id"):
         if order.user_id != g.user_id:
             raise CheekyApiError("Order does not belong to user")
+        # Integrity check: customers can only cancel orders
+        if status != OrderStatus.cancelled:
+            raise CheekyApiError(f"Order can only be cancelled: got status '{status.value}'")
     else:
         if order.restaurant_id != g.restaurant_id:
             raise CheekyApiError("Order does not belong to restaurant")
+        # Integrity check: restaurants can only deliver or cancel orders
+        if status not in [OrderStatus.delivered, OrderStatus.cancelled]:
+            raise CheekyApiError("Order can only be delivered or cancelled")
 
     # Integrity check: order status can be changed only from "created"
     if order.status != OrderStatus.created:
@@ -170,4 +181,6 @@ def update_order_status(order_id):
 
     order.status = status
     save_order(order)
+    if status == OrderStatus.cancelled:
+        refund_user(order.user_id, order.total)
     return jsonify(serialize_order(order)), 200

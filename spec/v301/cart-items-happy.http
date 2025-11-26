@@ -1,0 +1,67 @@
+# @import ../common.http
+
+# POST /cart/{id}/items happy path
+
+### Get first available & unavailable menu items
+GET /menu?restaurant_id=1
+
+@item_id = {{$(response).body().find(i => i.available).id}}
+
+### Create a cart first
+# @name create_cart
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("plankton")}}
+
+@cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add item to cart works with Basic Auth
+# @name cart_with_one_item
+# @forceRef create_cart
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isOk() == true
+?? js $(response).hasFields("cart_id", "items") == true
+?? js $(response).field("items").length == 1
+
+### Add item to cart works with Cookie Auth
+# @name cart_with_one_item_cookie
+# @forceRef create_cart
+{{
+  exports.session = await auth.login("plankton");
+}}
+POST /cart/{{cart_id}}/items
+Cookie: {{session}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isOk() == true
+?? js $(response).hasFields("cart_id", "items") == true
+?? js $(response).field("items").length == 1
+
+### Add another item to cart
+# @forceRef cart_with_one_item
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isOk() == true
+?? js $(response).field("items").length == 2
+
+### Add another item to cart works with Cookie Auth
+# @forceRef cart_with_one_item_cookie
+POST /cart/{{cart_id}}/items
+Cookie: {{session}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isOk() == true
+?? js $(response).field("items").length == 2

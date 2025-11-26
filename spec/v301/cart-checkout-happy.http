@@ -1,0 +1,133 @@
+# @import ../common.http
+
+# POST /cart/{id}/checkout happy path
+
+
+### Create a cart and add items
+{{
+  await platform.seed({
+    patrick: 200,
+    squidward: 150
+  });
+}}
+# @name create_cart
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("patrick")}}
+
+@cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add item
+# @name add_item
+# @forceRef create_cart
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "4" }
+
+?? js $(response).isOk() == true
+
+### Checkout works with Basic Auth
+# @forceRef add_item
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 1 }
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+
+### Checkout with form data also works
+# @forceRef add_item
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/x-www-form-urlencoded
+
+tip=2&delivery_address=Under the Rock
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+
+### Checkout with Cookie Auth also works
+# @forceRef add_item
+POST /cart/{{cart_id}}/checkout
+Cookie: {{auth.login("patrick")}}
+Content-Type: application/json
+
+{ "delivery_address": "Under the Rock", "tip": 2 }
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+
+### Multiple items in cart
+# @name add_multiple_items
+# @forceRef add_item
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "5" }
+
+?? js $(response).isOk() == true
+
+### Checkout with multiple items
+# @forceRef add_multiple_items
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "delivery_address": "Under the Rock", "tip": 2 }
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+?? js $(response).field("items").length == 2
+
+### Checkout with form data and multiple items
+# @forceRef add_multiple_items
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/x-www-form-urlencoded
+
+tip=2&delivery_address=Under the Rock
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+?? js $(response).field("items").length == 2
+
+### Checkout with Cookie Auth and multiple items
+# @forceRef add_multiple_items
+POST /cart/{{cart_id}}/checkout
+Cookie: {{auth.login("patrick")}}
+Content-Type: application/json
+
+{ "delivery_address": "Under the Rock", "tip": 2 }
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+?? js $(response).field("items").length == 2
+
+### Checkout with multiple items, cookie auth and form data
+# @forceRef add_multiple_items
+POST /cart/{{cart_id}}/checkout
+Cookie: {{auth.login("patrick")}}
+Content-Type: application/x-www-form-urlencoded
+
+tip=2&delivery_address=Under the Rock
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+?? js $(response).field("items").length == 2
+
+### Tip is optional
+# @forceRef add_item
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "delivery_address": "Under the Rock" }
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+?? js $(response).field("tip") == 0.00

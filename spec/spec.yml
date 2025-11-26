@@ -1,66 +1,59 @@
 # E2E Spec Suite Configuration
-# Simple, explicit test inheritance and organization
+# Lean format with implicit inheritance
+#
+# File naming:
+#   - New specs: {name}.http (stored in git)
+#   - Inherited: ~{name}.http (generated via `uv run spec-sync generate`)
+#
+# Version format:
+#   inherits: vXXX          # inherit all specs from parent version
+#   exclude: [...]          # don't inherit these specs from parent
+#   specs: [...]            # new specs defined in this version
+#
+# Run `uv run spec-sync status` to see current state
 
-v100:
-  description: "Baseline - Simple single-item orders"
-  tags: [baseline, r01]
+# =============================================================================
+# Authorization Confusion (r03)
+# =============================================================================
+
+v301:
+  description: "Dual-Auth Refund Approval"
+  tags: [r03, vulnerable]
   specs:
-    # GET /menu
-    - name: menu-accessible
-    - name: menu-contains-expected-items
-    # GET /account/credits
-    - name: account-auth
-    - name: account-credits
-    # GET /orders
-    - name: orders-list
-    # POST /orders
-    - name: orders-create-single-item
-    - name: orders-create-rejects-items-array
-
-v101:
-  description: "Dual parameter bug (item vs items[])"
-  tags: [r01, vulnerable]
-  specs:
-    - inherits: v100.menu-accessible
-    - inherits: v100.auth-required
-    - inherits: v100.account-credits
-    - inherits: v100.orders-list
-    - name: orders-create-multi-item # Replaces single-item version
-    - name: vuln-dual-parameter # NEW: Exploit test
-
-v102:
-  description: "Delivery fee bypass (query vs body)"
-  tags: [r01, vulnerable]
-  specs:
-    - inherits: v101.menu-accessible
-    - inherits: v101.auth-required
-    - inherits: v101.account-credits
-    - inherits: v101.orders-list
-    - name: orders-create-with-delivery # Adds delivery_address
-    - name: vuln-delivery-fee-bypass # NEW: Exploit test
-
-v103:
-  description: "Cart-based checkout with order_id injection"
-  tags: [r01, vulnerable]
-  specs:
-    - inherits: v102.menu-accessible
-    - inherits: v102.auth-required
-    - inherits: v102.account-credits
-    - inherits: v102.orders-list # GET /orders still works
-    - name: cart-create
-    - name: cart-add-items
-    - name: cart-checkout
-    - name: vuln-order-overwrite # NEW: Exploit test
-
-# v104:
-#   description: "Negative tip cashout (middleware vs handler)"
-#   tags: [r01, vulnerable]
-#   specs:
-#     - inherits: v103.menu-accessible
-#     - inherits: v103.auth-required
-#     - inherits: v103.account-credits
-#     - inherits: v103.orders-list
-#     - inherits: v103.cart-create
-#     - inherits: v103.cart-add-items
-#     - name: cart-checkout-with-tip  # Adds tip parameter
-#     - name: vuln-negative-tip  # NEW: Exploit test
+    # /account
+    - account-credits-get-guardrails
+    - account-credits-get-happy
+    - account-credits-post-guardrails
+    - account-credits-post-happy
+    - account-info-get-guardrails
+    - account-info-get-happy
+    # /auth
+    - auth-login-guardrails
+    - auth-login-happy
+    - auth-logout-happy
+    - auth-register-guardrails
+    - auth-register-happy
+    # /cart
+    - cart-checkout-happy
+    - cart-checkout-ownership
+    - cart-checkout-params
+    - cart-checkout-reuse
+    - cart-create-guardrails
+    - cart-create-happy
+    - cart-items-guardrails
+    - cart-items-happy
+    # /menu
+    - menu-get-happy
+    # /orders
+    - orders-list-guardrails
+    - orders-list-happy
+    - orders-refund-post-guardrails
+    - orders-refund-post-happy
+    - orders-refund-status-guardrails
+    - orders-refund-status-happy
+    - orders-status-guardrails
+    - orders-status-happy
+    # /restaurants
+    - restaurants-list-happy
+    # Vulnerability
+    - vuln-dual-auth-refund

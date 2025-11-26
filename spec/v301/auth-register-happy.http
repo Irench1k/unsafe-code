@@ -1,0 +1,63 @@
+# @import ../common.http
+@mailpit = http://127.0.0.1:8025/api/v1
+
+# POST /auth/register happy path
+
+### Registration works
+{{
+    await platform.reset();
+}}
+# @name start_registration
+POST /auth/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+?? js $(response).isOk() == true
+?? js $(response).hasFields("email", "status") == true
+?? js $(response).field("email") == test@example.com
+?? js $(response).field("status") == verification_email_sent
+
+### Verification email is sent
+# @forceRef start_registration
+# @name find_email
+GET {{mailpit}}/messages?limit=1
+
+@email_id = {{ $(response).field("messages")[0].ID }}
+?? js $(response).isOk() == true
+?? js $(response).field("count") == 1
+?? js $(response).field("messages")[0].From.Address == no-reply@app.cheeky.sea
+?? js $(response).field("messages")[0].To[0].Address == test@example.com
+
+### Verification email contains token
+# @forceRef find_email
+# @name find_token
+GET {{mailpit}}/message/{{email_id}}
+
+@token = {{ $(response).field("Text").match(/token=([a-zA-Z0-9\-_.]+)/)[1] }}
+
+?? js $(response).isOk() == true
+?? js $(response).field("Text").includes("Click the link") == true
+{{
+  console.info("Token:", token);
+}}
+
+### Token is valid and can be used to verify the account
+# @name finish_registration
+# @forceRef find_token
+POST /auth/register
+Content-Type: application/json
+
+{
+  "token": "{{token}}",
+  "password": "password123",
+  "name": "Test User"
+}
+
+?? js $(response).isOk() == true
+?? js $(response).hasFields("email", "status") == true
+?? js $(response).field("email") == test@example.com
+?? js $(response).field("status") == user_created

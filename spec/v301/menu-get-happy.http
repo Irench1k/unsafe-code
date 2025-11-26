@@ -1,0 +1,36 @@
+# @import ../common.http
+
+# GET /menu happy path
+
+### Menu is publicly accessible (no auth required)
+GET /menu
+
+?? js $(response).isOk() == true
+?? js $(response).count() > 0
+?? js $(response).hasFields("id", "name", "price", "available", "restaurant_id") == true
+
+### Menu can be filtered by restaurant_id
+GET /menu?restaurant_id=1
+
+?? js $(response).isOk() == true
+?? js $(response).every(item => item.restaurant_id === 1) == true
+
+### Menu can be filtered by restaurant_id (chum bucket)
+GET /menu?restaurant_id=2
+
+?? js $(response).isOk() == true
+?? js $(response).every(item => item.restaurant_id === 2) == true
+
+### Menu is accessible with auth headers (they're ignored)
+GET /menu
+Authorization: {{auth.basic("patrick")}}
+
+?? js $(response).isOk() == true
+?? js $(response).count() > 0
+
+### Menu is accessible with cookie auth
+GET /menu
+Cookie: {{auth.login("squidward")}}
+
+?? js $(response).isOk() == true
+?? js $(response).count() > 0

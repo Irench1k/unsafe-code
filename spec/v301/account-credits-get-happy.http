@@ -1,0 +1,29 @@
+# @import ../common.http
+
+# GET /account/credits happy path
+
+{{
+  await platform.seed({
+    plankton: 200,
+    squidward: 150,
+    spongebob: 100
+  });
+}}
+
+### Basic Auth works
+GET /account/credits
+Authorization: {{auth.basic("plankton")}}
+
+?? js $(response).isOk() == true
+?? js $(response).hasFields("balance", "email") == true
+?? js $(response).field("email") == plankton@chum-bucket.sea
+?? js $(response).field("balance") == 200.00
+
+### Cookie Auth works
+GET /account/credits
+Cookie: {{auth.login("squidward")}}
+
+?? js $(response).isOk() == true
+?? js $(response).hasFields("balance", "email") == true
+?? js $(response).field("email") == squidward@krusty-krab.sea
+?? js $(response).field("balance") == 150.00

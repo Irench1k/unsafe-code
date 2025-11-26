@@ -1,0 +1,58 @@
+# @import ../common.http
+
+# GET /orders happy path
+
+{{
+  await platform.seed({
+    plankton: 200,
+    squidward: 150,
+    spongebob: 100
+  });
+}}
+
+### SpongeBob's data
+# @name spongebob
+GET /account/info
+Authorization: {{auth.basic("spongebob")}}
+
+@spongebob_id = {{$(response).field("id")}}
+
+### Customer sees their own orders with Basic Auth
+# @ref spongebob
+GET /orders
+Authorization: {{auth.basic("spongebob")}}
+
+?? js $(response).isOk() == true
+?? js $(response).every(o => o.user_id == spongebob_id) == true
+
+### Customer sees their own orders with Cookie Auth
+# @ref spongebob
+GET /orders
+Cookie: {{auth.login("spongebob")}}
+
+?? js $(response).isOk() == true
+?? js $(response).every(o => o.user_id == spongebob_id) == true
+
+### Restaurant manager sees their restaurant's orders
+GET /orders
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+
+?? js $(response).isOk() == true
+?? js $(response).body().every(o => o.restaurant_id === 1) == true
+?? js $(response).hasMultipleUsers() == true
+
+### Different restaurant sees different orders
+GET /orders
+X-API-Key: {{auth.restaurant("chum_bucket")}}
+
+?? js $(response).isOk() == true
+?? js $(response).body().every(o => o.restaurant_id === 2) == true
+
+### Customer with cookie still sees only their orders even with restaurant header present
+# @ref spongebob
+GET /orders
+Cookie: {{auth.login("spongebob")}}
+X-API-Key: key-krusty-krub-wrongkey
+
+?? js $(response).isOk() == true
+?? js $(response).body().every(o => o.user_id === spongebob_id) == true

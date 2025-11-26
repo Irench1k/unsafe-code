@@ -1,0 +1,151 @@
+# @import ../common.http
+
+# PATCH /orders/{id}/status guardrails
+
+{{
+  await platform.seed({
+    plankton: 200,
+    squidward: 200
+  });
+}}
+
+### Create an order
+# @name order
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("plankton")}}
+
+@cart_id = {{$(response).field("cart_id")}}
+
+### Add item
+# @name add_item
+# @forceRef order
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "5" }
+
+### Checkout
+# @name checkout
+# @forceRef add_item
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0 }
+
+@order_id = {{$(response).field("order_id")}}
+
+### Restaurant can mark order as delivered
+# @name deliver_order
+# @forceRef checkout
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == delivered
+
+### Cannot change status of already delivered order
+# @forceRef deliver_order
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isError() == true
+
+### Restaurant can cancel order
+# @name cancel_order
+# @forceRef checkout
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == cancelled
+
+### Restaurant cannot cancel already cancelled order
+# @forceRef cancel_order
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isError() == true
+
+### Restaurant cannot mark delivered order thatis already cancelled
+# @forceRef cancel_order
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+?? js $(response).isError() == true
+
+### Customer cannot cancel the order that is already delivered
+# @forceRef deliver_order
+PATCH /orders/{{order_id}}/status
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isError() == true
+
+### Customer cannot mark the order as delivered that is already cancelled
+# @forceRef cancel_order
+PATCH /orders/{{order_id}}/status
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+?? js $(response).isError() == true
+
+### Customer cannot set status to delivered
+# @forceRef checkout
+PATCH /orders/{{order_id}}/status
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+?? js $(response).isError() == true
+
+### Customer cannot set status to refunded
+# @forceRef checkout
+PATCH /orders/{{order_id}}/status
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=refunded
+
+?? js $(response).isError() == true
+
+### Restaurant cannot set status to refunded
+# @forceRef checkout
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=refunded
+
+?? js $(response).isError() == true
+
+### Cannot update another user's order
+# @forceRef deliver_order
+PATCH /orders/{{order_id}}/status
+Authorization: {{auth.basic("squidward")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isError() == true

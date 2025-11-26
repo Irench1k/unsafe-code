@@ -6,6 +6,7 @@ from . import (
     cart,
     menu,
     orders,
+    platform,
     restaurants,
 )
 
@@ -15,5 +16,6 @@ __all__ = [
     "cart",
     "menu",
     "orders",
+    "platform",
     "restaurants",
 ]

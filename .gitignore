@@ -264,3 +264,9 @@ docker-compose.override.yml
 # Backup files
 *.bak
 *.bak.*
+
+# E2E Spec Suite - inherited files (generated via `uv run spec-sync generate`)
+spec/**/~*.http
+# Legacy format (for migration)
+spec/**/*.inherited.*.http
+!spec/**/.env

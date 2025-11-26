@@ -1,0 +1,120 @@
+# @import ../common.http
+
+# PATCH /orders/{id}/status happy path
+
+
+### Create an order
+{{
+  await platform.seed({
+    squidward: 200,
+    plankton: 200
+  });
+}}
+# @name create_order
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("squidward")}}
+
+@cart_id = {{$(response).field("cart_id")}}
+
+### Add item
+# @name add_item
+# @forceRef create_order
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("squidward")}}
+Content-Type: application/json
+
+{ "item_id": "4" }
+
+### Checkout
+# @name checkout
+# @forceRef add_item
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("squidward")}}
+Content-Type: application/json
+
+{ "delivery_address": "Squidward House", "tip": 1 }
+
+@order_id = {{$(response).field("order_id")}}
+@order_total = {{$(response).total()}}
+?? js $(response).status() == 201
+
+### Squidward's balance is updated
+# @forceRef checkout
+GET /account/info
+Authorization: {{auth.basic("squidward")}}
+
+?? js $(response).field("balance") == {{200 - order_total}}
+
+### Order status requires valid status value
+# @forceRef checkout
+PATCH /orders/{{order_id}}/status
+Authorization: {{auth.basic("squidward")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=invalid_status
+
+?? js $(response).isError() == true
+
+### Customer can cancel their own order
+# @name cancelled
+# @forceRef checkout
+PATCH /orders/{{order_id}}/status
+Authorization: {{auth.basic("squidward")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == cancelled
+
+### Squidward's balance is updated
+# @forceRef cancelled
+GET /account/info
+Authorization: {{auth.basic("squidward")}}
+
+?? js $(response).field("balance") == 200.00
+
+### The order is marked as cancelled
+# @forceRef cancelled
+GET /orders
+Authorization: {{auth.basic("squidward")}}
+
+?? js $(response).field("status") == cancelled
+
+### Restaurant can mark order as delivered
+# @name deliver_order
+# @forceRef checkout
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == delivered
+
+### The order is marked as delivered
+# @forceRef deliver_order
+GET /orders
+Authorization: {{auth.basic("squidward")}}
+
+?? js $(response).field("status") == delivered
+
+### Restaurant can mark order as cancelled
+# @name cancelled-restaurant
+# @forceRef checkout
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == cancelled
+
+### Customer receives cancellation refund
+# @forceRef cancelled-restaurant
+GET /account/info
+Authorization: {{auth.basic("squidward")}}
+
+?? js $(response).field("balance") == 200.00
