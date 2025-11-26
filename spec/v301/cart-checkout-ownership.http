@@ -21,6 +21,7 @@ Authorization: {{auth.basic("patrick")}}
 
 ### Patrick adds item to cart
 # @forceRef patricks_cart
+# @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/items
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
@@ -31,6 +32,7 @@ Content-Type: application/json
 
 ### Plankton cannot checkout Patrick's cart - Basic Auth + JSON
 # @forceRef patricks_cart
+# @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/checkout
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/json
@@ -41,6 +43,7 @@ Content-Type: application/json
 
 ### Plankton cannot checkout Patrick's cart - Basic Auth + Form
 # @forceRef patricks_cart
+# @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/checkout
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/x-www-form-urlencoded
@@ -51,6 +54,7 @@ tip=0&delivery_address=Chum Bucket
 
 ### Plankton cannot checkout Patrick's cart - Cookie Auth + JSON
 # @forceRef patricks_cart
+# @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/checkout
 Cookie: {{auth.login("plankton")}}
 Content-Type: application/json
@@ -61,6 +65,7 @@ Content-Type: application/json
 
 ### Plankton cannot checkout Patrick's cart - Cookie Auth + Form
 # @forceRef patricks_cart
+# @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/checkout
 Cookie: {{auth.login("plankton")}}
 Content-Type: application/x-www-form-urlencoded

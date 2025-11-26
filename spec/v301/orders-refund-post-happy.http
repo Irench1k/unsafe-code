@@ -39,6 +39,7 @@ Content-Type: application/json
 
 ### Patrick's balance after checkout
 # @forceRef deliver_order
+# @tag ci, r03, vulnerable
 GET /account/info
 Authorization: {{auth.basic("patrick")}}
 
@@ -57,6 +58,7 @@ status=delivered
 
 ### Customer can request refund for their order
 # @forceRef deliver_order
+# @tag ci, r03, vulnerable
 POST /orders/{{order_id}}/refund
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/x-www-form-urlencoded
@@ -73,6 +75,7 @@ amount={{checkout.total}}&reason=Changed my mind
 
 ### Small refund (<20%) is auto-approved
 # @forceRef deliver_order
+# @tag ci, r03, vulnerable
 POST /orders/{{order_id}}/refund
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/x-www-form-urlencoded

@@ -40,6 +40,7 @@ Content-Type: application/json
 
 ### Squidward's balance is updated
 # @forceRef checkout
+# @tag ci, r03, vulnerable
 GET /account/info
 Authorization: {{auth.basic("squidward")}}
 
@@ -47,6 +48,7 @@ Authorization: {{auth.basic("squidward")}}
 
 ### Order status requires valid status value
 # @forceRef checkout
+# @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/status
 Authorization: {{auth.basic("squidward")}}
 Content-Type: application/x-www-form-urlencoded
@@ -69,6 +71,7 @@ status=cancelled
 
 ### Squidward's balance is updated
 # @forceRef cancelled
+# @tag ci, r03, vulnerable
 GET /account/info
 Authorization: {{auth.basic("squidward")}}
 
@@ -76,6 +79,7 @@ Authorization: {{auth.basic("squidward")}}
 
 ### The order is marked as cancelled
 # @forceRef cancelled
+# @tag ci, r03, vulnerable
 GET /orders
 Authorization: {{auth.basic("squidward")}}
 
@@ -95,6 +99,7 @@ status=delivered
 
 ### The order is marked as delivered
 # @forceRef deliver_order
+# @tag ci, r03, vulnerable
 GET /orders
 Authorization: {{auth.basic("squidward")}}
 
@@ -114,6 +119,7 @@ status=cancelled
 
 ### Customer receives cancellation refund
 # @forceRef cancelled-restaurant
+# @tag ci, r03, vulnerable
 GET /account/info
 Authorization: {{auth.basic("squidward")}}
 

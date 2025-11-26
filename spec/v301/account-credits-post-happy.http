@@ -12,6 +12,7 @@
 
 
 ### Adding credits works
+# @tag ci, r03, vulnerable
 POST /account/credits
 X-Admin-API-Key: {{auth.admin()}}
 Content-Type: application/x-www-form-urlencoded

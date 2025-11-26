@@ -11,6 +11,10 @@ httpyac v301 -a
 # Stop at the first failure
 httpyac v301 -a --bail
 
+# Only run leaf requests (auto-tagged with ci + version tags)
+uv run spec-sync generate v301
+httpyac v301 --tag ci
+
 # Run specific spec
 httpyac v301/spec.21.new.vuln-dual-auth-refund.http -a --bail
 

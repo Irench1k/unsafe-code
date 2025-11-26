@@ -28,7 +28,7 @@ Cookie: {{session}}
 
 ### Basic Auth lets create a new cart
 # @forceRef second_cart
-# @tag e2e
+# @tag ci, e2e, r03, vulnerable
 POST /cart?restaurant_id=1
 Authorization: {{auth.basic("plankton")}}
 
@@ -38,7 +38,7 @@ Authorization: {{auth.basic("plankton")}}
 
 ### Different user can create their own cart
 # @forceRef second_cart
-# @tag e2e
+# @tag ci, e2e, r03, vulnerable
 POST /cart?restaurant_id=1
 Cookie: {{auth.login("squidward")}}
 

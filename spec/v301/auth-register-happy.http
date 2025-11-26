@@ -46,8 +46,8 @@ GET {{mailpit}}/message/{{email_id}}
 }}
 
 ### Token is valid and can be used to verify the account
-# @name finish_registration
 # @forceRef find_token
+# @tag ci, r03, vulnerable
 POST /auth/register
 Content-Type: application/json
 

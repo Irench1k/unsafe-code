@@ -3,12 +3,14 @@
 # POST /cart happy path
 
 ### Create cart requires auth
+# @tag ci, r03, vulnerable
 POST /cart?restaurant_id=1
 
 ?? js $(response).isError() == true
 ?? js $(response).field("error") == Authentication required
 
 ### Create cart via Basic Auth requires valid credentials
+# @tag ci, r03, vulnerable
 POST /cart?restaurant_id=1
 Authorization: Basic plankton@chum-bucket.sea:wrongpassword
 
@@ -16,18 +18,21 @@ Authorization: Basic plankton@chum-bucket.sea:wrongpassword
 ?? js $(response).field("error") == Authentication required
 
 ### Create cart without restaurant_id fails
+# @tag ci, r03, vulnerable
 POST /cart
 Authorization: {{auth.basic("spongebob")}}
 
 ?? js $(response).isError() == true
 
 ### Create cart without restaurant_id fails - Cookie Auth
+# @tag ci, r03, vulnerable
 POST /cart
 Cookie: {{auth.login("spongebob")}}
 
 ?? js $(response).isError() == true
 
 ### Create cart requires valid restaurant_id
+# @tag ci, r03, vulnerable
 POST /cart?restaurant_id=999
 Authorization: {{auth.basic("spongebob")}}
 

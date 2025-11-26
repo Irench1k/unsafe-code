@@ -30,6 +30,7 @@ Content-Type: application/json
 
 ### Checkout works with Basic Auth
 # @forceRef add_item
+# @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
@@ -41,6 +42,7 @@ Content-Type: application/json
 
 ### Checkout with form data also works
 # @forceRef add_item
+# @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/x-www-form-urlencoded
@@ -52,6 +54,7 @@ tip=2&delivery_address=Under the Rock
 
 ### Checkout with Cookie Auth also works
 # @forceRef add_item
+# @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
 Cookie: {{auth.login("patrick")}}
 Content-Type: application/json
@@ -74,6 +77,7 @@ Content-Type: application/json
 
 ### Checkout with multiple items
 # @forceRef add_multiple_items
+# @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
@@ -86,6 +90,7 @@ Content-Type: application/json
 
 ### Checkout with form data and multiple items
 # @forceRef add_multiple_items
+# @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/x-www-form-urlencoded
@@ -98,6 +103,7 @@ tip=2&delivery_address=Under the Rock
 
 ### Checkout with Cookie Auth and multiple items
 # @forceRef add_multiple_items
+# @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
 Cookie: {{auth.login("patrick")}}
 Content-Type: application/json
@@ -110,6 +116,7 @@ Content-Type: application/json
 
 ### Checkout with multiple items, cookie auth and form data
 # @forceRef add_multiple_items
+# @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
 Cookie: {{auth.login("patrick")}}
 Content-Type: application/x-www-form-urlencoded
@@ -122,6 +129,7 @@ tip=2&delivery_address=Under the Rock
 
 ### Tip is optional
 # @forceRef add_item
+# @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json

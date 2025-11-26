@@ -12,6 +12,7 @@
 
 
 ### No authentication doesn't work (form)
+# @tag ci, r03, vulnerable
 POST /account/credits
 Content-Type: application/x-www-form-urlencoded
 
@@ -21,6 +22,7 @@ user={{user("spongebob").email}}&amount=23.45
 
 
 ### No authentication doesn't work (JSON)
+# @tag ci, r03, vulnerable
 POST /account/credits
 Content-Type: application/json
 
@@ -32,6 +34,7 @@ Content-Type: application/json
 ?? js $(response).isError() == true
 
 ### Basic Auth + incorrect key doesn't work (form)
+# @tag ci, r03, vulnerable
 POST /account/credits
 Authorization: Basic {{auth.basic("plankton")}}
 X-Admin-API-Key: fake-invalid-key-12345
@@ -42,6 +45,7 @@ user={{user("spongebob").email}}&amount=23.45
 ?? js $(response).isError() == true
 
 ### Basic Auth + incorrect key doesn't work (JSON)
+# @tag ci, r03, vulnerable
 POST /account/credits
 Authorization: Basic {{auth.basic("plankton")}}
 X-Admin-API-Key: fake-invalid-key-12345
@@ -55,6 +59,7 @@ Content-Type: application/json
 ?? js $(response).isError() == true
 
 ### Cookie Auth + incorrect key doesn't work (form)
+# @tag ci, r03, vulnerable
 POST /account/credits
 Cookie: {{auth.login("plankton")}}
 X-Admin-API-Key: fake-invalid-key-12345
@@ -65,6 +70,7 @@ user={{user("spongebob").email}}&amount=23.45
 ?? js $(response).isError() == true
 
 ### Cookie Auth + incorrect key doesn't work (JSON)
+# @tag ci, r03, vulnerable
 POST /account/credits
 Cookie: {{auth.login("plankton")}}
 X-Admin-API-Key: fake-invalid-key-12345
@@ -78,6 +84,7 @@ Content-Type: application/json
 ?? js $(response).isError() == true
 
 ### Restaurant key instead of admin key doesn't work (form)
+# @tag ci, r03, vulnerable
 POST /account/credits
 X-Admin-API-Key: {{auth.restaurant("krusty_krab")}}
 Content-Type: application/x-www-form-urlencoded
@@ -87,6 +94,7 @@ user={{user("spongebob").email}}&amount=23.45
 ?? js $(response).isError() == true
 
 ### Restaurant key instead of admin key doesn't work (JSON)
+# @tag ci, r03, vulnerable
 POST /account/credits
 X-Admin-API-Key: {{auth.restaurant("krusty_krab")}}
 Content-Type: application/json
@@ -99,6 +107,7 @@ Content-Type: application/json
 ?? js $(response).isError() == true
 
 ### Restaurant key + incorrect platform key doesn't work (form)
+# @tag ci, r03, vulnerable
 POST /account/credits
 X-API-Key: {{auth.restaurant("krusty_krab")}}
 X-Admin-API-Key: fake-invalid-key-12345
@@ -109,6 +118,7 @@ user={{user("spongebob").email}}&amount=23.45
 ?? js $(response).isError() == true
 
 ### Restaurant key + incorrect platform key doesn't work (JSON)
+# @tag ci, r03, vulnerable
 POST /account/credits
 X-API-Key: {{auth.restaurant("krusty_krab")}}
 X-Admin-API-Key: fake-invalid-key-12345

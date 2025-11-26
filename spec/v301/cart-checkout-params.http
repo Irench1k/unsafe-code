@@ -22,6 +22,7 @@ Authorization: {{auth.basic("patrick")}}
 
 ### Patrick adds item
 # @forceRef patricks_cart
+# @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/items
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
@@ -57,6 +58,7 @@ Content-Type: application/json
 
 ### Injection via query param - Basic Auth
 # @forceRef planktons_cart_with_item
+# @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/checkout?cart_id={{planktons_cart_id}}
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/json
@@ -67,6 +69,7 @@ Content-Type: application/json
 
 ### Injection via body param - Basic Auth
 # @forceRef planktons_cart_with_item
+# @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/checkout
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/json
@@ -77,6 +80,7 @@ Content-Type: application/json
 
 ### Injection via query + body - Basic Auth
 # @forceRef planktons_cart_with_item
+# @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/checkout?cart_id={{planktons_cart_id}}
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/json
@@ -87,6 +91,7 @@ Content-Type: application/json
 
 ### Injection via query + body - Cookie Auth
 # @forceRef planktons_cart_with_item
+# @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/checkout?cart_id={{planktons_cart_id}}
 Cookie: {{auth.login("plankton")}}
 Content-Type: application/json
@@ -101,6 +106,7 @@ Content-Type: application/json
 
 ### Restaurant ID cannot be changed via query - JSON
 # @forceRef planktons_cart_with_item
+# @tag ci, r03, vulnerable
 POST /cart/{{planktons_cart_id}}/checkout?restaurant_id=2
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/json
@@ -112,6 +118,7 @@ Content-Type: application/json
 
 ### Restaurant ID cannot be changed via body - JSON
 # @forceRef planktons_cart_with_item
+# @tag ci, r03, vulnerable
 POST /cart/{{planktons_cart_id}}/checkout
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/json
@@ -123,6 +130,7 @@ Content-Type: application/json
 
 ### Restaurant ID cannot be changed via query + body - JSON
 # @forceRef planktons_cart_with_item
+# @tag ci, r03, vulnerable
 POST /cart/{{planktons_cart_id}}/checkout?restaurant_id=2
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/json
@@ -134,6 +142,7 @@ Content-Type: application/json
 
 ### Restaurant ID cannot be changed - Form Data
 # @forceRef planktons_cart_with_item
+# @tag ci, r03, vulnerable
 POST /cart/{{planktons_cart_id}}/checkout?restaurant_id=2
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/x-www-form-urlencoded

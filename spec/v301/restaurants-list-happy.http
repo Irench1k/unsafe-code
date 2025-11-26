@@ -7,22 +7,26 @@
 }}
 
 ### Restaurants list is publicly accessible
+# @tag ci, r03, vulnerable
 GET /restaurants
 
 ?? js $(response).isOk() == true
 ?? js $(response).count() >= 2
 
 ### Restaurant items have expected fields
+# @tag ci, r03, vulnerable
 GET /restaurants
 
 ?? js $(response).body().every(r => r.id && r.name && r.description !== undefined) == true
 
 ### Krusty Krab is in the list
+# @tag ci, r03, vulnerable
 GET /restaurants
 
 ?? js $(response).body().some(r => r.name === "Krusty Krab") == true
 
 ### Chum Bucket is in the list
+# @tag ci, r03, vulnerable
 GET /restaurants
 
 ?? js $(response).body().some(r => r.name === "Chum Bucket") == true

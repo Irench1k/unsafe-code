@@ -19,6 +19,7 @@ Authorization: {{auth.basic("spongebob")}}
 
 ### Customer sees their own orders with Basic Auth
 # @ref spongebob
+# @tag ci, r03, vulnerable
 GET /orders
 Authorization: {{auth.basic("spongebob")}}
 
@@ -27,6 +28,7 @@ Authorization: {{auth.basic("spongebob")}}
 
 ### Customer sees their own orders with Cookie Auth
 # @ref spongebob
+# @tag ci, r03, vulnerable
 GET /orders
 Cookie: {{auth.login("spongebob")}}
 
@@ -34,6 +36,7 @@ Cookie: {{auth.login("spongebob")}}
 ?? js $(response).every(o => o.user_id == spongebob_id) == true
 
 ### Restaurant manager sees their restaurant's orders
+# @tag ci, r03, vulnerable
 GET /orders
 X-API-Key: {{auth.restaurant("krusty_krab")}}
 
@@ -42,6 +45,7 @@ X-API-Key: {{auth.restaurant("krusty_krab")}}
 ?? js $(response).hasMultipleUsers() == true
 
 ### Different restaurant sees different orders
+# @tag ci, r03, vulnerable
 GET /orders
 X-API-Key: {{auth.restaurant("chum_bucket")}}
 
@@ -50,6 +54,7 @@ X-API-Key: {{auth.restaurant("chum_bucket")}}
 
 ### Customer with cookie still sees only their orders even with restaurant header present
 # @ref spongebob
+# @tag ci, r03, vulnerable
 GET /orders
 Cookie: {{auth.login("spongebob")}}
 X-API-Key: key-krusty-krub-wrongkey

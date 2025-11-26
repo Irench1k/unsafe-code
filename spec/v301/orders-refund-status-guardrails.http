@@ -63,6 +63,7 @@ amount={{order_total}}&reason=Too salty
 ### Customer's balance
 # @name balance
 # @forceRef refund
+# @tag ci, r03, vulnerable
 GET /account/info
 Authorization: {{auth.basic("squidward")}}
 
@@ -71,6 +72,7 @@ Authorization: {{auth.basic("squidward")}}
 
 ### Customer cannot update refund status
 # @forceRef refund
+# @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/refund/status
 Authorization: {{auth.basic("squidward")}}
 Content-Type: application/x-www-form-urlencoded
@@ -81,6 +83,7 @@ status=approved
 
 ### Restaurant manager of another restaurant cannot approve refund
 # @forceRef refund
+# @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/refund/status
 X-API-Key: {{auth.restaurant("chum_bucket")}}
 Content-Type: application/x-www-form-urlencoded
@@ -103,6 +106,7 @@ status=approved
 
 ### Customer's balance is updated
 # @forceRef approved
+# @tag ci, r03, vulnerable
 GET /account/info
 Authorization: {{auth.basic("squidward")}}
 
@@ -110,6 +114,7 @@ Authorization: {{auth.basic("squidward")}}
 
 ### Refund cannot be approved twice
 # @forceRef approved
+# @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/refund/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}
 Content-Type: application/x-www-form-urlencoded
@@ -120,6 +125,7 @@ status=approved
 
 ### Refund cannot be turned to rejected after being approved
 # @forceRef approved
+# @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/refund/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}
 Content-Type: application/x-www-form-urlencoded
@@ -130,6 +136,7 @@ status=rejected
 
 ### Refund cannot be turned to pending after being approved
 # @forceRef approved
+# @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/refund/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}
 Content-Type: application/x-www-form-urlencoded
@@ -152,6 +159,7 @@ status=rejected
 
 ### Customer's balance is not updated
 # @forceRef rejected
+# @tag ci, r03, vulnerable
 GET /account/info
 Authorization: {{auth.basic("squidward")}}
 
@@ -159,6 +167,7 @@ Authorization: {{auth.basic("squidward")}}
 
 ### Refund cannot be set to pending after being rejected
 # @forceRef rejected
+# @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/refund/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}
 Content-Type: application/x-www-form-urlencoded
@@ -169,6 +178,7 @@ status=pending
 
 ### Refund cannot be set to approved after being rejected
 # @forceRef rejected
+# @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/refund/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}
 Content-Type: application/x-www-form-urlencoded

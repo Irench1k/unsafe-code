@@ -6,6 +6,7 @@
 {{
     await platform.reset();
 }}
+# @tag ci, r03, vulnerable
 POST /auth/login
 Content-Type: application/json
 

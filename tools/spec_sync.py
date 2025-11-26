@@ -23,6 +23,7 @@ Commands:
 """
 
 import argparse
+import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -52,8 +53,128 @@ class SyncResult:
 
     generated: list[str] = field(default_factory=list)
     removed: list[str] = field(default_factory=list)
+    retagged: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+
+
+@dataclass
+class HttpRegionMeta:
+    """Minimal HTTP region info for tagging"""
+
+    start: int
+    end: int
+    name: str | None = None
+    refs: list[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
+    tag_lines: list[int] = field(default_factory=list)
+    has_request: bool = False
+
+
+META_RE = re.compile(r"^\s*(#|//)\s*@(?P<key>[^\s]+)\s*(?P<val>.*)$")
+REQUEST_LINE_RE = re.compile(r"^\s*(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE)\s+\S+", re.IGNORECASE)
+
+
+def split_regions(lines: list[str]) -> list[tuple[int, int]]:
+    """Split file into httpyac regions (keep delimiter with next region)."""
+    regions: list[tuple[int, int]] = []
+    start = 0
+    for idx, line in enumerate(lines):
+        if idx > start and line.lstrip().startswith("###"):
+            regions.append((start, idx))
+            start = idx
+    regions.append((start, len(lines)))
+    return regions
+
+
+def parse_http_regions(lines: list[str]) -> list[HttpRegionMeta]:
+    """Parse regions to capture names, refs, and tag lines."""
+    regions: list[HttpRegionMeta] = []
+    for start, end in split_regions(lines):
+        region = HttpRegionMeta(start=start, end=end)
+        for offset, line in enumerate(lines[start:end]):
+            abs_idx = start + offset
+            if REQUEST_LINE_RE.match(line):
+                region.has_request = True
+            meta = META_RE.match(line)
+            if not meta:
+                continue
+            key = meta.group("key")
+            val = meta.group("val").strip()
+            if key == "name" and val:
+                region.name = val
+            elif key in ("ref", "forceRef") and val:
+                for ref in [v.strip() for v in val.split(",") if v.strip()]:
+                    region.refs.append(ref)
+            elif key == "tag" and val:
+                region.tags.extend([v.strip() for v in val.split(",") if v.strip()])
+                region.tag_lines.append(abs_idx)
+        regions.append(region)
+    return regions
+
+
+def retag_file_with_leaf_tags(path: Path, auto_tags: set[str]) -> bool:
+    """Apply auto tags to leaf regions and remove them from non-leaf regions."""
+    original = path.read_text()
+    lines = original.splitlines()
+    trailing_newline = "\n" if original.endswith("\n") else ""
+
+    regions = parse_http_regions(lines)
+    incoming: dict[str, int] = {r.name: 0 for r in regions if r.name}
+    for region in regions:
+        for ref in region.refs:
+            if ref in incoming:
+                incoming[ref] += 1
+
+    new_lines: list[str] = []
+    for region in regions:
+        segment = lines[region.start : region.end]
+        existing_tags = set(region.tags)
+        manual_tags = {t for t in existing_tags if t not in auto_tags}
+        is_leaf = region.has_request and not (region.name and incoming.get(region.name, 0) > 0)
+
+        desired_tags = set(manual_tags)
+        if is_leaf:
+            desired_tags |= auto_tags
+
+        remove_offsets = {line_idx - region.start for line_idx in region.tag_lines}
+        segment_without_tags = [line for idx, line in enumerate(segment) if idx not in remove_offsets]
+
+        if desired_tags:
+            tag_line = f"# @tag {', '.join(sorted(desired_tags))}"
+            request_idx = next((i for i, line in enumerate(segment_without_tags) if REQUEST_LINE_RE.match(line)), None)
+            meta_idxs = [i for i, line in enumerate(segment_without_tags) if META_RE.match(line)]
+            if meta_idxs:
+                insert_at = meta_idxs[-1] + 1
+            elif request_idx is not None:
+                insert_at = request_idx
+            else:
+                insert_at = len(segment_without_tags)
+            segment_without_tags.insert(insert_at, tag_line)
+
+        new_lines.extend(segment_without_tags)
+
+    updated = "\n".join(new_lines) + trailing_newline
+    if updated != original:
+        path.write_text(updated)
+        return True
+    return False
+
+
+def retag_leaf_nodes(version: VersionSpec, spec_dir: Path, default_tags: set[str]) -> list[str]:
+    """Ensure leaf requests carry default/version tags while non-leaves drop them."""
+    version_dir = spec_dir / version.name
+    if not version_dir.exists():
+        return []
+
+    auto_tags = set(default_tags) | set(version.tags)
+    retagged: list[str] = []
+
+    for path in sorted(version_dir.glob("*.http")):
+        if path.is_file() and retag_file_with_leaf_tags(path, auto_tags):
+            retagged.append(str(path.relative_to(spec_dir)))
+
+    return retagged
 
 
 class SpecSyncError(Exception):
@@ -455,16 +576,19 @@ def cmd_generate(spec_dir: Path, versions: list[str] | None, dry_run: bool) -> i
 
     total_generated = 0
     total_removed = 0
+    total_retagged = 0
 
     for version_name in target_versions:
         try:
             version = resolve_version(version_name, config, spec_dir, resolved_cache)
             result = generate_version(version, spec_dir, dry_run=dry_run)
+            if not dry_run:
+                result.retagged.extend(retag_leaf_nodes(version, spec_dir, {"ci"}))
 
             # Print results
             prefix = "[DRY RUN] " if dry_run else ""
 
-            if result.generated or result.removed:
+            if result.generated or result.removed or result.retagged:
                 print(f"{version_name}:")
                 for f in result.generated:
                     print(f"  {prefix}+ {f}")
@@ -472,6 +596,9 @@ def cmd_generate(spec_dir: Path, versions: list[str] | None, dry_run: bool) -> i
                 for f in result.removed:
                     print(f"  {prefix}- {f}")
                     total_removed += 1
+                for f in result.retagged:
+                    print(f"  {prefix}~ {f}")
+                    total_retagged += 1
             else:
                 inherited_count = len(version.specs) - len(version.new_specs)
                 print(f"{version_name}: ✓ ({len(version.new_specs)} new, {inherited_count} inherited)")
@@ -484,7 +611,10 @@ def cmd_generate(spec_dir: Path, versions: list[str] | None, dry_run: bool) -> i
             return 1
 
     print()
-    print(f"{'[DRY RUN] ' if dry_run else ''}Summary: {total_generated} generated, {total_removed} removed")
+    print(
+        f"{'[DRY RUN] ' if dry_run else ''}Summary: {total_generated} generated, "
+        f"{total_removed} removed, {total_retagged} retagged"
+    )
 
     return 0
 

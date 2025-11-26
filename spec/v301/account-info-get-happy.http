@@ -11,6 +11,7 @@
 }}
 
 ### Basic Auth works
+# @tag ci, r03, vulnerable
 GET /account/info
 Authorization: {{auth.basic("plankton")}}
 
@@ -20,6 +21,7 @@ Authorization: {{auth.basic("plankton")}}
 ?? js $(response).field("balance") == 200.00
 
 ### Cookie Auth works
+# @tag ci, r03, vulnerable
 GET /account/info
 Cookie: {{auth.login("squidward")}}
 

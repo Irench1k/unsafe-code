@@ -3,6 +3,7 @@
 # POST /cart happy path
 
 ### Create cart with Basic Auth works
+# @tag ci, r03, vulnerable
 POST /cart?restaurant_id=1
 Authorization: {{auth.basic("patrick")}}
 
@@ -11,6 +12,7 @@ Authorization: {{auth.basic("patrick")}}
 ?? js $(response).field("restaurant_id") == 1
 
 ### Create cart with Cookie Auth works
+# @tag ci, r03, vulnerable
 POST /cart?restaurant_id=1
 Cookie: {{auth.login("squidward")}}
 
@@ -19,6 +21,7 @@ Cookie: {{auth.login("squidward")}}
 ?? js $(response).field("restaurant_id") == 1
 
 ### Create cart for another restaurant
+# @tag ci, r03, vulnerable
 POST /cart?restaurant_id=2
 Authorization: {{auth.basic("plankton")}}
 

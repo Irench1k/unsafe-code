@@ -11,6 +11,7 @@
 }}
 
 ### Basic Auth requires correct credentials (short)
+# @tag ci, r03, vulnerable
 GET /account/credits
 Authorization: Basic plankton:wrongpassword
 
@@ -18,6 +19,7 @@ Authorization: Basic plankton:wrongpassword
 ?? js $(response).field("error") == Authentication required
 
 ### Basic Auth doesn't allow empty password (short)
+# @tag ci, r03, vulnerable
 GET /account/credits
 Authorization: Basic plankton:
 
@@ -25,6 +27,7 @@ Authorization: Basic plankton:
 ?? js $(response).field("error") == Authentication required
 
 ### Basic Auth requires correct credentials (email)
+# @tag ci, r03, vulnerable
 GET /account/credits
 Authorization: Basic plankton@chum-bucket.sea:wrongpassword
 
@@ -32,6 +35,7 @@ Authorization: Basic plankton@chum-bucket.sea:wrongpassword
 ?? js $(response).field("error") == Authentication required
 
 ### Basic Auth requires correct credentials (email)
+# @tag ci, r03, vulnerable
 GET /account/credits
 Authorization: Basic plankton@chum-bucket.sea:
 
@@ -39,6 +43,7 @@ Authorization: Basic plankton@chum-bucket.sea:
 ?? js $(response).field("error") == Authentication required
 
 ### Cookie Auth takes precedence over Basic Auth
+# @tag ci, r03, vulnerable
 GET /account/credits
 Cookie: {{auth.login("plankton")}}
 Authorization: Basic squidward:wrongpassword

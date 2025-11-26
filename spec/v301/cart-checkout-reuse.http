@@ -4,15 +4,13 @@
 # Verifies that reusing a cart after checkout creates NEW orders
 # and does NOT modify or overwrite the original order
 
-### Seed user with credits
+### Create cart
+# @name cart
 {{
   await platform.seed({
     plankton: 500
   });
 }}
-
-### Create cart
-# @name cart
 POST /cart?restaurant_id=1
 Authorization: {{auth.basic("plankton")}}
 
@@ -31,6 +29,7 @@ Content-Type: application/json
 ?? js $(response).isOk() == true
 
 ### First checkout - creates order #1
+# @name first_order
 # @forceRef cart_with_item
 POST /cart/{{cart_id}}/checkout
 Authorization: {{auth.basic("plankton")}}
@@ -45,7 +44,7 @@ Content-Type: application/json
 
 ### Immediate reuse - should create NEW order, not overwrite
 # @name second_order
-# @forceRef cart_with_item
+# @forceRef first_order
 POST /cart/{{cart_id}}/checkout
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/json
@@ -85,6 +84,7 @@ Content-Type: application/json
 
 ### Verify first order remains completely unchanged
 # @forceRef third_order
+# @tag ci, r03, vulnerable
 GET /orders
 Authorization: {{auth.basic("plankton")}}
 
@@ -100,6 +100,7 @@ Authorization: {{auth.basic("plankton")}}
 
     // Third order should be different
     const thirdOrder = $(response).find(o => o.order_id == third_order_id);
+    test("third order exists", () => thirdOrder != null);
     test("third order has more items", () => thirdOrder.items.length > first_order_items_count);
     test("third order has different total", () => thirdOrder.total != first_order_total);
     test("third order has different tip", () => thirdOrder.tip == 5.00);

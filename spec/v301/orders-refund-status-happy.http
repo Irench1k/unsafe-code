@@ -62,6 +62,7 @@ amount={{order_total}}&reason=Too salty
 
 ### Customer cannot update refund status
 # @forceRef refund
+# @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/refund/status
 Authorization: {{auth.basic("squidward")}}
 Content-Type: application/x-www-form-urlencoded
@@ -84,6 +85,7 @@ status=approved
 
 ### Get refund status shows approved
 # @forceRef approved
+# @tag ci, r03, vulnerable
 GET /orders/{{order_id}}/refund/status
 Authorization: {{auth.basic("squidward")}}
 

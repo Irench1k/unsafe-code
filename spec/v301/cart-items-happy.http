@@ -3,6 +3,7 @@
 # POST /cart/{id}/items happy path
 
 ### Get first available & unavailable menu items
+# @tag ci, r03, vulnerable
 GET /menu?restaurant_id=1
 
 @item_id = {{$(response).body().find(i => i.available).id}}
@@ -46,6 +47,7 @@ Content-Type: application/json
 
 ### Add another item to cart
 # @forceRef cart_with_one_item
+# @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/items
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/json
@@ -57,6 +59,7 @@ Content-Type: application/json
 
 ### Add another item to cart works with Cookie Auth
 # @forceRef cart_with_one_item_cookie
+# @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/items
 Cookie: {{session}}
 Content-Type: application/json

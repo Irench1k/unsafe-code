@@ -20,7 +20,8 @@ Content-Type: application/json
 ?? js $(response).isOk() == true
 
 ### Session works before logout
-# @forceRef login
+# @ref login
+# @tag ci, r03, vulnerable
 GET /account/info
 Cookie: {{sessionCookie}}
 
@@ -28,7 +29,8 @@ Cookie: {{sessionCookie}}
 ?? js $(response).field("email") == {{user("spongebob").email}}
 
 ### Logout works
-# @forceRef login
+# @ref login
+# @tag ci, r03, vulnerable
 POST /auth/logout
 Cookie: {{sessionCookie}}
 

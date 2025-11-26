@@ -3,6 +3,7 @@
 
 
 ### Registration fails with urlencoded body
+# @tag ci, r03, vulnerable
 POST /auth/register
 Content-Type: application/x-www-form-urlencoded
 
@@ -73,6 +74,7 @@ Content-Type: application/json
 
 ### Attacker can't apply token to different email (query)
 # @forceRef find_token
+# @tag ci, r03, vulnerable
 POST /auth/register?email={{testEmail()}}
 Content-Type: application/json
 
@@ -87,6 +89,7 @@ Content-Type: application/json
 
 ### Attacker can't apply token to different email (form)
 # @forceRef find_token
+# @tag ci, r03, vulnerable
 POST /auth/register
 Content-Type: application/x-www-form-urlencoded
 
@@ -112,6 +115,7 @@ Content-Type: application/json
 
 ### User can't register with the same email again (json bypass)
 # @ref finish_registration
+# @tag ci, r03, vulnerable
 POST /auth/register
 Content-Type: application/json
 
@@ -126,6 +130,7 @@ Content-Type: application/json
 
 ### User can't register with the same email again (form)
 # @ref finish_registration
+# @tag ci, r03, vulnerable
 POST /auth/register
 Content-Type: application/x-www-form-urlencoded
 
@@ -136,6 +141,7 @@ email={{testEmail()}}&token={{token}}&password=hijacked&name=Test%20User
 
 ### User can't register with same email again (query)
 # @ref finish_registration
+# @tag ci, r03, vulnerable
 POST /auth/register?email={{testEmail()}}
 Content-Type: application/json
 
@@ -150,6 +156,7 @@ Content-Type: application/json
 
 ### The previous request does not cause password to be overriden
 # @ref hijack_registration
+# @tag ci, r03, vulnerable
 GET /account/info
 Authorization: Basic test@example.com:password123
 
@@ -158,6 +165,7 @@ Authorization: Basic test@example.com:password123
 
 ### User can login with the correct password
 # @ref hijack_registration
+# @tag ci, r03, vulnerable
 POST /auth/login
 Content-Type: application/json
 
@@ -170,6 +178,7 @@ Content-Type: application/json
 
 ### Attacker can't access account info with the hijacked password
 # @ref hijack_registration
+# @tag ci, r03, vulnerable
 GET /account/info
 Authorization: Basic test@example.com:hijacked
 
@@ -177,6 +186,7 @@ Authorization: Basic test@example.com:hijacked
 
 ### User can't login with the hijacked password
 # @ref hijack_registration
+# @tag ci, r03, vulnerable
 POST /auth/login
 Content-Type: application/json
 

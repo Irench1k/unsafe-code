@@ -39,6 +39,7 @@ Content-Type: application/json
 
 ### Refund requires auth
 # @forceRef checkout
+# @tag ci, r03, vulnerable
 POST /orders/{{order_id}}/refund
 Content-Type: application/x-www-form-urlencoded
 
@@ -49,6 +50,7 @@ amount=1.00
 ### Refund requires delivery
 
 # @forceRef checkout
+# @tag ci, r03, vulnerable
 POST /orders/{{order_id}}/refund
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/x-www-form-urlencoded
@@ -84,6 +86,7 @@ amount=1.00
 
 ### Cannot request refund for already refunded order
 # @forceRef refunded
+# @tag ci, r03, vulnerable
 POST /orders/{{order_id}}/refund
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/x-www-form-urlencoded
@@ -94,6 +97,7 @@ amount=0.50
 
 ### Cannot request refund for another user's order
 # @forceRef checkout
+# @tag ci, r03, vulnerable
 POST /orders/{{order_id}}/refund
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/x-www-form-urlencoded
