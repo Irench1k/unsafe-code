@@ -41,7 +41,7 @@ Content-Type: application/json
 ?? js $(response).hasFields("order_id", "total", "items") == true
 
 ### Checkout with form data also works
-# @forceRef add_item
+# @ref add_item
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
 Authorization: {{auth.basic("patrick")}}
@@ -53,7 +53,7 @@ tip=2&delivery_address=Under the Rock
 ?? js $(response).hasFields("order_id", "total", "items") == true
 
 ### Checkout with Cookie Auth also works
-# @forceRef add_item
+# @ref add_item
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
 Cookie: {{auth.login("patrick")}}
@@ -89,7 +89,7 @@ Content-Type: application/json
 ?? js $(response).field("items").length == 2
 
 ### Checkout with form data and multiple items
-# @forceRef add_multiple_items
+# @ref add_multiple_items
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
 Authorization: {{auth.basic("patrick")}}
@@ -102,7 +102,7 @@ tip=2&delivery_address=Under the Rock
 ?? js $(response).field("items").length == 2
 
 ### Checkout with Cookie Auth and multiple items
-# @forceRef add_multiple_items
+# @ref add_multiple_items
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
 Cookie: {{auth.login("patrick")}}
@@ -115,7 +115,7 @@ Content-Type: application/json
 ?? js $(response).field("items").length == 2
 
 ### Checkout with multiple items, cookie auth and form data
-# @forceRef add_multiple_items
+# @ref add_multiple_items
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
 Cookie: {{auth.login("patrick")}}
@@ -128,7 +128,7 @@ tip=2&delivery_address=Under the Rock
 ?? js $(response).field("items").length == 2
 
 ### Tip is optional
-# @forceRef add_item
+# @ref add_item
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
 Authorization: {{auth.basic("patrick")}}

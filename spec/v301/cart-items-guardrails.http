@@ -28,6 +28,7 @@ Content-Type: application/json
 ?? js $(response).isError() == true
 
 ### Add item to cart via Basic Auth requires valid credentials
+# @ref create_cart
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/items
 Authorization: Basic {{user("patrick").email}}:wrongpassword
@@ -38,7 +39,7 @@ Content-Type: application/json
 ?? js $(response).isError() == true
 
 ### Add item with invalid item_id fails
-# @forceRef create_cart
+# @ref create_cart
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/items
 Authorization: {{auth.basic("patrick")}}
@@ -49,7 +50,7 @@ Content-Type: application/json
 ?? js $(response).isError() == true
 
 ### Add item with unavailable item_id fails
-# @forceRef create_cart
+# @ref create_cart
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/items
 Authorization: {{auth.basic("patrick")}}
@@ -60,7 +61,7 @@ Content-Type: application/json
 ?? js $(response).isError() == true
 
 ### A user cannot add items to another user's cart - Basic Auth
-# @forceRef create_cart
+# @ref create_cart
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/items
 Authorization: {{auth.basic("plankton")}}
@@ -71,7 +72,7 @@ Content-Type: application/json
 ?? js $(response).isError() == true
 
 ### A user cannot add items to another user's cart - Cookie Auth
-# @forceRef create_cart
+# @ref create_cart
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/items
 Cookie: {{auth.login("plankton")}}
@@ -91,7 +92,7 @@ Authorization: {{auth.basic("plankton")}}
 ?? js $(response).hasFields("cart_id") == true
 
 ### A user cannot add items to another user's cart - Basic Auth - Param Pollution
-# @forceRef create_cart
+# @ref create_cart
 # @forceRef plankton_cart
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/items?cart_id={{plankton_cart_id}}
@@ -103,8 +104,8 @@ Content-Type: application/json
 ?? js $(response).isError() == true
 
 ### A user cannot add items to another user's cart - Cookie Auth - Param Pollution
-# @forceRef create_cart
-# @forceRef plankton_cart
+# @ref create_cart
+# @ref plankton_cart
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/items?cart_id={{plankton_cart_id}}
 Cookie: {{auth.login("plankton")}}

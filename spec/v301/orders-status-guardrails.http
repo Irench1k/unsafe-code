@@ -83,7 +83,7 @@ status=cancelled
 ?? js $(response).isError() == true
 
 ### Restaurant cannot mark delivered order thatis already cancelled
-# @forceRef cancel_order
+# @ref cancel_order
 # @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}
@@ -127,7 +127,7 @@ status=delivered
 ?? js $(response).isError() == true
 
 ### Customer cannot set status to refunded
-# @forceRef checkout
+# @ref checkout
 # @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/status
 Authorization: {{auth.basic("plankton")}}
@@ -138,7 +138,7 @@ status=refunded
 ?? js $(response).isError() == true
 
 ### Restaurant cannot set status to refunded
-# @forceRef checkout
+# @ref checkout
 # @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}

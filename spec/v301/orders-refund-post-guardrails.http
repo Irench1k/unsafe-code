@@ -49,7 +49,7 @@ amount=1.00
 
 ### Refund requires delivery
 
-# @forceRef checkout
+# @ref checkout
 # @tag ci, r03, vulnerable
 POST /orders/{{order_id}}/refund
 Authorization: {{auth.basic("patrick")}}
@@ -96,7 +96,7 @@ amount=0.50
 ?? js $(response).isError() == true
 
 ### Cannot request refund for another user's order
-# @forceRef checkout
+# @ref checkout
 # @tag ci, r03, vulnerable
 POST /orders/{{order_id}}/refund
 Authorization: {{auth.basic("plankton")}}

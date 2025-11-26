@@ -610,6 +610,10 @@ function $(thing) {
       return data.find(fn);
     },
 
+    get(id) {
+      return this.find((item) => item.id === id);
+    },
+
     every(fn) {
       if (!isArray) return data ? fn(data) : undefined;
       return data.every(fn);

@@ -3,15 +3,13 @@
 # Cart checkout ownership enforcement
 # Verifies users cannot checkout carts belonging to other users
 
-### Seed users
+### Patrick creates a cart with items
 {{
   await platform.seed({
     patrick: 200,
     plankton: 200
   });
 }}
-
-### Patrick creates a cart with items
 # @name patricks_cart
 POST /cart?restaurant_id=1
 Authorization: {{auth.basic("patrick")}}
@@ -20,6 +18,7 @@ Authorization: {{auth.basic("patrick")}}
 ?? js $(response).status() == 201
 
 ### Patrick adds item to cart
+# @name patricks_cart_with_item
 # @forceRef patricks_cart
 # @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/items
@@ -31,7 +30,7 @@ Content-Type: application/json
 ?? js $(response).isOk() == true
 
 ### Plankton cannot checkout Patrick's cart - Basic Auth + JSON
-# @forceRef patricks_cart
+# @ref patricks_cart_with_item
 # @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/checkout
 Authorization: {{auth.basic("plankton")}}
@@ -42,7 +41,7 @@ Content-Type: application/json
 ?? js $(response).isError() == true
 
 ### Plankton cannot checkout Patrick's cart - Basic Auth + Form
-# @forceRef patricks_cart
+# @ref patricks_cart_with_item
 # @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/checkout
 Authorization: {{auth.basic("plankton")}}
@@ -53,7 +52,7 @@ tip=0&delivery_address=Chum Bucket
 ?? js $(response).isError() == true
 
 ### Plankton cannot checkout Patrick's cart - Cookie Auth + JSON
-# @forceRef patricks_cart
+# @ref patricks_cart_with_item
 # @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/checkout
 Cookie: {{auth.login("plankton")}}
@@ -64,7 +63,7 @@ Content-Type: application/json
 ?? js $(response).isError() == true
 
 ### Plankton cannot checkout Patrick's cart - Cookie Auth + Form
-# @forceRef patricks_cart
+# @ref patricks_cart_with_item
 # @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/checkout
 Cookie: {{auth.login("plankton")}}

@@ -47,7 +47,7 @@ Authorization: {{auth.basic("squidward")}}
 ?? js $(response).field("balance") == {{200 - order_total}}
 
 ### Order status requires valid status value
-# @forceRef checkout
+# @ref checkout
 # @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/status
 Authorization: {{auth.basic("squidward")}}
@@ -78,7 +78,7 @@ Authorization: {{auth.basic("squidward")}}
 ?? js $(response).field("balance") == 200.00
 
 ### The order is marked as cancelled
-# @forceRef cancelled
+# @ref cancelled
 # @tag ci, r03, vulnerable
 GET /orders
 Authorization: {{auth.basic("squidward")}}
