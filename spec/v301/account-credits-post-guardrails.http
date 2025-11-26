@@ -1,7 +1,13 @@
 # @import ../common.http
 
 # POST /account/credits guardrails
+# Tests admin-only credit modification endpoint access control
 
+# =============================================================================
+# NO AUTHENTICATION
+# =============================================================================
+
+### No authentication fails - form
 {{
   await platform.seed({
     plankton: 200,
@@ -9,9 +15,6 @@
     spongebob: 100
   });
 }}
-
-
-### No authentication doesn't work (form)
 # @tag ci, r03, vulnerable
 POST /account/credits
 Content-Type: application/x-www-form-urlencoded
@@ -20,8 +23,7 @@ user={{user("spongebob").email}}&amount=23.45
 
 ?? js $(response).isError() == true
 
-
-### No authentication doesn't work (JSON)
+### No authentication fails - JSON
 # @tag ci, r03, vulnerable
 POST /account/credits
 Content-Type: application/json
@@ -33,7 +35,11 @@ Content-Type: application/json
 
 ?? js $(response).isError() == true
 
-### Basic Auth + incorrect key doesn't work (form)
+# =============================================================================
+# USER AUTH + INVALID ADMIN KEY
+# =============================================================================
+
+### Basic Auth + invalid admin key fails - form
 # @tag ci, r03, vulnerable
 POST /account/credits
 Authorization: Basic {{auth.basic("plankton")}}
@@ -44,7 +50,7 @@ user={{user("spongebob").email}}&amount=23.45
 
 ?? js $(response).isError() == true
 
-### Basic Auth + incorrect key doesn't work (JSON)
+### Basic Auth + invalid admin key fails - JSON
 # @tag ci, r03, vulnerable
 POST /account/credits
 Authorization: Basic {{auth.basic("plankton")}}
@@ -58,7 +64,7 @@ Content-Type: application/json
 
 ?? js $(response).isError() == true
 
-### Cookie Auth + incorrect key doesn't work (form)
+### Cookie Auth + invalid admin key fails - form
 # @tag ci, r03, vulnerable
 POST /account/credits
 Cookie: {{auth.login("plankton")}}
@@ -69,7 +75,7 @@ user={{user("spongebob").email}}&amount=23.45
 
 ?? js $(response).isError() == true
 
-### Cookie Auth + incorrect key doesn't work (JSON)
+### Cookie Auth + invalid admin key fails - JSON
 # @tag ci, r03, vulnerable
 POST /account/credits
 Cookie: {{auth.login("plankton")}}
@@ -83,7 +89,11 @@ Content-Type: application/json
 
 ?? js $(response).isError() == true
 
-### Restaurant key instead of admin key doesn't work (form)
+# =============================================================================
+# RESTAURANT KEY (WRONG KEY TYPE)
+# =============================================================================
+
+### Restaurant key in admin header fails - form
 # @tag ci, r03, vulnerable
 POST /account/credits
 X-Admin-API-Key: {{auth.restaurant("krusty_krab")}}
@@ -93,7 +103,7 @@ user={{user("spongebob").email}}&amount=23.45
 
 ?? js $(response).isError() == true
 
-### Restaurant key instead of admin key doesn't work (JSON)
+### Restaurant key in admin header fails - JSON
 # @tag ci, r03, vulnerable
 POST /account/credits
 X-Admin-API-Key: {{auth.restaurant("krusty_krab")}}
@@ -106,7 +116,7 @@ Content-Type: application/json
 
 ?? js $(response).isError() == true
 
-### Restaurant key + incorrect platform key doesn't work (form)
+### Restaurant key + invalid admin key fails - form
 # @tag ci, r03, vulnerable
 POST /account/credits
 X-API-Key: {{auth.restaurant("krusty_krab")}}
@@ -117,7 +127,7 @@ user={{user("spongebob").email}}&amount=23.45
 
 ?? js $(response).isError() == true
 
-### Restaurant key + incorrect platform key doesn't work (JSON)
+### Restaurant key + invalid admin key fails - JSON
 # @tag ci, r03, vulnerable
 POST /account/credits
 X-API-Key: {{auth.restaurant("krusty_krab")}}

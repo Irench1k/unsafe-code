@@ -1,6 +1,11 @@
 # @import ../common.http
 
 # POST /orders/{id}/refund guardrails
+# Tests refund request validation and access control
+
+# =============================================================================
+# SETUP: Order with delivered status
+# =============================================================================
 
 ### Create a cart and checkout to get an order
 {{
@@ -36,8 +41,11 @@ Content-Type: application/json
 @order_total = {{$(response).total()}}
 ?? js $(response).status() == 201
 
+# =============================================================================
+# AUTHENTICATION: Refund requires auth
+# =============================================================================
 
-### Refund requires auth
+### Refund requires authentication
 # @forceRef checkout
 # @tag ci, r03, vulnerable
 POST /orders/{{order_id}}/refund
@@ -47,8 +55,11 @@ amount=1.00
 
 ?? js $(response).isError() == true
 
-### Refund requires delivery
+# =============================================================================
+# STATE REQUIREMENTS: Must be delivered first
+# =============================================================================
 
+### Refund requires order to be delivered
 # @ref checkout
 # @tag ci, r03, vulnerable
 POST /orders/{{order_id}}/refund
@@ -59,6 +70,9 @@ amount=1.00
 
 ?? js $(response).isError() == true
 
+# =============================================================================
+# DELIVERED ORDER: Process refund flow
+# =============================================================================
 
 ### Restaurant marks order as delivered
 # @name delivered
@@ -71,8 +85,7 @@ status=delivered
 
 ?? js $(response).isOk() == true
 
-
-### Regular refund
+### Regular refund succeeds
 # @name refunded
 # @forceRef delivered
 POST /orders/{{order_id}}/refund
@@ -83,6 +96,9 @@ amount=1.00
 
 ?? js $(response).isOk() == true
 
+# =============================================================================
+# DUPLICATE REFUND: Already refunded
+# =============================================================================
 
 ### Cannot request refund for already refunded order
 # @forceRef refunded
@@ -94,6 +110,10 @@ Content-Type: application/x-www-form-urlencoded
 amount=0.50
 
 ?? js $(response).isError() == true
+
+# =============================================================================
+# ACCESS CONTROL: Cross-user protection
+# =============================================================================
 
 ### Cannot request refund for another user's order
 # @ref checkout

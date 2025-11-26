@@ -1,6 +1,11 @@
 # @import ../common.http
 
 # PATCH /orders/{id}/refund/status guardrails
+# Tests refund approval workflow and state transitions
+
+# =============================================================================
+# SETUP: Order with delivered status and pending refund
+# =============================================================================
 
 ### Create an order and request a refund
 {{
@@ -60,7 +65,11 @@ amount={{order_total}}&reason=Too salty
 ?? js $(response).isOk() == true
 ?? js $(response).field("status") == pending
 
-### Customer's balance
+# =============================================================================
+# PENDING REFUND: Authorization checks
+# =============================================================================
+
+### Customer's balance unchanged while refund pending
 # @name balance
 # @forceRef refund
 # @tag ci, r03, vulnerable
@@ -70,8 +79,8 @@ Authorization: {{auth.basic("squidward")}}
 @customer_balance = {{$(response).field("balance")}}
 ?? js $(response).field("balance") == {{200 - order_total}}
 
-### Customer cannot update refund status
-# @forceRef refund
+### Customer cannot approve their own refund
+# @ref refund
 # @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/refund/status
 Authorization: {{auth.basic("squidward")}}
@@ -81,8 +90,8 @@ status=approved
 
 ?? js $(response).isError() == true
 
-### Restaurant manager of another restaurant cannot approve refund
-# @forceRef refund
+### Other restaurant cannot approve refund
+# @ref refund
 # @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/refund/status
 X-API-Key: {{auth.restaurant("chum_bucket")}}
@@ -91,6 +100,10 @@ Content-Type: application/x-www-form-urlencoded
 status=approved
 
 ?? js $(response).isError() == true
+
+# =============================================================================
+# APPROVED REFUND: State becomes immutable
+# =============================================================================
 
 ### Restaurant manager approves refund
 # @name approved
@@ -104,7 +117,7 @@ status=approved
 ?? js $(response).isOk() == true
 ?? js $(response).field("status") == approved
 
-### Customer's balance is updated
+### Customer's balance restored after approval
 # @forceRef approved
 # @tag ci, r03, vulnerable
 GET /account/info
@@ -112,8 +125,8 @@ Authorization: {{auth.basic("squidward")}}
 
 ?? js $(response).field("balance") == 200.00
 
-### Refund cannot be approved twice
-# @forceRef approved
+### Cannot approve already approved refund
+# @ref approved
 # @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/refund/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}
@@ -123,8 +136,8 @@ status=approved
 
 ?? js $(response).isError() == true
 
-### Refund cannot be turned to rejected after being approved
-# @forceRef approved
+### Cannot reject already approved refund
+# @ref approved
 # @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/refund/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}
@@ -134,8 +147,8 @@ status=rejected
 
 ?? js $(response).isError() == true
 
-### Refund cannot be turned to pending after being approved
-# @forceRef approved
+### Cannot set approved refund back to pending
+# @ref approved
 # @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/refund/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}
@@ -144,6 +157,10 @@ Content-Type: application/x-www-form-urlencoded
 status=pending
 
 ?? js $(response).isError() == true
+
+# =============================================================================
+# REJECTED REFUND: State becomes immutable
+# =============================================================================
 
 ### Refund can be set to rejected
 # @name rejected
@@ -157,7 +174,7 @@ status=rejected
 ?? js $(response).isOk() == true
 ?? js $(response).field("status") == rejected
 
-### Customer's balance is not updated
+### Customer's balance unchanged after rejection
 # @forceRef rejected
 # @tag ci, r03, vulnerable
 GET /account/info
@@ -165,8 +182,8 @@ Authorization: {{auth.basic("squidward")}}
 
 ?? js $(response).field("balance") == {{200 - order_total}}
 
-### Refund cannot be set to pending after being rejected
-# @forceRef rejected
+### Cannot set rejected refund back to pending
+# @ref rejected
 # @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/refund/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}
@@ -176,8 +193,8 @@ status=pending
 
 ?? js $(response).isError() == true
 
-### Refund cannot be set to approved after being rejected
-# @forceRef rejected
+### Cannot approve rejected refund
+# @ref rejected
 # @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/refund/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}

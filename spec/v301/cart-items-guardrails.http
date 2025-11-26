@@ -1,6 +1,11 @@
 # @import ../common.http
 
 # POST /cart/{id}/items guardrails
+# Tests authentication, authorization, and item validation
+
+# =============================================================================
+# SETUP
+# =============================================================================
 
 ### Get first available & unavailable menu items
 # @tag ci, r03, vulnerable
@@ -9,7 +14,13 @@ GET /menu?restaurant_id=1
 @item_id = {{$(response).body().find(i => i.restaurant_id == 1 && i.available).id}}
 @unavailable_item_id = {{$(response).body().find(i => i.restaurant_id == 1 && !i.available).id}}
 
-### Create a cart first
+### Patrick creates a cart
+{{
+  await platform.seed({
+    patrick: 200,
+    plankton: 200
+  });
+}}
 # @name create_cart
 POST /cart?restaurant_id=1
 Authorization: {{auth.basic("patrick")}}
@@ -17,7 +28,11 @@ Authorization: {{auth.basic("patrick")}}
 @cart_id = {{$(response).field("cart_id")}}
 ?? js $(response).status() == 201
 
-### Add item to cart requires auth
+# =============================================================================
+# AUTHENTICATION: No auth / Invalid credentials
+# =============================================================================
+
+### Add item requires authentication
 # @forceRef create_cart
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/items
@@ -27,7 +42,7 @@ Content-Type: application/json
 
 ?? js $(response).isError() == true
 
-### Add item to cart via Basic Auth requires valid credentials
+### Add item requires valid credentials
 # @ref create_cart
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/items
@@ -37,6 +52,10 @@ Content-Type: application/json
 { "item_id": "{{item_id}}" }
 
 ?? js $(response).isError() == true
+
+# =============================================================================
+# ITEM VALIDATION: Invalid / Unavailable items
+# =============================================================================
 
 ### Add item with invalid item_id fails
 # @ref create_cart
@@ -60,7 +79,11 @@ Content-Type: application/json
 
 ?? js $(response).isError() == true
 
-### A user cannot add items to another user's cart - Basic Auth
+# =============================================================================
+# AUTHORIZATION: Cross-user protection
+# =============================================================================
+
+### Cannot add items to another user's cart - Basic Auth
 # @ref create_cart
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/items
@@ -71,7 +94,7 @@ Content-Type: application/json
 
 ?? js $(response).isError() == true
 
-### A user cannot add items to another user's cart - Cookie Auth
+### Cannot add items to another user's cart - Cookie Auth
 # @ref create_cart
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/items
@@ -82,6 +105,10 @@ Content-Type: application/json
 
 ?? js $(response).isError() == true
 
+# =============================================================================
+# PARAMETER POLLUTION: cart_id injection
+# =============================================================================
+
 ### Plankton's cart for parameter pollution tests
 # @name plankton_cart
 POST /cart?restaurant_id=1
@@ -91,7 +118,7 @@ Authorization: {{auth.basic("plankton")}}
 ?? js $(response).isOk() == true
 ?? js $(response).hasFields("cart_id") == true
 
-### A user cannot add items to another user's cart - Basic Auth - Param Pollution
+### Cannot inject cart_id via query + body - Basic Auth
 # @ref create_cart
 # @forceRef plankton_cart
 # @tag ci, r03, vulnerable
@@ -103,7 +130,7 @@ Content-Type: application/json
 
 ?? js $(response).isError() == true
 
-### A user cannot add items to another user's cart - Cookie Auth - Param Pollution
+### Cannot inject cart_id via query + body - Cookie Auth
 # @ref create_cart
 # @ref plankton_cart
 # @tag ci, r03, vulnerable
@@ -114,6 +141,10 @@ Content-Type: application/json
 { "item_id": "{{item_id}}", "cart_id": "{{plankton_cart_id}}" }
 
 ?? js $(response).isError() == true
+
+# =============================================================================
+# CROSS-RESTAURANT: Items from wrong restaurant
+# =============================================================================
 
 ### Create a cart for another restaurant
 # @name chum_bucket_cart

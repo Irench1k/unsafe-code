@@ -20,7 +20,6 @@ Authorization: {{auth.basic("patrick")}}
 ### Patrick adds item to cart
 # @name patricks_cart_with_item
 # @forceRef patricks_cart
-# @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/items
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json

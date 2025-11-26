@@ -1,8 +1,16 @@
 # @import ../common.http
 
 # POST /auth/login guardrails
+# Tests login security: content types, credential validation, parameter pollution
 
-### Login fails with urlencoded body
+# =============================================================================
+# CONTENT TYPE VALIDATION
+# =============================================================================
+
+### Login fails with urlencoded body (JSON required)
+{{
+    await platform.reset();
+}}
 # @tag ci, r03, vulnerable
 POST /auth/login
 Content-Type: application/x-www-form-urlencoded
@@ -11,11 +19,11 @@ email={{user("spongebob").email}}&password={{user("spongebob").password}}
 
 ?? js $(response).isError() == true
 
+# =============================================================================
+# CREDENTIAL VALIDATION
+# =============================================================================
 
 ### Login fails with wrong password
-{{
-    await platform.reset();
-}}
 # @tag ci, r03, vulnerable
 POST /auth/login
 Content-Type: application/json
@@ -27,8 +35,11 @@ Content-Type: application/json
 
 ?? js $(response).isError() == true
 
+# =============================================================================
+# PARAMETER POLLUTION: Query vs Body email
+# =============================================================================
 
-### Login uses correct email
+### Login uses email from body, not query
 # @tag ci, r03, vulnerable
 POST /auth/login?email={{user("spongebob").email}}
 Content-Type: application/json
@@ -44,6 +55,9 @@ Content-Type: application/json
 ?? js $(response).field("message") == Login successful
 ?? js extractCookie(response) != null == true
 
+# =============================================================================
+# HEADER POLLUTION: Basic Auth does not bypass login
+# =============================================================================
 
 ### Basic Auth header does not bypass login authentication
 # @tag ci, r03, vulnerable
@@ -59,13 +73,16 @@ Content-Type: application/json
 @potentiallyPollutedCookie = {{extractCookie(response)}}
 ?? js $(response).field("email") == {{user("plankton").email}}
 
-### Cookie is not polluted and is bound to Plankton
+### Cookie is bound to correct user
 # @tag ci, r03, vulnerable
 GET /account/info
 Cookie: {{potentiallyPollutedCookie}}
 
 ?? js $(response).field("email") == {{user("plankton").email}}
 
+# =============================================================================
+# SESSION FIXATION: Cookie header does not bypass login
+# =============================================================================
 
 ### Cookie header does not bypass login authentication
 # @name sessionFixation
@@ -83,7 +100,7 @@ Content-Type: application/json
 
 ?? js $(response).field("email") == {{user("plankton").email}}
 
-### Plankton's session did not change
+### Original session is not hijacked
 # @ref sessionFixation
 # @tag ci, r03, vulnerable
 GET /account/info

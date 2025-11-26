@@ -4,6 +4,10 @@
 # Verifies that reusing a cart after checkout creates NEW orders
 # and does NOT modify or overwrite the original order
 
+# =============================================================================
+# SETUP: Initial cart with item
+# =============================================================================
+
 ### Create cart
 # @name cart
 {{
@@ -28,7 +32,11 @@ Content-Type: application/json
 
 ?? js $(response).isOk() == true
 
-### First checkout - creates order #1
+# =============================================================================
+# FIRST CHECKOUT: Creates order #1
+# =============================================================================
+
+### First checkout
 # @name first_order
 # @forceRef cart_with_item
 POST /cart/{{cart_id}}/checkout
@@ -42,7 +50,11 @@ Content-Type: application/json
 @first_order_items_count = {{$(response).field("items").length}}
 ?? js $(response).isOk() == true
 
-### Immediate reuse - should create NEW order, not overwrite
+# =============================================================================
+# IMMEDIATE REUSE: Should create NEW order, not overwrite
+# =============================================================================
+
+### Second checkout (immediate reuse)
 # @name second_order
 # @forceRef first_order
 POST /cart/{{cart_id}}/checkout
@@ -55,7 +67,11 @@ Content-Type: application/json
 ?? js $(response).isOk() == true
 ?? js $(response).field("order_id") != {{first_order_id}}
 
-### Add another item
+# =============================================================================
+# CART MODIFICATION + REUSE: Third checkout with more items
+# =============================================================================
+
+### Add another item to cart
 # @name second_order_with_more_items
 # @forceRef second_order
 POST /cart/{{cart_id}}/items
@@ -66,7 +82,7 @@ Content-Type: application/json
 
 ?? js $(response).isOk() == true
 
-### Third checkout with different data - creates order #3
+### Third checkout with different data
 # @name third_order
 # @forceRef second_order_with_more_items
 POST /cart/{{cart_id}}/checkout
@@ -81,6 +97,10 @@ Content-Type: application/json
 ?? js $(response).isOk() == true
 ?? js $(response).field("order_id") != {{first_order_id}}
 ?? js $(response).field("order_id") != {{second_order_id}}
+
+# =============================================================================
+# VERIFICATION: Original orders remain unchanged
+# =============================================================================
 
 ### Verify first order remains completely unchanged
 # @forceRef third_order

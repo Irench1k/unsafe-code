@@ -1,6 +1,12 @@
 # @import ../common.http
 @mailpit = http://127.0.0.1:8025/api/v1
 
+# POST /auth/register guardrails
+# Tests email verification flow and account hijacking protection
+
+# =============================================================================
+# SETUP: Complete registration flow
+# =============================================================================
 
 ### Registration fails with urlencoded body
 # @tag ci, r03, vulnerable
@@ -11,9 +17,7 @@ email={{testEmail()}}
 
 ?? js $(response).isError() == true
 
-
-// POST /auth/register happy path, with auto-wiring via `forceRef`
-### Registration works
+### Registration works with JSON
 {{
     await platform.reset();
 }}
@@ -54,7 +58,7 @@ GET {{mailpit}}/message/{{email_id}}
   console.info("Token:", token);
 }}
 
-### User is registered with the verified email coming from the token (not json)
+### User completes registration
 # @name finish_registration
 # @forceRef find_token
 POST /auth/register
@@ -72,7 +76,11 @@ Content-Type: application/json
 ?? js $(response).field("email") == test@example.com
 ?? js $(response).field("status") == user_created
 
-### Attacker can't apply token to different email (query)
+# =============================================================================
+# TOKEN HIJACKING: Attacker tries to apply token to different email
+# =============================================================================
+
+### Token cannot be applied to different email via query param
 # @forceRef find_token
 # @tag ci, r03, vulnerable
 POST /auth/register?email={{testEmail()}}
@@ -87,8 +95,8 @@ Content-Type: application/json
 ?? js $(response).isOk() == true
 ?? js $(response).field("email") == test@example.com
 
-### Attacker can't apply token to different email (form)
-# @forceRef find_token
+### Token cannot be applied to different email via form
+# @ref find_token
 # @tag ci, r03, vulnerable
 POST /auth/register
 Content-Type: application/x-www-form-urlencoded
@@ -97,8 +105,11 @@ email={{testEmail()}}&token={{token}}&password=hijacked&name=Test%20User
 
 ?? js $(response).isError() == true
 
+# =============================================================================
+# REPLAY ATTACK: Reusing token after registration
+# =============================================================================
 
-### User can't register with the same email again (json)
+### Cannot re-register with same token - JSON
 # @forceRef finish_registration
 # @name hijack_registration
 POST /auth/register
@@ -112,8 +123,7 @@ Content-Type: application/json
 
 ?? js $(response).isError() == true
 
-
-### User can't register with the same email again (json bypass)
+### Cannot re-register with same token - JSON with email bypass
 # @ref finish_registration
 # @tag ci, r03, vulnerable
 POST /auth/register
@@ -128,7 +138,7 @@ Content-Type: application/json
 
 ?? js $(response).isError() == true
 
-### User can't register with the same email again (form)
+### Cannot re-register with same token - form
 # @ref finish_registration
 # @tag ci, r03, vulnerable
 POST /auth/register
@@ -138,8 +148,7 @@ email={{testEmail()}}&token={{token}}&password=hijacked&name=Test%20User
 
 ?? js $(response).isError() == true
 
-
-### User can't register with same email again (query)
+### Cannot re-register with same token - query param
 # @ref finish_registration
 # @tag ci, r03, vulnerable
 POST /auth/register?email={{testEmail()}}
@@ -153,8 +162,11 @@ Content-Type: application/json
 
 ?? js $(response).isError() == true
 
+# =============================================================================
+# PASSWORD VERIFICATION: Original password still works
+# =============================================================================
 
-### The previous request does not cause password to be overriden
+### Original password works for account info
 # @ref hijack_registration
 # @tag ci, r03, vulnerable
 GET /account/info
@@ -163,7 +175,7 @@ Authorization: Basic test@example.com:password123
 ?? js $(response).isOk() == true
 ?? js $(response).field("email") == test@example.com
 
-### User can login with the correct password
+### Original password works for login
 # @ref hijack_registration
 # @tag ci, r03, vulnerable
 POST /auth/login
@@ -176,7 +188,7 @@ Content-Type: application/json
 
 ?? js $(response).isOk() == true
 
-### Attacker can't access account info with the hijacked password
+### Hijacked password does not work for account info
 # @ref hijack_registration
 # @tag ci, r03, vulnerable
 GET /account/info
@@ -184,7 +196,7 @@ Authorization: Basic test@example.com:hijacked
 
 ?? js $(response).isError() == true
 
-### User can't login with the hijacked password
+### Hijacked password does not work for login
 # @ref hijack_registration
 # @tag ci, r03, vulnerable
 POST /auth/login

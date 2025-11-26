@@ -1,7 +1,13 @@
 # @import ../common.http
 
-# GET /orders happy path
+# GET /orders guardrails
+# Tests access control and data isolation for order listing
 
+# =============================================================================
+# AUTHENTICATION REQUIRED
+# =============================================================================
+
+### Orders list requires authentication
 {{
   await platform.seed({
     plankton: 200,
@@ -9,15 +15,17 @@
     spongebob: 100
   });
 }}
-
-### Orders list requires auth
 # @tag ci, r03, vulnerable
 GET /orders
 
 ?? js $(response).isError() == true
 ?? js $(response).field("error") == Authentication required
 
-### Customer sees their own orders with Basic Auth
+# =============================================================================
+# CUSTOMER DATA ISOLATION
+# =============================================================================
+
+### Customer sees only their own orders - Basic Auth
 # @tag ci, r03, vulnerable
 GET /orders
 Authorization: {{auth.basic("spongebob")}}
@@ -25,7 +33,7 @@ Authorization: {{auth.basic("spongebob")}}
 ?? js $(response).isOk() == true
 ?? js $(response).hasOnlyUserData("spongebob") == true
 
-### Customer sees their own orders with Cookie Auth
+### Customer sees only their own orders - Cookie Auth
 # @tag ci, r03, vulnerable
 GET /orders
 Cookie: {{auth.login("plankton")}}
@@ -33,7 +41,11 @@ Cookie: {{auth.login("plankton")}}
 ?? js $(response).isOk() == true
 ?? js $(response).hasOnlyUserData("plankton") == true
 
-### Restaurant manager sees their restaurant's orders
+# =============================================================================
+# RESTAURANT DATA ISOLATION
+# =============================================================================
+
+### Restaurant manager sees only their restaurant's orders
 # @tag ci, r03, vulnerable
 GET /orders
 X-API-Key: {{auth.restaurant("krusty_krab")}}
@@ -41,15 +53,19 @@ X-API-Key: {{auth.restaurant("krusty_krab")}}
 ?? js $(response).isOk() == true
 ?? js $(response).every(o => o.restaurant_id === 1) == true
 
-### Different restaurant sees different orders
+### Different restaurant sees only their orders
 # @tag ci, r03, vulnerable
 GET /orders
-X-API-Key: key-chum-bucket-b5kg32z1je
+X-API-Key: {{auth.restaurant("chum_bucket")}}
 
 ?? js $(response).isOk() == true
 ?? js $(response).every(o => o.restaurant_id === 2) == true
 
-### Customer with cookie still sees only their orders even with restaurant header present
+# =============================================================================
+# AUTH PRIORITY: Customer auth takes precedence
+# =============================================================================
+
+### Customer cookie takes precedence over restaurant header
 # @tag ci, r03, vulnerable
 GET /orders
 Cookie: {{auth.login("spongebob")}}

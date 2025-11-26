@@ -746,6 +746,44 @@ const platform = {
 };
 
 // ============================================================================
+// ORDER CALCULATIONS
+// ============================================================================
+
+const order = {
+  /**
+   * Calculate expected order total from item IDs and optional tip
+   * @param {Array|string|number} itemIds - Item ID(s) to include
+   * @param {number} tip - Optional tip amount (default 0)
+   * @returns {number} Expected total
+   *
+   * Example:
+   *   ?? js $(response).total() == {{order.total([4, 5], 2)}}
+   */
+  total(itemIds, tip = 0) {
+    const items = Array.isArray(itemIds) ? itemIds : [itemIds];
+    const itemsTotal = items.reduce((sum, id) => {
+      const item = menu.item(id);
+      return sum + parseFloat(item.price);
+    }, 0.0);
+    return parseFloat((itemsTotal + tip).toFixed(2));
+  },
+
+  /**
+   * Calculate expected balance after order
+   * @param {number} startBalance - Starting balance
+   * @param {Array|string|number} itemIds - Item ID(s) ordered
+   * @param {number} tip - Optional tip amount
+   * @returns {number} Expected remaining balance
+   *
+   * Example:
+   *   ?? js $(response).field("balance") == {{order.balanceAfter(200, [4, 5], 2)}}
+   */
+  balanceAfter(startBalance, itemIds, tip = 0) {
+    return parseFloat((startBalance - this.total(itemIds, tip)).toFixed(2));
+  },
+};
+
+// ============================================================================
 // UTILITIES
 // ============================================================================
 
@@ -796,6 +834,7 @@ module.exports = function createUtils(versionOverride) {
     auth,
     user,
     menu,
+    order,
     platform,
 
     // Cookie extraction

@@ -26,14 +26,15 @@ uv run spec-sync
 
 ```
 spec/
-├── spec.yml          # Inheritance config
-├── common.http       # Shared imports
-├── utils.cjs         # Test utilities (see below)
-├── v100/             # Baseline specs
-│   ├── .env          # VERSION=v100
+├── spec.yml                 # Inheritance config
+├── common.http              # Shared imports
+├── utils.cjs                # Test utilities (see below)
+├── TESTING_CONVENTIONS.md   # Best practices for writing specs
+├── v100/                    # Baseline specs
+│   ├── .env                 # VERSION=v100
 │   └── spec.*.http
-└── v301/             # Authorization confusion (21 specs)
-    ├── .env          # VERSION=v301
+└── v301/                    # Authorization confusion (21 specs)
+    ├── .env                 # VERSION=v301
     └── spec.*.http
 ```
 
@@ -112,6 +113,16 @@ X-Admin-API-Key: {{auth.admin()}}
   const u = user("plankton");
   // u.email, u.password, u.id, u.role
 }}
+```
+
+### Order Calculations
+
+```http
+# Calculate expected order total
+?? js $(response).total() == {{order.total([4, 5], 2)}}
+
+# Calculate expected balance after order
+?? js $(response).field("balance") == {{order.balanceAfter(200, [4, 5], 2)}}
 ```
 
 ## Inheritance (spec.yml)
