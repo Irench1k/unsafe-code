@@ -124,7 +124,7 @@ def _create_restaurants(session: Session) -> tuple[Restaurant, Restaurant]:
         name="Chum Bucket",
         description="Plankton's rival restaurant",
         owner="plankton@chum-bucket.sea",
-        api_key="key-plankton-a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+        api_key="key-chum-bucket-b5kg32z1je",
     )
 
     session.add_all([krusty_krab, chum_bucket])
