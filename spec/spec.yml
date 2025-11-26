@@ -17,7 +17,7 @@
 # =============================================================================
 
 v301:
-  description: "Dual-Auth Refund Approval"
+  description: Dual-Auth Refund Approval
   tags: [r03, vulnerable]
   specs:
     # /account
@@ -25,6 +25,7 @@ v301:
     - account-credits-get-happy
     - account-credits-post-guardrails
     - account-credits-post-happy
+    - account-credits-post-v301
     - account-info-get-guardrails
     - account-info-get-happy
     # /auth
@@ -57,3 +58,15 @@ v301:
     - restaurants-list-happy
     # Vulnerability
     - vuln-dual-auth-refund
+
+v302:
+  inherits: v301
+  description: Cart Swap Checkout (session vs path confusion)
+  tags: [r03, vulnerable]
+  exclude:
+    - vuln-dual-auth-refund
+    - account-credits-post-v301
+  specs:
+    - cart-create-v302
+    - orders-refund-status-v302
+    - vuln-cart-swap-checkout

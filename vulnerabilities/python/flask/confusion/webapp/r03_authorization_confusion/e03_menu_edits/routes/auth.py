@@ -12,6 +12,7 @@ from ..utils import (
     error_response,
     get_email_from_token,
     require_condition,
+    send_verification_email,
     success_response,
 )
 
@@ -58,6 +59,7 @@ def register_user():
 
         require_condition(unvalidated_email, "email is required")
         require_condition(not find_user_by_email(unvalidated_email), "email already taken")
+        send_verification_email(unvalidated_email)
 
         return success_response({"status": "verification_email_sent", "email": unvalidated_email})
     elif g.email_confirmed:

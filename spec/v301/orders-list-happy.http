@@ -38,7 +38,7 @@ GET /orders
 X-API-Key: {{auth.restaurant("krusty_krab")}}
 
 ?? js $(response).isOk() == true
-?? js $(response).body().every(o => o.restaurant_id === 1) == true
+?? js $(response).every(o => o.restaurant_id === 1) == true
 ?? js $(response).hasMultipleUsers() == true
 
 ### Different restaurant sees different orders
@@ -46,7 +46,7 @@ GET /orders
 X-API-Key: {{auth.restaurant("chum_bucket")}}
 
 ?? js $(response).isOk() == true
-?? js $(response).body().every(o => o.restaurant_id === 2) == true
+?? js $(response).every(o => o.restaurant_id === 2) == true
 
 ### Customer with cookie still sees only their orders even with restaurant header present
 # @ref spongebob
@@ -55,4 +55,4 @@ Cookie: {{auth.login("spongebob")}}
 X-API-Key: key-krusty-krub-wrongkey
 
 ?? js $(response).isOk() == true
-?? js $(response).body().every(o => o.user_id === spongebob_id) == true
+?? js $(response).every(o => o.user_id === spongebob_id) == true

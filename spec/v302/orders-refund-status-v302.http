@@ -1,0 +1,90 @@
+# @import ../common.http
+
+# PATCH /orders/{id}/refund/status - v302 FIX: requires restaurant ownership check
+
+### Step 1: Plankton logs in and creates cart at Krusty Krab
+# @name cart
+{{
+  await platform.seed({plankton: 200});
+  exports.session = await auth.login("plankton");
+}}
+POST /cart?restaurant_id=1
+Cookie: {{session}}
+
+@cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Step 2: Add Krabby Patty to cart
+# @name add_item
+# @forceRef cart
+POST /cart/{{cart_id}}/items
+Cookie: {{session}}
+Content-Type: application/json
+
+{ "item_id": "4" }
+
+?? js $(response).isOk() == true
+
+### Step 3: Checkout the order
+# @forceRef add_item
+# @name checkout
+POST /cart/{{cart_id}}/checkout
+Cookie: {{session}}
+Content-Type: application/json
+
+{ "tip": 1, "delivery_address": "Chum Bucket" }
+
+@order_id = {{$(response).field("order_id")}}
+@order_total = {{$(response).total()}}
+?? js $(response).status() == 201
+
+### Step 4: Verify balance decreased after order
+# @forceRef checkout
+GET /account/credits
+Cookie: {{session}}
+
+@balance_after = {{$(response).balance()}}
+?? js $(response).balance() == {{200 - order_total}}
+
+### Step 5: Restaurant delivers the order
+# @forceRef checkout
+# @name deliver_order
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+?? js $(response).isOk() == true
+
+### Step 6: Request a refund for the order (larger than auto-approve threshold)
+# @forceRef deliver_order
+# @name refund_request
+POST /orders/{{order_id}}/refund
+Cookie: {{session}}
+Content-Type: application/x-www-form-urlencoded
+
+amount={{order_total}}&reason=Bad service
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == pending
+
+
+### Step 7: (FIXED) Plankton cannot approve his own refund with Chum Bucket API key
+# @name approve_refund
+# @forceRef refund_request
+PATCH /orders/{{order_id}}/refund/status
+Cookie: {{session}}
+X-API-Key: key-chum-bucket-b5kg32z1je
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+?? js $(response).isError() == true
+
+### Step 8: (FIXED) Plankton cannot receive his refund
+# @forceRef approve_refund
+GET /account/credits
+Cookie: {{session}}
+
+?? js $(response).balance() == {{200 - order_total}}

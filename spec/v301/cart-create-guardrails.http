@@ -20,14 +20,12 @@ POST /cart
 Authorization: {{auth.basic("spongebob")}}
 
 ?? js $(response).isError() == true
-?? js $(response).field("error") == Restaurant ID is required
 
 ### Create cart without restaurant_id fails - Cookie Auth
 POST /cart
 Cookie: {{auth.login("spongebob")}}
 
 ?? js $(response).isError() == true
-?? js $(response).field("error") == Restaurant ID is required
 
 ### Create cart requires valid restaurant_id
 POST /cart?restaurant_id=999

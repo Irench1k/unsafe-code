@@ -4,7 +4,7 @@ from functools import wraps
 from flask import Blueprint, g, session
 
 from ..auth.decorators import require_auth
-from ..database.repository import find_cart_by_id, find_menu_item_by_id, get_cart_items
+from ..database.repository import find_cart_by_id, find_menu_item_by_id, find_restaurant_by_id, get_cart_items
 from ..database.services import (
     add_item_to_cart,
     calculate_cart_price,
@@ -23,6 +23,7 @@ from ..utils import (
     require_condition,
     require_int_param,
     require_ownership,
+    require_restaurant_id,
     success_response,
 )
 
@@ -79,7 +80,10 @@ def create_new_cart():
         require_ownership(existing_cart.user_id, g.user_id, "cart")
         return success_response(serialize_cart(existing_cart))
 
-    restaurant_id = get_restaurant_id()
+    restaurant_id = require_restaurant_id()
+    restaurant = find_restaurant_by_id(restaurant_id)
+    require_condition(restaurant, f"Restaurant {restaurant_id} not found")
+
     new_cart = create_cart(restaurant_id, g.user_id)
     session["cart_id"] = new_cart.id
     return created_response(serialize_cart(new_cart))

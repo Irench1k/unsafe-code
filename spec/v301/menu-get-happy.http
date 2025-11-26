@@ -34,3 +34,8 @@ Cookie: {{auth.login("squidward")}}
 
 ?? js $(response).isOk() == true
 ?? js $(response).count() > 0
+
+### Incorrect restaurant_id fails
+GET /menu?restaurant_id=999
+
+?? js $(response).isError() || $(response).isEmpty() == true

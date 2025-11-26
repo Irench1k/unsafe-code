@@ -1,0 +1,47 @@
+# @import ../common.http
+
+# POST /cart - v302 changes: session-based cart storage with spam prevention
+
+### Create cart works and stores cart_id in session
+# @name first_cart
+{{
+  await platform.seed({plankton: 200});
+  exports.session = await auth.login("plankton");
+}}
+POST /cart?restaurant_id=1
+Cookie: {{session}}
+
+@session = {{extractCookie(response)}}
+@cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+?? js $(response).hasFields("cart_id", "restaurant_id") == true
+
+### Creating another cart returns the SAME cart (spam prevention)
+# @name second_cart
+# @forceRef first_cart
+POST /cart?restaurant_id=1
+Cookie: {{session}}
+
+?? js $(response).status() == 200
+?? js $(response).hasFields("cart_id") == true
+?? js $(response).field("cart_id") == {{cart_id}}
+
+### Basic Auth lets create a new cart
+# @forceRef second_cart
+# @tag e2e
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("plankton")}}
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("cart_id", "restaurant_id") == true
+?? js $(response).field("cart_id") != {{cart_id}}
+
+### Different user can create their own cart
+# @forceRef second_cart
+# @tag e2e
+POST /cart?restaurant_id=1
+Cookie: {{auth.login("squidward")}}
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("cart_id", "restaurant_id") == true
+?? js $(response).field("cart_id") != {{cart_id}}

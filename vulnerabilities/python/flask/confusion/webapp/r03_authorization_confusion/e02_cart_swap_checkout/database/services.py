@@ -215,6 +215,7 @@ def serialize_order(order: Order) -> dict:
             }
             for item in order_items
         ],
+        "status": order.status.value,
     }
 
 

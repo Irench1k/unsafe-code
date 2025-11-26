@@ -1,0 +1,19 @@
+# @import ../common.http
+
+# POST /account/credits guardrails
+
+{{
+  await platform.seed({spongebob: 100});
+}}
+
+### JSON body does not work
+POST /account/credits
+X-Admin-API-Key: {{auth.admin()}}
+Content-Type: application/json
+
+{
+  "user": "{{user("spongebob").email}}",
+  "amount": 23.45
+}
+
+?? js $(response).isError() == true

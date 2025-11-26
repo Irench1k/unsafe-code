@@ -575,6 +575,25 @@ function $(thing) {
       return itemIds.every((id) => itemIdsInOrder.includes(String(id)));
     },
 
+    last() {
+      // If there's created_at field, sort by it, otherwise sort by index
+      if (items[0].created_at) {
+        return items.sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        )[0];
+      }
+      return items[items.length - 1];
+    },
+
+    first() {
+      if (items[0].created_at) {
+        return items.sort(
+          (a, b) => new Date(a.created_at) - new Date(b.created_at)
+        )[0];
+      }
+      return items[0];
+    },
+
     // Array operations
     map(fn) {
       if (!isArray) return [fn(data)];

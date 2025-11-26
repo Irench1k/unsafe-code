@@ -10,18 +10,6 @@
   });
 }}
 
-### JSON body does not work
-POST /account/credits
-X-Admin-API-Key: {{auth.admin()}}
-Content-Type: application/json
-
-{
-  "user": "{{user("spongebob").email}}",
-  "amount": 23.45
-}
-
-?? js $(response).isError() == true
-
 
 ### No authentication doesn't work (form)
 POST /account/credits

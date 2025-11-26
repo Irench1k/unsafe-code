@@ -35,14 +35,14 @@ GET /orders
 X-API-Key: {{auth.restaurant("krusty_krab")}}
 
 ?? js $(response).isOk() == true
-?? js $(response).body().every(o => o.restaurant_id === 1) == true
+?? js $(response).every(o => o.restaurant_id === 1) == true
 
 ### Different restaurant sees different orders
 GET /orders
 X-API-Key: key-chum-bucket-b5kg32z1je
 
 ?? js $(response).isOk() == true
-?? js $(response).body().every(o => o.restaurant_id === 2) == true
+?? js $(response).every(o => o.restaurant_id === 2) == true
 
 ### Customer with cookie still sees only their orders even with restaurant header present
 GET /orders

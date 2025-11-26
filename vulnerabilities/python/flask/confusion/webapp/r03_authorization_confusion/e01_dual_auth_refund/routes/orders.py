@@ -66,7 +66,7 @@ def refund_order(order_id):
         raise CheekyApiError("Order does not belong to user")
 
     # Integrity check: order must be delivered, not refunded or cancelled
-    # (and not delivered yet orders can only be cancelled not refunded)
+    # (the orders that are not delivered yet can only be cancelled not refunded)
     if g.order.status != OrderStatus.delivered:
         raise CheekyApiError("Order cannot be refunded")
 
@@ -97,11 +97,6 @@ def update_refund_status(order_id):
     status = request.form.get("status")
     if not status or status not in ["approved", "rejected"]:
         raise CheekyApiError("Status is missing or invalid")
-
-    # Authorization check: order must belong to the restaurant
-    # order = find_order_by_id(order_id_int)
-    # if order.restaurant_id != g.restaurant_id:
-    #     raise CheekyApiError("Order does not belong to restaurant")
 
     if not has_access_to_order(order_id_int):
         raise CheekyApiError("Order does not belong to restaurant")
