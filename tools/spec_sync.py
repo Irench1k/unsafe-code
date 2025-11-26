@@ -129,13 +129,9 @@ def retag_file_with_leaf_tags(path: Path, auto_tags: set[str]) -> bool:
     new_lines: list[str] = []
     for region in regions:
         segment = lines[region.start : region.end]
-        existing_tags = set(region.tags)
-        manual_tags = {t for t in existing_tags if t not in auto_tags}
         is_leaf = region.has_request and not (region.name and incoming.get(region.name, 0) > 0)
 
-        desired_tags = set(manual_tags)
-        if is_leaf:
-            desired_tags |= auto_tags
+        desired_tags = set(auto_tags) if is_leaf else set()
 
         remove_offsets = {line_idx - region.start for line_idx in region.tag_lines}
         segment_without_tags = [line for idx, line in enumerate(segment) if idx not in remove_offsets]
@@ -175,6 +171,33 @@ def retag_leaf_nodes(version: VersionSpec, spec_dir: Path, default_tags: set[str
             retagged.append(str(path.relative_to(spec_dir)))
 
     return retagged
+
+
+def reconcile_unexpected_files(
+    version: VersionSpec, spec_dir: Path, expected_new: set[str], expected_inherited: set[str], result: SyncResult, dry_run: bool
+) -> None:
+    """Remove stray inherited files and fail on unknown specs."""
+    version_dir = spec_dir / version.name
+    if not version_dir.exists():
+        return
+
+    for path in sorted(version_dir.glob("*.http")):
+        name = path.name
+        stem = path.stem
+        if name.startswith(INHERITED_PREFIX):
+            spec_name = stem[len(INHERITED_PREFIX) :]
+            if spec_name not in expected_inherited:
+                if dry_run:
+                    result.removed.append(f"{version.name}/{name} (unexpected inherited)")
+                else:
+                    path.unlink()
+                    result.removed.append(f"{version.name}/{name}")
+            continue
+
+        if stem not in expected_new:
+            raise SpecSyncError(
+                f"Unexpected spec file '{path}' in {version.name}. Remove it or add to spec/spec.yml."
+            )
 
 
 class SpecSyncError(Exception):
@@ -381,12 +404,24 @@ def generate_version(
             env_file.write_text(env_content)
             result.generated.append(f"{version.name}/.env")
 
-    # Find existing inherited files
-    existing_inherited = scan_existing_inherited(version_dir)
-
     # Determine which specs need inherited files
     # (specs that come from other versions, not defined locally)
     new_spec_files = scan_new_specs(version_dir)
+    expected_new = set(version.new_specs)
+    expected_inherited = set(version.specs.keys()) - expected_new
+
+    missing_new = expected_new - set(new_spec_files.keys())
+    if missing_new:
+        missing_list = ", ".join(sorted(missing_new))
+        raise SpecSyncError(
+            f"Missing new spec file(s) for {version.name}: {missing_list}. "
+            f"Expected files like {version_dir}/<name>.http"
+        )
+
+    reconcile_unexpected_files(version, spec_dir, expected_new, expected_inherited, result, dry_run)
+
+    # Find existing inherited files
+    existing_inherited = scan_existing_inherited(version_dir)
 
     for spec_name, source_path in version.specs.items():
         # Skip if this is a new spec in this version (has local file)

@@ -11,7 +11,7 @@ httpyac v301 -a
 # Stop at the first failure
 httpyac v301 -a --bail
 
-# Only run leaf requests (auto-tagged with ci + version tags)
+# Only run leaf requests (tags are auto-managed by spec-sync)
 uv run spec-sync generate v301
 httpyac v301 --tag ci
 
