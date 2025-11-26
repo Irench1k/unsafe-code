@@ -1,14 +1,19 @@
 # @import ../common.http
 
-# PATCH /orders/{id}/refund/status happy path - Restaurant managers can approve/reject refunds
+# PATCH /orders/{id}/refund/status happy path
+# Tests restaurant managers can approve/reject refunds
 
-### Create an order and request a refund
+# =============================================================================
+# SETUP: Create order, deliver, and request refund
+# =============================================================================
+
+### Create cart
+# @name cart
 {{
   await platform.seed({
     squidward: 200
   });
 }}
-# @name cart
 POST /cart?restaurant_id=1
 Authorization: {{auth.basic("squidward")}}
 
@@ -47,7 +52,7 @@ status=delivered
 
 ?? js $(response).isOk() == true
 
-### Request a large refund (requires manual approval)
+### Request large refund (requires manual approval)
 # @name refund
 # @forceRef delivered
 POST /orders/{{order_id}}/refund
@@ -60,7 +65,11 @@ amount={{order_total}}&reason=Too salty
 ?? js $(response).isOk() == true
 ?? js $(response).field("status") == pending
 
-### Customer cannot update refund status
+# =============================================================================
+# AUTHORIZATION: Only restaurant can approve
+# =============================================================================
+
+### Customer cannot approve their own refund
 # @forceRef refund
 # @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/refund/status
@@ -70,6 +79,10 @@ Content-Type: application/x-www-form-urlencoded
 status=approved
 
 ?? js $(response).isError() == true
+
+# =============================================================================
+# APPROVAL FLOW
+# =============================================================================
 
 ### Restaurant manager can approve refund
 # @name approved
@@ -83,7 +96,7 @@ status=approved
 ?? js $(response).isOk() == true
 ?? js $(response).field("status") == approved
 
-### Get refund status shows approved
+### Refund status shows approved
 # @forceRef approved
 # @tag ci, r03, vulnerable
 GET /orders/{{order_id}}/refund/status

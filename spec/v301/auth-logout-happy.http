@@ -1,13 +1,17 @@
 # @import ../common.http
 
 # POST /auth/logout happy path
+# Tests logout flow and session behavior
 
-{{
-  await platform.reset();
-}}
+# =============================================================================
+# SETUP: Establish session
+# =============================================================================
 
 ### Login to establish session
 # @name login
+{{
+  await platform.reset();
+}}
 POST /auth/login
 Content-Type: application/json
 
@@ -19,8 +23,12 @@ Content-Type: application/json
 @sessionCookie = {{extractCookie(response)}}
 ?? js $(response).isOk() == true
 
+# =============================================================================
+# SESSION VALIDATION
+# =============================================================================
+
 ### Session works before logout
-# @ref login
+# @forceRef login
 # @tag ci, r03, vulnerable
 GET /account/info
 Cookie: {{sessionCookie}}
@@ -28,7 +36,11 @@ Cookie: {{sessionCookie}}
 ?? js $(response).isOk() == true
 ?? js $(response).field("email") == {{user("spongebob").email}}
 
-### Logout works
+# =============================================================================
+# LOGOUT FLOW
+# =============================================================================
+
+### Logout returns success message
 # @ref login
 # @tag ci, r03, vulnerable
 POST /auth/logout
@@ -37,13 +49,7 @@ Cookie: {{sessionCookie}}
 ?? js $(response).isOk() == true
 ?? js $(response).field("message") == Logout successful
 
-// TODO: Flask doesn't invalidate sessions server-side, only removes claims from the
-// session cookie or deletes the cookie entirely (both are client-side).
-// Consider building a vulnerability demonstration out of it? Right now our demo app
-// doesn't have any scenarios where old claims could cause a security issue.
-//### Session is invalidated after logout
-//# @forceRef login
-//GET /account/info
-//Cookie: {{sessionCookie}}
-//
-//?? js $(response).isError() == true
+# NOTE: Flask doesn't invalidate sessions server-side, only removes claims from the
+# session cookie or deletes the cookie entirely (both are client-side).
+# Consider building a vulnerability demonstration out of it? Right now our demo app
+# doesn't have any scenarios where old claims could cause a security issue.

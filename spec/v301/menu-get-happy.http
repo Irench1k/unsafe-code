@@ -1,30 +1,22 @@
 # @import ../common.http
 
 # GET /menu happy path
+# Tests public menu access and restaurant filtering
 
-### Menu is publicly accessible (no auth required)
-# @tag ci, r03, vulnerable
+# =============================================================================
+# PUBLIC ACCESS: No authentication required
+# =============================================================================
+
+### Menu is publicly accessible with expected fields
+# @name menu
 GET /menu
 
 ?? js $(response).isOk() == true
 ?? js $(response).count() > 0
 ?? js $(response).hasFields("id", "name", "price", "available", "restaurant_id") == true
 
-### Menu can be filtered by restaurant_id
-# @tag ci, r03, vulnerable
-GET /menu?restaurant_id=1
-
-?? js $(response).isOk() == true
-?? js $(response).every(item => item.restaurant_id === 1) == true
-
-### Menu can be filtered by restaurant_id (chum bucket)
-# @tag ci, r03, vulnerable
-GET /menu?restaurant_id=2
-
-?? js $(response).isOk() == true
-?? js $(response).every(item => item.restaurant_id === 2) == true
-
-### Menu is accessible with auth headers (they're ignored)
+### Menu works with Basic Auth (ignored)
+# @ref menu
 # @tag ci, r03, vulnerable
 GET /menu
 Authorization: {{auth.basic("patrick")}}
@@ -32,7 +24,8 @@ Authorization: {{auth.basic("patrick")}}
 ?? js $(response).isOk() == true
 ?? js $(response).count() > 0
 
-### Menu is accessible with cookie auth
+### Menu works with Cookie Auth (ignored)
+# @ref menu
 # @tag ci, r03, vulnerable
 GET /menu
 Cookie: {{auth.login("squidward")}}
@@ -40,7 +33,25 @@ Cookie: {{auth.login("squidward")}}
 ?? js $(response).isOk() == true
 ?? js $(response).count() > 0
 
-### Incorrect restaurant_id fails
+# =============================================================================
+# RESTAURANT FILTERING
+# =============================================================================
+
+### Filter by Krusty Krab (restaurant_id=1)
+# @tag ci, r03, vulnerable
+GET /menu?restaurant_id=1
+
+?? js $(response).isOk() == true
+?? js $(response).every(item => item.restaurant_id === 1) == true
+
+### Filter by Chum Bucket (restaurant_id=2)
+# @tag ci, r03, vulnerable
+GET /menu?restaurant_id=2
+
+?? js $(response).isOk() == true
+?? js $(response).every(item => item.restaurant_id === 2) == true
+
+### Invalid restaurant_id returns error or empty
 # @tag ci, r03, vulnerable
 GET /menu?restaurant_id=999
 

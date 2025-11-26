@@ -1,23 +1,26 @@
 # @import ../common.http
 
 # POST /cart/{id}/checkout happy path
+# Tests checkout with different auth methods and content types
 
+# =============================================================================
+# SETUP
+# =============================================================================
 
-### Create a cart and add items
+### Create cart and add single item
+# @name create_cart
 {{
   await platform.seed({
-    patrick: 200,
-    squidward: 150
+    patrick: 500
   });
 }}
-# @name create_cart
 POST /cart?restaurant_id=1
 Authorization: {{auth.basic("patrick")}}
 
 @cart_id = {{$(response).field("cart_id")}}
 ?? js $(response).status() == 201
 
-### Add item
+### Add single item
 # @name add_item
 # @forceRef create_cart
 POST /cart/{{cart_id}}/items
@@ -28,7 +31,11 @@ Content-Type: application/json
 
 ?? js $(response).isOk() == true
 
-### Checkout works with Basic Auth
+# =============================================================================
+# SINGLE ITEM CHECKOUT: Auth and content type combinations
+# =============================================================================
+
+### Checkout - Basic Auth + JSON
 # @forceRef add_item
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
@@ -40,7 +47,7 @@ Content-Type: application/json
 ?? js $(response).status() == 201
 ?? js $(response).hasFields("order_id", "total", "items") == true
 
-### Checkout with form data also works
+### Checkout - Basic Auth + Form
 # @ref add_item
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
@@ -52,7 +59,7 @@ tip=2&delivery_address=Under the Rock
 ?? js $(response).status() == 201
 ?? js $(response).hasFields("order_id", "total", "items") == true
 
-### Checkout with Cookie Auth also works
+### Checkout - Cookie Auth + JSON
 # @ref add_item
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
@@ -64,7 +71,11 @@ Content-Type: application/json
 ?? js $(response).status() == 201
 ?? js $(response).hasFields("order_id", "total", "items") == true
 
-### Multiple items in cart
+# =============================================================================
+# MULTIPLE ITEMS CHECKOUT
+# =============================================================================
+
+### Add second item
 # @name add_multiple_items
 # @forceRef add_item
 POST /cart/{{cart_id}}/items
@@ -75,7 +86,7 @@ Content-Type: application/json
 
 ?? js $(response).isOk() == true
 
-### Checkout with multiple items
+### Multiple items checkout - Basic Auth + JSON
 # @forceRef add_multiple_items
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
@@ -88,7 +99,7 @@ Content-Type: application/json
 ?? js $(response).hasFields("order_id", "total", "items") == true
 ?? js $(response).field("items").length == 2
 
-### Checkout with form data and multiple items
+### Multiple items checkout - Basic Auth + Form
 # @ref add_multiple_items
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
@@ -101,7 +112,7 @@ tip=2&delivery_address=Under the Rock
 ?? js $(response).hasFields("order_id", "total", "items") == true
 ?? js $(response).field("items").length == 2
 
-### Checkout with Cookie Auth and multiple items
+### Multiple items checkout - Cookie Auth + JSON
 # @ref add_multiple_items
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
@@ -114,7 +125,7 @@ Content-Type: application/json
 ?? js $(response).hasFields("order_id", "total", "items") == true
 ?? js $(response).field("items").length == 2
 
-### Checkout with multiple items, cookie auth and form data
+### Multiple items checkout - Cookie Auth + Form
 # @ref add_multiple_items
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout
@@ -127,7 +138,11 @@ tip=2&delivery_address=Under the Rock
 ?? js $(response).hasFields("order_id", "total", "items") == true
 ?? js $(response).field("items").length == 2
 
-### Tip is optional
+# =============================================================================
+# OPTIONAL FIELDS
+# =============================================================================
+
+### Tip is optional (defaults to 0)
 # @ref add_item
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/checkout

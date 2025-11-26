@@ -1,22 +1,32 @@
 # @import ../common.http
 
 # POST /cart/{id}/items happy path
+# Tests adding items to cart with different auth methods
 
-### Get first available & unavailable menu items
-# @tag ci, r03, vulnerable
+# =============================================================================
+# SETUP
+# =============================================================================
+
+### Get available menu item
+# @name menu
 GET /menu?restaurant_id=1
 
 @item_id = {{$(response).body().find(i => i.available).id}}
 
-### Create a cart first
+### Create cart for tests
 # @name create_cart
+# @forceRef menu
 POST /cart?restaurant_id=1
 Authorization: {{auth.basic("plankton")}}
 
 @cart_id = {{$(response).field("cart_id")}}
 ?? js $(response).status() == 201
 
-### Add item to cart works with Basic Auth
+# =============================================================================
+# ADD ITEM: Basic Auth
+# =============================================================================
+
+### Add first item with Basic Auth
 # @name cart_with_one_item
 # @forceRef create_cart
 POST /cart/{{cart_id}}/items
@@ -29,7 +39,23 @@ Content-Type: application/json
 ?? js $(response).hasFields("cart_id", "items") == true
 ?? js $(response).field("items").length == 1
 
-### Add item to cart works with Cookie Auth
+### Add second item with Basic Auth
+# @forceRef cart_with_one_item
+# @tag ci, r03, vulnerable
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isOk() == true
+?? js $(response).field("items").length == 2
+
+# =============================================================================
+# ADD ITEM: Cookie Auth
+# =============================================================================
+
+### Add first item with Cookie Auth
 # @name cart_with_one_item_cookie
 # @forceRef create_cart
 {{
@@ -45,19 +71,7 @@ Content-Type: application/json
 ?? js $(response).hasFields("cart_id", "items") == true
 ?? js $(response).field("items").length == 1
 
-### Add another item to cart
-# @forceRef cart_with_one_item
-# @tag ci, r03, vulnerable
-POST /cart/{{cart_id}}/items
-Authorization: {{auth.basic("plankton")}}
-Content-Type: application/json
-
-{ "item_id": "{{item_id}}" }
-
-?? js $(response).isOk() == true
-?? js $(response).field("items").length == 2
-
-### Add another item to cart works with Cookie Auth
+### Add second item with Cookie Auth
 # @forceRef cart_with_one_item_cookie
 # @tag ci, r03, vulnerable
 POST /cart/{{cart_id}}/items

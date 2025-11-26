@@ -2,12 +2,17 @@
 @mailpit = http://127.0.0.1:8025/api/v1
 
 # POST /auth/register happy path
+# Tests complete email verification registration flow
 
-### Registration works
-{{
-    await platform.reset();
-}}
+# =============================================================================
+# STEP 1: Initiate registration
+# =============================================================================
+
+### Start registration sends verification email
 # @name start_registration
+{{
+  await platform.reset();
+}}
 POST /auth/register
 Content-Type: application/json
 
@@ -21,9 +26,13 @@ Content-Type: application/json
 ?? js $(response).field("email") == test@example.com
 ?? js $(response).field("status") == verification_email_sent
 
-### Verification email is sent
-# @forceRef start_registration
+# =============================================================================
+# STEP 2: Verify email receipt
+# =============================================================================
+
+### Verification email is sent to correct address
 # @name find_email
+# @forceRef start_registration
 GET {{mailpit}}/messages?limit=1
 
 @email_id = {{ $(response).field("messages")[0].ID }}
@@ -32,20 +41,20 @@ GET {{mailpit}}/messages?limit=1
 ?? js $(response).field("messages")[0].From.Address == no-reply@app.cheeky.sea
 ?? js $(response).field("messages")[0].To[0].Address == test@example.com
 
-### Verification email contains token
-# @forceRef find_email
+### Verification email contains valid token
 # @name find_token
+# @forceRef find_email
 GET {{mailpit}}/message/{{email_id}}
 
 @token = {{ $(response).field("Text").match(/token=([a-zA-Z0-9\-_.]+)/)[1] }}
-
 ?? js $(response).isOk() == true
 ?? js $(response).field("Text").includes("Click the link") == true
-{{
-  console.info("Token:", token);
-}}
 
-### Token is valid and can be used to verify the account
+# =============================================================================
+# STEP 3: Complete registration
+# =============================================================================
+
+### Token completes registration and creates account
 # @forceRef find_token
 # @tag ci, r03, vulnerable
 POST /auth/register

@@ -1,10 +1,15 @@
 # @import ../common.http
 
 # POST /auth/login happy path
+# Tests successful login flow
 
-### Login works
+# =============================================================================
+# SUCCESSFUL LOGIN
+# =============================================================================
+
+### Login with valid credentials returns session cookie
 {{
-    await platform.reset();
+  await platform.reset();
 }}
 # @tag ci, r03, vulnerable
 POST /auth/login
@@ -19,3 +24,4 @@ Content-Type: application/json
 ?? js $(response).hasFields("email", "message") == true
 ?? js $(response).field("email") == {{user("spongebob").email}}
 ?? js $(response).field("message") == Login successful
+?? js extractCookie(response) != null == true

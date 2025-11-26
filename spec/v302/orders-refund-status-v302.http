@@ -1,8 +1,13 @@
 # @import ../common.http
 
-# PATCH /orders/{id}/refund/status - v302 FIX: requires restaurant ownership check
+# PATCH /orders/{id}/refund/status - v302 FIX
+# Tests that restaurant ownership is now properly checked (dual-auth exploit fixed)
 
-### Step 1: Plankton logs in and creates cart at Krusty Krab
+# =============================================================================
+# SETUP: Create order at Krusty Krab
+# =============================================================================
+
+### Plankton logs in and creates cart at Krusty Krab
 # @name cart
 {{
   await platform.seed({plankton: 200});
@@ -14,7 +19,7 @@ Cookie: {{session}}
 @cart_id = {{$(response).field("cart_id")}}
 ?? js $(response).status() == 201
 
-### Step 2: Add Krabby Patty to cart
+### Add Krabby Patty to cart
 # @name add_item
 # @forceRef cart
 POST /cart/{{cart_id}}/items
@@ -25,9 +30,9 @@ Content-Type: application/json
 
 ?? js $(response).isOk() == true
 
-### Step 3: Checkout the order
-# @forceRef add_item
+### Checkout the order
 # @name checkout
+# @forceRef add_item
 POST /cart/{{cart_id}}/checkout
 Cookie: {{session}}
 Content-Type: application/json
@@ -38,7 +43,7 @@ Content-Type: application/json
 @order_total = {{$(response).total()}}
 ?? js $(response).status() == 201
 
-### Step 4: Verify balance decreased after order
+### Verify balance decreased after order
 # @forceRef checkout
 # @tag ci, r03, vulnerable
 GET /account/credits
@@ -47,9 +52,13 @@ Cookie: {{session}}
 @balance_after = {{$(response).balance()}}
 ?? js $(response).balance() == {{200 - order_total}}
 
-### Step 5: Restaurant delivers the order
-# @forceRef checkout
+# =============================================================================
+# DELIVER ORDER
+# =============================================================================
+
+### Restaurant delivers the order
 # @name deliver_order
+# @forceRef checkout
 PATCH /orders/{{order_id}}/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}
 Content-Type: application/x-www-form-urlencoded
@@ -58,9 +67,13 @@ status=delivered
 
 ?? js $(response).isOk() == true
 
-### Step 6: Request a refund for the order (larger than auto-approve threshold)
-# @forceRef deliver_order
+# =============================================================================
+# REQUEST REFUND
+# =============================================================================
+
+### Request large refund (requires manual approval)
 # @name refund_request
+# @forceRef deliver_order
 POST /orders/{{order_id}}/refund
 Cookie: {{session}}
 Content-Type: application/x-www-form-urlencoded
@@ -70,20 +83,23 @@ amount={{order_total}}&reason=Bad service
 ?? js $(response).isOk() == true
 ?? js $(response).field("status") == pending
 
+# =============================================================================
+# v302 FIX: Dual-auth exploit blocked
+# =============================================================================
 
-### Step 7: (FIXED) Plankton cannot approve his own refund with Chum Bucket API key
+### (FIXED) Plankton cannot approve with Chum Bucket API key
 # @name approve_refund
 # @forceRef refund_request
 PATCH /orders/{{order_id}}/refund/status
 Cookie: {{session}}
-X-API-Key: key-chum-bucket-b5kg32z1je
+X-API-Key: {{auth.restaurant("chum_bucket")}}
 Content-Type: application/x-www-form-urlencoded
 
 status=approved
 
 ?? js $(response).isError() == true
 
-### Step 8: (FIXED) Plankton cannot receive his refund
+### (FIXED) Plankton's balance unchanged (exploit blocked)
 # @forceRef approve_refund
 # @tag ci, r03, vulnerable
 GET /account/credits

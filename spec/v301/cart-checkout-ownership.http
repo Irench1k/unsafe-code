@@ -3,14 +3,18 @@
 # Cart checkout ownership enforcement
 # Verifies users cannot checkout carts belonging to other users
 
-### Patrick creates a cart with items
+# =============================================================================
+# SETUP: Patrick creates a cart
+# =============================================================================
+
+### Patrick creates a cart
+# @name patricks_cart
 {{
   await platform.seed({
     patrick: 200,
     plankton: 200
   });
 }}
-# @name patricks_cart
 POST /cart?restaurant_id=1
 Authorization: {{auth.basic("patrick")}}
 
@@ -28,8 +32,12 @@ Content-Type: application/json
 
 ?? js $(response).isOk() == true
 
-### Plankton cannot checkout Patrick's cart - Basic Auth + JSON
-# @ref patricks_cart_with_item
+# =============================================================================
+# CROSS-USER PROTECTION: Plankton cannot checkout Patrick's cart
+# =============================================================================
+
+### Plankton cannot checkout - Basic Auth + JSON
+# @forceRef patricks_cart_with_item
 # @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/checkout
 Authorization: {{auth.basic("plankton")}}
@@ -39,7 +47,7 @@ Content-Type: application/json
 
 ?? js $(response).isError() == true
 
-### Plankton cannot checkout Patrick's cart - Basic Auth + Form
+### Plankton cannot checkout - Basic Auth + Form
 # @ref patricks_cart_with_item
 # @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/checkout
@@ -50,7 +58,7 @@ tip=0&delivery_address=Chum Bucket
 
 ?? js $(response).isError() == true
 
-### Plankton cannot checkout Patrick's cart - Cookie Auth + JSON
+### Plankton cannot checkout - Cookie Auth + JSON
 # @ref patricks_cart_with_item
 # @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/checkout
@@ -61,7 +69,7 @@ Content-Type: application/json
 
 ?? js $(response).isError() == true
 
-### Plankton cannot checkout Patrick's cart - Cookie Auth + Form
+### Plankton cannot checkout - Cookie Auth + Form
 # @ref patricks_cart_with_item
 # @tag ci, r03, vulnerable
 POST /cart/{{patricks_cart_id}}/checkout

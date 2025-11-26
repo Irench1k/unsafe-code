@@ -1,8 +1,13 @@
 # @import ../common.http
 
 # POST /cart happy path
+# Tests cart creation with different auth methods
 
-### Create cart with Basic Auth works
+# =============================================================================
+# AUTHENTICATION METHODS
+# =============================================================================
+
+### Create cart with Basic Auth
 # @tag ci, r03, vulnerable
 POST /cart?restaurant_id=1
 Authorization: {{auth.basic("patrick")}}
@@ -11,7 +16,7 @@ Authorization: {{auth.basic("patrick")}}
 ?? js $(response).hasFields("cart_id", "restaurant_id", "items") == true
 ?? js $(response).field("restaurant_id") == 1
 
-### Create cart with Cookie Auth works
+### Create cart with Cookie Auth
 # @tag ci, r03, vulnerable
 POST /cart?restaurant_id=1
 Cookie: {{auth.login("squidward")}}
@@ -20,7 +25,11 @@ Cookie: {{auth.login("squidward")}}
 ?? js $(response).hasFields("cart_id", "restaurant_id", "items") == true
 ?? js $(response).field("restaurant_id") == 1
 
-### Create cart for another restaurant
+# =============================================================================
+# MULTI-RESTAURANT SUPPORT
+# =============================================================================
+
+### Create cart for different restaurant
 # @tag ci, r03, vulnerable
 POST /cart?restaurant_id=2
 Authorization: {{auth.basic("plankton")}}

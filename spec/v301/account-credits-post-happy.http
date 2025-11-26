@@ -1,17 +1,18 @@
 # @import ../common.http
 
 # POST /account/credits happy path
+# Tests admin credit modification endpoint
 
+# =============================================================================
+# ADMIN CREDIT OPERATIONS
+# =============================================================================
+
+### Admin can add credits to user account
 {{
   await platform.seed({
-    plankton: 200,
-    squidward: 150,
     spongebob: 100
   });
 }}
-
-
-### Adding credits works
 # @tag ci, r03, vulnerable
 POST /account/credits
 X-Admin-API-Key: {{auth.admin()}}

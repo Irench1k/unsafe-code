@@ -1,16 +1,19 @@
 # @import ../common.http
 
 # PATCH /orders/{id}/status happy path
+# Tests order status transitions by customers and restaurants
 
+# =============================================================================
+# SETUP: Create an order
+# =============================================================================
 
-### Create an order
+### Create cart
+# @name create_order
 {{
   await platform.seed({
-    squidward: 200,
-    plankton: 200
+    squidward: 200
   });
 }}
-# @name create_order
 POST /cart?restaurant_id=1
 Authorization: {{auth.basic("squidward")}}
 
@@ -38,7 +41,11 @@ Content-Type: application/json
 @order_total = {{$(response).total()}}
 ?? js $(response).status() == 201
 
-### Squidward's balance is updated
+# =============================================================================
+# BALANCE VERIFICATION: Order charges customer
+# =============================================================================
+
+### Balance decreased after checkout
 # @forceRef checkout
 # @tag ci, r03, vulnerable
 GET /account/info
@@ -46,7 +53,11 @@ Authorization: {{auth.basic("squidward")}}
 
 ?? js $(response).field("balance") == {{200 - order_total}}
 
-### Order status requires valid status value
+# =============================================================================
+# VALIDATION: Invalid status values rejected
+# =============================================================================
+
+### Invalid status value is rejected
 # @ref checkout
 # @tag ci, r03, vulnerable
 PATCH /orders/{{order_id}}/status
@@ -56,6 +67,10 @@ Content-Type: application/x-www-form-urlencoded
 status=invalid_status
 
 ?? js $(response).isError() == true
+
+# =============================================================================
+# CUSTOMER CANCELLATION: Refunds balance
+# =============================================================================
 
 ### Customer can cancel their own order
 # @name cancelled
@@ -69,7 +84,7 @@ status=cancelled
 ?? js $(response).isOk() == true
 ?? js $(response).field("status") == cancelled
 
-### Squidward's balance is updated
+### Balance restored after customer cancellation
 # @forceRef cancelled
 # @tag ci, r03, vulnerable
 GET /account/info
@@ -77,13 +92,17 @@ Authorization: {{auth.basic("squidward")}}
 
 ?? js $(response).field("balance") == 200.00
 
-### The order is marked as cancelled
+### Order shows cancelled status
 # @ref cancelled
 # @tag ci, r03, vulnerable
 GET /orders
 Authorization: {{auth.basic("squidward")}}
 
 ?? js $(response).field("status") == cancelled
+
+# =============================================================================
+# RESTAURANT DELIVERY
+# =============================================================================
 
 ### Restaurant can mark order as delivered
 # @name deliver_order
@@ -97,7 +116,7 @@ status=delivered
 ?? js $(response).isOk() == true
 ?? js $(response).field("status") == delivered
 
-### The order is marked as delivered
+### Order shows delivered status
 # @forceRef deliver_order
 # @tag ci, r03, vulnerable
 GET /orders
@@ -105,8 +124,12 @@ Authorization: {{auth.basic("squidward")}}
 
 ?? js $(response).field("status") == delivered
 
-### Restaurant can mark order as cancelled
-# @name cancelled-restaurant
+# =============================================================================
+# RESTAURANT CANCELLATION: Refunds balance
+# =============================================================================
+
+### Restaurant can cancel order
+# @name cancelled_restaurant
 # @forceRef checkout
 PATCH /orders/{{order_id}}/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}
@@ -117,8 +140,8 @@ status=cancelled
 ?? js $(response).isOk() == true
 ?? js $(response).field("status") == cancelled
 
-### Customer receives cancellation refund
-# @forceRef cancelled-restaurant
+### Balance restored after restaurant cancellation
+# @forceRef cancelled_restaurant
 # @tag ci, r03, vulnerable
 GET /account/info
 Authorization: {{auth.basic("squidward")}}

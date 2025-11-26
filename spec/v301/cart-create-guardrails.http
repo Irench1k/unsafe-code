@@ -1,30 +1,39 @@
 # @import ../common.http
 
-# POST /cart happy path
+# POST /cart guardrails
+# Tests authentication and validation requirements
 
-### Create cart requires auth
+# =============================================================================
+# AUTHENTICATION REQUIRED
+# =============================================================================
+
+### Create cart requires authentication
 # @tag ci, r03, vulnerable
 POST /cart?restaurant_id=1
 
 ?? js $(response).isError() == true
 ?? js $(response).field("error") == Authentication required
 
-### Create cart via Basic Auth requires valid credentials
+### Create cart requires valid credentials
 # @tag ci, r03, vulnerable
 POST /cart?restaurant_id=1
-Authorization: Basic plankton@chum-bucket.sea:wrongpassword
+Authorization: Basic {{user("plankton").email}}:wrongpassword
 
 ?? js $(response).isError() == true
 ?? js $(response).field("error") == Authentication required
 
-### Create cart without restaurant_id fails
+# =============================================================================
+# RESTAURANT VALIDATION
+# =============================================================================
+
+### Create cart requires restaurant_id - Basic Auth
 # @tag ci, r03, vulnerable
 POST /cart
 Authorization: {{auth.basic("spongebob")}}
 
 ?? js $(response).isError() == true
 
-### Create cart without restaurant_id fails - Cookie Auth
+### Create cart requires restaurant_id - Cookie Auth
 # @tag ci, r03, vulnerable
 POST /cart
 Cookie: {{auth.login("spongebob")}}

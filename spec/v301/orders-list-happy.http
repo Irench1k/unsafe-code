@@ -1,24 +1,30 @@
 # @import ../common.http
 
 # GET /orders happy path
+# Tests order listing for customers and restaurants
 
+# =============================================================================
+# SETUP: Get user ID for assertions
+# =============================================================================
+
+### Get SpongeBob's user ID
+# @name spongebob
 {{
   await platform.seed({
-    plankton: 200,
-    squidward: 150,
     spongebob: 100
   });
 }}
-
-### SpongeBob's data
-# @name spongebob
 GET /account/info
 Authorization: {{auth.basic("spongebob")}}
 
 @spongebob_id = {{$(response).field("id")}}
 
-### Customer sees their own orders with Basic Auth
-# @ref spongebob
+# =============================================================================
+# CUSTOMER DATA ISOLATION
+# =============================================================================
+
+### Customer sees own orders - Basic Auth
+# @forceRef spongebob
 # @tag ci, r03, vulnerable
 GET /orders
 Authorization: {{auth.basic("spongebob")}}
@@ -26,7 +32,7 @@ Authorization: {{auth.basic("spongebob")}}
 ?? js $(response).isOk() == true
 ?? js $(response).every(o => o.user_id == spongebob_id) == true
 
-### Customer sees their own orders with Cookie Auth
+### Customer sees own orders - Cookie Auth
 # @ref spongebob
 # @tag ci, r03, vulnerable
 GET /orders
@@ -35,7 +41,11 @@ Cookie: {{auth.login("spongebob")}}
 ?? js $(response).isOk() == true
 ?? js $(response).every(o => o.user_id == spongebob_id) == true
 
-### Restaurant manager sees their restaurant's orders
+# =============================================================================
+# RESTAURANT DATA ISOLATION
+# =============================================================================
+
+### Krusty Krab sees only their restaurant's orders
 # @tag ci, r03, vulnerable
 GET /orders
 X-API-Key: {{auth.restaurant("krusty_krab")}}
@@ -44,7 +54,7 @@ X-API-Key: {{auth.restaurant("krusty_krab")}}
 ?? js $(response).every(o => o.restaurant_id === 1) == true
 ?? js $(response).hasMultipleUsers() == true
 
-### Different restaurant sees different orders
+### Chum Bucket sees only their restaurant's orders
 # @tag ci, r03, vulnerable
 GET /orders
 X-API-Key: {{auth.restaurant("chum_bucket")}}
@@ -52,7 +62,11 @@ X-API-Key: {{auth.restaurant("chum_bucket")}}
 ?? js $(response).isOk() == true
 ?? js $(response).every(o => o.restaurant_id === 2) == true
 
-### Customer with cookie still sees only their orders even with restaurant header present
+# =============================================================================
+# AUTH PRIORITY: Customer cookie takes precedence
+# =============================================================================
+
+### Cookie Auth takes precedence over restaurant key
 # @ref spongebob
 # @tag ci, r03, vulnerable
 GET /orders

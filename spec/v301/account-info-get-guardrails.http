@@ -1,16 +1,19 @@
 # @import ../common.http
 
 # GET /account/info guardrails
+# Tests authentication requirements and credential validation
 
+# =============================================================================
+# INVALID CREDENTIALS: Short username format
+# =============================================================================
+
+### Basic Auth requires correct credentials (short username)
 {{
   await platform.seed({
     plankton: 200,
-    squidward: 150,
-    spongebob: 100
+    squidward: 150
   });
 }}
-
-### Basic Auth requires correct credentials (short)
 # @tag ci, r03, vulnerable
 GET /account/info
 Authorization: Basic plankton:wrongpassword
@@ -18,7 +21,7 @@ Authorization: Basic plankton:wrongpassword
 ?? js $(response).isError() == true
 ?? js $(response).field("error") == Authentication required
 
-### Basic Auth doesn't allow empty password (short)
+### Basic Auth rejects empty password (short username)
 # @tag ci, r03, vulnerable
 GET /account/info
 Authorization: Basic plankton:
@@ -26,23 +29,31 @@ Authorization: Basic plankton:
 ?? js $(response).isError() == true
 ?? js $(response).field("error") == Authentication required
 
-### Basic Auth requires correct credentials (email)
+# =============================================================================
+# INVALID CREDENTIALS: Email format
+# =============================================================================
+
+### Basic Auth requires correct credentials (email format)
 # @tag ci, r03, vulnerable
 GET /account/info
-Authorization: Basic plankton@chum-bucket.sea:wrongpassword
+Authorization: Basic {{user("plankton").email}}:wrongpassword
 
 ?? js $(response).isError() == true
 ?? js $(response).field("error") == Authentication required
 
-### Basic Auth requires correct credentials (email)
+### Basic Auth rejects empty password (email format)
 # @tag ci, r03, vulnerable
 GET /account/info
-Authorization: Basic plankton@chum-bucket.sea:
+Authorization: Basic {{user("plankton").email}}:
 
 ?? js $(response).isError() == true
 ?? js $(response).field("error") == Authentication required
 
-### Cookie Auth takes precedence over Basic Auth
+# =============================================================================
+# AUTH PRIORITY: Cookie takes precedence
+# =============================================================================
+
+### Cookie Auth takes precedence over invalid Basic Auth
 # @tag ci, r03, vulnerable
 GET /account/info
 Cookie: {{auth.login("plankton")}}
@@ -50,6 +61,6 @@ Authorization: Basic squidward:wrongpassword
 
 ?? js $(response).isOk() == true
 ?? js $(response).hasFields("balance", "email") == true
-?? js $(response).field("email") == plankton@chum-bucket.sea
+?? js $(response).field("email") == {{user("plankton").email}}
 ?? js $(response).field("balance") == 200.00
 ?? js $(response).hasOnlyUserData("plankton") == true
