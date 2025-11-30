@@ -8,6 +8,12 @@ _uc_script_source="${BASH_SOURCE[0]:-${(%):-%N}}"
 _uc_script_dir="$(cd "$(dirname "$_uc_script_source")" && pwd)"
 export UNSAFE_CODE_ROOT="$(cd "$_uc_script_dir/../.." && pwd)"
 
+# ================================
+# Node.js Environment
+# ================================
+# uctest is now an npm package - ensure node_modules/.bin is available
+export PATH="$UNSAFE_CODE_ROOT/node_modules/.bin:$PATH"
+
 # Track current focus area
 export UC_FOCUS_AREA=""
 # Store helpful error message and resolved path for the last match attempt
@@ -304,6 +310,16 @@ ucspec-sync() {
 }
 
 # ================================
+# E2E Spec Testing
+# ================================
+
+# E2E spec test runner - uses uctest npm package
+# Use `npx uctest --help` for full documentation
+uctest() {
+    (cd "$UNSAFE_CODE_ROOT/spec" && npx uctest "$@")
+}
+
+# ================================
 # Helpful Aliases
 # ================================
 
@@ -336,6 +352,18 @@ uchelp() {
     cat << 'EOF'
 🔧 Unsafe Code Lab - Development Helpers
 
+E2E Spec Testing (fail-fast by default):
+  uctest                 Run @ci tests (stops on first failure)
+  uctest                 Run again to resume from failure
+  uctest -B              Run all tests (no fail-fast)
+  uctest @vulnerable     Run tests tagged 'vulnerable'
+  uctest @ci @vulnerable Run tests with BOTH tags (AND logic)
+  uctest :checkout       Run test named 'checkout'
+  uctest v301/orders     Run tests in specific path
+  uctest -a              Run all tests (no tag filter)
+
+  (Uses npm package from github:execveat/uctest)
+
 Focus Management:
   ucfocus r02/e03        Focus VSCode on round 2, example 3
   ucfocus <full-path>    Focus on any directory
@@ -344,6 +372,7 @@ Focus Management:
 
 Docker Compose (auto-finds compose.yml):
   ucup                   docker compose up --build
+  ucup -d                docker compose up --build --detach
   ucdown                 docker compose down
   uclogs                 docker compose logs -f
 
@@ -356,18 +385,17 @@ Navigation:
   uclist                 List examples in current round
 
 Spec Suite Management:
-  ucspec-sync            Sync e2e tests based on spec.yml (works from anywhere)
-  ucspec-sync --dry-run  Preview sync changes without modifying files
+  ucspec-sync            Sync inherited tests (generate ~files)
+  ucspec-sync status     Show version status
+  ucspec-sync --dry-run  Preview changes without modifying files
 
-Combined Workflow:
-  ucfocus r02/e03        1. Focus VSCode on example
-                         2. Navigate to that directory
-  ucup                   3. Start docker compose (finds compose.yml automatically)
-
-  # Work on your code...
-
-  ucdown                 4. Stop docker compose
-  ucunfocus              5. Clear focus when done
+Typical Development Workflow:
+  1. ucfocus r02/e03      # Focus VSCode + cd to example
+  2. ucup -d              # Start services in background
+  3. uctest               # Run tests (fail-fast)
+  4. # Fix code...
+  5. uctest               # Resume from failure
+  6. ucdown && ucunfocus  # Cleanup when done
 
 EOF
 }
