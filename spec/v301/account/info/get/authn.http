@@ -1,0 +1,62 @@
+# @import ../_imports.http
+
+# GET /account/info authentication guardrails
+# Verifies credential handling and auth precedence
+
+# =============================================================================
+# INVALID CREDENTIALS
+# =============================================================================
+
+### Basic Auth requires correct credentials (short username)
+{{
+  await platform.seed({
+    plankton: 200,
+    squidward: 150
+  });
+}}
+# @tag account, authn, r03, v301
+GET /account/info
+Authorization: Basic plankton:wrongpassword
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Basic Auth rejects empty password (short username)
+# @tag account, authn, r03, v301
+GET /account/info
+Authorization: Basic plankton:
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Basic Auth requires correct credentials (email format)
+# @tag account, authn, r03, v301
+GET /account/info
+Authorization: Basic {{user("plankton").email}}:wrongpassword
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Basic Auth rejects empty password (email format)
+# @tag account, authn, r03, v301
+GET /account/info
+Authorization: Basic {{user("plankton").email}}:
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+# =============================================================================
+# AUTH PRIORITY
+# =============================================================================
+
+### Cookie Auth takes precedence over invalid Basic Auth
+# @tag account, authn, r03, v301
+GET /account/info
+Cookie: {{auth.login("plankton")}}
+Authorization: Basic squidward:wrongpassword
+
+?? js $(response).isOk() == true
+?? js $(response).hasFields("balance", "email") == true
+?? js $(response).field("email") == {{user("plankton").email}}
+?? js $(response).field("balance") == 200.00
+?? js $(response).hasOnlyUserData("plankton") == true

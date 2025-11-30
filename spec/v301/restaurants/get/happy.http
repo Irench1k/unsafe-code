@@ -1,0 +1,17 @@
+# @import ../_imports.http
+
+# GET /restaurants happy path
+# Public restaurant listing
+
+### Restaurants list is publicly accessible with all expected data
+{{
+  await platform.reset();
+}}
+# @tag happy, r03, restaurants, v301
+GET /restaurants
+
+?? js $(response).isOk() == true
+?? js $(response).count() >= 2
+?? js $(response).body().every(r => r.id && r.name && r.description !== undefined) == true
+?? js $(response).body().some(r => r.name === "Krusty Krab") == true
+?? js $(response).body().some(r => r.name === "Chum Bucket") == true

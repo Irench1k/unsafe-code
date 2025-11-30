@@ -1,0 +1,63 @@
+# @import ../_imports.http
+
+# POST /auth/logout authentication guardrails
+# Cannot logout without being logged in first
+
+# =============================================================================
+# UNAUTHENTICATED REQUESTS
+# =============================================================================
+
+### Logout without any auth fails
+{{
+  await platform.reset();
+}}
+# @tag auth, authn, r03, v301
+POST /auth/logout
+
+?? js $(response).isError() == true
+?? js $(response).field("error") != null
+
+### Logout with invalid cookie fails
+# @tag auth, authn, r03, v301
+POST /auth/logout
+Cookie: session=invalid-session-cookie-12345
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# VALID AUTH METHODS FOR LOGOUT
+# =============================================================================
+
+### Logout works with Basic Auth
+# @tag auth, authn, r03, v301
+POST /auth/logout
+Authorization: {{auth.basic("spongebob")}}
+
+?? js $(response).isOk() == true
+?? js $(response).field("message") == Logout successful
+
+### Logout works with Cookie session
+# @name valid_session
+{{
+  await platform.reset();
+}}
+# @tag auth, authn, r03, v301
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "{{user("spongebob").email}}",
+  "password": "{{user("spongebob").password}}"
+}
+
+@sessionCookie = {{extractCookie(response)}}
+?? js $(response).isOk() == true
+
+### Logout with valid session succeeds
+# @forceRef valid_session
+# @tag auth, authn, r03, v301
+POST /auth/logout
+Cookie: {{sessionCookie}}
+
+?? js $(response).isOk() == true
+?? js $(response).field("message") == Logout successful

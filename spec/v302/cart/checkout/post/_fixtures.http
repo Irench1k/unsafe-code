@@ -1,0 +1,38 @@
+# @import ../_imports.http
+
+# Reusable checkout fixtures
+
+### Plankton creates cart
+# @name order_checkout_plankton_cart
+{{
+  await platform.seed({ plankton: 200 });
+}}
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("plankton")}}
+
+@cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Plankton adds item
+# @name order_checkout_plankton_item
+# @forceRef order_checkout_plankton_cart
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "4" }
+
+?? js $(response).isOk() == true
+
+### Plankton checks out a single-item order
+# @name order_checkout_plankton
+# @forceRef order_checkout_plankton_item
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 1 }
+
+@order_id = {{$(response).field("order_id")}}
+@order_total = {{$(response).total()}}
+?? js $(response).status() == 201

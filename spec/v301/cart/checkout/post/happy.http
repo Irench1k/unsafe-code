@@ -1,0 +1,159 @@
+# @import ../_imports.http
+
+# POST /cart/{id}/checkout happy path
+# Auth + content-type combinations and multi-item carts
+
+# =============================================================================
+# SETUP
+# =============================================================================
+
+### Create cart and add single item
+# @name create_cart
+{{
+  await platform.seed({ patrick: 500 });
+  exports.item_primary = "4";
+  exports.item_secondary = "5";
+}}
+# @tag cart, happy, r03, v301
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("patrick")}}
+
+@cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add single item
+# @name add_item
+# @forceRef create_cart
+# @tag cart, happy, r03, v301
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_primary}}" }
+
+?? js $(response).isOk() == true
+
+# =============================================================================
+# SINGLE ITEM CHECKOUT: Auth and content type combinations
+# =============================================================================
+
+### Checkout - Basic Auth + JSON
+# @forceRef add_item
+# @tag cart, happy, r03, v301
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 1 }
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+
+### Checkout - Basic Auth + Form
+# @ref add_item
+# @tag cart, happy, r03, v301
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/x-www-form-urlencoded
+
+tip=2&delivery_address=Under the Rock
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+
+### Checkout - Cookie Auth + JSON
+# @ref add_item
+# @tag cart, happy, r03, v301
+POST /cart/{{cart_id}}/checkout
+Cookie: {{auth.login("patrick")}}
+Content-Type: application/json
+
+{ "delivery_address": "Under the Rock", "tip": 2 }
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+
+# =============================================================================
+# MULTIPLE ITEMS CHECKOUT
+# =============================================================================
+
+### Add second item
+# @name add_multiple_items
+# @forceRef add_item
+# @tag cart, happy, r03, v301
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_secondary}}" }
+
+?? js $(response).isOk() == true
+
+### Multiple items checkout - Basic Auth + JSON
+# @forceRef add_multiple_items
+# @tag cart, happy, r03, v301
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "delivery_address": "Under the Rock", "tip": 2 }
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+?? js $(response).field("items").length == 2
+
+### Multiple items checkout - Basic Auth + Form
+# @ref add_multiple_items
+# @tag cart, happy, r03, v301
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/x-www-form-urlencoded
+
+tip=2&delivery_address=Under the Rock
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+?? js $(response).field("items").length == 2
+
+### Multiple items checkout - Cookie Auth + JSON
+# @ref add_multiple_items
+# @tag cart, happy, r03, v301
+POST /cart/{{cart_id}}/checkout
+Cookie: {{auth.login("patrick")}}
+Content-Type: application/json
+
+{ "delivery_address": "Under the Rock", "tip": 2 }
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+?? js $(response).field("items").length == 2
+
+### Multiple items checkout - Cookie Auth + Form
+# @ref add_multiple_items
+# @tag cart, happy, r03, v301
+POST /cart/{{cart_id}}/checkout
+Cookie: {{auth.login("patrick")}}
+Content-Type: application/x-www-form-urlencoded
+
+tip=2&delivery_address=Under the Rock
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+?? js $(response).field("items").length == 2
+
+# =============================================================================
+# OPTIONAL FIELDS
+# =============================================================================
+
+### Tip is optional (defaults to 0)
+# @ref add_item
+# @tag cart, happy, r03, v301
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "delivery_address": "Under the Rock" }
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+?? js $(response).field("tip") == 0.00

@@ -1,0 +1,63 @@
+# @import ../_imports.http
+
+# GET /orders happy path
+# Customer- and restaurant-scoped listings
+
+# =============================================================================
+# CUSTOMER DATA ISOLATION
+# =============================================================================
+
+### Customer sees own orders - Basic Auth
+# @name spongebob_orders
+{{
+  await platform.seed({ spongebob: 100 });
+}}
+# @tag happy, orders, r03, v301
+GET /orders
+Authorization: {{auth.basic("spongebob")}}
+
+?? js $(response).isOk() == true
+?? js $(response).hasOnlyUserData("spongebob") == true
+
+### Customer sees own orders - Cookie Auth
+# @ref spongebob_orders
+# @tag happy, orders, r03, v301
+GET /orders
+Cookie: {{auth.login("spongebob")}}
+
+?? js $(response).isOk() == true
+?? js $(response).hasOnlyUserData("spongebob") == true
+
+# =============================================================================
+# RESTAURANT DATA ISOLATION
+# =============================================================================
+
+### Krusty Krab sees only their restaurant's orders
+# @tag happy, orders, r03, v301
+GET /orders
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+
+?? js $(response).isOk() == true
+?? js $(response).every(o => o.restaurant_id === 1) == true
+
+### Chum Bucket sees only their restaurant's orders
+# @tag happy, orders, r03, v301
+GET /orders
+X-API-Key: {{auth.restaurant("chum_bucket")}}
+
+?? js $(response).isOk() == true
+?? js $(response).every(o => o.restaurant_id === 2) == true
+
+# =============================================================================
+# AUTH PRIORITY
+# =============================================================================
+
+### Customer cookie takes precedence over restaurant key
+# @ref spongebob_orders
+# @tag happy, orders, r03, v301
+GET /orders
+Cookie: {{auth.login("spongebob")}}
+X-API-Key: key-krusty-krub-wrongkey
+
+?? js $(response).isOk() == true
+?? js $(response).hasOnlyUserData("spongebob") == true

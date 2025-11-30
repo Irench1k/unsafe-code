@@ -1,0 +1,22 @@
+# @import ../_imports.http
+
+# POST /account/credits happy path
+# Admin credit modification
+
+### Admin can add credits to user account (form-urlencoded)
+{{
+  await platform.seed({
+    spongebob: 100
+  });
+}}
+# @tag account, happy, r03, v301
+POST /account/credits
+X-Admin-API-Key: {{auth.admin()}}
+Content-Type: application/x-www-form-urlencoded
+
+user={{user("spongebob").email}}&amount=23.45
+
+?? js $(response).isOk() == true
+?? js $(response).hasFields("balance", "email") == true
+?? js $(response).field("email") == {{user("spongebob").email}}
+?? js $(response).field("balance") == 123.45

@@ -1,0 +1,84 @@
+# @import ../_imports.http
+# @import ./happy.http
+# @import ../../../cart/checkout/post/_fixtures.http
+
+# PATCH /orders/{id}/status authorization guardrails
+# Customers can only cancel their own orders; restaurants can only manage their own
+
+# =============================================================================
+# CROSS-USER PROTECTION
+# =============================================================================
+
+### Customer cannot cancel another user's order - Basic Auth
+# @forceRef order_checkout_plankton
+# @tag authz, orders, r03, v301
+PATCH /orders/{{order_id}}/status
+Authorization: {{auth.basic("squidward")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isError() == true
+
+### Customer cannot cancel another user's order - Cookie Auth
+# @ref order_checkout_plankton
+# @tag authz, orders, r03, v301
+PATCH /orders/{{order_id}}/status
+Cookie: {{auth.login("squidward")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# CROSS-RESTAURANT PROTECTION
+# =============================================================================
+
+### Other restaurant cannot deliver order
+# @ref order_checkout_plankton
+# @tag authz, orders, r03, v301
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("chum_bucket")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+?? js $(response).isError() == true
+
+### Other restaurant cannot cancel order
+# @ref order_checkout_plankton
+# @tag authz, orders, r03, v301
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("chum_bucket")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# CUSTOMER CANNOT DELIVER
+# =============================================================================
+
+### Order owner cannot set status to delivered
+# @ref order_checkout_plankton
+# @tag authz, orders, r03, v301
+PATCH /orders/{{order_id}}/status
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+?? js $(response).isError() == true
+
+### Order owner cannot set status to delivered - Cookie Auth
+# @ref order_checkout_plankton
+# @tag authz, orders, r03, v301
+PATCH /orders/{{order_id}}/status
+Cookie: {{auth.login("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+?? js $(response).isError() == true

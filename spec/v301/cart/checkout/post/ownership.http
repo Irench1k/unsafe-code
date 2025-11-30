@@ -1,0 +1,72 @@
+# @import ../_imports.http
+# @import ./happy.http
+
+# POST /cart/{id}/checkout ownership
+# Users cannot checkout carts belonging to others
+
+### Patrick builds a cart
+# @name patricks_cart_with_item
+{{
+  await platform.seed({ patrick: 200, plankton: 200 });
+}}
+# @tag cart, r03, v301
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("patrick")}}
+
+@patricks_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add item
+# @forceRef patricks_cart_with_item
+# @tag cart, r03, v301
+POST /cart/{{patricks_cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "4" }
+
+?? js $(response).isOk() == true
+
+### Plankton cannot checkout - Basic Auth + JSON
+# @forceRef patricks_cart_with_item
+# @tag cart, r03, v301
+POST /cart/{{patricks_cart_id}}/checkout
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0 }
+
+?? js $(response).isError() == true
+
+### Plankton cannot checkout - Basic Auth + Form
+# @ref patricks_cart_with_item
+# @tag cart, r03, v301
+POST /cart/{{patricks_cart_id}}/checkout
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+tip=0&delivery_address=Chum Bucket
+
+?? js $(response).isError() == true
+
+### Plankton cannot checkout - Cookie Auth + JSON
+# @ref patricks_cart_with_item
+# @tag cart, r03, v301
+POST /cart/{{patricks_cart_id}}/checkout
+Cookie: {{auth.login("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0 }
+
+?? js $(response).isError() == true
+
+### Plankton cannot checkout - Cookie Auth + Form
+# @ref patricks_cart_with_item
+# @tag cart, r03, v301
+POST /cart/{{patricks_cart_id}}/checkout
+Cookie: {{auth.login("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+tip=0&delivery_address=Chum Bucket
+
+?? js $(response).isError() == true

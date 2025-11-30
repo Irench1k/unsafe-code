@@ -1,0 +1,30 @@
+# @import ../_imports.http
+
+# GET /account/info happy path
+# Covers Basic Auth and Cookie Auth
+
+### Basic Auth returns full account info
+{{
+  await platform.seed({
+    plankton: 200,
+    squidward: 150
+  });
+}}
+# @tag account, happy, r03, v301
+GET /account/info
+Authorization: {{auth.basic("plankton")}}
+
+?? js $(response).isOk() == true
+?? js $(response).hasFields("balance", "email", "name", "orders", "id") == true
+?? js $(response).field("email") == {{user("plankton").email}}
+?? js $(response).field("balance") == 200.00
+
+### Cookie Auth returns full account info
+# @tag account, happy, r03, v301
+GET /account/info
+Cookie: {{auth.login("squidward")}}
+
+?? js $(response).isOk() == true
+?? js $(response).hasFields("balance", "email", "name", "orders", "id") == true
+?? js $(response).field("email") == {{user("squidward").email}}
+?? js $(response).field("balance") == 150.00

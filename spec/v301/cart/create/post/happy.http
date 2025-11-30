@@ -1,0 +1,34 @@
+# @import ../_imports.http
+
+# POST /cart happy path
+# Cart creation across auth methods and restaurants
+
+### Create cart with Basic Auth
+{{
+  await platform.seed({ patrick: 200, squidward: 150, plankton: 200 });
+}}
+# @tag cart, happy, r03, v301
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("patrick")}}
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("cart_id", "restaurant_id", "items") == true
+?? js $(response).field("restaurant_id") == 1
+
+### Create cart with Cookie Auth
+# @tag cart, happy, r03, v301
+POST /cart?restaurant_id=1
+Cookie: {{auth.login("squidward")}}
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("cart_id", "restaurant_id", "items") == true
+?? js $(response).field("restaurant_id") == 1
+
+### Create cart for different restaurant
+# @tag cart, happy, r03, v301
+POST /cart?restaurant_id=2
+Authorization: {{auth.basic("plankton")}}
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("cart_id", "restaurant_id", "items") == true
+?? js $(response).field("restaurant_id") == 2

@@ -1,0 +1,31 @@
+# @import ../_imports.http
+# @import ../../login/post/happy.http
+
+# POST /auth/logout happy path
+# Validates logout flow using session from login happy path
+
+# =============================================================================
+# SESSION VALIDATION
+# =============================================================================
+
+### Session works before logout
+# @forceRef login_success
+# @tag auth, happy, r03, v301
+GET /account/info
+Cookie: {{sessionCookie}}
+
+?? js $(response).isOk() == true
+?? js $(response).field("email") == {{user("spongebob").email}}
+
+# =============================================================================
+# LOGOUT FLOW
+# =============================================================================
+
+### Logout returns success message
+# @forceRef login_success
+# @tag auth, happy, r03, v301
+POST /auth/logout
+Cookie: {{sessionCookie}}
+
+?? js $(response).isOk() == true
+?? js $(response).field("message") == Logout successful

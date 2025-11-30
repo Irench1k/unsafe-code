@@ -1,0 +1,142 @@
+# @import ../_imports.http
+
+# POST /account/credits authentication guardrails
+# Admin-only endpoint access control
+
+# =============================================================================
+# NO AUTHENTICATION
+# =============================================================================
+
+### No authentication fails - form
+{{
+  await platform.seed({
+    plankton: 200,
+    squidward: 150,
+    spongebob: 100
+  });
+}}
+# @tag account, authn, r03, v301
+POST /account/credits
+Content-Type: application/x-www-form-urlencoded
+
+user={{user("spongebob").email}}&amount=23.45
+
+?? js $(response).isError() == true
+
+### No authentication fails - JSON
+# @tag account, authn, r03, v301
+POST /account/credits
+Content-Type: application/json
+
+{
+  "user": "{{user("spongebob").email}}",
+  "amount": 23.45
+}
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# USER AUTH + INVALID ADMIN KEY
+# =============================================================================
+
+### Basic Auth + invalid admin key fails - form
+# @tag account, authn, r03, v301
+POST /account/credits
+Authorization: Basic {{auth.basic("plankton")}}
+X-Admin-API-Key: fake-invalid-key-12345
+Content-Type: application/x-www-form-urlencoded
+
+user={{user("spongebob").email}}&amount=23.45
+
+?? js $(response).isError() == true
+
+### Basic Auth + invalid admin key fails - JSON
+# @tag account, authn, r03, v301
+POST /account/credits
+Authorization: Basic {{auth.basic("plankton")}}
+X-Admin-API-Key: fake-invalid-key-12345
+Content-Type: application/json
+
+{
+  "user": "{{user("spongebob").email}}",
+  "amount": 23.45
+}
+
+?? js $(response).isError() == true
+
+### Cookie Auth + invalid admin key fails - form
+# @tag account, authn, r03, v301
+POST /account/credits
+Cookie: {{auth.login("plankton")}}
+X-Admin-API-Key: fake-invalid-key-12345
+Content-Type: application/x-www-form-urlencoded
+
+user={{user("spongebob").email}}&amount=23.45
+
+?? js $(response).isError() == true
+
+### Cookie Auth + invalid admin key fails - JSON
+# @tag account, authn, r03, v301
+POST /account/credits
+Cookie: {{auth.login("plankton")}}
+X-Admin-API-Key: fake-invalid-key-12345
+Content-Type: application/json
+
+{
+  "user": "{{user("spongebob").email}}",
+  "amount": 23.45
+}
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# WRONG KEY TYPE
+# =============================================================================
+
+### Restaurant key in admin header fails - form
+# @tag account, authn, r03, v301
+POST /account/credits
+X-Admin-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+user={{user("spongebob").email}}&amount=23.45
+
+?? js $(response).isError() == true
+
+### Restaurant key in admin header fails - JSON
+# @tag account, authn, r03, v301
+POST /account/credits
+X-Admin-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/json
+
+{
+  "user": "{{user("spongebob").email}}",
+  "amount": 23.45
+}
+
+?? js $(response).isError() == true
+
+### Restaurant key + invalid admin key fails - form
+# @tag account, authn, r03, v301
+POST /account/credits
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+X-Admin-API-Key: fake-invalid-key-12345
+Content-Type: application/x-www-form-urlencoded
+
+user={{user("spongebob").email}}&amount=23.45
+
+?? js $(response).isError() == true
+
+### Restaurant key + invalid admin key fails - JSON
+# @tag account, authn, r03, v301
+POST /account/credits
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+X-Admin-API-Key: fake-invalid-key-12345
+Content-Type: application/json
+
+{
+  "user": "{{user("spongebob").email}}",
+  "amount": 23.45
+}
+
+?? js $(response).isError() == true

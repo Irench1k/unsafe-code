@@ -1,0 +1,58 @@
+# @import ../_imports.http
+
+# GET /orders guardrails
+# Authentication requirements and isolation
+
+### Orders list requires authentication
+{{
+  await platform.seed({
+    plankton: 200,
+    squidward: 150,
+    spongebob: 100
+  });
+}}
+# @tag authn, orders, r03, v301
+GET /orders
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Customer sees only their own orders - Basic Auth
+# @tag authn, orders, r03, v301
+GET /orders
+Authorization: {{auth.basic("spongebob")}}
+
+?? js $(response).isOk() == true
+?? js $(response).hasOnlyUserData("spongebob") == true
+
+### Customer sees only their own orders - Cookie Auth
+# @tag authn, orders, r03, v301
+GET /orders
+Cookie: {{auth.login("plankton")}}
+
+?? js $(response).isOk() == true
+?? js $(response).hasOnlyUserData("plankton") == true
+
+### Restaurant manager sees only their restaurant's orders
+# @tag authn, orders, r03, v301
+GET /orders
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+
+?? js $(response).isOk() == true
+?? js $(response).every(o => o.restaurant_id === 1) == true
+
+### Different restaurant sees only their orders
+# @tag authn, orders, r03, v301
+GET /orders
+X-API-Key: {{auth.restaurant("chum_bucket")}}
+
+?? js $(response).isOk() == true
+?? js $(response).every(o => o.restaurant_id === 2) == true
+
+### Customer cookie takes precedence over restaurant header
+# @tag authn, orders, r03, v301
+GET /orders
+Cookie: {{auth.login("spongebob")}}
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+
+?? js $(response).isOk() == true

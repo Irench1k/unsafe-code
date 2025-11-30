@@ -1,0 +1,73 @@
+# @import ../_imports.http
+# @import ./happy.http
+
+# POST /cart/{id}/checkout authentication guardrails
+# Checkout requires valid customer authentication
+
+# =============================================================================
+# UNAUTHENTICATED REQUESTS
+# =============================================================================
+
+### Checkout without auth fails - JSON
+# @forceRef add_item
+# @tag authn, cart, r03, v301
+POST /cart/{{cart_id}}/checkout
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0 }
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Checkout without auth fails - Form
+# @ref add_item
+# @tag authn, cart, r03, v301
+POST /cart/{{cart_id}}/checkout
+Content-Type: application/x-www-form-urlencoded
+
+tip=0&delivery_address=Chum Bucket
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+# =============================================================================
+# INVALID CREDENTIALS
+# =============================================================================
+
+### Checkout with wrong password fails - Basic Auth
+# @ref add_item
+# @tag authn, cart, r03, v301
+POST /cart/{{cart_id}}/checkout
+Authorization: Basic {{user("patrick").email}}:wrongpassword
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0 }
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Checkout with invalid cookie fails
+# @ref add_item
+# @tag authn, cart, r03, v301
+POST /cart/{{cart_id}}/checkout
+Cookie: session=invalid-session-cookie-12345
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0 }
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# RESTAURANT API KEY NOT ALLOWED
+# =============================================================================
+
+### Restaurant API key is not valid auth for checkout
+# @ref add_item
+# @tag authn, cart, r03, v301
+POST /cart/{{cart_id}}/checkout
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0 }
+
+?? js $(response).isError() == true

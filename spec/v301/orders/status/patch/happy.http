@@ -1,0 +1,68 @@
+# @import ../_imports.http
+# @import ../../../cart/checkout/post/_fixtures.http
+
+# PATCH /orders/{id}/status happy path
+# Valid state transitions for restaurants and customers
+#
+# Restaurants: can change order status to delivered or cancelled
+# Customers: can cancel their own orders (not deliver)
+
+# =============================================================================
+# RESTAURANT STATUS TRANSITIONS
+# =============================================================================
+
+### Restaurant delivers pending order
+# @name delivered_order
+# @forceRef order_checkout_plankton
+# @tag happy, orders, r03, v301
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == delivered
+
+### Restaurant cancels pending order
+# @name cancelled_order_restaurant
+# @forceRef order_checkout_plankton
+# @tag happy, orders, r03, v301
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == cancelled
+
+# =============================================================================
+# CUSTOMER STATUS TRANSITIONS
+# =============================================================================
+
+### Customer cancels their own order with Basic Auth
+# @name cancelled_order_customer_basic
+# @forceRef order_checkout_plankton
+# @tag happy, orders, r03, v301
+PATCH /orders/{{order_id}}/status
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == cancelled
+
+### Customer cancels their own order with Cookie Auth
+# @name cancelled_order_customer_cookie
+# @forceRef order_checkout_plankton
+# @tag happy, orders, r03, v301
+PATCH /orders/{{order_id}}/status
+Cookie: {{auth.login("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == cancelled

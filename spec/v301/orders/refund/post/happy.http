@@ -1,0 +1,64 @@
+# @import ../_imports.http
+# @import ../../status/patch/happy.http
+
+# POST /orders/{id}/refund happy path
+# Refund request flow and auto-approval threshold
+
+# =============================================================================
+# SETUP: Delivered order
+# =============================================================================
+
+### Plankton's balance after checkout (before refund)
+# @name balance_after_checkout
+# @forceRef delivered_order
+# @tag happy, orders, r03, v301
+GET /account/info
+Authorization: {{auth.basic("plankton")}}
+
+?? js $(response).field("balance") == {{200 - order_total}}
+
+# =============================================================================
+# LARGE REFUND: Requires manual approval
+# =============================================================================
+
+### Large refund request (>=20% of order) creates pending refund
+# @name large_refund_pending
+# @forceRef delivered_order
+# @tag happy, orders, r03, v301
+POST /orders/{{order_id}}/refund
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+amount={{order_total}}&reason=Changed my mind
+
+@refund_id = {{$(response).field("refund_id")}}
+?? js $(response).isOk() == true
+?? js $(response).hasFields("refund_id", "amount", "status") == true
+?? js $(response).field("reason") == Changed my mind
+?? js $(response).field("amount") == {{order_total}}
+?? js $(response).field("status") == pending
+?? js $(response).field("paid") == false
+?? js $(response).field("auto_approved") == false
+
+# =============================================================================
+# SMALL REFUND: Auto-approved
+# =============================================================================
+
+### Small refund (<20% of order) is auto-approved
+# @name small_refund_auto
+# @forceRef delivered_order
+# @tag happy, orders, r03, v301
+POST /orders/{{order_id}}/refund
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+amount=0.50&reason=Changed my mind
+
+@small_refund_id = {{$(response).field("refund_id")}}
+?? js $(response).isOk() == true
+?? js $(response).hasFields("refund_id", "amount", "status") == true
+?? js $(response).field("reason") == Changed my mind
+?? js $(response).field("amount") == 0.50
+?? js $(response).field("status") == approved
+?? js $(response).field("paid") == true
+?? js $(response).field("auto_approved") == true

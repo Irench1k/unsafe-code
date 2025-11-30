@@ -1,0 +1,399 @@
+{
+  "version": "1.0",
+  "generated": "2025-11-30T11:37:47.922Z",
+  "rootDir": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post",
+  "files": {
+    "authn.http": {
+      "path": "authn.http",
+      "checksum": "961ca80ab776e3f638f1bce1004e26ef957862217b8ae3787c981cde9f8b3ecd",
+      "mtime": 1764502666425.617,
+      "size": 4493,
+      "imports": [
+        "../_imports.http"
+      ],
+      "regionIds": [
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_0",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_6",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_19",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_31",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_41",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_56",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_67",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_82",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_93",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_108",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_120",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_136",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_144"
+      ],
+      "hasGlobalRegion": true
+    },
+    "happy.http": {
+      "path": "happy.http",
+      "checksum": "7940b08cf8045677bade3714ae170d3d746eae712cacf737445dd46f08c9df61",
+      "mtime": 1764280787195.7222,
+      "size": 1635,
+      "imports": [
+        "../_imports.http"
+      ],
+      "regionIds": [
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_0",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_6",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_18",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_30",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_42",
+        "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_57"
+      ],
+      "hasGlobalRegion": true
+    }
+  },
+  "regions": {
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_0": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_0",
+      "modelId": "authn.http:0",
+      "file": "authn.http",
+      "startLine": 0,
+      "endLine": 4,
+      "tags": [],
+      "refs": [],
+      "forceRefs": [],
+      "isGlobal": true
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_6": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_6",
+      "modelId": "authn.http:6",
+      "file": "authn.http",
+      "startLine": 6,
+      "endLine": 17,
+      "name": "patrick_cart",
+      "tags": [],
+      "refs": [],
+      "forceRefs": [],
+      "isGlobal": false
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_19": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_19",
+      "modelId": "authn.http:19",
+      "file": "authn.http",
+      "startLine": 19,
+      "endLine": 29,
+      "name": "plankton_cart",
+      "tags": [],
+      "refs": [],
+      "forceRefs": [],
+      "isGlobal": false
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_31": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_31",
+      "modelId": "authn.http:31",
+      "file": "authn.http",
+      "startLine": 31,
+      "endLine": 39,
+      "tags": [
+        "authn",
+        "cart",
+        "ci",
+        "r03",
+        "v301"
+      ],
+      "refs": [],
+      "forceRefs": [
+        "patrick_cart"
+      ],
+      "isGlobal": false
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_41": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_41",
+      "modelId": "authn.http:41",
+      "file": "authn.http",
+      "startLine": 41,
+      "endLine": 54,
+      "tags": [
+        "authn",
+        "cart",
+        "ci",
+        "r03",
+        "v301"
+      ],
+      "refs": [
+        "patrick_cart"
+      ],
+      "forceRefs": [],
+      "isGlobal": false
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_56": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_56",
+      "modelId": "authn.http:56",
+      "file": "authn.http",
+      "startLine": 56,
+      "endLine": 65,
+      "tags": [
+        "authn",
+        "cart",
+        "ci",
+        "r03",
+        "v301"
+      ],
+      "refs": [
+        "patrick_cart"
+      ],
+      "forceRefs": [],
+      "isGlobal": false
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_67": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_67",
+      "modelId": "authn.http:67",
+      "file": "authn.http",
+      "startLine": 67,
+      "endLine": 80,
+      "tags": [
+        "authn",
+        "cart",
+        "ci",
+        "r03",
+        "v301"
+      ],
+      "refs": [
+        "patrick_cart"
+      ],
+      "forceRefs": [],
+      "isGlobal": false
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_82": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_82",
+      "modelId": "authn.http:82",
+      "file": "authn.http",
+      "startLine": 82,
+      "endLine": 91,
+      "tags": [
+        "authn",
+        "cart",
+        "ci",
+        "r03",
+        "v301"
+      ],
+      "refs": [
+        "patrick_cart"
+      ],
+      "forceRefs": [],
+      "isGlobal": false
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_93": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_93",
+      "modelId": "authn.http:93",
+      "file": "authn.http",
+      "startLine": 93,
+      "endLine": 106,
+      "tags": [
+        "authn",
+        "cart",
+        "ci",
+        "r03",
+        "v301"
+      ],
+      "refs": [
+        "patrick_cart"
+      ],
+      "forceRefs": [],
+      "isGlobal": false
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_108": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_108",
+      "modelId": "authn.http:108",
+      "file": "authn.http",
+      "startLine": 108,
+      "endLine": 118,
+      "tags": [
+        "authn",
+        "cart",
+        "ci",
+        "r03",
+        "v301"
+      ],
+      "refs": [],
+      "forceRefs": [
+        "patrick_cart",
+        "plankton_cart"
+      ],
+      "isGlobal": false
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_120": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_120",
+      "modelId": "authn.http:120",
+      "file": "authn.http",
+      "startLine": 120,
+      "endLine": 134,
+      "tags": [
+        "authn",
+        "cart",
+        "ci",
+        "r03",
+        "v301"
+      ],
+      "refs": [
+        "patrick_cart",
+        "plankton_cart"
+      ],
+      "forceRefs": [],
+      "isGlobal": false
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_136": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_136",
+      "modelId": "authn.http:136",
+      "file": "authn.http",
+      "startLine": 136,
+      "endLine": 142,
+      "name": "chum_bucket_cart",
+      "tags": [],
+      "refs": [],
+      "forceRefs": [],
+      "isGlobal": false
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_144": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_144",
+      "modelId": "authn.http:144",
+      "file": "authn.http",
+      "startLine": 144,
+      "endLine": 154,
+      "tags": [
+        "authn",
+        "cart",
+        "ci",
+        "r03",
+        "v301"
+      ],
+      "refs": [
+        "patrick_cart"
+      ],
+      "forceRefs": [
+        "chum_bucket_cart"
+      ],
+      "isGlobal": false
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_0": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_0",
+      "modelId": "happy.http:0",
+      "file": "happy.http",
+      "startLine": 0,
+      "endLine": 4,
+      "tags": [],
+      "refs": [],
+      "forceRefs": [],
+      "isGlobal": true
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_6": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_6",
+      "modelId": "happy.http:6",
+      "file": "happy.http",
+      "startLine": 6,
+      "endLine": 16,
+      "name": "create_cart",
+      "tags": [],
+      "refs": [],
+      "forceRefs": [],
+      "isGlobal": false
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_18": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_18",
+      "modelId": "happy.http:18",
+      "file": "happy.http",
+      "startLine": 18,
+      "endLine": 28,
+      "name": "cart_with_one_item",
+      "tags": [],
+      "refs": [],
+      "forceRefs": [
+        "create_cart"
+      ],
+      "isGlobal": false
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_30": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_30",
+      "modelId": "happy.http:30",
+      "file": "happy.http",
+      "startLine": 30,
+      "endLine": 40,
+      "tags": [
+        "cart",
+        "ci",
+        "happy",
+        "r03",
+        "v301"
+      ],
+      "refs": [],
+      "forceRefs": [
+        "cart_with_one_item"
+      ],
+      "isGlobal": false
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_42": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_42",
+      "modelId": "happy.http:42",
+      "file": "happy.http",
+      "startLine": 42,
+      "endLine": 55,
+      "name": "cart_with_one_item_cookie",
+      "tags": [],
+      "refs": [],
+      "forceRefs": [
+        "create_cart"
+      ],
+      "isGlobal": false
+    },
+    "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_57": {
+      "id": "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_57",
+      "modelId": "happy.http:57",
+      "file": "happy.http",
+      "startLine": 57,
+      "endLine": 67,
+      "tags": [
+        "cart",
+        "ci",
+        "happy",
+        "r03",
+        "v301"
+      ],
+      "refs": [],
+      "forceRefs": [
+        "cart_with_one_item_cookie"
+      ],
+      "isGlobal": false
+    }
+  },
+  "regionsByName": {
+    "patrick_cart": [
+      "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_6"
+    ],
+    "plankton_cart": [
+      "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_19"
+    ],
+    "chum_bucket_cart": [
+      "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/authn.http_136"
+    ],
+    "create_cart": [
+      "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_6"
+    ],
+    "cart_with_one_item": [
+      "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_18"
+    ],
+    "cart_with_one_item_cookie": [
+      "/Users/andrew/Projects/unsafe-code/spec/v301/cart/items/post/happy.http_42"
+    ]
+  },
+  "importGraph": {
+    "authn.http": [
+      "../_imports.http"
+    ],
+    "happy.http": [
+      "../_imports.http"
+    ]
+  },
+  "checksums": {
+    "authn.http": "961ca80ab776e3f638f1bce1004e26ef957862217b8ae3787c981cde9f8b3ecd",
+    "happy.http": "7940b08cf8045677bade3714ae170d3d746eae712cacf737445dd46f08c9df61"
+  },
+  "mtimes": {
+    "authn.http": 1764502666425.617,
+    "happy.http": 1764280787195.7222
+  }
+}

@@ -1,0 +1,70 @@
+# @import ../_imports.http
+
+# POST /cart/{id}/items happy path
+# Adding items with different auth methods
+
+### Select available item and create cart
+# @name create_cart
+{{
+  const item = menuHelper.firstAvailable(1);
+  exports.item_id = item.id;
+}}
+# @tag cart, happy, r03, v301
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("plankton")}}
+
+@cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add item with Basic Auth
+# @name cart_with_one_item
+# @forceRef create_cart
+# @tag cart, happy, r03, v301
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isOk() == true
+?? js $(response).field("items").length == 1
+
+### Add second item with Basic Auth
+# @forceRef cart_with_one_item
+# @tag cart, happy, r03, v301
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isOk() == true
+?? js $(response).field("items").length == 2
+
+### Add item with Cookie Auth
+# @name cart_with_one_item_cookie
+# @forceRef create_cart
+{{
+  exports.session = await auth.login("plankton");
+}}
+# @tag cart, happy, r03, v301
+POST /cart/{{cart_id}}/items
+Cookie: {{session}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isOk() == true
+?? js $(response).field("items").length == 1
+
+### Add second item with Cookie Auth
+# @forceRef cart_with_one_item_cookie
+# @tag cart, happy, r03, v301
+POST /cart/{{cart_id}}/items
+Cookie: {{session}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isOk() == true
+?? js $(response).field("items").length == 2

@@ -21,6 +21,7 @@
  */
 
 const crypto = require("crypto");
+const MAILPIT_BASE = process.env.MAILPIT_URL || "http://127.0.0.1:8025/api/v1";
 
 // ============================================================================
 // DATA
@@ -257,6 +258,50 @@ function user(name) {
     role: u.role,
     username, // Username for authentication
     id: userId, // User ID for database operations
+  };
+}
+
+/**
+ * Menu helper utilities
+ */
+function menuHelpers() {
+  const items = getMenu();
+  return {
+    /**
+     * Get item by id (string or number)
+     */
+    item(id) {
+      const key = id.toString();
+      const item = items[key];
+      if (!item) {
+        throw new Error(`Unknown menu item: ${id}`);
+      }
+      return item;
+    },
+    /**
+     * First available item for restaurant
+     */
+    firstAvailable(restaurantId = 1) {
+      const entry = Object.values(items).find(
+        (i) => i.restaurant_id == restaurantId && i.available
+      );
+      if (!entry) {
+        throw new Error(`No available items for restaurant ${restaurantId}`);
+      }
+      return entry;
+    },
+    /**
+     * First unavailable item for restaurant
+     */
+    firstUnavailable(restaurantId = 1) {
+      const entry = Object.values(items).find(
+        (i) => i.restaurant_id == restaurantId && !i.available
+      );
+      if (!entry) {
+        throw new Error(`No unavailable items for restaurant ${restaurantId}`);
+      }
+      return entry;
+    },
   };
 }
 
@@ -746,6 +791,36 @@ const platform = {
 };
 
 // ============================================================================
+// MAILPIT HELPERS
+// ============================================================================
+
+const mailpit = {
+  baseUrl() {
+    return MAILPIT_BASE;
+  },
+
+  async clear() {
+    await fetch(`${MAILPIT_BASE}/messages`, { method: "DELETE" });
+  },
+
+  async messages(limit = 1) {
+    const resp = await fetch(`${MAILPIT_BASE}/messages?limit=${limit}`);
+    if (!resp.ok) {
+      throw new Error(`mailpit.messages() failed: ${resp.status}`);
+    }
+    return resp.json();
+  },
+
+  async message(id) {
+    const resp = await fetch(`${MAILPIT_BASE}/message/${id}`);
+    if (!resp.ok) {
+      throw new Error(`mailpit.message(${id}) failed: ${resp.status}`);
+    }
+    return resp.json();
+  },
+};
+
+// ============================================================================
 // ORDER CALCULATIONS
 // ============================================================================
 
@@ -835,7 +910,9 @@ module.exports = function createUtils(versionOverride) {
     user,
     menu,
     order,
+    menuHelper: menuHelpers(),
     platform,
+    mailpit,
 
     // Cookie extraction
     extractCookie,

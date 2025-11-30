@@ -1,0 +1,157 @@
+# @import ../_imports.http
+
+# POST /cart/{id}/items guardrails
+# Authentication, validation, ownership, parameter pollution
+
+### Setup menu items and carts
+{{
+  await platform.seed({ patrick: 200, plankton: 200 });
+  exports.item_id = menuHelper.firstAvailable(1).id;
+  exports.unavailable_item_id = menuHelper.firstUnavailable(1).id;
+}}
+# @name patrick_cart
+# @tag authn, cart, r03, v301
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("patrick")}}
+
+@cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Plankton's cart (for pollution tests)
+# @name plankton_cart
+# @tag authn, cart, r03, v301
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("plankton")}}
+
+@plankton_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).isOk() == true
+
+# =============================================================================
+# AUTHENTICATION
+# =============================================================================
+
+### Add item requires authentication
+# @forceRef patrick_cart
+# @tag authn, cart, r03, v301
+POST /cart/{{cart_id}}/items
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isError() == true
+
+### Add item requires valid credentials
+# @ref patrick_cart
+# @tag authn, cart, r03, v301
+POST /cart/{{cart_id}}/items
+Authorization: Basic {{user("patrick").email}}:wrongpassword
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# ITEM VALIDATION
+# =============================================================================
+
+### Add item with invalid item_id fails
+# @ref patrick_cart
+# @tag authn, cart, r03, v301
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "9999" }
+
+?? js $(response).isError() == true
+
+### Add item with unavailable item_id fails
+# @ref patrick_cart
+# @tag authn, cart, r03, v301
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "{{unavailable_item_id}}" }
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# OWNERSHIP
+# =============================================================================
+
+### Cannot add items to another user's cart - Basic Auth
+# @ref patrick_cart
+# @tag authn, cart, r03, v301
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isError() == true
+
+### Cannot add items to another user's cart - Cookie Auth
+# @ref patrick_cart
+# @tag authn, cart, r03, v301
+POST /cart/{{cart_id}}/items
+Cookie: {{auth.login("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# PARAMETER POLLUTION
+# =============================================================================
+
+### Cannot inject cart_id via query + body - Basic Auth
+# @forceRef patrick_cart
+# @forceRef plankton_cart
+# @tag authn, cart, r03, v301
+POST /cart/{{cart_id}}/items?cart_id={{plankton_cart_id}}
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}", "cart_id": "{{plankton_cart_id}}" }
+
+?? js $(response).isError() == true
+
+### Cannot inject cart_id via query + body - Cookie Auth
+# @ref patrick_cart
+# @ref plankton_cart
+# @tag authn, cart, r03, v301
+POST /cart/{{cart_id}}/items?cart_id={{plankton_cart_id}}
+Cookie: {{auth.login("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}", "cart_id": "{{plankton_cart_id}}" }
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# CROSS-RESTAURANT
+# =============================================================================
+
+### Create a cart for another restaurant
+# @name chum_bucket_cart
+# @tag authn, cart, r03, v301
+POST /cart?restaurant_id=2
+Authorization: {{auth.basic("plankton")}}
+
+@chum_bucket_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Items can't be added from another restaurant
+# @forceRef chum_bucket_cart
+# @ref patrick_cart
+# @tag authn, cart, r03, v301
+POST /cart/{{chum_bucket_cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
+?? js $(response).isError() == true
