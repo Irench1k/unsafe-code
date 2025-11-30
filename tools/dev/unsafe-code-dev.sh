@@ -231,7 +231,7 @@ ucdown() {
     fi
 
     echo "🐳 Running docker compose down from: $compose_dir"
-    (cd "$compose_dir" && docker compose down "$@")
+    (cd "$compose_dir" && docker compose down --volumes --remove-orphans "$@")
 }
 
 # Docker compose logs
@@ -276,7 +276,7 @@ uclogs() {
 alias uc='cd $UNSAFE_CODE_ROOT'
 alias ucflask='cd $UNSAFE_CODE_ROOT/vulnerabilities/python/flask/confusion'
 alias ucwebapp='cd $UNSAFE_CODE_ROOT/vulnerabilities/python/flask/confusion/webapp'
-alias ucspec='cd $UNSAFE_CODE_ROOT/spec'
+alias ucspecs='cd $UNSAFE_CODE_ROOT/spec'
 
 # Quick jump to round/example (e.g., "ucgo r02/e03" or full names)
 ucgo() {
@@ -304,9 +304,11 @@ ucgo() {
 # Spec Suite Management
 # ================================
 
-# Sync e2e spec suite based on spec.yml
-ucspec-sync() {
-    (cd "$UNSAFE_CODE_ROOT" && uv run spec-sync "$@")
+# Generate inherited e2e spec files based on spec.yml
+# Usage: ucspec [versions...] [-n|--dry-run] [-v|--verbose]
+#        ucspec clean [versions...]
+ucsync() {
+    (cd "$UNSAFE_CODE_ROOT" && uv run ucspec "$@")
 }
 
 # ================================
@@ -353,14 +355,14 @@ uchelp() {
 🔧 Unsafe Code Lab - Development Helpers
 
 E2E Spec Testing (fail-fast by default):
-  uctest                 Run @ci tests (stops on first failure)
-  uctest                 Run again to resume from failure
-  uctest -B              Run all tests (no fail-fast)
+  uctest                 Run tests (stops on first failure)
+  uctest --resume        Run again to resume from failure
+  uctest -k              Run all tests (keep going after failures)
   uctest @vulnerable     Run tests tagged 'vulnerable'
-  uctest @ci @vulnerable Run tests with BOTH tags (AND logic)
+  uctest @v301 @vulnerable Run tests with BOTH tags (AND logic)
   uctest :checkout       Run test named 'checkout'
   uctest v301/orders     Run tests in specific path
-  uctest -a              Run all tests (no tag filter)
+  uctest -a              Run all tests (default mode executes minimal subset)
 
   (Uses npm package from github:execveat/uctest)
 
@@ -380,14 +382,15 @@ Navigation:
   uc                     Jump to repo root
   ucflask                Jump to Flask confusion directory
   ucwebapp               Jump to webapp directory
-  ucspec                 Jump to e2e spec directory
+  ucspecs                Jump to e2e spec directory
   ucgo r02/e03           Jump to specific round/example
   uclist                 List examples in current round
 
 Spec Suite Management:
-  ucspec-sync            Sync inherited tests (generate ~files)
-  ucspec-sync status     Show version status
-  ucspec-sync --dry-run  Preview changes without modifying files
+  ucsync                 Generate inherited tests (default action)
+  ucsync v302            Generate for specific version
+  ucsync -n              Preview changes (dry-run)
+  ucsync clean           Remove all inherited files
 
 Typical Development Workflow:
   1. ucfocus r02/e03      # Focus VSCode + cd to example

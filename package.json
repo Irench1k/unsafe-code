@@ -6,7 +6,6 @@
   },
   "scripts": {
     "uctest": "uctest",
-    "test": "uctest @ci"
   },
   "dependencies": {
     "uctest": "github:execveat/uctest"

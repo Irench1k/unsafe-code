@@ -135,7 +135,7 @@ Run tests:
 npx uctest spec/v301/
 
 # Run tests with specific tags
-npx uctest @ci
+npx uctest @happy
 
 # Run a specific test by name
 npx uctest :checkout
