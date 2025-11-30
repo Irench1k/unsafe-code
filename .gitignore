@@ -229,7 +229,6 @@ coverage/
 dist/
 build/
 pnpm-lock.yaml
-package-lock.json
 yarn.lock
 
 # Java
@@ -265,8 +264,11 @@ docker-compose.override.yml
 *.bak
 *.bak.*
 
-# E2E Spec Suite - inherited files (generated via `uv run spec-sync generate`)
+# E2E Spec Suite - inherited files (generated via `ucsync`)
+# Note: ~*.http files are gitignored but uctest runs from ./spec/ to work around
+# globby's .gitignore-from-cwd behavior. Running from repo root won't find these.
 spec/**/~*.http
-# Legacy format (for migration)
-spec/**/*.inherited.*.http
-!spec/**/.env
+
+# uctest transient files (created wherever uctest runs)
+.uctest-state
+.uctest-deps
