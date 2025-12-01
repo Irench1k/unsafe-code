@@ -1,6 +1,6 @@
 # @import ../_imports.http
 # @import ./happy.http
-# @import ../../../cart/checkout/post/_fixtures.http
+# @import ../../../cart/checkout/post/happy.http
 
 # PATCH /orders/{id}/status transitions & guardrails
 # State machine enforcement and access control
@@ -113,7 +113,7 @@ status=delivered
 # @forceRef delivered_order
 # @tag orders, r03, v301
 PATCH /orders/{{order_id}}/status
-Authorization: {{auth.basic("squidward")}}
+Authorization: {{auth.basic("spongebob")}}
 Content-Type: application/x-www-form-urlencoded
 
 status=cancelled

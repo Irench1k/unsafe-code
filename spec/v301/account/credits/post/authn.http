@@ -11,8 +11,7 @@
 {{
   await platform.seed({
     plankton: 200,
-    squidward: 150,
-    spongebob: 100
+    spongebob: 150
   });
 }}
 # @tag account, authn, r03, v301
@@ -42,7 +41,7 @@ Content-Type: application/json
 ### Basic Auth + invalid admin key fails - form
 # @tag account, authn, r03, v301
 POST /account/credits
-Authorization: Basic {{auth.basic("plankton")}}
+Authorization: {{auth.basic("plankton")}}
 X-Admin-API-Key: fake-invalid-key-12345
 Content-Type: application/x-www-form-urlencoded
 
@@ -53,7 +52,7 @@ user={{user("spongebob").email}}&amount=23.45
 ### Basic Auth + invalid admin key fails - JSON
 # @tag account, authn, r03, v301
 POST /account/credits
-Authorization: Basic {{auth.basic("plankton")}}
+Authorization: {{auth.basic("plankton")}}
 X-Admin-API-Key: fake-invalid-key-12345
 Content-Type: application/json
 

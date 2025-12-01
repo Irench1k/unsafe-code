@@ -44,7 +44,7 @@ Content-Type: application/json
 # @ref patrick_cart
 # @tag authn, cart, r03, v301
 POST /cart/{{cart_id}}/items
-Authorization: Basic {{user("patrick").email}}:wrongpassword
+Authorization: {{auth.basic("patrick", "wrongpassword")}}
 Content-Type: application/json
 
 { "item_id": "{{item_id}}" }

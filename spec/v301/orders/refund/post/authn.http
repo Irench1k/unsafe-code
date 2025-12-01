@@ -1,6 +1,6 @@
 # @import ../_imports.http
 # @import ../../status/patch/happy.http
-# @import ../../../cart/checkout/post/_fixtures.http
+# @import ../../../cart/checkout/post/happy.http
 
 # POST /orders/{id}/refund guardrails
 # Authentication, state, and duplicate protections
@@ -73,7 +73,7 @@ amount=0.50
 # @forceRef delivered_order
 # @tag authn, orders, r03, v301
 POST /orders/{{order_id}}/refund
-Authorization: {{auth.basic("squidward")}}
+Authorization: {{auth.basic("spongebob")}}
 Content-Type: application/x-www-form-urlencoded
 
 amount=1.00

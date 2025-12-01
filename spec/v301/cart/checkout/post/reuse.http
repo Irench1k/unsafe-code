@@ -1,12 +1,12 @@
 # @import ../_imports.http
-# @import ./happy.http
+# @import ../../items/post/happy.http
 
 # POST /cart/{id}/checkout reuse isolation
 # Reusing a cart after checkout should create new orders
 
 ### First checkout from happy path cart
 # @name first_order
-# @forceRef add_item
+# @forceRef cart_with_one_item
 # @tag cart, r03, v301
 POST /cart/{{cart_id}}/checkout
 Authorization: {{auth.basic("patrick")}}
@@ -20,12 +20,13 @@ Content-Type: application/json
 ### Re-add item after checkout to reuse cart
 # @name cart_reloaded
 # @forceRef first_order
+# @ucskip endpoint
 # @tag cart, r03, v301
 POST /cart/{{cart_id}}/items
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
 
-{ "item_id": "{{item_secondary}}" }
+{ "item_id": {{item_secondary}} }
 
 ?? js $(response).isOk() == true
 
@@ -46,12 +47,13 @@ Content-Type: application/json
 ### Add another item and checkout again
 # @name cart_with_more_items
 # @forceRef second_order
+# @ucskip endpoint
 # @tag cart, r03, v301
 POST /cart/{{cart_id}}/items
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
 
-{ "item_id": "{{item_secondary}}" }
+{ "item_id": {{item_secondary}} }
 
 ?? js $(response).isOk() == true
 

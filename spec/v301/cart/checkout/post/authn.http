@@ -1,5 +1,5 @@
 # @import ../_imports.http
-# @import ./happy.http
+# @import ../../items/post/happy.http
 
 # POST /cart/{id}/checkout authentication guardrails
 # Checkout requires valid customer authentication
@@ -9,7 +9,7 @@
 # =============================================================================
 
 ### Checkout without auth fails - JSON
-# @forceRef add_item
+# @forceRef cart_with_one_item
 # @tag authn, cart, r03, v301
 POST /cart/{{cart_id}}/checkout
 Content-Type: application/json
@@ -20,7 +20,7 @@ Content-Type: application/json
 ?? js $(response).field("error") == Authentication required
 
 ### Checkout without auth fails - Form
-# @ref add_item
+# @ref cart_with_one_item
 # @tag authn, cart, r03, v301
 POST /cart/{{cart_id}}/checkout
 Content-Type: application/x-www-form-urlencoded
@@ -35,10 +35,10 @@ tip=0&delivery_address=Chum Bucket
 # =============================================================================
 
 ### Checkout with wrong password fails - Basic Auth
-# @ref add_item
+# @ref cart_with_one_item
 # @tag authn, cart, r03, v301
 POST /cart/{{cart_id}}/checkout
-Authorization: Basic {{user("patrick").email}}:wrongpassword
+Authorization: {{auth.basic("patrick", "wrongpassword")}}
 Content-Type: application/json
 
 { "delivery_address": "Chum Bucket", "tip": 0 }
@@ -47,7 +47,7 @@ Content-Type: application/json
 ?? js $(response).field("error") == Authentication required
 
 ### Checkout with invalid cookie fails
-# @ref add_item
+# @ref cart_with_one_item
 # @tag authn, cart, r03, v301
 POST /cart/{{cart_id}}/checkout
 Cookie: session=invalid-session-cookie-12345
@@ -62,7 +62,7 @@ Content-Type: application/json
 # =============================================================================
 
 ### Restaurant API key is not valid auth for checkout
-# @ref add_item
+# @ref cart_with_one_item
 # @tag authn, cart, r03, v301
 POST /cart/{{cart_id}}/checkout
 X-API-Key: {{auth.restaurant("krusty_krab")}}

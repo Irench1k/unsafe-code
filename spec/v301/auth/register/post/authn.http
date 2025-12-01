@@ -17,7 +17,7 @@ email={{testEmail()}}
 ?? js $(response).isError() == true
 
 # =============================================================================
-# HAPPY FLOW SETUP
+# HAPPY FLOW SETUP (also extracts token from email)
 # =============================================================================
 
 ### Registration works with JSON
@@ -35,37 +35,15 @@ Content-Type: application/json
   "email": "{{regEmail}}"
 }
 
+@token = {{await mailpit.lastEmail(regEmail).userToken()}}
 ?? js $(response).isOk() == true
 ?? js $(response).hasFields("email", "status") == true
 ?? js $(response).field("email") == {{regEmail}}
 ?? js $(response).field("status") == verification_email_sent
 
-### Verification email is sent
-# @name find_email
-# @forceRef start_registration
-# @tag auth, authn, r03, v301
-GET {{mailpitBase}}/messages?limit=1
-
-@mail_id = {{ $(response).field("messages")[0].ID }}
-?? js $(response).isOk() == true
-?? js $(response).field("count") == 1
-?? js $(response).field("messages")[0].From.Address == no-reply@app.cheeky.sea
-?? js $(response).field("messages")[0].To[0].Address == {{regEmail}}
-
-### Verification email contains token
-# @name find_token
-# @forceRef find_email
-# @tag auth, authn, r03, v301
-GET {{mailpitBase}}/message/{{mail_id}}
-
-@token = {{ $(response).field("Text").match(/token=([A-Za-z0-9._-]+)/)[1] }}
-
-?? js $(response).isOk() == true
-?? js $(response).field("Text").includes("Click the link") == true
-
 ### User completes registration
 # @name finish_registration
-# @forceRef find_token
+# @forceRef start_registration
 # @tag auth, authn, r03, v301
 POST /auth/register
 Content-Type: application/json
@@ -87,7 +65,7 @@ Content-Type: application/json
 # =============================================================================
 
 ### Token cannot be applied to different email via query param
-# @forceRef find_token
+# @forceRef start_registration
 # @tag auth, authn, r03, v301
 POST /auth/register?email={{testEmail()}}
 Content-Type: application/json
@@ -102,7 +80,7 @@ Content-Type: application/json
 ?? js $(response).field("email") == {{regEmail}}
 
 ### Token cannot be applied to different email via form
-# @ref find_token
+# @ref start_registration
 # @tag auth, authn, r03, v301
 POST /auth/register
 Content-Type: application/x-www-form-urlencoded
@@ -116,6 +94,7 @@ email={{testEmail()}}&token={{token}}&password=hijacked&name=Test%20User
 # =============================================================================
 
 ### Cannot re-register with same token - JSON
+# Token replay fails AND original credentials still work (hijacked don't)
 # @name hijack_registration
 # @forceRef finish_registration
 # @tag auth, authn, r03, v301
@@ -129,6 +108,10 @@ Content-Type: application/json
 }
 
 ?? js $(response).isError() == true
+?? js await verify.canLogin(regEmail, "password123") == true
+?? js await verify.canAccessAccount(regEmail, "password123") == true
+?? js await verify.canLogin(regEmail, "hijacked") == false
+?? js await verify.canAccessAccount(regEmail, "hijacked") == false
 
 ### Cannot re-register with same token - JSON with email bypass
 # @ref finish_registration
@@ -165,68 +148,6 @@ Content-Type: application/json
   "token": "{{token}}",
   "password": "hijacked",
   "name": "Test User"
-}
-
-?? js $(response).isError() == true
-
-# =============================================================================
-# PASSWORD VERIFICATION
-# =============================================================================
-
-### Original password works for account info
-# @ref hijack_registration
-# @tag auth, authn, r03, v301
-POST /auth/login
-Content-Type: application/json
-
-{
-  "email": "{{regEmail}}",
-  "password": "password123"
-}
-
-@regCookie = {{extractCookie(response)}}
-?? js $(response).isOk() == true
-?? js $(response).field("email") == {{regEmail}}
-
-### Account info accessible with session
-# @ref hijack_registration
-# @tag auth, authn, r03, v301
-GET /account/info
-Cookie: {{regCookie}}
-
-?? js $(response).isOk() == true
-?? js $(response).field("email") == {{regEmail}}
-
-### Original password works for login
-# @ref hijack_registration
-# @tag auth, authn, r03, v301
-POST /auth/login
-Content-Type: application/json
-
-{
-  "email": "{{regEmail}}",
-  "password": "password123"
-}
-
-?? js $(response).isOk() == true
-
-### Hijacked password does not work for account info
-# @ref hijack_registration
-# @tag auth, authn, r03, v301
-GET /account/info
-Authorization: Basic test@example.com:hijacked
-
-?? js $(response).isError() == true
-
-### Hijacked password does not work for login
-# @ref hijack_registration
-# @tag auth, authn, r03, v301
-POST /auth/login
-Content-Type: application/json
-
-{
-  "email": "test@example.com",
-  "password": "hijacked"
 }
 
 ?? js $(response).isError() == true

@@ -2,48 +2,33 @@
 
 # GET /account/info authentication guardrails
 # Verifies credential handling and auth precedence
+# NOTE: Username format testing (shortId vs email) lives in account/credits/get/authn.http
 
 # =============================================================================
 # INVALID CREDENTIALS
 # =============================================================================
 
-### Basic Auth requires correct credentials (short username)
+### Basic Auth requires correct credentials
 {{
   await platform.seed({
     plankton: 200,
-    squidward: 150
+    spongebob: 150
   });
 }}
 # @tag account, authn, r03, v301
 GET /account/info
-Authorization: Basic plankton:wrongpassword
+Authorization: {{auth.basic("plankton", "wrongpassword")}}
 
 ?? js $(response).isError() == true
-?? js $(response).field("error") == Authentication required
+?? js $(response).field("error")?.includes("Authentication required") == true
 
-### Basic Auth rejects empty password (short username)
+### Basic Auth rejects empty password
 # @tag account, authn, r03, v301
 GET /account/info
-Authorization: Basic plankton:
+Authorization: {{auth.basic("plankton", "")}}
 
 ?? js $(response).isError() == true
-?? js $(response).field("error") == Authentication required
-
-### Basic Auth requires correct credentials (email format)
-# @tag account, authn, r03, v301
-GET /account/info
-Authorization: Basic {{user("plankton").email}}:wrongpassword
-
-?? js $(response).isError() == true
-?? js $(response).field("error") == Authentication required
-
-### Basic Auth rejects empty password (email format)
-# @tag account, authn, r03, v301
-GET /account/info
-Authorization: Basic {{user("plankton").email}}:
-
-?? js $(response).isError() == true
-?? js $(response).field("error") == Authentication required
+?? js $(response).field("error")?.includes("Authentication required") == true
 
 # =============================================================================
 # AUTH PRIORITY
@@ -53,7 +38,7 @@ Authorization: Basic {{user("plankton").email}}:
 # @tag account, authn, r03, v301
 GET /account/info
 Cookie: {{auth.login("plankton")}}
-Authorization: Basic squidward:wrongpassword
+Authorization: Basic spongebob:wrongpassword
 
 ?? js $(response).isOk() == true
 ?? js $(response).hasFields("balance", "email") == true

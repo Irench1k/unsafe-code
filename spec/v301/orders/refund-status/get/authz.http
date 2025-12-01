@@ -8,7 +8,7 @@
 # @forceRef refund_approved
 # @tag authz, orders, r03, v301
 GET /orders/{{order_id}}/refund/status
-Authorization: {{auth.basic("squidward")}}
+Authorization: {{auth.basic("spongebob")}}
 
 ?? js $(response).isError() == true
 ?? js $(response).field("error") != null

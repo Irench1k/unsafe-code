@@ -1,6 +1,2 @@
 # Auth register imports
 # @import ../../_imports.http
-{{
-  // Expose mailpit base URL for http requests
-  exports.mailpitBase = mailpit.baseUrl();
-}}

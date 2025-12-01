@@ -7,7 +7,7 @@
 {{
   await platform.seed({
     plankton: 200,
-    squidward: 150,
+    spongebob: 150,
     spongebob: 100
   });
 }}

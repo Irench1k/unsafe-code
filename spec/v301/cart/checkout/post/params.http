@@ -1,60 +1,18 @@
 # @import ../_imports.http
-# @import ./happy.http
+# @import ../../items/post/happy.http
 
 # POST /cart/{id}/checkout parameter pollution & restaurant immutability
-
-### Two users with their own carts
-# @name patricks_cart_with_item
-{{
-  await platform.seed({ patrick: 200, plankton: 500 });
-}}
-# @tag cart, r03, v301
-POST /cart?restaurant_id=1
-Authorization: {{auth.basic("patrick")}}
-
-@patricks_cart_id = {{$(response).field("cart_id")}}
-?? js $(response).status() == 201
-
-### Patrick adds item
-# @forceRef patricks_cart_with_item
-# @tag cart, r03, v301
-POST /cart/{{patricks_cart_id}}/items
-Authorization: {{auth.basic("patrick")}}
-Content-Type: application/json
-
-{ "item_id": "4" }
-
-?? js $(response).isOk() == true
-
-### Plankton creates own cart
-# @name planktons_cart_with_item
-# @forceRef patricks_cart_with_item
-# @tag cart, r03, v301
-POST /cart?restaurant_id=1
-Authorization: {{auth.basic("plankton")}}
-
-@planktons_cart_id = {{$(response).field("cart_id")}}
-?? js $(response).status() == 201
-
-### Plankton adds item to own cart
-# @forceRef planktons_cart_with_item
-# @tag cart, r03, v301
-POST /cart/{{planktons_cart_id}}/items
-Authorization: {{auth.basic("plankton")}}
-Content-Type: application/json
-
-{ "item_id": "5" }
-
-?? js $(response).isOk() == true
 
 # =============================================================================
 # CART ID INJECTION
 # =============================================================================
 
 ### Injection via query param fails
-# @forceRef planktons_cart_with_item
+# Attempts to checkout Patrick's cart while injecting Plankton's cart_id
+# @forceRef cart_with_one_item
+# @forceRef cart_with_one_item_plankton
 # @tag cart, r03, v301
-POST /cart/{{patricks_cart_id}}/checkout?cart_id={{planktons_cart_id}}
+POST /cart/{{cart_id}}/checkout?cart_id={{plankton_cart_id}}
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/json
 
@@ -63,35 +21,35 @@ Content-Type: application/json
 ?? js $(response).isError() == true
 
 ### Injection via body param fails
-# @ref planktons_cart_with_item
+# @ref cart_with_one_item_plankton
 # @tag cart, r03, v301
-POST /cart/{{patricks_cart_id}}/checkout
+POST /cart/{{cart_id}}/checkout
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/json
 
-{ "delivery_address": "Chum Bucket", "tip": 0, "cart_id": "{{planktons_cart_id}}" }
+{ "delivery_address": "Chum Bucket", "tip": 0, "cart_id": "{{plankton_cart_id}}" }
 
 ?? js $(response).isError() == true
 
 ### Injection via query + body fails - Basic Auth
-# @ref planktons_cart_with_item
+# @ref cart_with_one_item_plankton
 # @tag cart, r03, v301
-POST /cart/{{patricks_cart_id}}/checkout?cart_id={{planktons_cart_id}}
+POST /cart/{{cart_id}}/checkout?cart_id={{plankton_cart_id}}
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/json
 
-{ "delivery_address": "Chum Bucket", "tip": 0, "cart_id": "{{planktons_cart_id}}" }
+{ "delivery_address": "Chum Bucket", "tip": 0, "cart_id": "{{plankton_cart_id}}" }
 
 ?? js $(response).isError() == true
 
 ### Injection via query + body fails - Cookie Auth
-# @ref planktons_cart_with_item
+# @ref cart_with_one_item_plankton
 # @tag cart, r03, v301
-POST /cart/{{patricks_cart_id}}/checkout?cart_id={{planktons_cart_id}}
+POST /cart/{{cart_id}}/checkout?cart_id={{plankton_cart_id}}
 Cookie: {{auth.login("plankton")}}
 Content-Type: application/json
 
-{ "delivery_address": "Chum Bucket", "tip": 0, "cart_id": "{{planktons_cart_id}}" }
+{ "delivery_address": "Chum Bucket", "tip": 0, "cart_id": "{{plankton_cart_id}}" }
 
 ?? js $(response).isError() == true
 
@@ -99,49 +57,10 @@ Content-Type: application/json
 # RESTAURANT ID IMMUTABILITY
 # =============================================================================
 
-### Fresh cart for restaurant checks
-# @name restaurant_cart_with_item
-{{
-  await platform.reset();
-  await platform.seed({ plankton: 500 });
-  exports.restaurant_item_id = menuHelper.firstAvailable(1).id;
-}}
-# @tag cart, r03, v301
-POST /cart?restaurant_id=1
-Authorization: {{auth.basic("plankton")}}
-
-@restaurant_cart_id = {{$(response).field("cart_id")}}
-?? js $(response).status() == 201
-
-### Plankton adds item to cart
-# @forceRef restaurant_cart_with_item
-# @tag cart, r03, v301
-POST /cart/{{restaurant_cart_id}}/items
-Authorization: {{auth.basic("plankton")}}
-Content-Type: application/json
-
-{ "item_id": "{{restaurant_item_id}}" }
-
-?? js $(response).isOk() == true
-?? js $(response).field("items").length > 0
-
-### Reload cart before each checkout
-# @name restaurant_cart_ready
-# @forceRef restaurant_cart_with_item
-# @tag cart, r03, v301
-POST /cart/{{restaurant_cart_id}}/items
-Authorization: {{auth.basic("plankton")}}
-Content-Type: application/json
-
-{ "item_id": "{{restaurant_item_id}}" }
-
-?? js $(response).isOk() == true
-?? js $(response).field("items").length > 0
-
 ### Restaurant ID ignored via query - JSON
-# @forceRef restaurant_cart_ready
+# @ref cart_with_one_item_plankton
 # @tag cart, r03, v301
-POST /cart/{{restaurant_cart_id}}/checkout?restaurant_id=2
+POST /cart/{{plankton_cart_id}}/checkout?restaurant_id=2
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/json
 
@@ -151,9 +70,9 @@ Content-Type: application/json
 ?? js $(response).field("restaurant_id") == 1
 
 ### Restaurant ID ignored via body - JSON
-# @forceRef restaurant_cart_ready
+# @ref cart_with_one_item_plankton
 # @tag cart, r03, v301
-POST /cart/{{restaurant_cart_id}}/checkout
+POST /cart/{{plankton_cart_id}}/checkout
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/json
 
@@ -163,9 +82,9 @@ Content-Type: application/json
 ?? js $(response).field("restaurant_id") == 1
 
 ### Restaurant ID ignored via query + body - JSON
-# @forceRef restaurant_cart_ready
+# @ref cart_with_one_item_plankton
 # @tag cart, r03, v301
-POST /cart/{{restaurant_cart_id}}/checkout?restaurant_id=2
+POST /cart/{{plankton_cart_id}}/checkout?restaurant_id=2
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/json
 
@@ -175,9 +94,9 @@ Content-Type: application/json
 ?? js $(response).field("restaurant_id") == 1
 
 ### Restaurant ID ignored via query + body - Form
-# @forceRef restaurant_cart_ready
+# @ref cart_with_one_item_plankton
 # @tag cart, r03, v301
-POST /cart/{{restaurant_cart_id}}/checkout?restaurant_id=2
+POST /cart/{{plankton_cart_id}}/checkout?restaurant_id=2
 Authorization: {{auth.basic("plankton")}}
 Content-Type: application/x-www-form-urlencoded
 

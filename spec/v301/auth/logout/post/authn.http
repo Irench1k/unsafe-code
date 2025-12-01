@@ -1,4 +1,5 @@
 # @import ../_imports.http
+# @import ../../login/post/happy.http
 
 # POST /auth/logout authentication guardrails
 # Cannot logout without being logged in first
@@ -36,25 +37,8 @@ Authorization: {{auth.basic("spongebob")}}
 ?? js $(response).isOk() == true
 ?? js $(response).field("message") == Logout successful
 
-### Logout works with Cookie session
-# @name valid_session
-{{
-  await platform.reset();
-}}
-# @tag auth, authn, r03, v301
-POST /auth/login
-Content-Type: application/json
-
-{
-  "email": "{{user("spongebob").email}}",
-  "password": "{{user("spongebob").password}}"
-}
-
-@sessionCookie = {{extractCookie(response)}}
-?? js $(response).isOk() == true
-
 ### Logout with valid session succeeds
-# @forceRef valid_session
+# @forceRef login_success
 # @tag auth, authn, r03, v301
 POST /auth/logout
 Cookie: {{sessionCookie}}

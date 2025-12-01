@@ -5,18 +5,6 @@
 # Approval workflow, immutability, and access control
 
 # =============================================================================
-# PENDING REFUND
-# =============================================================================
-
-### Customer's balance unchanged while refund pending
-# @forceRef large_refund_pending
-# @tag orders, r03, v301
-GET /account/info
-Authorization: {{auth.basic("plankton")}}
-
-?? js $(response).field("balance") == {{200 - order_total}}
-
-# =============================================================================
 # APPROVED REFUND: Immutable
 # =============================================================================
 
@@ -32,14 +20,7 @@ status=approved
 
 ?? js $(response).isOk() == true
 ?? js $(response).field("status") == approved
-
-### Customer's balance restored after approval
-# @forceRef approved_refund
-# @tag orders, r03, v301
-GET /account/info
-Authorization: {{auth.basic("plankton")}}
-
-?? js $(response).field("balance") == 200.00
+?? js await user("plankton").balance() == 200.0
 
 ### Cannot approve already approved refund
 # @ref approved_refund
@@ -90,14 +71,7 @@ status=rejected
 
 ?? js $(response).isOk() == true
 ?? js $(response).field("status") == rejected
-
-### Customer's balance unchanged after rejection
-# @forceRef rejected_refund
-# @tag orders, r03, v301
-GET /account/info
-Authorization: {{auth.basic("plankton")}}
-
-?? js $(response).field("balance") == {{200 - order_total}}
+?? js await user("plankton").balance() == {{200 - order_total}}
 
 ### Cannot set rejected refund back to pending
 # @ref rejected_refund

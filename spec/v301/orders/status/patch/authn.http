@@ -1,5 +1,5 @@
 # @import ../_imports.http
-# @import ../../../cart/checkout/post/_fixtures.http
+# @import ../../../cart/checkout/post/happy.http
 
 # PATCH /orders/{id}/status authentication guardrails
 # Order status updates require valid customer or restaurant authentication
@@ -27,7 +27,7 @@ status=cancelled
 # @ref order_checkout_plankton
 # @tag authn, orders, r03, v301
 PATCH /orders/{{order_id}}/status
-Authorization: Basic {{user("plankton").email}}:wrongpassword
+Authorization: {{auth.basic("plankton", "wrongpassword")}}
 Content-Type: application/x-www-form-urlencoded
 
 status=cancelled

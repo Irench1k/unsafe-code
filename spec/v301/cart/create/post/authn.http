@@ -13,7 +13,7 @@ POST /cart?restaurant_id=1
 ### Create cart requires valid credentials
 # @tag authn, cart, r03, v301
 POST /cart?restaurant_id=1
-Authorization: Basic {{user("plankton").email}}:wrongpassword
+Authorization: {{auth.basic("plankton", "wrongpassword")}}
 
 ?? js $(response).isError() == true
 ?? js $(response).field("error") == Authentication required

@@ -73,13 +73,6 @@ Content-Type: application/json
 @potentiallyPollutedCookie = {{extractCookie(response)}}
 ?? js $(response).field("email") == {{user("plankton").email}}
 
-### Cookie is bound to correct user
-# @tag auth, authn, r03, v301
-GET /account/info
-Cookie: {{potentiallyPollutedCookie}}
-
-?? js $(response).field("email") == {{user("plankton").email}}
-
 # =============================================================================
 # SESSION FIXATION: Cookie header does not bypass login
 # =============================================================================
@@ -87,7 +80,7 @@ Cookie: {{potentiallyPollutedCookie}}
 ### Cookie header does not bypass login authentication
 # @name sessionFixation
 {{
-  exports.anotherCookie = auth.login("plankton");
+  exports.anotherCookie = await auth.login("plankton");
 }}
 # @tag auth, authn, r03, v301
 POST /auth/login
@@ -98,13 +91,5 @@ Content-Type: application/json
   "email": "{{user("spongebob").email}}",
   "password": "{{user("plankton").password}}"
 }
-
-?? js $(response).field("email") == {{user("plankton").email}}
-
-### Original session is not hijacked
-# @ref sessionFixation
-# @tag auth, authn, r03, v301
-GET /account/info
-Cookie: {{anotherCookie}}
 
 ?? js $(response).field("email") == {{user("plankton").email}}

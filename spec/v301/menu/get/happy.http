@@ -10,7 +10,7 @@
 ### Menu is publicly accessible
 # @name menu
 {{
-  await platform.seed({ plankton: 200, squidward: 150, patrick: 200 });
+  await platform.seed({ plankton: 200, spongebob: 150, patrick: 200 });
 }}
 # @tag happy, menu, r03, v301
 GET /menu
@@ -32,7 +32,7 @@ Authorization: {{auth.basic("patrick")}}
 # @ref menu
 # @tag happy, menu, r03, v301
 GET /menu
-Cookie: {{auth.login("squidward")}}
+Cookie: {{auth.login("spongebob")}}
 
 ?? js $(response).isOk() == true
 ?? js $(response).count() > 0

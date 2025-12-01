@@ -1,5 +1,5 @@
 # @import ../_imports.http
-# @import ../../../cart/checkout/post/_fixtures.http
+# @import ../../../cart/checkout/post/happy.http
 
 # PATCH /orders/{id}/status happy path
 # Valid state transitions for restaurants and customers
