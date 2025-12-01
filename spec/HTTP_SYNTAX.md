@@ -227,6 +227,36 @@ For dynamically created users (e.g., registration tests):
 }}
 ```
 
+## Suppression Directives `@ucskip`
+
+Skip linter checks for specific requests (useful for multi-step exploits or verification steps):
+
+```http
+# @ucskip              # Suppress all checks (method + endpoint)
+# @ucskip endpoint     # Suppress endpoint jurisdiction only
+# @ucskip method       # Suppress method mismatch only
+# @ucskip fake-test    # Suppress fake test warning
+```
+
+**When to use:**
+- Verification steps in exploit chains (e.g., `GET /account/info` to verify hijack)
+- Setup requests that cross endpoint boundaries (e.g., `GET /menu` for price lookup)
+- Impact validation requests (e.g., checking balance after exploit)
+
+**Example:**
+```http
+### Verify hijack succeeded
+# @forceRef exploit_step
+# @ucskip
+# @tag auth, r02, v205, vulnerable
+GET /account/info
+Cookie: {{hijacked_cookie}}
+
+?? js $(response).fieldEquals("email", "victim@example.com") == true
+```
+
+---
+
 ## Common Gotchas
 
 ### Assertion Execution Order

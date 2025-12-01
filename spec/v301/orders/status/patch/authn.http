@@ -1,5 +1,5 @@
 # @import ../_imports.http
-# @import ../../../cart/checkout/post/happy.http
+# @import ../../../cart/checkout/post/_fixtures.http
 
 # PATCH /orders/{id}/status authentication guardrails
 # Order status updates require valid customer or restaurant authentication

@@ -1,0 +1,12 @@
+# @import ../_imports.http
+
+# POST /auth/register - Content type validation
+
+### Registration fails with urlencoded body
+# @tag auth, r03, v301
+POST /auth/register
+Content-Type: application/x-www-form-urlencoded
+
+email={{testEmail()}}
+
+?? js $(response).isError() == true

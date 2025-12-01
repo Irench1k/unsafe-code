@@ -1,6 +1,6 @@
 # @import ../_imports.http
 # @import ../../status/patch/happy.http
-# @import ../../../cart/checkout/post/happy.http
+# @import ../../../cart/checkout/post/_fixtures.http
 
 # POST /orders/{id}/refund guardrails
 # Authentication, state, and duplicate protections

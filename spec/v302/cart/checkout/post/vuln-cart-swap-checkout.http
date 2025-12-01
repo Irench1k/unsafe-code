@@ -33,6 +33,7 @@
     plankton: 200
   });
 }}
+# @ucskip
 # @tag cart, r03, v302, vulnerable
 GET /menu
 
@@ -58,6 +59,7 @@ Authorization: {{auth.basic("plankton")}}
 ### Add expensive item to expensive cart
 # @name expensive_cart_with_item
 # @forceRef expensive_cart
+# @ucskip endpoint
 # @tag cart, r03, v302, vulnerable
 POST /cart/{{expensive_cart_id}}/items
 Authorization: {{auth.basic("plankton")}}
@@ -88,6 +90,7 @@ Cookie: {{session}}
 ### Add cheap item to cheap cart
 # @name cheap_cart_with_item
 # @forceRef cheap_cart
+# @ucskip endpoint
 # @tag cart, r03, v302, vulnerable
 POST /cart/{{cheap_cart_id}}/items
 Cookie: {{session}}
@@ -122,6 +125,7 @@ Content-Type: application/json
 
 ### Received EXPENSIVE items (Ultimate Krabby Feast)
 # @forceRef exploit_checkout
+# @ucskip
 # @tag cart, r03, v302, vulnerable
 GET /orders
 Cookie: {{session}}
@@ -133,6 +137,7 @@ Cookie: {{session}}
 
 ### Only charged for CHEAP items (Krabby Patty + delivery fee)
 # @ref exploit_checkout
+# @ucskip
 # @tag cart, r03, v302, vulnerable
 GET /account/info
 Cookie: {{session}}

@@ -20,6 +20,7 @@
 {{
   exports.planktonCookie = await auth.login("plankton");
 }}
+# @ucskip
 # @tag orders, r03, v302
 GET /account/credits
 Cookie: {{planktonCookie}}
@@ -46,6 +47,7 @@ status=approved
 
 ### (FIXED) Balance unchanged (exploit blocked)
 # @forceRef refund_request
+# @ucskip
 # @tag orders, r03, v302
 GET /account/credits
 Cookie: {{planktonCookie}}

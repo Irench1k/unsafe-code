@@ -8,15 +8,11 @@
 #   - No availability field in items
 #   - Single restaurant model
 
-### Setup: Reset database
-# @name seed
+### List menu items (no auth required)
+# @name menu_list
 {{
   await platform.reset();
 }}
-
-### List menu items (no auth required)
-# @name menu_list
-# @forceRef seed
 # @tag happy, menu, r02, v205
 GET /menu
 

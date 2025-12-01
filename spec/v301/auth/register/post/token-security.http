@@ -1,64 +1,8 @@
 # @import ../_imports.http
+# @import happy.http
 
-# POST /auth/register guardrails
-# Email verification flow protections and token replay tests
-
-# =============================================================================
-# CONTENT TYPE VALIDATION
-# =============================================================================
-
-### Registration fails with urlencoded body
-# @tag auth, authn, r03, v301
-POST /auth/register
-Content-Type: application/x-www-form-urlencoded
-
-email={{testEmail()}}
-
-?? js $(response).isError() == true
-
-# =============================================================================
-# HAPPY FLOW SETUP (also extracts token from email)
-# =============================================================================
-
-### Registration works with JSON
-# @name start_registration
-{{
-    await platform.reset();
-    await mailpit.clear();
-    exports.regEmail = testEmail("reg");
-}}
-# @tag auth, authn, r03, v301
-POST /auth/register
-Content-Type: application/json
-
-{
-  "email": "{{regEmail}}"
-}
-
-@token = {{await mailpit.lastEmail(regEmail).userToken()}}
-?? js $(response).isOk() == true
-?? js $(response).hasFields("email", "status") == true
-?? js $(response).field("email") == {{regEmail}}
-?? js $(response).field("status") == verification_email_sent
-
-### User completes registration
-# @name finish_registration
-# @forceRef start_registration
-# @tag auth, authn, r03, v301
-POST /auth/register
-Content-Type: application/json
-
-{
-  "email": "{{regEmail}}",
-  "token": "{{token}}",
-  "password": "password123",
-  "name": "Test User"
-}
-
-?? js $(response).isOk() == true
-?? js $(response).hasFields("email", "status") == true
-?? js $(response).field("email") == {{regEmail}}
-?? js $(response).field("status") == user_created
+# POST /auth/register - Token security
+# Hijacking and replay attack prevention
 
 # =============================================================================
 # TOKEN HIJACKING
@@ -66,7 +10,7 @@ Content-Type: application/json
 
 ### Token cannot be applied to different email via query param
 # @forceRef start_registration
-# @tag auth, authn, r03, v301
+# @tag auth, r03, v301
 POST /auth/register?email={{testEmail()}}
 Content-Type: application/json
 
@@ -81,7 +25,7 @@ Content-Type: application/json
 
 ### Token cannot be applied to different email via form
 # @ref start_registration
-# @tag auth, authn, r03, v301
+# @tag auth, r03, v301
 POST /auth/register
 Content-Type: application/x-www-form-urlencoded
 
@@ -97,7 +41,7 @@ email={{testEmail()}}&token={{token}}&password=hijacked&name=Test%20User
 # Token replay fails AND original credentials still work (hijacked don't)
 # @name hijack_registration
 # @forceRef finish_registration
-# @tag auth, authn, r03, v301
+# @tag auth, r03, v301
 POST /auth/register
 Content-Type: application/json
 
@@ -115,7 +59,7 @@ Content-Type: application/json
 
 ### Cannot re-register with same token - JSON with email bypass
 # @ref finish_registration
-# @tag auth, authn, r03, v301
+# @tag auth, r03, v301
 POST /auth/register
 Content-Type: application/json
 
@@ -130,7 +74,7 @@ Content-Type: application/json
 
 ### Cannot re-register with same token - form
 # @ref finish_registration
-# @tag auth, authn, r03, v301
+# @tag auth, r03, v301
 POST /auth/register
 Content-Type: application/x-www-form-urlencoded
 
@@ -140,7 +84,7 @@ email={{testEmail()}}&token={{token}}&password=hijacked&name=Test%20User
 
 ### Cannot re-register with same token - query param
 # @ref finish_registration
-# @tag auth, authn, r03, v301
+# @tag auth, r03, v301
 POST /auth/register?email={{testEmail()}}
 Content-Type: application/json
 

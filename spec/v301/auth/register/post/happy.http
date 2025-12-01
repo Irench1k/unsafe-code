@@ -34,6 +34,7 @@ Content-Type: application/json
 # =============================================================================
 
 ### Token completes registration and creates account
+# @name finish_registration
 # @forceRef start_registration
 # @tag auth, happy, r03, v301
 POST /auth/register

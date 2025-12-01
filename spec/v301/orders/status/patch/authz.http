@@ -1,6 +1,6 @@
 # @import ../_imports.http
 # @import ./happy.http
-# @import ../../../cart/checkout/post/happy.http
+# @import ../../../cart/checkout/post/_fixtures.http
 
 # PATCH /orders/{id}/status authorization guardrails
 # Customers can only cancel their own orders; restaurants can only manage their own
