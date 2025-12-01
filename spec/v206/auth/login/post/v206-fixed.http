@@ -1,0 +1,61 @@
+# @import ../_imports.http
+
+# FIXED: Session Overwrite No Longer Works
+#
+# In v205, an attacker could hijack another user's session by:
+# 1. Logging in legitimately (get a valid session cookie)
+# 2. Sending another login request with victim's email (wrong password)
+# 3. The server would overwrite session["email"] without re-authenticating
+#
+# v206 FIXES this by checking credentials BEFORE modifying session state.
+
+### Setup: Seed test users
+# @name seed_v206
+{{
+  await platform.seed({ plankton: 200, spongebob: 150 });
+}}
+
+### Plankton logs in legitimately
+# @name plankton_login_v206
+# @forceRef seed_v206
+# @tag auth, r02, v206
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "{{user("plankton").email}}",
+  "password": "{{user("plankton").password}}"
+}
+
+{{
+  exports.plankton_cookie = extractCookie(response);
+}}
+?? js $(response).status() == 200
+
+### Attempt session hijack (BLOCKED in v206)
+# @name hijack_blocked
+# @forceRef plankton_login_v206
+# @tag auth, r02, v206
+POST /auth/login
+Cookie: {{plankton_cookie}}
+Content-Type: application/json
+
+{
+  "email": "{{user("spongebob").email}}",
+  "password": "wrong_password_doesnt_matter"
+}
+
+# v206 BLOCKS the hijack - the response should NOT contain SpongeBob's email
+# It may return an error, or return success with Plankton's session unchanged
+?? js $(response).field("email") != "spongebob@krusty-krab.sea"
+
+### Verify: Session still belongs to Plankton (hijack failed)
+# @name verify_no_hijack
+# @forceRef hijack_blocked
+# @tag auth, r02, v206
+GET /account/info
+Cookie: {{plankton_cookie}}
+
+# Session should still be Plankton's, NOT SpongeBob's
+?? js $(response).status() == 200
+?? js $(response).fieldEquals("email", "plankton@chum-bucket.sea") == true
