@@ -258,6 +258,53 @@ function user(name) {
     role: u.role,
     username, // Username for authentication
     id: userId, // User ID for database operations
+
+    /**
+     * Check if user can login with given password (defaults to correct password).
+     * For predefined users in USERS database.
+     *
+     * Example:
+     *   ?? js await user("plankton").canLogin() == true
+     *   ?? js await user("plankton").canLogin("wrongpw") == false
+     */
+    async canLogin(password = null) {
+      const pw = password ?? u.password;
+      try {
+        const resp = await fetch(
+          `${config.baseUrl}/${config.version}/auth/login`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: u.email, password: pw }),
+          }
+        );
+        return resp.ok;
+      } catch {
+        return false;
+      }
+    },
+
+    /**
+     * Get user's current balance.
+     *
+     * Example:
+     *   ?? js await user("plankton").balance() == 200
+     */
+    async balance() {
+      const basicHeader = `Basic ${Buffer.from(`${username}:${u.password}`).toString("base64")}`;
+      const resp = await fetch(
+        `${config.baseUrl}/${config.version}/account/credits`,
+        {
+          headers: { Authorization: basicHeader },
+        }
+      );
+      if (!resp.ok) {
+        throw new Error(`user("${name}").balance() failed: ${resp.status}`);
+      }
+      const body = await resp.json().catch(() => ({}));
+      const val = body?.balance ?? body?.data?.balance;
+      return parseFloat(val);
+    },
   };
 }
 
@@ -312,12 +359,14 @@ function menuHelpers() {
 const auth = {
   // Basic Auth header (version-aware)
   // Example: Authorization: {{auth.basic("plankton")}}
-  basic(userName) {
+  //          Authorization: {{auth.basic("plankton", "wrongpassword")}}  // test wrong pw
+  basic(userName, password = null) {
     const config = getConfig();
     const u = user(userName);
+    const pw = password ?? u.password;
     const credentials = config.usesEmails
-      ? `${u.email}:${u.password}`
-      : `${u.shortId}:${u.password}`;
+      ? `${u.email}:${pw}`
+      : `${u.shortId}:${pw}`;
     return `Basic ${Buffer.from(credentials).toString("base64")}`;
   },
 
@@ -795,28 +844,121 @@ const platform = {
 // ============================================================================
 
 const mailpit = {
-  baseUrl() {
-    return MAILPIT_BASE;
-  },
-
+  /**
+   * Clear all messages from mailpit
+   */
   async clear() {
     await fetch(`${MAILPIT_BASE}/messages`, { method: "DELETE" });
   },
 
-  async messages(limit = 1) {
-    const resp = await fetch(`${MAILPIT_BASE}/messages?limit=${limit}`);
-    if (!resp.ok) {
-      throw new Error(`mailpit.messages() failed: ${resp.status}`);
+  /**
+   * Get the last email sent to a specific address.
+   * Returns an object with methods to extract different token types.
+   *
+   * Example:
+   *   @token = {{ await mailpit.lastEmail(regEmail).userToken() }}
+   *
+   * @param {string} toAddress - Email address to search for
+   */
+  lastEmail(toAddress) {
+    const fetchEmailBody = async () => {
+      // Search for emails to this address
+      const searchResp = await fetch(
+        `${MAILPIT_BASE}/search?query=to:${encodeURIComponent(toAddress)}&limit=1`
+      );
+      if (!searchResp.ok) {
+        throw new Error(`mailpit.lastEmail("${toAddress}") search failed: ${searchResp.status}`);
+      }
+      const searchData = await searchResp.json();
+      if (!searchData.messages?.length) {
+        throw new Error(`No email found for ${toAddress}`);
+      }
+
+      // Fetch full message to get body
+      const msgResp = await fetch(`${MAILPIT_BASE}/message/${searchData.messages[0].ID}`);
+      if (!msgResp.ok) {
+        throw new Error(`mailpit.lastEmail("${toAddress}") message fetch failed: ${msgResp.status}`);
+      }
+      return msgResp.json();
+    };
+
+    return {
+      /**
+       * Extract user registration token from email body.
+       * Looks for pattern: token=<alphanumeric>
+       */
+      async userToken() {
+        const msg = await fetchEmailBody();
+        const match = msg.Text.match(/token=([A-Za-z0-9._-]+)/);
+        if (!match) {
+          throw new Error(`No user token found in email to ${toAddress}`);
+        }
+        return match[1];
+      },
+
+      /**
+       * Extract restaurant verification token from email body.
+       * To be implemented when restaurant verification feature is added.
+       */
+      async restaurantToken() {
+        throw new Error("restaurantToken() not yet implemented");
+      },
+    };
+  },
+};
+
+// ============================================================================
+// VERIFY (for dynamically created users, e.g., registration tests)
+// ============================================================================
+
+const verify = {
+  /**
+   * Check if credentials can successfully login.
+   * For dynamically created accounts (e.g., registration tests).
+   * Use user("plankton").canLogin() for predefined users instead.
+   *
+   * Example:
+   *   ?? js await verify.canLogin(regEmail, "password123") == true
+   *   ?? js await verify.canLogin(regEmail, "hijacked") == false
+   */
+  async canLogin(email, password) {
+    try {
+      const config = getConfig();
+      const resp = await fetch(
+        `${config.baseUrl}/${config.version}/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }
+      );
+      return resp.ok;
+    } catch {
+      return false;
     }
-    return resp.json();
   },
 
-  async message(id) {
-    const resp = await fetch(`${MAILPIT_BASE}/message/${id}`);
-    if (!resp.ok) {
-      throw new Error(`mailpit.message(${id}) failed: ${resp.status}`);
+  /**
+   * Check if credentials can access account info.
+   * For dynamically created accounts (e.g., registration tests).
+   *
+   * Example:
+   *   ?? js await verify.canAccessAccount(regEmail, "password123") == true
+   */
+  async canAccessAccount(email, password) {
+    try {
+      const config = getConfig();
+      const basic = `Basic ${Buffer.from(`${email}:${password}`).toString("base64")}`;
+      const resp = await fetch(
+        `${config.baseUrl}/${config.version}/account/info`,
+        {
+          headers: { Authorization: basic },
+        }
+      );
+      return resp.ok;
+    } catch {
+      return false;
     }
-    return resp.json();
   },
 };
 
@@ -913,6 +1055,7 @@ module.exports = function createUtils(versionOverride) {
     menuHelper: menuHelpers(),
     platform,
     mailpit,
+    verify,
 
     // Cookie extraction
     extractCookie,

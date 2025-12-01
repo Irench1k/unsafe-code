@@ -148,9 +148,34 @@ All matching tags are applied to all requests in matching files. uctest handles 
 
 ## Utilities (utils.cjs)
 
-- Auth helpers: `auth.basic`, `auth.login`, `auth.restaurant`, `auth.admin`.
-- Platform helpers: `platform.seed`, `platform.reset` (seed already resets), `order.balanceAfter`, `order.total`, `menuHelper.firstAvailable`, response wrapper `$(response)` (`status()`, `isOk()`, `isError()`, `field()`, `hasFields()`, `hasOnlyUserData()`).
-- Place calculations in JS assertions, not handwritten arithmetic.
+**Auth helpers:**
+- `auth.basic("plankton")` - Basic Auth header (version-aware username)
+- `auth.basic("plankton", "wrongpw")` - Test with wrong password
+- `auth.login("plankton")` - Get session cookie for known user
+- `auth.restaurant("krusty_krab")` - Restaurant API key
+- `auth.admin()` - Admin API key
+
+**User helpers:**
+- `user("plankton").email`, `.shortId`, `.password`, `.id` - User properties
+- `user("plankton").canLogin()` - Async check if user can login
+- `user("plankton").canLogin("wrongpw")` - Test wrong password
+- `user("plankton").balance()` - Get current balance
+
+**Dynamic user verification** (for registration tests):
+- `verify.canLogin(email, password)` - Check arbitrary credentials
+- `verify.canAccessAccount(email, password)` - Check account access
+
+**Platform helpers:**
+- `platform.seed({ plankton: 200 })` - Reset and seed balances
+- `platform.reset()` - Reset database state
+
+**Response wrapper `$(response)`:**
+- `.status()`, `.isOk()`, `.isError()` - Status checks
+- `.field("email")`, `.hasFields("email", "balance")` - Data access
+- `.hasOnlyUserData("plankton")` - Ownership validation
+- `.total()`, `.balance()` - Financial data (already parsed as float)
+
+**See [HTTP_SYNTAX.md](./HTTP_SYNTAX.md)** for complete syntax reference and common gotchas.
 
 ## Authoring Checklist
 

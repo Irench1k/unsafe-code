@@ -14,12 +14,13 @@
   exports.user = utils.user;
   exports.menu = utils.menu;
   exports.menuHelper = utils.menuHelper;
+  exports.order = utils.order;
   exports.platform = utils.platform;
   exports.mailpit = utils.mailpit;
   exports.extractCookie = utils.extractCookie;
   exports.versionAtLeast = utils.versionAtLeast;
   exports.url = utils.url;
-  exports.platform = utils.platform;
+  exports.verify = utils.verify;
 
   // Convenience utilities
   exports.testEmail = utils.testEmail;
