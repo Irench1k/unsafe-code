@@ -1,0 +1,30 @@
+# @import ../_imports.http
+# @import ../../../cart/checkout/post/happy.http
+
+# GET /orders happy path
+# List orders with different auth methods
+#
+# Exports (for @forceRef by other tests):
+#   orders_plankton - Plankton's orders (Basic Auth)
+#   orders_cookie - Orders with Cookie Auth
+
+### List orders with Basic Auth (after checkout)
+# @name orders_plankton
+# @forceRef checkout_completed
+# @tag happy, orders, r02, v205
+GET /orders
+Authorization: {{auth.basic("plankton")}}
+
+?? js $(response).status() == 200
+?? js $(response).count() >= 1
+?? js $(response).hasOnlyUserData("plankton") == true
+
+### List orders with Cookie Auth
+# @name orders_cookie
+# @forceRef checkout_completed_cookie
+# @tag happy, orders, r02, v205
+GET /orders
+Cookie: {{session}}
+
+?? js $(response).status() == 200
+?? js $(response).count() >= 1

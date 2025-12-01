@@ -1,0 +1,37 @@
+# @import ../_imports.http
+# @import ../../items/post/happy.http
+
+# POST /cart/{id}/checkout happy path
+# Checkout flow with different auth methods
+#
+# Exports (for @forceRef by other tests):
+#   checkout_completed - Plankton's completed order (Basic Auth)
+#   checkout_completed_cookie - Plankton's completed order (Cookie Auth)
+
+### Checkout with Basic Auth
+# @name checkout_completed
+# @forceRef cart_with_one_item
+# @tag cart, happy, r02, v205
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "124 Conch Street, Bikini Bottom" }
+
+@order_id = {{$(response).field("order_id")}}
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+
+### Checkout with Cookie Auth
+# @name checkout_completed_cookie
+# @forceRef cart_with_one_item_cookie
+# @tag cart, happy, r02, v205
+POST /cart/{{cart_id}}/checkout
+Cookie: {{session}}
+Content-Type: application/json
+
+{ "delivery_address": "The Chum Bucket, Bikini Bottom" }
+
+@order_id_cookie = {{$(response).field("order_id")}}
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
