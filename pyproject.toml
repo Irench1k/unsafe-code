@@ -23,6 +23,7 @@ dev = [
 docs = "tools.docs.cli:docs_main"
 focus = "tools.focus:main"
 ucspec = "tools.ucspec:main"
+uclint = "tools.uclint:main"
 
 
 [build-system]

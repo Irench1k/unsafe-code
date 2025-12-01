@@ -321,6 +321,12 @@ uctest() {
     (cd "$UNSAFE_CODE_ROOT/spec" && npx uctest "$@")
 }
 
+# E2E spec linter - checks for jurisdiction violations, fake tests, etc.
+# Use `uv run uclint --help` for full documentation
+uclint() {
+    (cd "$UNSAFE_CODE_ROOT" && uv run uclint "$@")
+}
+
 # ================================
 # Helpful Aliases
 # ================================
@@ -365,6 +371,12 @@ E2E Spec Testing (fail-fast by default):
   uctest -a              Run all tests (default mode executes minimal subset)
 
   (Uses npm package from github:execveat/uctest)
+
+Spec Linting:
+  uclint                 Lint spec suite for violations
+  uclint v302            Lint specific version
+  uclint --all           Lint all versions
+  uclint --strict        Exit non-zero on any issue (for CI)
 
 Focus Management:
   ucfocus r02/e03        Focus VSCode on round 2, example 3
