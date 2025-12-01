@@ -1,6 +1,10 @@
 from flask import Blueprint
 
-from ..database.repository import find_all_menu_items, find_menu_items_by_restaurant, find_restaurant_by_id
+from ..database.repository import (
+    find_all_menu_items,
+    find_menu_items_by_restaurant,
+    find_restaurant_by_id,
+)
 from ..database.services import serialize_menu_items
 from ..utils import get_restaurant_id, require_condition, success_response
 

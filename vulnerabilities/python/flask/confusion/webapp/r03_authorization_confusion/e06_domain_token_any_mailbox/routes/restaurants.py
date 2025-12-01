@@ -12,12 +12,12 @@ from ..database.repository import (
     find_restaurant_by_id,
 )
 from ..database.services import (
+    create_restaurant,
     serialize_menu_item,
     serialize_menu_items,
     serialize_restaurant,
     serialize_restaurants,
 )
-from ..database.services import create_restaurant
 from ..utils import (
     created_response,
     get_param,
