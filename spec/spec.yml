@@ -76,6 +76,11 @@ v205:
   inherits: v204
   description: Session Overwrite Vulnerability (r02/e05)
   tags: [r02, v205]
+  exclude:
+    # v205 has local overrides that differ from v201's inherited versions
+    - account/credits/get/happy.http  # Tests different response fields
+    - cart/items/post/happy.http      # Different test assertions
+    - cart/create/post/happy.http     # Different test assertions
 
 v206:
   inherits: v205
@@ -101,6 +106,10 @@ v301:
     - cart/items/post/pollution.http
     # v301 returns tip as decimal string "0.00" vs v206's numeric 0
     - cart/checkout/post/validation.http
+    # v301 has local overrides with different test assertions
+    - orders/refund/post/happy.http
+    - orders/refund-status/patch/happy.http
+    - orders/refund-status/get/happy.http
 
   # Pattern-based tag additions (glob patterns)
   tag_rules:
