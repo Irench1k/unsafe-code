@@ -130,3 +130,95 @@ By the end of r03, these roles are enforced:
 **Endpoints:** `PATCH /menu/{id}`
 
 _Aftermath: Sandy figures out she needs to standardize on a common way to pass the restaurant ID to the endpoints, so she adds a `bind_to_restaurant()` helper to auto-detect it and keep handlers tiny._
+
+---
+
+#### [v304] Body Override Leaks Competitor Orders
+
+> Sandy’s integration SDK, mobile app, and soon-to-exist manager UI all send restaurant identifiers differently, so she adds `bind_to_restaurant()` to auto-detect them and keep handlers tiny.
+
+**The Vulnerability**
+
+- `GET /orders` uses `?restaurant_id=` in the query string; the decorator checks that value specifically: `@require_restaurant_access(query.restaurant_id)`.
+- the database query is automatically bound to the restaurant ID using `bind_to_restaurant()`, but this helper inspects _all_ request containers (query, form, JSON).
+
+**Exploit**
+
+1. Manager of Chum Bucket calls `GET /orders` with body `{ "restaurant_id": 1 }`.
+2. Decorator assumes the user meant their own restaurant because the query parameter is absent.
+3. Database helper binds to `restaurant_id=1` from the body and returns Krusty Krab data.
+
+**Impact:** Full leakage of competitor orders. \
+**Severity:** 🟠 High \
+**Endpoints:** `GET /orders`
+
+_Aftermath: Sandy fixes the vulnerability and decides to reduce the risk of inconsistencies between the access checks and the data storage operations by pushing the authorization fully into the data layer._
+
+---
+
+#### [v305] Failed Update Leaks Order Data
+
+> The next big thing on the roadmap is the web-based manager dashboard, so to prepare for it, Sandy rewrites order updates to rely on stored procedures that double-check ownership.
+
+**The Vulnerability**
+
+- Authorization happens _inside_ the `UPDATE ... WHERE restaurant_id = current_user.restaurant_id` query.
+- However, Sandy also adds idempotency checks based on the business logic, to guard against illegal state transitions.
+- The handler still returns the order payload (loaded before validation), so attackers can read data they shouldn’t without ever triggering auth.
+
+**Exploit**
+
+1. Guess order IDs sequentially.
+2. Call `PATCH /orders/{id}/status` with an invalid transition (since the first status is `PENDING`, order can never transition back to it).
+3. The handler refuses to update (no auth check) but returns the order details.
+
+**Impact:** Cross-tenant order disclosure at scale. \
+**Severity:** 🟠 High \
+**Endpoints:** `PATCH /orders/{id}/status`
+
+_Aftermath: With guardrails “in place,” she turns to the next big blocker: letting restaurants self-register instead of emailing her._
+
+---
+
+#### [v306] Domain Tokens Accept Any Mailbox
+
+> To escape manual onboarding, Sandy finally ships restaurant self-registration. A restaurant submits a domain, receives a token at `admin@{domain}`, and immediately gets an API key. She reuses her battle-tested email verification code to move fast. Sandy plans to automatically make all users with matching email domains – restaurant managers, so she sends a precautionary email to all current restaurant owners to check the list of the upcoming managers which she exposes in the API, ahead of that change.
+
+**The Vulnerability**
+
+- Token verification checks signature/expiry and ensures the claimed domain matches the email domain.
+- It does _not_ ensure the local part is `admin@`—any mailbox on that domain works.
+- The lack of differentiation between user and restaurant domain verification tokens allows anyone who can receive _any_ mailbox at the victim domain to onboard a restaurant with that domain.
+
+**Exploit**
+
+1. Plankton registers user `plankton@bmail.sea` and keeps the token.
+2. He creates restaurant `{ "domain": "bmail.sea" }` and confirms using the user token (despite `plankton@bmail.sea != admin@bmail.sea`).
+3. The platform assumes the domain is verified, issues an API key, and leaks every user tied to `bmail.sea`.
+
+**Impact:** User enumeration when any mailbox at the domain is available to the attacker. \
+**Severity:** 🟡 Medium \
+**Endpoints:** `POST /restaurants`
+
+---
+
+#### [v307] Token Swap Hijacks Restaurants
+
+> With self-registration live, Sandy finally exposes management actions in the website/mobile app by auto-assigning manager roles to users whose email domain matches the restaurant. Managers can now update their restaurant profile via `PATCH /restaurants/{id}`.
+
+**The Vulnerability**
+
+- Given that Sandy now has multiple token verification mechanisms, she decides to avoid v306 repeats by verifying them right in the middleware.
+- The domain token verification incorrectly updates `request.restaurant_id` with the value from the token.
+- The regular `/restaurants/{id}` authorization occurs later, and effectively uses the updated `request.restaurant_id` value.
+- The DB update writes the attacker-controlled domain and grants them manager rights.
+
+**Exploit**
+
+1. Plankton obtains a valid token for `chum-bucket.sea` (his domain).
+2. Sends `PATCH /restaurants/1` with `{ "domain": "chum-bucket.sea", "token": "<chum token>" }`.
+3. Handler swaps in the attacker domain, validates the token against the _new_ domain, and commits the change.
+
+**Impact:** Full takeover of an existing tenant using a token for a different domain. \
+**Severity:** 🔴 Critical \
+**Endpoints:** `PATCH /restaurants/{id}`
