@@ -15,7 +15,7 @@ POST /auth/login
 Content-Type: application/json
 
 {
-    "email": "spongebob@bikinibottom.sea",
+    "email": "spongebob@krusty-krab.sea",
     "password": "does_not_matter"
 }
 

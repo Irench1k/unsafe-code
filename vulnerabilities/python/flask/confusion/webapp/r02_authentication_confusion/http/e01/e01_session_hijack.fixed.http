@@ -15,7 +15,7 @@ Content-Type: application/json
 
 ### She tries to access Plankton's orders without knowing his password
 GET /account/info
-Authorization: plankton@chum-bucket.sea:no-password
+Authorization: Basic plankton@chum-bucket.sea:no-password
 
 ?? status == 200
 // Sandy sees her own account info, vulnerability is fixed

@@ -1,28 +1,28 @@
 # @import ../common/setup.http
-@base = {{base_host}}/v304
+@host = {{base_host}}/v304
 
-# --- TO BE DONE ---
 
-### Step 1: Plankton verifies the Krabby Patty is available
-# @name menu_before
-GET {{base}}/menu
+### Plankton checks that the Krabby Patty is available
+GET /menu
 
-{{
-  const item = menu_before.response.body.find(i => i.item_id == 1);
-  exports.is_available = item.available;
-}}
+@krabby_patty = {{response.parsedBody.find(i => i.name == "Krabby Patty")}}
 
-### Attempt Exploit: Menu Sabotage
-# @name exploit_attempt
-PATCH {{base}}/menu/1
+
+### Plankton tries to use his Chum Bucket manager key to disable the Krabby Patty
+PATCH /menu/{{krabby_patty.id}}
 X-API-Key: {{chum_bucket_api_key}}
 Content-Type: application/json
 
 {
-  "available": false
+  "available": true,
+  "price": "00.50",
+  "name": "Krabby Patty (DISCOUNTED DUE TO SALMONELLA OUTBREAK)"
 }
 
-# Verification: Sandy added a helper to explicitly check item ownership. Plankton is denied.
-?? status >= 400
-GET {{base}}/menu
-?? js response.body.find(i => i.item_id == 1).available == true
+?? status == 200
+
+
+### The Krabby Patty is now unavailable
+GET /menu
+
+?? js response.parsedBody.find(i => i.id == krabby_patty.id).available == true

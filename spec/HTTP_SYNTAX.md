@@ -320,6 +320,24 @@ The right side of assertions is a literal, not JavaScript:
 ?? js $(response).field("status") == "delivered"
 ```
 
+### Assertions MUST Have Two Sides (Operator Required)
+
+httpyac assertions **require an operator and two sides**. An assertion without an operator becomes part of the request body!
+
+```http
+# CORRECT - has operator with two sides
+?? js response.parsedBody.email == plankton@chum-bucket.sea
+?? js response.parsedBody.length > 0
+
+# WRONG - no operator! This becomes part of request body!
+?? js response.parsedBody.email.includes("plankton")
+?? js response.parsedBody.isValid
+```
+
+The "wrong" examples will cause **500 server errors** because httpyac sends the assertion text as JSON body, corrupting the request. Error logs will show: `Failed to decode JSON object: Extra data`.
+
+**Key rule:** Every `?? js` line must have `==`, `!=`, `<`, `>`, `<=`, or `>=` with values on both sides.
+
 ### Explicit Username Format Testing
 
 When testing credentials with explicit username format, use the email format (short username format is not supported in most versions):
@@ -387,3 +405,20 @@ v301:
 ```
 
 Run `ucsync` after changing `spec.yml` to update tags.
+
+## Interactive Demo Files (vulnerabilities/*/http/)
+
+Interactive `.http` files in `vulnerabilities/*/http/` directories are **student-facing demos**, NOT automated e2e tests. They use **plain httpyac syntax** without utils.cjs helpers.
+
+| Pattern | Interactive Demos | spec/ e2e Tests |
+|---------|-------------------|-----------------|
+| Response body | `response.parsedBody.email` | `$(response).field("email")` |
+| Named ref body | `{{namedRef.email}}` | Not commonly used |
+| Assertions | `?? js X == value` | `?? js $(response).isOk() == true` |
+| Auth helpers | Manual `Authorization:` headers | `{{auth.basic("plankton")}}` |
+
+**Key differences:**
+- Interactive demos use simple, readable patterns (no utils.cjs)
+- Each file should be runnable standalone via VSCode extension
+- Cookie jar state is NOT reset between requests in the same file
+- Run with `httpyac file.http -a` (not `uctest`)
