@@ -4,7 +4,7 @@
 # List all menu items (public access)
 
 ### Menu is publicly accessible (no auth required)
-# @tag happy, menu, r02, v205
+# @tag happy, menu, r02, v201
 GET /menu
 
 ?? js $(response).isOk() == true
