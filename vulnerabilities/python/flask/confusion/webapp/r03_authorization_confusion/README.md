@@ -64,7 +64,7 @@ By the end of r03, these roles are enforced:
 
 ### Vulnerabilities to Implement (Work in Progress)
 
-### [v301] Dual-Auth Refund Approval
+#### [v301] Dual-Auth Refund Approval
 
 > The in-memory dict can't scale anymore. Sandy migrates to Postgres with SQLAlchemy, refactoring the entire data layer to use ORM models. While she's at it, she introduces multi-tenancy—each restaurant now gets its own API key.
 

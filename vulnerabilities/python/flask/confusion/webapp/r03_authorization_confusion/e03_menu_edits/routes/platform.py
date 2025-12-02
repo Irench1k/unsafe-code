@@ -28,7 +28,7 @@ def e2e_balance():
     """E2E test helper: set user balance to a specific amount."""
     payload = request.get_json(silent=True) or {}
     user_id = payload.get("user_id")
-    amount = get_decimal_param("balance")
+    amount = payload.get("balance")
     if not user_id or amount is None:
         return jsonify({"error": "user_id and balance required"}), 400
     if not find_user_by_email(user_id):

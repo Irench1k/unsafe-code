@@ -1,6 +1,10 @@
 # @import ../common/setup.http
 @base = {{base_host}}/v303
 
+###
+
+GET {{base}}/menu
+
 ### Check Plankton's balance
 # @name initial_balance
 GET {{base}}/account/info
@@ -11,12 +15,12 @@ Authorization: {{plankton_auth}}
 POST {{base}}/cart?restaurant_id=1
 Authorization: {{plankton_auth}}
 
-### 
+###
 POST {{base}}/cart/{{expensive_cart.cart_id}}/items
 Authorization: {{plankton_auth}}
 Content-Type: application/json
 
-{ "item_id": "5" }
+{ "item_id": "8" }
 
 ### Then creates a cheap cart
 # @name cheap_cart
@@ -27,7 +31,7 @@ POST {{base}}/cart/{{cheap_cart.cart_id}}/items
 Authorization: {{plankton_auth}}
 Content-Type: application/json
 
-{ "item_id": "2" }
+{ "item_id": "5" }
 
 ### Plankton attempts to check out the expensive cart
 POST {{base}}/cart/{{expensive_cart.cart_id}}/checkout

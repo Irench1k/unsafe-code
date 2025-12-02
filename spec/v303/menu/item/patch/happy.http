@@ -1,0 +1,73 @@
+# @import ../_imports.http
+
+# =============================================================================
+# Happy Path: Restaurant manager updates their own menu item
+# =============================================================================
+#
+# SCENARIO:
+#   Mr. Krabs (Krusty Krab owner) updates his restaurant's menu item.
+#   This is the legitimate use case that should always succeed.
+#
+# ENDPOINT: PATCH /menu/<item_id>
+# AUTH: Restaurant API key (X-API-Key)
+# =============================================================================
+
+### Seed the database
+# @name seed
+{{
+  await platform.seed();
+}}
+# @ucskip
+# @tag happy, menu, r03, v303
+GET /menu
+
+# Find a Krusty Krab menu item (restaurant_id=1)
+@krabby_patty_id = {{$(response).find(i => i.name === "Krabby Patty").id}}
+@original_price = {{$(response).find(i => i.name === "Krabby Patty").price}}
+
+# =============================================================================
+# TEST: Owner can update their own menu item
+# =============================================================================
+
+### Krusty Krab manager updates their own menu item price
+# @name update_own_item
+# @forceRef seed
+# @tag happy, menu, r03, v303
+PATCH /menu/{{krabby_patty_id}}
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/json
+
+{ "price": "10.99" }
+
+?? js $(response).isOk() == true
+?? js parseFloat($(response).field("price")) == 10.99
+
+# =============================================================================
+# TEST: Owner can toggle availability
+# =============================================================================
+
+### Krusty Krab manager disables an item (maybe ran out of ingredients)
+# @name toggle_availability
+# @forceRef update_own_item
+# @tag happy, menu, r03, v303
+PATCH /menu/{{krabby_patty_id}}
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/json
+
+{ "available": false }
+
+?? js $(response).isOk() == true
+?? js $(response).field("available") == false
+
+### Re-enable the item
+# @name reenable_item
+# @forceRef toggle_availability
+# @tag happy, menu, r03, v303
+PATCH /menu/{{krabby_patty_id}}
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/json
+
+{ "available": true }
+
+?? js $(response).isOk() == true
+?? js $(response).field("available") == true

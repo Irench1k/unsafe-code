@@ -153,7 +153,7 @@ const MENU_V301_PLUS = {
     name: "Krabby Patty",
     price: 3.99,
     restaurant_id: 1,
-    available: true,
+    available: false, // Matches database fixtures - vuln test may disable this
     category: "main",
   },
   5: {

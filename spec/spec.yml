@@ -148,3 +148,18 @@ v302:
   #   - cart/create/post/v302.http (session cart behavior)
   #   - cart/checkout/post/vuln-cart-swap-checkout.http (new vulnerability)
   #   - orders/refund-status/patch/v302.http (tests the fix)
+
+v303:
+  inherits: v302
+  description: Menu Edits Without Restaurant ID (cross-tenant menu tampering)
+  tags: [r03, v303]
+  exclude:
+    # v303 fixes the cart swap vulnerability from v302
+    # The fix stores the resolved cart in g during the decorator and reuses it
+    # in the handler, preventing session/path confusion
+    - cart/checkout/post/vuln-cart-swap-checkout.http
+  # Inherits tag_rules from v302
+  # New files in v303/:
+  #   - menu/item/patch/happy.http (manager updates own menu item)
+  #   - menu/item/patch/authn.http (requires restaurant API key auth)
+  #   - menu/item/patch/vuln-cross-tenant-menu.http (new vulnerability)
