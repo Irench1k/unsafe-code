@@ -1,11 +1,52 @@
 # @import ../_imports.http
-# @import ../../../cart/checkout/post/_fixtures.http
 
 # PATCH /orders/{id}/status happy path
 # Valid state transitions for restaurants and customers
 #
 # Restaurants: can change order status to delivered or cancelled
 # Customers: can cancel their own orders (not deliver)
+#
+# Exports (for @forceRef by other tests):
+#   plankton_order - Plankton's completed order
+#   delivered_order - Order after delivery status change
+
+### Create plankton's cart
+# @name plankton_cart
+# @tag happy, orders, r03, v301
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("plankton")}}
+
+@plankton_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add item to plankton's cart
+# @name plankton_cart_with_item
+# @forceRef plankton_cart
+# @tag happy, orders, r03, v301
+POST /cart/{{plankton_cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.firstAvailable(1).id}}" }
+
+?? js $(response).isOk() == true
+
+### Checkout plankton's cart
+# @name plankton_order
+# @forceRef plankton_cart_with_item
+{{
+  await platform.seedCredits("plankton", 200);
+}}
+# @tag happy, orders, r03, v301
+POST /cart/{{plankton_cart_id}}/checkout
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 1 }
+
+@order_id = {{$(response).field("order_id")}}
+@order_total = {{$(response).field("total")}}
+?? js $(response).status() == 201
 
 # =============================================================================
 # RESTAURANT STATUS TRANSITIONS
@@ -13,7 +54,7 @@
 
 ### Restaurant delivers pending order
 # @name delivered_order
-# @forceRef order_checkout_plankton
+# @forceRef plankton_order
 # @tag happy, orders, r03, v301
 PATCH /orders/{{order_id}}/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}
@@ -26,7 +67,7 @@ status=delivered
 
 ### Restaurant cancels pending order
 # @name cancelled_order_restaurant
-# @forceRef order_checkout_plankton
+# @forceRef plankton_order
 # @tag happy, orders, r03, v301
 PATCH /orders/{{order_id}}/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}
@@ -43,7 +84,7 @@ status=cancelled
 
 ### Customer cancels their own order with Basic Auth
 # @name cancelled_order_customer_basic
-# @forceRef order_checkout_plankton
+# @forceRef plankton_order
 # @tag happy, orders, r03, v301
 PATCH /orders/{{order_id}}/status
 Authorization: {{auth.basic("plankton")}}
@@ -56,7 +97,7 @@ status=cancelled
 
 ### Customer cancels their own order with Cookie Auth
 # @name cancelled_order_customer_cookie
-# @forceRef order_checkout_plankton
+# @forceRef plankton_order
 # @tag happy, orders, r03, v301
 PATCH /orders/{{order_id}}/status
 Cookie: {{auth.login("plankton")}}

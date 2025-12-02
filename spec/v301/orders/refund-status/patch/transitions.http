@@ -62,6 +62,10 @@ status=pending
 ### Refund can be set to rejected
 # @name rejected_refund
 # @forceRef large_refund_pending
+{{
+  // Calculate expected balance: 200 (seeded) - order_total (spent on order)
+  exports.expectedBalanceAfterReject = 200 - Number(order_total);
+}}
 # @tag orders, r03, v301
 PATCH /orders/{{order_id}}/refund/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}
@@ -71,7 +75,8 @@ status=rejected
 
 ?? js $(response).isOk() == true
 ?? js $(response).field("status") == rejected
-?? js await user("plankton").balance() == {{200 - order_total}}
+# Balance unchanged after rejection (initial 200 - order total spent)
+?? js Math.abs(await user("plankton").balance() - expectedBalanceAfterReject) < 0.01
 
 ### Cannot set rejected refund back to pending
 # @ref rejected_refund

@@ -36,6 +36,11 @@ Vulnerabilities emerge from **production-quality code** through natural patterns
 - `uc-docs-generator-maintainer`: Maintains `uv run docs` tool
 - `commit-agent`: Runs verification + commits
 
+**E2E Spec Suite** (for `spec/` directory work):
+- `uc-spec-author`: Write/fix .http test files (haiku - fast iteration)
+- `uc-spec-debugger`: Diagnose failing tests, trace ref issues (sonnet - complex reasoning)
+- `uc-spec-sync`: Run ucsync, manage inheritance (haiku - mechanical ops)
+
 ## Quality Gates (Before Delegating)
 
 ### Before uc-exploit-narrator:

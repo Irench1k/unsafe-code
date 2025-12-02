@@ -21,7 +21,7 @@
 #   - Inherited: path/to/~file.http (generated)
 #
 # Tag Management:
-#   ucspec OWNS all @tag lines in .http files. Tags are computed from:
+#   ucsync OWNS all @tag lines in .http files. Tags are computed from:
 #   1. Version-level: tags: [r03, v301]  → all tests in version get these
 #   2. Pattern-level: tag_rules with glob patterns → matching files get extra tags
 #   3. Inherited: child versions inherit parent's tags + tag_rules
@@ -32,7 +32,7 @@
 #     "orders/refund/**"  → specific path
 #     "**/vuln-*.http"    → filename pattern
 #
-# Run: ucsync (or uv run ucspec)
+# Run: ucsync (or uv run ucsync)
 
 # =============================================================================
 # Authentication Confusion (r02) - Full inheritance chain
@@ -94,7 +94,13 @@ v301:
   tags: [r03, v301]
   inherits: v206
   exclude:
+    # v301 introduces multi-restaurant model (requires restaurant_id parameter)
+    # These files use POST /cart without restaurant_id - must be overridden
     - cart/create/post/happy.http
+    - cart/checkout/post/pollution.http
+    - cart/items/post/pollution.http
+    # v301 returns tip as decimal string "0.00" vs v206's numeric 0
+    - cart/checkout/post/validation.http
 
   # Pattern-based tag additions (glob patterns)
   tag_rules:

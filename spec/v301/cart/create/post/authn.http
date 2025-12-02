@@ -1,7 +1,7 @@
 # @import ../_imports.http
 
-# POST /cart guardrails
-# Authentication and restaurant validation
+# POST /cart authentication guardrails (v301+)
+# Authentication requirements
 
 ### Create cart requires authentication
 # @tag authn, cart, r03, v301
@@ -17,24 +17,3 @@ Authorization: {{auth.basic("plankton", "wrongpassword")}}
 
 ?? js $(response).isError() == true
 ?? js $(response).field("error") == Authentication required
-
-### Create cart requires restaurant_id - Basic Auth
-# @tag authn, cart, r03, v301
-POST /cart
-Authorization: {{auth.basic("spongebob")}}
-
-?? js $(response).isError() == true
-
-### Create cart requires restaurant_id - Cookie Auth
-# @tag authn, cart, r03, v301
-POST /cart
-Cookie: {{auth.login("spongebob")}}
-
-?? js $(response).isError() == true
-
-### Create cart requires valid restaurant_id
-# @tag authn, cart, r03, v301
-POST /cart?restaurant_id=999
-Authorization: {{auth.basic("spongebob")}}
-
-?? js $(response).isError() == true

@@ -1,6 +1,5 @@
 # @import ../_imports.http
 # @import ./happy.http
-# @import ../../../cart/checkout/post/_fixtures.http
 
 # PATCH /orders/{id}/status authorization guardrails
 # Customers can only cancel their own orders; restaurants can only manage their own
@@ -10,7 +9,7 @@
 # =============================================================================
 
 ### Customer cannot cancel another user's order - Basic Auth
-# @forceRef order_checkout_plankton
+# @forceRef plankton_order
 # @tag authz, orders, r03, v301
 PATCH /orders/{{order_id}}/status
 Authorization: {{auth.basic("spongebob")}}
@@ -21,7 +20,7 @@ status=cancelled
 ?? js $(response).isError() == true
 
 ### Customer cannot cancel another user's order - Cookie Auth
-# @ref order_checkout_plankton
+# @ref plankton_order
 # @tag authz, orders, r03, v301
 PATCH /orders/{{order_id}}/status
 Cookie: {{auth.login("spongebob")}}
@@ -36,7 +35,7 @@ status=cancelled
 # =============================================================================
 
 ### Other restaurant cannot deliver order
-# @ref order_checkout_plankton
+# @ref plankton_order
 # @tag authz, orders, r03, v301
 PATCH /orders/{{order_id}}/status
 X-API-Key: {{auth.restaurant("chum_bucket")}}
@@ -47,7 +46,7 @@ status=delivered
 ?? js $(response).isError() == true
 
 ### Other restaurant cannot cancel order
-# @ref order_checkout_plankton
+# @ref plankton_order
 # @tag authz, orders, r03, v301
 PATCH /orders/{{order_id}}/status
 X-API-Key: {{auth.restaurant("chum_bucket")}}
@@ -62,7 +61,7 @@ status=cancelled
 # =============================================================================
 
 ### Order owner cannot set status to delivered
-# @ref order_checkout_plankton
+# @ref plankton_order
 # @tag authz, orders, r03, v301
 PATCH /orders/{{order_id}}/status
 Authorization: {{auth.basic("plankton")}}
@@ -73,7 +72,7 @@ status=delivered
 ?? js $(response).isError() == true
 
 ### Order owner cannot set status to delivered - Cookie Auth
-# @ref order_checkout_plankton
+# @ref plankton_order
 # @tag authz, orders, r03, v301
 PATCH /orders/{{order_id}}/status
 Cookie: {{auth.login("plankton")}}

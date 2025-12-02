@@ -62,9 +62,9 @@ Tab completion is available for tags (`@<TAB>`), names (`:<TAB>`), and paths.
 - Endpoint folders are organized as `resource/<action>/<verb>/<focus>.http` (e.g., `orders/refund-status/patch/happy.http`).
 - Shared fixtures live next to the endpoint they prepare (e.g., `cart/checkout/post/_fixtures.http` exports `@name order_checkout_plankton`).
 
-## Inheritance & Tag Management (ucspec)
+## Inheritance & Tag Management (ucsync)
 
-Use `ucsync` (or `uv run ucspec`) to manage inherited specs and tags:
+Use `ucsync` (or `uv run ucsync`) to manage inherited specs and tags:
 
 ```bash
 # Generate inherited files + sync tags (default action)
@@ -89,7 +89,7 @@ ucsync clean
 
 ### Tag Management
 
-**ucspec OWNS all `@tag` lines** in .http files. Never edit them manually - configure tags in `spec.yml`:
+**ucsync OWNS all `@tag` lines** in .http files. Never edit them manually - configure tags in `spec.yml`:
 
 ```yaml
 v301:
@@ -185,15 +185,15 @@ All matching tags are applied to all requests in matching files. uctest handles 
 ## Authoring Checklist
 
 - Import the right `_imports.http` for your depth; avoid duplicate paths.
-- Declare `@name` for any reusable step; don't manually edit `@tag` lines (ucspec manages them).
+- Declare `@name` for any reusable step; don't manually edit `@tag` lines (ucsync manages them).
 - Use `@forceRef` chains for mutable state machines; keep the chain consistent (setup steps that are `@forceRef` must continue to force-ref their own dependencies).
 - Keep setup minimal: seed only the actors and balances you need; avoid double-resetting.
 - Assertions should prove both status and semantics (ownership, balance, totals, state transitions).
 - When testing parameter confusion or ownership, cover all supported auth methods for that endpoint (basic vs cookie vs API key) but keep each file scoped to its endpoint.
 
-## Tools and Generation (ucspec)
+## Tools and Generation (ucsync)
 
-`ucsync` (alias for `uv run ucspec`) manages inherited test files:
+`ucsync` (or `uv run ucsync`) manages inherited test files:
 
 - Scans source version's directory tree and generates `~`-prefixed inherited files
 - Preserves `@name` / `@ref` / `@forceRef` chains and file structure
@@ -203,6 +203,38 @@ All matching tags are applied to all requests in matching files. uctest handles 
 - Removes orphaned inherited files when source files are removed or excluded
 
 Run `ucsync` after modifying `spec.yml` or adding new specs to regenerate inherited files.
+
+### Import Rewriting in Inherited Files
+
+When ucsync generates inherited files (~ prefix), it rewrites `@import` statements to reference the inherited versions of sibling files:
+
+| Original Import | Rewritten To | Condition |
+|-----------------|--------------|-----------|
+| `./happy.http` | `./~happy.http` | Sibling test file exists in parent |
+| `../_imports.http` | unchanged | Infrastructure files keep names |
+| `../../../common.http` | unchanged | Files outside version directory |
+| `./happy.http` | unchanged | Child has local override of `happy.http` |
+
+**Override-Aware Rewriting**: If the child version has a **local override** for an imported file, the import is NOT rewritten to use `~`. This ensures inherited files correctly reference the local version instead of a non-existent `~` version.
+
+### Acknowledging Local Overrides
+
+When a local file shadows an inherited file, ucsync warns:
+
+```
+Warning: Local override 'cart/create/post/happy.http' shadows inherited file.
+Add to 'exclude:' in spec.yml to acknowledge.
+```
+
+Silence this warning by adding the file to `exclude:` in `spec.yml`:
+
+```yaml
+v301:
+  exclude:
+    - cart/create/post/happy.http  # Multi-tenant version with restaurant_id
+```
+
+This explicit acknowledgment ensures intentional overrides are documented and prevents accidental shadowing.
 
 ## Versioning
 
@@ -238,7 +270,7 @@ Follow this workflow when adding a new API version to the spec suite:
 #    Define inherits, tags, and any exclusions
 
 # 2. Run ucsync to generate the directory structure
-ucsync                    # or: uv run ucspec
+ucsync                    # or: uv run ucsync
 
 # This creates:
 #   spec/vXXX/.env        (VERSION=vXXX)
@@ -323,3 +355,76 @@ orders/refund-status/get/happy.http      -> @forceRef refund_approved        => 
 ```
 
 Each layer owns its setup, and downstream specs never rebuild state by hand.
+
+## Quick Reference (Troubleshooting)
+
+### "ref X not found in scope Y.http"
+
+This error means uctest can't find the named request `X` when processing `Y.http`.
+
+**Common causes and fixes:**
+
+1. **Path-based execution doesn't include the file defining X**
+   ```bash
+   uctest v301/orders           # Won't find cart refs!
+   uctest @orders v301/         # Scans entire v301/, finds cross-deps
+   ```
+
+2. **Missing import chain**
+   ```http
+   # Check Y.http has the right imports
+   # @import ../_imports.http
+   # @import ../../cart/checkout/post/happy.http  # If you need cart refs
+   ```
+
+3. **Inherited file references wrong sibling**
+   ```http
+   # In ~multi-tenant.http
+   # @import ./happy.http       # WRONG if happy is also inherited
+   # @import ./~happy.http      # CORRECT
+   ```
+   Fix: Run `ucsync` to regenerate imports.
+
+4. **The @name doesn't exist**
+   ```bash
+   grep -r "@name X" spec/v301/
+   ```
+
+### Debugging Commands
+
+```bash
+uctest --show-plan v301/cart     # See execution order without running
+uctest -v v301/cart/create       # Verbose output
+uctest -k v301/                  # Keep going after failures
+uctest -r                        # Resume from last failure
+```
+
+### File Naming Quick Reference
+
+| File | Purpose |
+|------|---------|
+| `happy.http` | Success paths (canonical fixtures) |
+| `authn.http` | Authentication tests |
+| `authz.http` | Authorization tests |
+| `_fixtures.http` | Named setups only (no tags) |
+| `_imports.http` | Import chain |
+| `~*.http` | Inherited (NEVER edit!) |
+
+### Common Gotchas
+
+1. **Assertions run AFTER request** - Capture pre-state in JS block:
+   ```http
+   {{ exports.before = await user("x").balance(); }}
+   POST /action
+   ?? js await user("x").balance() == {{before + 10}}
+   ```
+
+2. **No quotes on RHS of assertions**:
+   ```http
+   ?? js $(response).field("status") == delivered     # CORRECT
+   ?? js $(response).field("status") == "delivered"   # WRONG
+   ```
+
+3. **@forceRef chain must be consistent** - If A @forceRef B, then B must @forceRef its deps too.
+
+4. **Never edit @tag lines** - Managed by ucsync via spec.yml.

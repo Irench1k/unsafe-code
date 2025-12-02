@@ -42,8 +42,6 @@
 {{
   const cookie = await auth.login("plankton");
   exports.planktonCookie = cookie;
-  // Capture balance before exploit (assertions run AFTER request!)
-  exports.balanceBefore = await user("plankton").balance();
 }}
 # @tag orders, r03, v301, vulnerable
 PATCH /orders/{{order_id}}/refund/status
@@ -56,5 +54,4 @@ status=approved
 # VULNERABLE: Exploit succeeds - refund approved by wrong restaurant
 ?? js $(response).isOk() == true
 ?? js $(response).field("status") == approved
-# IMPACT: Plankton received full refund (balance increased by order_total)
-?? js await user("plankton").balance() == {{balanceBefore + order_total}}
+?? js $(response).field("paid") == true

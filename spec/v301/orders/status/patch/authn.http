@@ -1,5 +1,5 @@
 # @import ../_imports.http
-# @import ../../../cart/checkout/post/_fixtures.http
+# @import ./happy.http
 
 # PATCH /orders/{id}/status authentication guardrails
 # Order status updates require valid customer or restaurant authentication
@@ -9,7 +9,7 @@
 # =============================================================================
 
 ### Status update without auth fails
-# @forceRef order_checkout_plankton
+# @forceRef plankton_order
 # @tag authn, orders, r03, v301
 PATCH /orders/{{order_id}}/status
 Content-Type: application/x-www-form-urlencoded
@@ -24,7 +24,7 @@ status=cancelled
 # =============================================================================
 
 ### Status update with wrong password fails - Basic Auth
-# @ref order_checkout_plankton
+# @ref plankton_order
 # @tag authn, orders, r03, v301
 PATCH /orders/{{order_id}}/status
 Authorization: {{auth.basic("plankton", "wrongpassword")}}
@@ -36,7 +36,7 @@ status=cancelled
 ?? js $(response).field("error") == Authentication required
 
 ### Status update with invalid cookie fails
-# @ref order_checkout_plankton
+# @ref plankton_order
 # @tag authn, orders, r03, v301
 PATCH /orders/{{order_id}}/status
 Cookie: session=invalid-session-cookie-12345
@@ -47,7 +47,7 @@ status=cancelled
 ?? js $(response).isError() == true
 
 ### Status update with invalid API key fails
-# @ref order_checkout_plankton
+# @ref plankton_order
 # @tag authn, orders, r03, v301
 PATCH /orders/{{order_id}}/status
 X-API-Key: invalid-api-key-12345

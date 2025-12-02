@@ -1,6 +1,5 @@
 # @import ../_imports.http
 # @import ./happy.http
-# @import ../../../cart/checkout/post/_fixtures.http
 
 # PATCH /orders/{id}/status transitions & guardrails
 # State machine enforcement and access control
@@ -10,7 +9,7 @@
 # =============================================================================
 
 ### Customer cannot set status to delivered
-# @forceRef order_checkout_plankton
+# @forceRef plankton_order
 # @tag orders, r03, v301
 PATCH /orders/{{order_id}}/status
 Authorization: {{auth.basic("plankton")}}
@@ -21,7 +20,7 @@ status=delivered
 ?? js $(response).isError() == true
 
 ### Customer cannot set status to refunded
-# @ref order_checkout_plankton
+# @ref plankton_order
 # @tag orders, r03, v301
 PATCH /orders/{{order_id}}/status
 Authorization: {{auth.basic("plankton")}}
@@ -32,7 +31,7 @@ status=refunded
 ?? js $(response).isError() == true
 
 ### Restaurant cannot set status to refunded
-# @ref order_checkout_plankton
+# @ref plankton_order
 # @tag orders, r03, v301
 PATCH /orders/{{order_id}}/status
 X-API-Key: {{auth.restaurant("krusty_krab")}}

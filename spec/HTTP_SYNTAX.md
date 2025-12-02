@@ -21,7 +21,7 @@ Content-Type: application/json
 
 Key elements:
 - `###` starts a new test (required)
-- `# @tag` assigns tags (managed by ucspec, never edit manually)
+- `# @tag` assigns tags (managed by ucsync, never edit manually)
 - `# @name`, `# @ref`, `# @forceRef` control dependencies (see below)
 - Blank line separates headers from body
 - `?? js` starts an assertion line
@@ -374,7 +374,7 @@ spec/v301/
     authz.http                     # Authorization tests
 ```
 
-## Tags (Managed by ucspec)
+## Tags (Managed by ucsync)
 
 **Never edit `@tag` lines manually.** They're managed by `spec.yml`:
 

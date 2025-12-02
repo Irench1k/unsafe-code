@@ -1,6 +1,5 @@
 # @import ../_imports.http
 # @import ../../status/patch/happy.http
-# @import ../../../cart/checkout/post/_fixtures.http
 
 # POST /orders/{id}/refund guardrails
 # Authentication, state, and duplicate protections
@@ -24,7 +23,7 @@ amount=1.00
 # =============================================================================
 
 ### Refund requires order to be delivered
-# @forceRef order_checkout_plankton
+# @forceRef plankton_order
 # @tag authn, orders, r03, v301
 POST /orders/{{order_id}}/refund
 Authorization: {{auth.basic("plankton")}}

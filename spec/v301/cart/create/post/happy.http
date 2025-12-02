@@ -1,19 +1,16 @@
 # @import ../_imports.http
 
-# POST /cart happy path
+# POST /cart happy path (v301+)
 # Cart creation across auth methods and restaurants
 #
+# v301: Multi-restaurant model (requires restaurant_id parameter)
+#
 # Exports (for @forceRef by other tests):
-#   cart_created - Patrick's cart at Krusty Krab (restaurant_id=1)
-#   cart_created_plankton - Plankton's cart at Krusty Krab (restaurant_id=1)
-#   cart_created_cookie - SpongeBob's cart at Krusty Krab (cookie auth)
-#   cart_created_chum_bucket - Plankton's cart at Chum Bucket (restaurant_id=2)
+#   new_cart - Patrick's cart at Krusty Krab (canonical fixture)
+#   chum_bucket_cart - Cart at Chum Bucket (for multi-tenant tests)
 
 ### Create cart with Basic Auth (canonical fixture for downstream tests)
-# @name cart_created
-{{
-  await platform.seed({ patrick: 200, spongebob: 150, plankton: 200 });
-}}
+# @name new_cart
 # @tag cart, happy, r03, v301
 POST /cart?restaurant_id=1
 Authorization: {{auth.basic("patrick")}}
@@ -24,36 +21,25 @@ Authorization: {{auth.basic("patrick")}}
 ?? js $(response).field("restaurant_id") == 1
 
 ### Create cart with Cookie Auth
-# @name cart_created_cookie
-{{
-  exports.spongebob_session = await auth.login("spongebob");
-}}
 # @tag cart, happy, r03, v301
 POST /cart?restaurant_id=1
-Cookie: {{spongebob_session}}
+Cookie: {{auth.login("patrick")}}
 
-@cart_id_cookie = {{$(response).field("cart_id")}}
 ?? js $(response).status() == 201
 ?? js $(response).hasFields("cart_id", "restaurant_id", "items") == true
 ?? js $(response).field("restaurant_id") == 1
 
-### Create cart for Plankton at Krusty Krab (for items/checkout tests)
-# @name cart_created_plankton
-{{
-  await platform.seedCredits("patrick", 200);
-  await platform.seedCredits("plankton", 200);
-}}
+### Create cart for different user (plankton)
 # @tag cart, happy, r03, v301
 POST /cart?restaurant_id=1
 Authorization: {{auth.basic("plankton")}}
 
-@cart_id_plankton = {{$(response).field("cart_id")}}
 ?? js $(response).status() == 201
 ?? js $(response).hasFields("cart_id", "restaurant_id", "items") == true
 ?? js $(response).field("restaurant_id") == 1
 
 ### Create cart for different restaurant (Chum Bucket)
-# @name cart_created_chum_bucket
+# @name chum_bucket_cart
 # @tag cart, happy, r03, v301
 POST /cart?restaurant_id=2
 Authorization: {{auth.basic("plankton")}}
