@@ -13,9 +13,9 @@ from decimal import Decimal
 
 @dataclass
 class ScenarioConfig:
-    version = "v303"
+    version = "v305"
     category = "Authorization Confusion"
-    name = "Menu Edits Without Restaurant ID"
+    name = "Failed Update Leaks"
 
     @property
     def slug(self) -> str:
