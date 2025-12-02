@@ -7,55 +7,67 @@ from .models import MenuItem, Order, OrderItem, User
 # DATA STORAGE (In-memory database)
 # For an MVP, a simple dictionary will do.
 # ============================================================
+# v102: Delivery service with fee calculation based on order total
 db = {
     "menu_items": {
-        "1": MenuItem(id="1", name="Krabby Patty", price=Decimal("5.99"), available=True),
-        "2": MenuItem(id="2", name="Krusty Krab Pizza", price=Decimal("12.50"), available=True),
-        "3": MenuItem(id="3", name="Side of Fries", price=Decimal("1.00"), available=True),
-        "4": MenuItem(id="4", name="Kelp Shake", price=Decimal("2.50"), available=True),
-        "5": MenuItem(id="5", name="Soda", price=Decimal("2.75"), available=False),
-        "6": MenuItem(id="6", name="Krusty Krab Complect", price=Decimal("20.50"), available=True),
+        "1": MenuItem(id="1", name="Krabby Patty Combo", price=Decimal("12.99"), available=True),
+        "2": MenuItem(id="2", name="Coral Bits Meal", price=Decimal("8.99"), available=True),
+        "3": MenuItem(id="3", name="Triple Krabby Supreme", price=Decimal("18.99"), available=True),
+        "4": MenuItem(id="4", name="Krabby Patty", price=Decimal("3.99"), available=True),
+        "5": MenuItem(id="5", name="Fries", price=Decimal("2.49"), available=True),
+        "6": MenuItem(id="6", name="Kelp Shake", price=Decimal("3.49"), available=True),
+        "7": MenuItem(id="7", name="Coral Bits", price=Decimal("4.49"), available=True),
+        "8": MenuItem(id="8", name="Ultimate Krabby Feast", price=Decimal("27.99"), available=True),
     },
     "users": {
         "sandy": User(
             user_id="sandy",
-            email="sandy.cheeks@bikinibottom.com",
+            email="sandy@bikinibottom.sea",
             name="Sandy Cheeks",
-            balance=Decimal("50.00"),
-            password="testpassword",
+            balance=Decimal("999.99"),
+            password="fullStackSquirr3l!",
         ),
-        "spongebob": User(
-            user_id="spongebob",
-            email="spongebob.squarepants@bikinibottom.com",
-            name="SpongeBob SquarePants",
-            balance=Decimal("200.00"),
-            password="i_l0ve_burg3rs",
+        "patrick": User(
+            user_id="patrick",
+            email="patrick@bikinibottom.sea",
+            name="Patrick Star",
+            balance=Decimal("88.52"),
+            password="mayonnaise",
         ),
         "plankton": User(
             user_id="plankton",
-            email="plankton.chum-bucket.sea@bikinibottom.com",
+            email="plankton@chum-bucket.sea",
             name="Sheldon Plankton",
-            balance=Decimal("200.00"),
+            balance=Decimal("50.00"),
             password="i_love_my_wife",
+        ),
+        "spongebob": User(
+            user_id="spongebob",
+            email="spongebob@krusty-krab.sea",
+            name="SpongeBob SquarePants",
+            balance=Decimal("22.01"),
+            password="EmployeeOfTheMonth",
         ),
     },
     "orders": {
         "1": Order(
             order_id="1",
-            total=Decimal("10.99"),
-            user_id="sandy",
-            items=[OrderItem(item_id="1", name="Krabby Patty", price=Decimal("5.99"))],
+            total=Decimal("11.48"),
+            user_id="patrick",
+            items=[
+                OrderItem(item_id="4", name="Krabby Patty", price=Decimal("3.99")),
+                OrderItem(item_id="5", name="Fries", price=Decimal("2.49")),
+            ],
             delivery_fee=Decimal("5.00"),
+            delivery_address="Under the Rock",
         ),
         "2": Order(
-            order_id="3",
-            total=Decimal("26.49"),
+            order_id="2",
+            total=Decimal("27.99"),
             user_id="spongebob",
-            items=[
-                OrderItem(item_id="6", name="Krusty Krab Complect", price=Decimal("20.50")),
-                OrderItem(item_id="1", name="Krabby Patty", price=Decimal("5.99")),
-            ],
+            items=[OrderItem(item_id="8", name="Ultimate Krabby Feast", price=Decimal("27.99"))],
             delivery_fee=Decimal("0.00"),
+            delivery_address="Pineapple Under the Sea",
         ),
     },
     "next_order_id": 3,
@@ -75,6 +87,7 @@ def set_balance(user_id: str, amount: Decimal) -> bool:
         return False
     user.balance = Decimal(str(amount))
     return True
+
 
 # ============================================================
 # DATA ACCESS LAYER
@@ -138,7 +151,11 @@ def _charge_user(user_id: str, amount: Decimal):
 
 # routes.py
 def create_order_and_charge_customer(
-    total_price: Decimal, user_id: str, items: list[OrderItem], delivery_fee: Decimal
+    total_price: Decimal,
+    user_id: str,
+    items: list[OrderItem],
+    delivery_fee: Decimal,
+    delivery_address: str,
 ):
     """Creates a new order and charges the customer."""
     total_price += delivery_fee
@@ -151,6 +168,7 @@ def create_order_and_charge_customer(
         user_id=user_id,
         items=items,
         delivery_fee=delivery_fee,
+        delivery_address=delivery_address,
     )
 
     # TODO: What if the order creation fails? Add a rollback mechanism before we go to production!

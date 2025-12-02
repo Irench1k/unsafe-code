@@ -1,26 +1,28 @@
 # @import ../common/setup.http
-@base = {{base_host}}/v205
+@host = {{base_host}}/v205
 
 # Sandy fixed the vulnerability, and now API key is validated before the request is processed.
 
-### Mr. Krabs can see orders from all customers
-# --- Legitimate Usage: Mr. Krabs can see orders from all customers ---
-GET {{base}}/orders
-X-API-Key: {{krabs_key}}
+### --- Legitimate Usage: Mr. Krabs can see orders from all customers ---
+# @name all_orders
+GET /orders
+X-API-Key: {{krabs_api_key}}
 
 ?? status == 200
 
-### Plankton can see his own orders
-# --- Legitimate Usage: Plankton can see his own orders ---
-GET {{base}}/orders
-Authorization: {{plankton_auth}}
+
+### Customers can only see their own orders
+GET /orders
+Authorization: {{sandy_auth}}
 
 ?? status == 200
+?? js response.parsedBody.length < {{all_orders.length}}
 
-### Attempt Exploit: Plankton can't list all orders anymore
-GET {{base}}/orders
-Authorization: {{plankton_auth}}
+
+### API key is validated before the request is processed
+GET /orders
+Authorization: {{sandy_auth}}
 X-API-Key: fake
 
-# Verification: Sandy ensured the flag is reset on failure. Plankton only sees his own orders.
 ?? status == 200
+?? js response.parsedBody.length < {{all_orders.length}}

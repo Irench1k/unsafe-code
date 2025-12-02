@@ -4,7 +4,12 @@ from functools import wraps
 from flask import Blueprint, g, session
 
 from ..auth.decorators import require_auth
-from ..database.repository import find_cart_by_id, find_menu_item_by_id, get_cart_items
+from ..database.repository import (
+    find_cart_by_id,
+    find_menu_item_by_id,
+    find_restaurant_by_id,
+    get_cart_items,
+)
 from ..database.services import (
     add_item_to_cart,
     calculate_cart_price,
@@ -19,10 +24,10 @@ from ..utils import (
     created_response,
     get_decimal_param,
     get_param,
-    get_restaurant_id,
     require_condition,
     require_int_param,
     require_ownership,
+    require_restaurant_id,
     success_response,
 )
 
@@ -72,10 +77,19 @@ def create_new_cart():
     This is step 1 of the new checkout flow. The cart gets an ID that
     the client will use in subsequent requests to add items.
     """
-    restaurant_id = get_restaurant_id()
+    if "cart_id" in session:
+        # Prevent cart spam
+        existing_cart = find_cart_by_id(session["cart_id"])
+        require_condition(existing_cart, f"Cart {session['cart_id']} not found")
+        require_ownership(existing_cart.user_id, g.user_id, "cart")
+        return success_response(serialize_cart(existing_cart))
+
+    restaurant_id = require_restaurant_id()
+    restaurant = find_restaurant_by_id(restaurant_id)
+    require_condition(restaurant, f"Restaurant {restaurant_id} not found")
+
     new_cart = create_cart(restaurant_id, g.user_id)
-    if session is not None:
-        session["cart_id"] = new_cart.id
+    session["cart_id"] = new_cart.id
     return created_response(serialize_cart(new_cart))
 
 

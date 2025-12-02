@@ -36,6 +36,65 @@ Vulnerabilities emerge from **production-quality code** through natural patterns
 - `uc-docs-generator-maintainer`: Maintains `uv run docs` tool
 - `commit-agent`: Runs verification + commits
 
+**E2E Spec Suite** (for `spec/` directory work):
+- `uc-spec-author`: Write/fix .http test files (sonnet - complex chains)
+- `uc-spec-debugger`: Diagnose failing tests, trace ref issues (sonnet - complex reasoning)
+- `uc-spec-runner`: Execute uctest, interpret results (haiku - fast)
+- `uc-spec-sync`: Run ucsync, manage inheritance (haiku - mechanical ops)
+
+### E2E Spec Agent Decision Tree
+
+```
+Spec suite task
+│
+├── Need to run tests?
+│   └── → uc-spec-runner
+│       └── Returns: pass/fail + suggested next agent
+│
+├── Test failed - "ref X not found"
+│   ├── After ucsync or spec.yml change?
+│   │   └── → uc-spec-sync (regenerate)
+│   └── Scope/import issue?
+│       └── → uc-spec-debugger (trace imports)
+│           └── After diagnosis → uc-spec-author or uc-spec-sync
+│
+├── Test failed - Assertion mismatch
+│   └── → uc-spec-debugger (understand API response)
+│       └── After diagnosis → uc-spec-author (fix test)
+│
+├── Task: Write new test file
+│   └── → uc-spec-author
+│       └── After writing → uc-spec-runner (verify)
+│
+├── Task: Fix test code
+│   └── → uc-spec-author
+│       └── After fixing → uc-spec-runner (verify)
+│
+├── Task: Update spec.yml / regenerate files
+│   └── → uc-spec-sync
+│       └── After sync → uc-spec-runner (verify)
+│
+└── Task: Diagnose why test fails
+    └── → uc-spec-debugger
+        └── Returns: root cause + which agent to fix
+```
+
+### E2E Spec Workflow Sequences
+
+**Fixing failing test:**
+1. uc-spec-runner (run tests)
+2. uc-spec-debugger (diagnose)
+3. uc-spec-author OR uc-spec-sync (fix)
+4. uc-spec-runner (verify)
+
+**Adding new tests:**
+1. uc-spec-author (write)
+2. uc-spec-runner (verify)
+
+**After spec.yml changes:**
+1. uc-spec-sync (sync)
+2. uc-spec-runner (verify)
+
 ## Quality Gates (Before Delegating)
 
 ### Before uc-exploit-narrator:

@@ -120,6 +120,30 @@ docker compose -p python-flask-confusion logs -f
 docker compose -p python-flask-confusion down -v
 ```
 
+## Installing uctest (HTTP Spec Runner)
+
+[uctest](https://github.com/execveat/uctest) is our HTTP test runner for running the `.http` spec files in `spec/`. Install it with npm:
+
+```bash
+npm install
+```
+
+Run tests:
+
+```bash
+# Run all tests in a version
+npx uctest spec/v301/
+
+# Run tests with specific tags
+npx uctest @happy
+
+# Run a specific test by name
+npx uctest :checkout
+
+# See all options
+npx uctest --help
+```
+
 ## Using uv (Project Python)
 
 We use uv to manage Python and project dependencies. uv creates and syncs a `.venv/` automatically and maintains a cross‑platform lockfile `uv.lock` for reproducible installs.

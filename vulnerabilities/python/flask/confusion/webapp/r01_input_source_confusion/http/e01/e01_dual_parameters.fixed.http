@@ -1,35 +1,45 @@
 # @import ../common/setup.http
-@base = {{base_host}}/v102
+@host = {{base_host}}/v102
 
 ### Sandy fixes the vulnerability, so now `item` parameter is ignored.
-# Plankton again wants to check the menu and receive the expensive item, paying for the cheaper one.
-# @name menu
-GET {{base}}/menu
+GET /menu
 
-{{
-  const menuData = menu;
-  exports.cheap_item = menuData.find(i => i.price < 5);
-  exports.expensive_item = menuData.find(i => i.price > 20);
-}}
+// Record the cheapest and most expensive items from the menu
+@cheap_item = {{response.parsedBody.find(i => parseFloat(i.price) < 5)}}
+@expensive_item = {{response.parsedBody.find(i => parseFloat(i.price) > 20)}}
 
-### He tries sending both parameters again, but `item` parameter is now ignored.
-# He ends up paying for the expensive item.
-# @name exploit_attempt
-POST {{base}}/orders
-Authorization: {{plankton_auth}}
+
+### Get her balance before the exploit
+# @name initial_balance
+GET /account/credits
+Authorization: {{sandy_auth}}
+
+
+### She verifies that sending both parameters together results in the expensive item being paid for.
+POST /orders
+Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
 item={{cheap_item.id}}&items={{expensive_item.id}}
 
-### Price and items are now consistent
+// Price and items are now consistent
 ?? status == 201
 ?? js response.parsedBody.total == {{expensive_item.price}}
-?? js response.parsedBody.items[0].name == {{expensive_item.name}}
+?? js response.parsedBody.items[0].price == {{expensive_item.price}}
 
-### Let's check his balance and order to see if he paid for the expensive item.
-GET {{base}}/account/credits
-Authorization: {{plankton_auth}}
 
-###
-GET {{base}}/orders
-Authorization: {{plankton_auth}}
+### The balance is deducted correctly
+GET /account/credits
+Authorization: {{sandy_auth}}
+
+{{
+  const initial_credits = parseFloat(initial_balance.balance);
+  const final_credits = parseFloat(response.parsedBody.balance);
+  const deducted = initial_credits - final_credits;
+  console.info(`Deducted amount: ${deducted.toFixed(2)} (should equal expensive item price: ${expensive_item.price}})`);
+}}
+
+
+### The order history is correct as well
+GET /orders
+Authorization: {{sandy_auth}}

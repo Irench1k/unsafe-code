@@ -1,0 +1,27 @@
+# @import ../_imports.http
+# @import ../../refund/post/happy.http
+
+# PATCH /orders/{id}/refund/status authorization guardrails
+# Only the owning restaurant can approve or reject refunds
+
+### Customer cannot approve their own refund
+# @forceRef large_refund_pending
+# @tag authz, orders, r03, v301
+PATCH /orders/{{order_id}}/refund/status
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+?? js $(response).isError() == true
+
+### Other restaurant cannot approve refund
+# @forceRef large_refund_pending
+# @tag authz, orders, r03, v301
+PATCH /orders/{{order_id}}/refund/status
+X-API-Key: {{auth.restaurant("chum_bucket")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+?? js $(response).isError() == true

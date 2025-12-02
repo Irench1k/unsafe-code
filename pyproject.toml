@@ -22,6 +22,8 @@ dev = [
 [project.scripts]
 docs = "tools.docs.cli:docs_main"
 focus = "tools.focus:main"
+ucsync = "tools.ucsync:main"
+uclint = "tools.uclint:main"
 
 
 [build-system]
@@ -80,6 +82,12 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tools/**/tests/**" = ["S101"] # Allow assert in tests
+# CherryPy REST API requires uppercase HTTP method names (GET, POST, PUT, DELETE)
+"foundations/python/cherrypy/rest-api/app.py" = ["N802"]
+# Bottle example uses wildcard import pattern for route registration
+"foundations/python/bottle/basic/run.py" = ["F403"]
+# Flask routing examples intentionally import after app creation for demonstration
+"foundations/python/flask/routing-multifile-register/webapp/__init__.py" = ["E402"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["tools"]

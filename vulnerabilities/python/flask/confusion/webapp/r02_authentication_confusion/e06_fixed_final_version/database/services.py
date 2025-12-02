@@ -174,12 +174,12 @@ def find_order_owner(order_id: str) -> str:
 # ============================================================
 # CART SERVICES
 # ============================================================
-def create_cart() -> Cart:
-    """Creates and persists a new empty cart."""
+def create_cart(owner_id: str) -> Cart:
+    """Creates and persists a new empty cart owned by the specified user."""
     cart_id = generate_next_cart_id()
-    new_cart = Cart(cart_id=cart_id, items=[])
+    new_cart = Cart(cart_id=cart_id, owner_id=owner_id, items=[])
     save_cart(new_cart)
-    logger.debug(f"Cart created: {cart_id}")
+    logger.debug(f"Cart created: {cart_id} for owner {owner_id}")
     return new_cart
 
 
@@ -207,7 +207,7 @@ def serialize_cart(cart: Cart) -> dict:
 def create_refund(order_id: str, amount: Decimal, reason: str, auto_approved: bool) -> Refund:
     """Creates a new refund with a generated ID."""
     refund_id = generate_next_refund_id()
-    status = "auto_approved" if auto_approved else "pending"
+    status = "approved" if auto_approved else "pending"
     return Refund(
         refund_id=refund_id,
         order_id=order_id,
@@ -220,7 +220,7 @@ def create_refund(order_id: str, amount: Decimal, reason: str, auto_approved: bo
 
 def process_refund(refund: Refund, user_id: str) -> None:
     """Processes a refund: saves it and credits user if auto-approved."""
-    if refund.status in ("auto_approved", "approved") and not refund.paid:
+    if refund.status == "approved" and not refund.paid:
         refund_user(user_id, refund.amount)
         refund.paid = True
         logger.info(

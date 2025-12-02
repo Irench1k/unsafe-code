@@ -87,7 +87,7 @@ def login_user():
     # Initiate cookie session on successful authentication
     session["email"] = email
 
-    return jsonify({"message": "Login successful"}), 200
+    return jsonify({"message": "Login successful", "email": g.email}), 200
 
 
 @bp.post("/logout")

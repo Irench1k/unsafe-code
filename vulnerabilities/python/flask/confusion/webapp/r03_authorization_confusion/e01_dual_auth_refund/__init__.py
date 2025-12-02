@@ -5,6 +5,7 @@ from flask import Blueprint, g, jsonify, request
 # Initialize database when the blueprint is registered
 from .config import load_config
 from .database.db import close_session, get_session, init_database
+from .e2e_helpers import is_e2e_enabled
 
 # Create the main blueprint
 bp = Blueprint("e01_dual_auth_refund_approval", __name__)
@@ -21,7 +22,9 @@ def _init_db_once():
     global _db_initialized
     if not _db_initialized:
         logger.info("Initializing database for v301...")
-        init_database(_config, drop_existing=_config.reinitialize_on_startup)
+        # Only auto-reset in E2E testing mode
+        should_reinit = _config.reinitialize_on_startup and is_e2e_enabled()
+        init_database(_config, drop_existing=should_reinit)
         _db_initialized = True
         logger.info("Database initialized successfully")
 

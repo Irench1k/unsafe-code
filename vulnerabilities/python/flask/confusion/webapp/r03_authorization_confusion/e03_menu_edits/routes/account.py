@@ -38,5 +38,6 @@ def view_account_info():
             "name": g.name,
             "balance": str(g.balance),
             "orders": len(get_user_orders(g.user_id)),
+            "id": g.user_id,
         }
     )

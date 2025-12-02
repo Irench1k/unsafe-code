@@ -1,3 +1,4 @@
+from copy import deepcopy
 from decimal import Decimal
 
 from .models import Cart, MenuItem, Order, OrderItem, Refund, User
@@ -6,72 +7,101 @@ from .models import Cart, MenuItem, Order, OrderItem, Refund, User
 # DATA STORAGE (In-memory database)
 # For an MVP, a simple dictionary will do.
 # ============================================================
+# v203: Refund approval workflow
 db = {
     "menu_items": {
-        "1": MenuItem(id="1", name="Krabby Patty", price=Decimal("5.99"), available=True),
-        "2": MenuItem(id="2", name="Krusty Krab Pizza", price=Decimal("12.50"), available=True),
-        "3": MenuItem(id="3", name="Side of Fries", price=Decimal("1.00"), available=True),
-        "4": MenuItem(id="4", name="Kelp Shake", price=Decimal("2.50"), available=True),
-        "5": MenuItem(id="5", name="Soda", price=Decimal("2.75"), available=False),
-        "6": MenuItem(id="6", name="Krusty Krab Complect", price=Decimal("20.50"), available=True),
+        "1": MenuItem(id="1", name="Krabby Patty Combo", price=Decimal("12.99"), available=True),
+        "2": MenuItem(id="2", name="Coral Bits Meal", price=Decimal("8.99"), available=True),
+        "3": MenuItem(id="3", name="Triple Krabby Supreme", price=Decimal("18.99"), available=True),
+        "4": MenuItem(id="4", name="Krabby Patty", price=Decimal("3.99"), available=True),
+        "5": MenuItem(id="5", name="Fries", price=Decimal("2.49"), available=True),
+        "6": MenuItem(id="6", name="Kelp Shake", price=Decimal("3.49"), available=True),
+        "7": MenuItem(id="7", name="Coral Bits", price=Decimal("4.49"), available=True),
+        "8": MenuItem(id="8", name="Ultimate Krabby Feast", price=Decimal("27.99"), available=True),
     },
     "users": {
         "sandy@bikinibottom.sea": User(
             user_id="sandy@bikinibottom.sea",
             name="Sandy Cheeks",
-            balance=Decimal("50.00"),
-            password="testpassword",
+            balance=Decimal("999.99"),
+            password="fullStackSquirr3l!",
         ),
-        "spongebob@bikinibottom.sea": User(
-            user_id="spongebob@bikinibottom.sea",
-            name="SpongeBob SquarePants",
-            balance=Decimal("20.00"),
-            password="i_l0ve_burg3rs",
+        "patrick@bikinibottom.sea": User(
+            user_id="patrick@bikinibottom.sea",
+            name="Patrick Star",
+            balance=Decimal("85.52"),
+            password="mayonnaise",
         ),
         "plankton@chum-bucket.sea": User(
             user_id="plankton@chum-bucket.sea",
             name="Sheldon Plankton",
-            balance=Decimal("100.00"),
+            balance=Decimal("50.00"),
             password="i_love_my_wife",
+        ),
+        "spongebob@krusty-krab.sea": User(
+            user_id="spongebob@krusty-krab.sea",
+            name="SpongeBob SquarePants",
+            balance=Decimal("23.60"),
+            password="EmployeeOfTheMonth",
         ),
     },
     "orders": {
         "1": Order(
             order_id="1",
-            total=Decimal("26.49"),
-            user_id="spongebob@bikinibottom.sea",
+            total=Decimal("14.48"),
+            user_id="patrick@bikinibottom.sea",
             items=[
-                OrderItem(item_id="6", name="Krusty Krab Complect", price=Decimal("20.50")),
-                OrderItem(item_id="1", name="Krabby Patty", price=Decimal("5.99")),
+                OrderItem(item_id="4", name="Krabby Patty", price=Decimal("3.99")),
+                OrderItem(item_id="5", name="Fries", price=Decimal("2.49")),
             ],
+            delivery_fee=Decimal("5.00"),
+            delivery_address="Under the Rock",
+            tip=Decimal("3.00"),
+        ),
+        "2": Order(
+            order_id="2",
+            total=Decimal("33.00"),
+            user_id="spongebob@krusty-krab.sea",
+            items=[OrderItem(item_id="8", name="Ultimate Krabby Feast", price=Decimal("27.99"))],
             delivery_fee=Decimal("0.00"),
-            delivery_address="122 Conch Street",
+            delivery_address="Pineapple Under the Sea",
+            tip=Decimal("5.01"),
+        ),
+        "3": Order(
+            order_id="3",
+            total=Decimal("10.49"),
+            user_id="plankton@chum-bucket.sea",
+            items=[OrderItem(item_id="5", name="Fries", price=Decimal("2.49"))],
+            delivery_fee=Decimal("5.00"),
+            delivery_address="Chum Bucket",
+            tip=Decimal("3.00"),
         ),
     },
     "carts": {
-        "1": Cart(cart_id="1", items=["1", "3"]),
+        "1": Cart(cart_id="1", owner_id="patrick@bikinibottom.sea", items=["4", "5"]),
+        "2": Cart(cart_id="2", owner_id="spongebob@krusty-krab.sea", items=["8"]),
+        "3": Cart(cart_id="3", owner_id="plankton@chum-bucket.sea", items=["5"]),
     },
     "refunds": {
         "1": Refund(
             refund_id="1",
-            order_id="1",
-            amount=Decimal("5.298"),
-            reason="Late delivery",
-            status="pending",
-            auto_approved=False,
+            order_id="2",
+            amount=Decimal("6.60"),
+            reason="Late delivery - auto-approved",
+            status="approved",
+            auto_approved=True,
         ),
     },
-    "restaurant_api_key": "key-mrkrabs-1bd647c2-dc5b-4c2b-a316-5ff83786c219",
     "platform_api_key": "key-sandy-42841a8d-0e65-41db-8cce-8588c23e53dc",
+    "restaurant_api_key": "key-krusty-krub-z1hu0u8o94",
     "signup_bonus_remaining": Decimal("100.00"),
 }
-
-SEED_DB = db.copy()
+SEED_DB = deepcopy(db)
 
 
 def reset_db():
     db.clear()
-    db.update({**SEED_DB})
+    db.update(deepcopy(SEED_DB))
 
 
 def set_balance(user_id: str, amount: Decimal) -> bool:

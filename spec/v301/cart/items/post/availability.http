@@ -1,0 +1,16 @@
+# @import ../_imports.http
+# @import ../../create/post/happy.http
+
+# POST /cart/{id}/items availability guardrails (v301+)
+# Unavailable items cannot be added to cart
+
+### Add item with unavailable item_id fails
+# @forceRef new_cart
+# @tag cart, r03, v301
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.firstUnavailable(1).id}}" }
+
+?? js $(response).isError() == true

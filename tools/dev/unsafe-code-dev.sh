@@ -8,6 +8,12 @@ _uc_script_source="${BASH_SOURCE[0]:-${(%):-%N}}"
 _uc_script_dir="$(cd "$(dirname "$_uc_script_source")" && pwd)"
 export UNSAFE_CODE_ROOT="$(cd "$_uc_script_dir/../.." && pwd)"
 
+# ================================
+# Node.js Environment
+# ================================
+# uctest is now an npm package - ensure node_modules/.bin is available
+export PATH="$UNSAFE_CODE_ROOT/node_modules/.bin:$PATH"
+
 # Track current focus area
 export UC_FOCUS_AREA=""
 # Store helpful error message and resolved path for the last match attempt
@@ -225,7 +231,7 @@ ucdown() {
     fi
 
     echo "🐳 Running docker compose down from: $compose_dir"
-    (cd "$compose_dir" && docker compose down "$@")
+    (cd "$compose_dir" && docker compose down --volumes --remove-orphans "$@")
 }
 
 # Docker compose logs
@@ -270,6 +276,7 @@ uclogs() {
 alias uc='cd $UNSAFE_CODE_ROOT'
 alias ucflask='cd $UNSAFE_CODE_ROOT/vulnerabilities/python/flask/confusion'
 alias ucwebapp='cd $UNSAFE_CODE_ROOT/vulnerabilities/python/flask/confusion/webapp'
+alias ucspecs='cd $UNSAFE_CODE_ROOT/spec'
 
 # Quick jump to round/example (e.g., "ucgo r02/e03" or full names)
 ucgo() {
@@ -291,6 +298,33 @@ ucgo() {
 
     cd "$resolved"
     echo "📂 $(pwd)"
+}
+
+# ================================
+# Spec Suite Management
+# ================================
+
+# Generate inherited e2e spec files based on spec.yml
+# Usage: ucsync [versions...] [-n|--dry-run] [-v|--verbose]
+#        ucsync clean [versions...]
+ucsync() {
+    (cd "$UNSAFE_CODE_ROOT" && uv run ucsync "$@")
+}
+
+# ================================
+# E2E Spec Testing
+# ================================
+
+# E2E spec test runner - uses uctest npm package
+# Use `npx uctest --help` for full documentation
+uctest() {
+    (cd "$UNSAFE_CODE_ROOT/spec" && npx uctest "$@")
+}
+
+# E2E spec linter - checks for jurisdiction violations, fake tests, etc.
+# Use `uv run uclint --help` for full documentation
+uclint() {
+    (cd "$UNSAFE_CODE_ROOT" && uv run uclint "$@")
 }
 
 # ================================
@@ -326,6 +360,24 @@ uchelp() {
     cat << 'EOF'
 🔧 Unsafe Code Lab - Development Helpers
 
+E2E Spec Testing (fail-fast by default):
+  uctest                 Run tests (stops on first failure)
+  uctest --resume        Run again to resume from failure
+  uctest -k              Run all tests (keep going after failures)
+  uctest @vulnerable     Run tests tagged 'vulnerable'
+  uctest @v301 @vulnerable Run tests with BOTH tags (AND logic)
+  uctest :checkout       Run test named 'checkout'
+  uctest v301/orders     Run tests in specific path
+  uctest -a              Run all tests (default mode executes minimal subset)
+
+  (Uses npm package from github:execveat/uctest)
+
+Spec Linting:
+  uclint                 Lint spec suite for violations
+  uclint v302            Lint specific version
+  uclint --all           Lint all versions
+  uclint --strict        Exit non-zero on any issue (for CI)
+
 Focus Management:
   ucfocus r02/e03        Focus VSCode on round 2, example 3
   ucfocus <full-path>    Focus on any directory
@@ -334,6 +386,7 @@ Focus Management:
 
 Docker Compose (auto-finds compose.yml):
   ucup                   docker compose up --build
+  ucup -d                docker compose up --build --detach
   ucdown                 docker compose down
   uclogs                 docker compose logs -f
 
@@ -341,18 +394,23 @@ Navigation:
   uc                     Jump to repo root
   ucflask                Jump to Flask confusion directory
   ucwebapp               Jump to webapp directory
+  ucspecs                Jump to e2e spec directory
   ucgo r02/e03           Jump to specific round/example
   uclist                 List examples in current round
 
-Combined Workflow:
-  ucfocus r02/e03        1. Focus VSCode on example
-                         2. Navigate to that directory
-  ucup                   3. Start docker compose (finds compose.yml automatically)
+Spec Suite Management:
+  ucsync                 Generate inherited tests (default action)
+  ucsync v302            Generate for specific version
+  ucsync -n              Preview changes (dry-run)
+  ucsync clean           Remove all inherited files
 
-  # Work on your code...
-
-  ucdown                 4. Stop docker compose
-  ucunfocus              5. Clear focus when done
+Typical Development Workflow:
+  1. ucfocus r02/e03      # Focus VSCode + cd to example
+  2. ucup -d              # Start services in background
+  3. uctest               # Run tests (fail-fast)
+  4. # Fix code...
+  5. uctest               # Resume from failure
+  6. ucdown && ucunfocus  # Cleanup when done
 
 EOF
 }

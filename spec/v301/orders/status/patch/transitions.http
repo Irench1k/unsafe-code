@@ -1,0 +1,120 @@
+# @import ../_imports.http
+# @import ./happy.http
+
+# PATCH /orders/{id}/status transitions & guardrails
+# State machine enforcement and access control
+
+# =============================================================================
+# PENDING ORDER: Invalid transitions
+# =============================================================================
+
+### Customer cannot set status to delivered
+# @forceRef plankton_order
+# @tag orders, r03, v301
+PATCH /orders/{{order_id}}/status
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+?? js $(response).isError() == true
+
+### Customer cannot set status to refunded
+# @ref plankton_order
+# @tag orders, r03, v301
+PATCH /orders/{{order_id}}/status
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=refunded
+
+?? js $(response).isError() == true
+
+### Restaurant cannot set status to refunded
+# @ref plankton_order
+# @tag orders, r03, v301
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=refunded
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# DELIVERED ORDER: Immutable
+# =============================================================================
+
+### Cannot change status of already delivered order
+# @forceRef delivered_order
+# @tag orders, r03, v301
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isError() == true
+
+### Customer cannot cancel already delivered order
+# @ref delivered_order
+# @tag orders, r03, v301
+PATCH /orders/{{order_id}}/status
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# CANCELLED ORDER: Immutable
+# =============================================================================
+
+### Restaurant cannot cancel already cancelled order
+# @forceRef cancelled_order_restaurant
+# @tag orders, r03, v301
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isError() == true
+
+### Restaurant cannot deliver already cancelled order
+# @ref cancelled_order_restaurant
+# @tag orders, r03, v301
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+?? js $(response).isError() == true
+
+### Customer cannot mark cancelled order as delivered
+# @ref cancelled_order_restaurant
+# @tag orders, r03, v301
+PATCH /orders/{{order_id}}/status
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# ACCESS CONTROL
+# =============================================================================
+
+### Cannot update another user's order
+# @forceRef delivered_order
+# @tag orders, r03, v301
+PATCH /orders/{{order_id}}/status
+Authorization: {{auth.basic("spongebob")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isError() == true

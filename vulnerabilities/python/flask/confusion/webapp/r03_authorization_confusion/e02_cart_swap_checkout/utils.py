@@ -38,6 +38,12 @@ def parse_id(value: str, name: str = "id") -> int:
         raise ValueError(f"{name} must be a positive integer")
     return int_value
 
+def get_int_param(name: str, default: int | None = None) -> int | None:
+    """Get an optional integer parameter from anywhere in the request."""
+    value = get_param(name)
+    if not value:
+        return default
+    return parse_id(value, name)
 
 def require_int_param(name: str) -> int:
     """
@@ -88,6 +94,10 @@ def require_condition(condition: bool, message: str):
 # ============================================================
 def get_restaurant_id() -> int:
     """Get the restaurant ID from the request."""
+    return get_int_param("restaurant_id")
+
+def require_restaurant_id() -> int:
+    """Get a required restaurant ID from the request."""
     return require_int_param("restaurant_id")
 
 

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from flask import Blueprint, jsonify, request
 
 from .auth import get_authenticated_user, validate_api_key
@@ -6,7 +8,10 @@ from .database import (
     get_all_menu_items,
     get_all_orders,
     get_user_orders,
+    reset_db,
+    set_balance,
 )
+from .e2e_helpers import require_e2e_auth
 from .utils import check_price_and_availability, get_order_items
 
 bp = Blueprint("e00_baseline", __name__)
@@ -70,3 +75,25 @@ def create_new_order():
 
     new_order = create_order_and_charge_customer(total_price, user.user_id, items)
     return jsonify(new_order.model_dump(mode="json")), 201
+
+
+@bp.route("/e2e/reset", methods=["POST"])
+@require_e2e_auth
+def e2e_reset():
+    """E2E test helper: reset in-memory database to initial state."""
+    reset_db()
+    return jsonify({"status": "reset"}), 200
+
+
+@bp.route("/e2e/balance", methods=["POST"])
+@require_e2e_auth
+def e2e_balance():
+    """E2E test helper: set user balance to a specific amount."""
+    payload = request.get_json(silent=True) or {}
+    user_id = payload.get("user_id") or "sandy"
+    amount = payload.get("balance")
+    if amount is None:
+        return jsonify({"error": "balance required"}), 400
+    if not set_balance(user_id, Decimal(str(amount))):
+        return jsonify({"error": "user not found"}), 404
+    return jsonify({"status": "ok", "user_id": user_id, "balance": str(amount)}), 200

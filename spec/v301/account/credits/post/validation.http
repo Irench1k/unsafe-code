@@ -1,0 +1,20 @@
+# @import ../_imports.http
+
+# POST /account/credits validation
+# v301 only accepts form-urlencoded payloads
+
+### JSON body is not supported in v301
+{{
+  await platform.seed({ spongebob: 100 });
+}}
+# @tag account, r03, v301
+POST /account/credits
+X-Admin-API-Key: {{auth.admin()}}
+Content-Type: application/json
+
+{
+  "user": "{{user("spongebob").email}}",
+  "amount": 23.45
+}
+
+?? js $(response).isError() == true

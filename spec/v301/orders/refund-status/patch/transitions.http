@@ -1,0 +1,101 @@
+# @import ../_imports.http
+# @import ../../refund/post/happy.http
+
+# PATCH /orders/{id}/refund/status transitions & guardrails
+# Approval workflow, immutability, and access control
+
+# =============================================================================
+# APPROVED REFUND: Immutable
+# =============================================================================
+
+### Restaurant manager approves refund
+# @name approved_refund
+# @forceRef large_refund_pending
+# @tag orders, r03, v301
+PATCH /orders/{{order_id}}/refund/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == approved
+?? js await user("plankton").balance() == 200.0
+
+### Cannot approve already approved refund
+# @ref approved_refund
+# @tag orders, r03, v301
+PATCH /orders/{{order_id}}/refund/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+?? js $(response).isError() == true
+
+### Cannot reject already approved refund
+# @ref approved_refund
+# @tag orders, r03, v301
+PATCH /orders/{{order_id}}/refund/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=rejected
+
+?? js $(response).isError() == true
+
+### Cannot set approved refund back to pending
+# @ref approved_refund
+# @tag orders, r03, v301
+PATCH /orders/{{order_id}}/refund/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=pending
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# REJECTED REFUND: Immutable
+# =============================================================================
+
+### Refund can be set to rejected
+# @name rejected_refund
+# @forceRef large_refund_pending
+{{
+  // Calculate expected balance: 200 (seeded) - order_total (spent on order)
+  exports.expectedBalanceAfterReject = 200 - Number(order_total);
+}}
+# @tag orders, r03, v301
+PATCH /orders/{{order_id}}/refund/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=rejected
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == rejected
+# Balance unchanged after rejection (initial 200 - order total spent)
+?? js Math.abs(await user("plankton").balance() - expectedBalanceAfterReject) < 0.01
+
+### Cannot set rejected refund back to pending
+# @ref rejected_refund
+# @tag orders, r03, v301
+PATCH /orders/{{order_id}}/refund/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=pending
+
+?? js $(response).isError() == true
+
+### Cannot approve rejected refund
+# @ref rejected_refund
+# @tag orders, r03, v301
+PATCH /orders/{{order_id}}/refund/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=approved
+
+?? js $(response).isError() == true

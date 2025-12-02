@@ -1,19 +1,17 @@
 # @import ../common/setup.http
-@base = {{base_host}}/v206
+@host = {{base_host}}/v206
 
-### Plankton logs in normally
-# @name login
-POST {{base}}/auth/login
+### Sandy logs in normally
+POST /auth/login
 Content-Type: application/json
 
 {
-    "email": "plankton@chum-bucket.sea",
-    "password": "i_love_my_wife"
+    "email": "sandy@bikinibottom.sea",
+    "password": "fullStackSquirr3l!"
 }
 
-### He tries to login as SpongeBob with a wrong password
-# @name exploit_attempt
-POST {{base}}/auth/login
+### Sandy tries to login as SpongeBob with a wrong password
+POST /auth/login
 Content-Type: application/json
 
 {
@@ -21,11 +19,14 @@ Content-Type: application/json
     "password": "does_not_matter"
 }
 
-### The session remains as Plankton (not hijacked)
-# Plankton sees his own account info and orders
-GET {{base}}/account/info
-?? status == 200
-?? js response.parsedBody.email == plankton@chum-bucket.sea
 
-GET {{base}}/orders
+### The session remains as Sandy (not hijacked)
+GET /account/info
+?? status == 200
+?? js response.parsedBody.email == sandy@bikinibottom.sea
+
+
+### Sandy only sees her own orders
+GET /orders
+
 ?? status == 200

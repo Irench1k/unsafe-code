@@ -1,8 +1,8 @@
+from decimal import Decimal
+
 from flask import Blueprint, jsonify, request
 
 from .auth import get_authenticated_user, validate_api_key
-from decimal import Decimal
-
 from .database import (
     create_order_and_charge_customer,
     get_all_menu_items,
@@ -11,6 +11,7 @@ from .database import (
     reset_db,
     set_balance,
 )
+from .e2e_helpers import require_e2e_auth
 from .utils import calculate_delivery_fee, check_price_and_availability, get_order_items
 
 bp = Blueprint("e02_delivery_fee", __name__)
@@ -77,29 +78,32 @@ def create_new_order():
 
     items = get_order_items(request.form)
 
-    new_order = create_order_and_charge_customer(total_price, user.user_id, items, delivery_fee)
+    delivery_address = request.form.get("delivery_address")
+    if not delivery_address:
+        return jsonify({"error": "delivery_address is required"}), 400
+
+    new_order = create_order_and_charge_customer(
+        total_price, user.user_id, items, delivery_fee, delivery_address
+    )
     return jsonify(new_order.model_dump(mode="json")), 201
 
 
-def _require_platform_admin():
-    user = get_authenticated_user()
-    if not user or user.user_id != "sandy":
-        return None
-    return user
+# E2E test helpers
+# ============================================================
 
 
-@bp.route("/platform/reset", methods=["POST"])
-def platform_reset():
-    if not _require_platform_admin():
-        return jsonify({"error": "Forbidden"}), 403
+@bp.route("/e2e/reset", methods=["POST"])
+@require_e2e_auth
+def e2e_reset():
+    """E2E test helper: reset in-memory database to initial state."""
     reset_db()
     return jsonify({"status": "reset"}), 200
 
 
-@bp.route("/platform/balance", methods=["POST"])
-def platform_balance():
-    if not _require_platform_admin():
-        return jsonify({"error": "Forbidden"}), 403
+@bp.route("/e2e/balance", methods=["POST"])
+@require_e2e_auth
+def e2e_balance():
+    """E2E test helper: set user balance to a specific amount."""
     payload = request.get_json(silent=True) or {}
     user_id = payload.get("user_id") or "sandy"
     amount = payload.get("balance")

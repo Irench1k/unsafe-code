@@ -1,0 +1,33 @@
+# @import ../_imports.http
+# @import ../patch/happy.http
+
+# GET /orders/{id}/refund/status happy path
+# Customer-only endpoint to view refund status
+
+### Customer views approved refund status with Basic Auth
+# @forceRef refund_approved
+# @tag happy, orders, r03, v301
+GET /orders/{{order_id}}/refund/status
+Authorization: {{auth.basic("plankton")}}
+
+?? js $(response).isOk() == true
+?? js $(response).hasFields("refund_id", "amount", "status", "reason") == true
+?? js $(response).field("status") == approved
+
+### Customer views rejected refund status with Basic Auth
+# @forceRef refund_rejected
+# @tag happy, orders, r03, v301
+GET /orders/{{order_id}}/refund/status
+Authorization: {{auth.basic("plankton")}}
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == rejected
+
+### Customer views refund status with Cookie Auth
+# @forceRef refund_approved
+# @tag happy, orders, r03, v301
+GET /orders/{{order_id}}/refund/status
+Cookie: {{auth.login("plankton")}}
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == approved

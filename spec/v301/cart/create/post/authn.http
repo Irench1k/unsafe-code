@@ -1,0 +1,19 @@
+# @import ../_imports.http
+
+# POST /cart authentication guardrails (v301+)
+# Authentication requirements
+
+### Create cart requires authentication
+# @tag authn, cart, r03, v301
+POST /cart?restaurant_id=1
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Create cart requires valid credentials
+# @tag authn, cart, r03, v301
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("plankton", "wrongpassword")}}
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required

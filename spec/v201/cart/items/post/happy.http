@@ -1,0 +1,33 @@
+# @import ../_imports.http
+# @import ../../create/post/happy.http
+
+# POST /cart/{id}/items happy path
+# Adding items to a cart
+#
+# Exports (for @forceRef by other tests):
+#   cart_with_item - Cart with one item (canonical fixture for checkout tests)
+
+### Add item with Basic Auth
+# @name cart_with_item
+# @forceRef new_cart
+# @tag cart, happy, r02, v201
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.item("Krabby Patty").id}}" }
+
+?? js $(response).isOk() == true
+?? js $(response).field("items").length == 1
+
+### Add second item with Basic Auth
+# @forceRef cart_with_item
+# @tag cart, happy, r02, v201
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.item("Fries").id}}" }
+
+?? js $(response).isOk() == true
+?? js $(response).field("items").length == 2

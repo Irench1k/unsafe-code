@@ -1,29 +1,35 @@
 # @import ../common/setup.http
-@base = {{base_host}}/v105
+@host = {{base_host}}/v105
 
-### Sandy fixed the vulnerability, and now Plankton can't add a negative tip anymore.
+# Sandy fixed the vulnerability by taking the absolute value of the tip.
+
+
+### She creates a cart to test the fix
 # @name cart
-POST {{base}}/cart
-Authorization: {{plankton_auth}}
+POST /cart
+Authorization: {{sandy_auth}}
 
-POST {{base}}/cart/{{cart.cart_id}}/items
-Authorization: {{plankton_auth}}
+
+### She adds an item to the cart
+POST /cart/{{cart.cart_id}}/items
+Authorization: {{sandy_auth}}
 Content-Type: application/json
 
 { "item_id": "2" }
 
-### Plankton tries the negative tip trick
-# @name exploit_attempt
-POST {{base}}/cart/{{cart.cart_id}}/checkout?tip=20
-Authorization: {{plankton_auth}}
+
+### Sandy tries the negative tip trick
+POST /cart/{{cart.cart_id}}/checkout?tip=20
+Authorization: {{sandy_auth}}
 Content-Type: application/json
 
 {
   "tip": -50,
-  "delivery_address": "Chum Bucket"
+  "delivery_address": "Treedome Research Lab"
 }
 
-### The negative tip is converted to positive (take that, Plankton!)
+
+// The negative tip is converted to positive (take that, Plankton!)
 ?? status == 201
 ?? js response.parsedBody.tip == 50
-?? js response.parsedBody.total == 56.00
+?? js response.parsedBody.total == {{parseFloat(response.parsedBody.items[0].price) + 5.00 + 50.00}}

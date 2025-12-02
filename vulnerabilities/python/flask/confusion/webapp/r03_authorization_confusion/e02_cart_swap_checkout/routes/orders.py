@@ -15,6 +15,7 @@ from ..database.services import (
     create_refund,
     get_user_orders,
     process_refund,
+    refund_user,
     serialize_order,
     serialize_orders,
     serialize_refund,
@@ -59,8 +60,9 @@ def refund_order(order_id: int):
         "amount", OrderConfig.DEFAULT_REFUND_PERCENTAGE * g.order.total
     )
 
-    # Integrity check: order must not already be refunded
-    require_condition(g.order.status != OrderStatus.refunded, "Order has already been refunded")
+    # Integrity check: order must be delivered, not refunded or cancelled
+    # (the orders that are not delivered yet can only be cancelled not refunded)
+    require_condition(g.order.status == OrderStatus.delivered, "Order must be delivered to be refunded")
 
     # Integrity check: there should NOT be other refunds for this order
     require_condition(not get_refund_by_order_id(order_id), "Refund already exists for this order")
@@ -134,7 +136,7 @@ def update_order_status(order_id: int):
     """
     status = get_param("status")
     require_condition(
-        status in ["created", "delivered", "cancelled", "refunded"], "Status is missing or invalid"
+        status in ["delivered", "cancelled"], "Status is missing or invalid"
     )
 
     order = find_order_by_id(order_id)
@@ -143,8 +145,10 @@ def update_order_status(order_id: int):
     # Authorization check: order must belong to the user or restaurant
     if g.get("user_id"):
         require_ownership(order.user_id, g.user_id, "order")
+        require_condition(status == "cancelled", "Order can only be cancelled")
     else:
         require_ownership(order.restaurant_id, g.restaurant_id, "order")
+        require_condition(status in ("delivered", "cancelled"), "Order can only be delivered or cancelled")
 
     # Integrity check: order status can be changed only from "created"
     require_condition(
@@ -152,6 +156,8 @@ def update_order_status(order_id: int):
     )
 
     # Update order status
-    order.status = status
+    order.status = OrderStatus(status)
     save_order(order)
+    if status == "cancelled":
+        refund_user(order.user_id, order.total)
     return success_response(serialize_order(order))

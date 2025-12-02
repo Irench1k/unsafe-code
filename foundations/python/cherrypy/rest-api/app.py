@@ -8,7 +8,7 @@ import cherrypy
 class StringGeneratorWebService:
     """
     RESTful web service for string generation using HTTP method dispatching.
-    
+
     Uses CherryPy's MethodDispatcher to route HTTP verbs to corresponding methods:
     - GET: Retrieve current string from session
     - POST: Generate new string with optional length parameter

@@ -117,14 +117,14 @@ def _create_restaurants(session: Session) -> tuple[Restaurant, Restaurant]:
         name="Krusty Krab",
         description="Home of the Krabby Patty!",
         owner="mr.krabs@krusty-krab.sea",
-        api_key="key-mrkrabs-1bd647c2-dc5b-4c2b-a316-5ff83786c219",
+        api_key="key-krusty-krub-z1hu0u8o94",
     )
 
     chum_bucket = Restaurant(
         name="Chum Bucket",
         description="Plankton's rival restaurant",
         owner="plankton@chum-bucket.sea",
-        api_key="key-plankton-a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+        api_key="key-chum-bucket-b5kg32z1je",
     )
 
     session.add_all([krusty_krab, chum_bucket])
@@ -146,36 +146,54 @@ def _create_menu_items(
 
     Returns dictionaries mapping item names to MenuItem objects for easy reference.
     """
-    # Krusty Krab Menu
+    # Krusty Krab Menu (v301: IDs reassigned, old combos deprecated)
     krusty_menu = {
+        "Krabby Patty Combo": MenuItem(
+            restaurant_id=krusty_krab.id,
+            name="Krabby Patty Combo",
+            price=Decimal("12.99"),
+            available=False,
+        ),
+        "Coral Bits Meal": MenuItem(
+            restaurant_id=krusty_krab.id,
+            name="Coral Bits Meal",
+            price=Decimal("8.99"),
+            available=False,
+        ),
+        "Triple Krabby Supreme": MenuItem(
+            restaurant_id=krusty_krab.id,
+            name="Triple Krabby Supreme",
+            price=Decimal("18.99"),
+            available=False,
+        ),
         "Krabby Patty": MenuItem(
             restaurant_id=krusty_krab.id,
             name="Krabby Patty",
-            price=Decimal("5.99"),
+            price=Decimal("3.99"),
             available=True,
         ),
-        "Side of Fries": MenuItem(
+        "Fries": MenuItem(
             restaurant_id=krusty_krab.id,
-            name="Side of Fries",
-            price=Decimal("1.00"),
+            name="Fries",
+            price=Decimal("2.49"),
             available=True,
         ),
         "Kelp Shake": MenuItem(
             restaurant_id=krusty_krab.id,
             name="Kelp Shake",
-            price=Decimal("2.50"),
+            price=Decimal("3.49"),
             available=True,
         ),
-        "Krusty Krab Complect": MenuItem(
+        "Coral Bits": MenuItem(
             restaurant_id=krusty_krab.id,
-            name="Krusty Krab Complect",
-            price=Decimal("20.50"),
+            name="Coral Bits",
+            price=Decimal("4.49"),
             available=True,
         ),
-        "Ultimate Krusty Krab": MenuItem(
+        "Ultimate Krabby Feast": MenuItem(
             restaurant_id=krusty_krab.id,
-            name="Ultimate Krusty Krab",
-            price=Decimal("50.00"),
+            name="Ultimate Krabby Feast",
+            price=Decimal("27.99"),
             available=True,
         ),
     }
@@ -185,13 +203,13 @@ def _create_menu_items(
         "Chum Burger": MenuItem(
             restaurant_id=chum_bucket.id,
             name="Chum Burger",
-            price=Decimal("10.00"),
+            price=Decimal("2.99"),
             available=True,
         ),
         "ChumBalaya": MenuItem(
             restaurant_id=chum_bucket.id,
             name="ChumBalaya",
-            price=Decimal("25.00"),
+            price=Decimal("15.99"),
             available=True,
         ),
     }
@@ -218,44 +236,44 @@ def _create_users(session: Session) -> dict[str, User]:
         {
             "email": "sandy@bikinibottom.sea",
             "name": "Sandy Cheeks",
+            "balance": Decimal("999.99"),
+            "password": "fullStackSquirr3l!",
+        },
+        {
+            "email": "patrick@bikinibottom.sea",
+            "name": "Patrick Star",
+            "balance": Decimal("81.02"),
+            "password": "mayonnaise",
+        },
+        {
+            "email": "plankton@chum-bucket.sea",
+            "name": "Sheldon Plankton",
             "balance": Decimal("50.00"),
-            "password": "testpassword",
+            "password": "i_love_my_wife",
+        },
+        {
+            "email": "spongebob@krusty-krab.sea",
+            "name": "SpongeBob SquarePants",
+            "balance": Decimal("17.01"),
+            "password": "EmployeeOfTheMonth",
         },
         {
             "email": "mr.krabs@krusty-krab.sea",
             "name": "Eugene H. Krabs",
             "balance": Decimal("1000.00"),
-            "password": "mon3y_m0ney_m0ney_m0ney",
+            "password": "m$n$y",
         },
         {
-            "email": "spongebob@bikinibottom.sea",
-            "name": "SpongeBob SquarePants",
-            "balance": Decimal("20.00"),
-            "password": "i_l0ve_burg3rs",
-        },
-        {
-            "email": "plankton@chum-bucket.sea",
-            "name": "Sheldon Plankton",
-            "balance": Decimal("100.00"),
-            "password": "i_love_my_wife",
+            "email": "squidward@krusty-krab.sea",
+            "name": "Squidward Tentacles",
+            "balance": Decimal("80.00"),
+            "password": "clarinet4life",
         },
         {
             "email": "karen@chum-bucket.sea",
             "name": "Karen the Computer",
             "balance": Decimal("150.00"),
-            "password": "10100101",
-        },
-        {
-            "email": "squidward@krusty-krab.sea",
-            "name": "Squidward Tentacles",
-            "balance": Decimal("100.00"),
-            "password": "i_hate_my_job",
-        },
-        {
-            "email": "patrick@krusty-krab.sea",
-            "name": "Patrick Star",
-            "balance": Decimal("10.00"),
-            "password": "1234567890",
+            "password": "01001011",
         },
     ]
 
@@ -291,32 +309,60 @@ def _create_orders_with_items(
     """
     orders = {}
 
+    # Patrick's order at Krusty Krab
+    patrick_order = _create_order_with_items(
+        session=session,
+        customer=users["patrick@bikinibottom.sea"],
+        restaurant=krusty_krab,
+        items=[
+            krusty_menu["Krabby Patty"],  # $3.99
+            krusty_menu["Fries"],  # $2.49
+        ],
+        delivery_address="Under the Rock",
+        delivery_fee=Decimal("5.00"),
+        tip=Decimal("3.00"),
+    )
+    orders["patrick_krusty"] = patrick_order
+
     # SpongeBob's order at Krusty Krab
     spongebob_order = _create_order_with_items(
         session=session,
-        customer=users["spongebob@bikinibottom.sea"],
+        customer=users["spongebob@krusty-krab.sea"],
         restaurant=krusty_krab,
         items=[
-            krusty_menu["Krusty Krab Complect"],  # $20.50
-            krusty_menu["Krabby Patty"],  # $5.99
+            krusty_menu["Ultimate Krabby Feast"],  # $27.99
         ],
-        delivery_address="122 Conch Street",
+        delivery_address="Pineapple Under the Sea",
         delivery_fee=Decimal("0.00"),
-        tip=Decimal("5.00"),
+        tip=Decimal("5.01"),
     )
     orders["spongebob_krusty"] = spongebob_order
 
-    # Plankton's order at Chum Bucket
+    # Karen's order at Chum Bucket
+    karen_order = _create_order_with_items(
+        session=session,
+        customer=users["karen@chum-bucket.sea"],
+        restaurant=chum_bucket,
+        items=[
+            chum_menu["Chum Burger"],  # $2.99
+        ],
+        delivery_address="localhost",
+        delivery_fee=Decimal("5.00"),
+        tip=Decimal("2.00"),
+    )
+    orders["karen_chum"] = karen_order
+
+    # Plankton's order at Krusty Krab
     plankton_order = _create_order_with_items(
         session=session,
         customer=users["plankton@chum-bucket.sea"],
         restaurant=chum_bucket,
         items=[
-            chum_menu["Chum Burger"],  # $10.00
+            krusty_menu["Krabby Patty"],  # $3.99
         ],
-        delivery_address="Chum Bucket Street",
+        delivery_address="The Chum Bucket",
         delivery_fee=Decimal("5.00"),
-        tip=Decimal("3.00"),
+        tip=Decimal("2.00"),
     )
     orders["plankton_chum"] = plankton_order
 
@@ -400,17 +446,27 @@ def _create_carts_with_items(
     """
     carts = []
 
-    # Create a cart for Krusty Krab
+    # Create a cart for Patrick at Krusty Krab
     cart = _create_cart_with_items(
         session=session,
         restaurant=krusty_krab,
         items=[
             krusty_menu["Krabby Patty"],
-            krusty_menu["Side of Fries"],
+            krusty_menu["Fries"],
         ],
-        user=users["spongebob@bikinibottom.sea"],
+        user=users["patrick@bikinibottom.sea"],
     )
     carts.append(cart)
+
+    # Create a cart for SpongeBob at Krusty Krab
+    cart = _create_cart_with_items(
+        session=session,
+        restaurant=krusty_krab,
+        items=[
+            krusty_menu["Ultimate Krabby Feast"],
+        ],
+        user=users["spongebob@krusty-krab.sea"],
+    )
 
     return carts
 
@@ -467,11 +523,11 @@ def _create_refunds(
     spongebob_order = orders["spongebob_krusty"]
     refund = Refund(
         order_id=spongebob_order.id,
-        amount=Decimal("5.30"),
+        amount=Decimal("6.60"),
         reason="Late delivery",
-        status=RefundStatus.pending,
-        auto_approved=False,
-        paid=False,
+        status=RefundStatus.approved,
+        auto_approved=True,
+        paid=True,
     )
     session.add(refund)
     refunds.append(refund)

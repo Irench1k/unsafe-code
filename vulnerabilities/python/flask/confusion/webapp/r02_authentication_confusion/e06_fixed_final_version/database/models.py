@@ -38,6 +38,7 @@ class Order(BaseModel):
 
 class Cart(BaseModel):
     cart_id: str
+    owner_id: str  # Email of the user who created this cart
     items: list[str]  # Array of item IDs
 
 
@@ -46,7 +47,7 @@ class Refund(BaseModel):
     order_id: str
     amount: Decimal
     reason: str = Field(default="")
-    status: Literal["pending", "auto_approved", "approved", "rejected"] = Field(default="pending")
+    status: Literal["pending", "approved", "rejected"] = Field(default="pending")
     auto_approved: bool
     paid: bool = Field(default=False)
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)

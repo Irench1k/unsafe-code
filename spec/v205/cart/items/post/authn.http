@@ -1,0 +1,26 @@
+# @import ../_imports.http
+# @import ../../create/post/~happy.http
+
+# POST /cart/{id}/items authentication guardrails
+# Adding items requires valid authentication
+
+### Add item requires authentication
+# @ref new_cart
+# @tag authn, cart, r02, v205
+POST /cart/{{cart_id}}/items
+Content-Type: application/json
+
+{ "item_id": "{{menu.item("Krabby Patty").id}}" }
+
+?? js $(response).isError() == true
+
+### Add item requires valid credentials
+# @ref new_cart
+# @tag authn, cart, r02, v205
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick", "wrongpassword")}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.item("Krabby Patty").id}}" }
+
+?? js $(response).isError() == true

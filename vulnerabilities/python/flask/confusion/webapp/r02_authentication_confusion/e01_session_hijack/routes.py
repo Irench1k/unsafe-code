@@ -17,7 +17,6 @@ from .database.repository import (
     find_cart_by_id,
     find_user_by_id,
     save_refund,
-    get_platform_api_key,
 )
 from .database.services import (
     add_item_to_cart,
@@ -25,11 +24,12 @@ from .database.services import (
     create_cart,
     create_user,
     get_user_orders,
-    reset_for_tests,
     refund_user,
+    reset_for_tests,
     save_order_securely,
     set_balance_for_tests,
 )
+from .e2e_helpers import require_e2e_auth
 from .errors import CheekyApiError
 from .utils import (
     check_cart_price_and_delivery_fee,
@@ -99,7 +99,7 @@ def create_new_cart():
     This is step 1 of the new checkout flow. The cart gets an ID that
     the client will use in subsequent requests to add items.
     """
-    new_cart = create_cart()
+    new_cart = create_cart(owner_id=g.email)
     return jsonify(new_cart.model_dump()), 201
 
 
@@ -126,6 +126,10 @@ def add_item_to_cart_endpoint(cart_id):
     if not cart:
         raise CheekyApiError("Cart not found")
 
+    # Authorization: only the cart owner can add items
+    if cart.owner_id != g.email:
+        raise CheekyApiError("Access denied")
+
     updated_cart = add_item_to_cart(cart_id, item_id)
     return jsonify(updated_cart.model_dump()), 200
 
@@ -137,6 +141,10 @@ def checkout_cart(cart_id):
     cart = find_cart_by_id(cart_id)
     if not cart or not cart.items:
         raise CheekyApiError("Cart not found")
+
+    # Authorization: only the cart owner can checkout
+    if cart.owner_id != g.email:
+        raise CheekyApiError("Access denied")
 
     # Get user input - handle both JSON and form data
     user_data = request.json if request.is_json else request.form
@@ -178,7 +186,7 @@ def refund_order(order_id):
     refund_amount_entered = parse_as_decimal(get_request_parameter("amount"))
     refund_amount = refund_amount_entered or Decimal("0.2") * g.order.total
 
-    status = "auto_approved" if g.refund_is_auto_approved else "pending"
+    status = "approved" if g.refund_is_auto_approved else "pending"
 
     refund = Refund(
         order_id=order_id,
@@ -241,7 +249,7 @@ def login_user():
     # Set session for future requests
     session["email"] = g.email
 
-    return jsonify({"message": "Login successful"}), 200
+    return jsonify({"message": "Login successful", "email": g.email}), 200
 
 
 @bp.route("/auth/logout", methods=["POST"])
@@ -256,15 +264,10 @@ def logout_user():
     return jsonify({"message": "Logout successful"}), 200
 
 
-def _require_platform_admin():
-    """Validate platform admin operations for test helpers."""
-    return request.headers.get("X-Admin-API-Key") == get_platform_api_key()
-
-
-@bp.route("/platform/reset", methods=["POST"])
-def platform_reset():
-    if not _require_platform_admin():
-        return jsonify({"error": "Forbidden"}), 403
+@bp.route("/e2e/reset", methods=["POST"])
+@require_e2e_auth
+def e2e_reset():
+    """E2E test helper: reset database to initial state."""
     try:
         reset_for_tests()
         return jsonify({"status": "reset"}), 200
@@ -272,10 +275,10 @@ def platform_reset():
         return jsonify({"error": str(exc)}), 500
 
 
-@bp.route("/platform/balance", methods=["POST"])
-def platform_balance():
-    if not _require_platform_admin():
-        return jsonify({"error": "Forbidden"}), 403
+@bp.route("/e2e/balance", methods=["POST"])
+@require_e2e_auth
+def e2e_balance():
+    """E2E test helper: set user balance to a specific amount."""
     payload = request.get_json(silent=True) or {}
     user_id = payload.get("user_id") or "sandy@bikinibottom.sea"
     amount = payload.get("balance")

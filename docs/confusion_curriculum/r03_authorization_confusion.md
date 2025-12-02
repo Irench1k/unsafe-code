@@ -66,38 +66,38 @@ By the end of r03, these roles are enforced:
 
 ##### Data Model Evolution
 
-| Model               | v301 | v302               | v303 | v304 | v305 | v306                       | v307                     |
-| ------------------- | ---- | ------------------ | ---- | ---- | ---- | -------------------------- | ------------------------ |
-| OrderAccessHelper   | ✅ `has_access_to_order()` trusts whichever identity is available (customer session bleeds into manager checks) | - | - | - | - | -                          | -                        |
-| CartAuthorization   | -    | Session keeps `cart_id`; `resolve_trusted_cart()` trusts it before `g.cart_id` | -    | -    | -    | -                          | -                        |
-| MenuItem            | ✅ SQLAlchemy table keyed by `id` with `restaurant_id`, `name`, `price`, `available` | - | - | - | - | -                          | -                        |
-| Order               | ✅ Orders persist `restaurant_id`, `user_id`, totals, delivery fees, tips, and `status` enum | - | - | - | - | -                          | -                        |
-| OrderItem           | ✅ Snapshot line items capture menu `item_id`, `name`, and `price` per order | - | - | - | - | -                          | -                        |
-| Cart                | ✅ Carts store `restaurant_id`, `user_id`, and `active` flag for cross-request ownership | - | - | - | - | -                          | -                        |
-| CartItem            | ✅ Join table keeps persisted `cart_id` → `item_id` mappings | - | - | - | - | -                          | -                        |
-| Refund              | ✅ Refund records track `order_id`, amount, `status`, `auto_approved`, `paid`, timestamps | - | - | - | - | -                          | -                        |
-| User                | ✅ Users now have numeric IDs plus `email`, `name`, hashed `password`, Decimal `balance` | - | - | - | - | -                          | -                        |
-| Restaurant          | ✅ Restaurants include description, owner email, and per-tenant API key | - | - | - | - | ✅ (domain onboarding)     | `+domain PATCH mutation` |
-| PlatformConfig      | ✅ Key/value store backs platform API key + signup bonus counters | - | - | - | - | -                          | -                        |
-| DomainToken         | -    | -                  | -    | -    | -    | ✅ (user token reuse path) | -                        |
+| Model             | v301                                                                                                            | v302                                                                           | v303 | v304 | v305 | v306                       | v307                     |
+| ----------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ---- | ---- | ---- | -------------------------- | ------------------------ |
+| OrderAccessHelper | ✅ `has_access_to_order()` trusts whichever identity is available (customer session bleeds into manager checks) | -                                                                              | -    | -    | -    | -                          | -                        |
+| CartAuthorization | -                                                                                                               | Session keeps `cart_id`; `resolve_trusted_cart()` trusts it before `g.cart_id` | -    | -    | -    | -                          | -                        |
+| MenuItem          | ✅ SQLAlchemy table keyed by `id` with `restaurant_id`, `name`, `price`, `available`                            | -                                                                              | -    | -    | -    | -                          | -                        |
+| Order             | ✅ Orders persist `restaurant_id`, `user_id`, totals, delivery fees, tips, and `status` enum                    | -                                                                              | -    | -    | -    | -                          | -                        |
+| OrderItem         | ✅ Snapshot line items capture menu `item_id`, `name`, and `price` per order                                    | -                                                                              | -    | -    | -    | -                          | -                        |
+| Cart              | ✅ Carts store `restaurant_id`, `user_id`, and `active` flag for cross-request ownership                        | -                                                                              | -    | -    | -    | -                          | -                        |
+| CartItem          | ✅ Join table keeps persisted `cart_id` → `item_id` mappings                                                    | -                                                                              | -    | -    | -    | -                          | -                        |
+| Refund            | ✅ Refund records track `order_id`, amount, `status`, `auto_approved`, `paid`, timestamps                       | -                                                                              | -    | -    | -    | -                          | -                        |
+| User              | ✅ Users now have numeric IDs plus `email`, `name`, hashed `password`, Decimal `balance`                        | -                                                                              | -    | -    | -    | -                          | -                        |
+| Restaurant        | ✅ Restaurants include description, owner email, and per-tenant API key                                         | -                                                                              | -    | -    | -    | ✅ (domain onboarding)     | `+domain PATCH mutation` |
+| PlatformConfig    | ✅ Key/value store backs platform API key + signup bonus counters                                               | -                                                                              | -    | -    | -    | -                          | -                        |
+| DomainToken       | -                                                                                                               | -                                                                              | -    | -    | -    | ✅ (user token reuse path) | -                        |
 
 ##### Behavioral Changes
 
-| Version | Component                      | Behavioral Change                                                                        |
-| ------- | ------------------------------ | ---------------------------------------------------------------------------------------- |
-| v301    | OrderAccessHelper              | `has_access_to_order()` pulls session customers even during manager API-key calls        |
-| v302    | CartAuthorization              | `charge_customer_with_hold()` charges `session.cart_id`; handler re-runs `resolve_trusted_cart()` using the path ID |
+| Version | Component                      | Behavioral Change                                                                                                                       |
+| ------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| v301    | OrderAccessHelper              | `has_access_to_order()` pulls session customers even during manager API-key calls                                                       |
+| v302    | CartAuthorization              | `charge_customer_with_hold()` charges `session.cart_id`; handler re-runs `resolve_trusted_cart()` using the path ID                     |
 | v303    | MenuItem Authorization         | `@restaurant_owns(MenuItem, "item_id")` relies on `restaurant_id` view args; `/menu/{id}` never passes one so only existence is checked |
-| v304    | bind_to_restaurant()           | Decorator validates query `restaurant_id`; helper inspects all request containers        |
-| v305    | Order Status Update            | Authorization happens in stored procedure; handler returns order before auth check       |
-| v306    | Domain Verification            | Token verification checks signature/expiry but not email local-part (admin@ requirement) |
-| v307    | Restaurant PATCH Authorization | Middleware updates `request.restaurant_id` from token before authorization layer runs    |
+| v304    | bind_to_restaurant()           | Decorator validates query `restaurant_id`; helper inspects all request containers                                                       |
+| v305    | Order Status Update            | Authorization happens in stored procedure; handler returns order before auth check                                                      |
+| v306    | Domain Verification            | Token verification checks signature/expiry but not email local-part (admin@ requirement)                                                |
+| v307    | Restaurant PATCH Authorization | Middleware updates `request.restaurant_id` from token before authorization layer runs                                                   |
 
 #### Data Models
 
 ```ts
 type OrderStatus = "created" | "delivered" | "refunded" | "cancelled";
-type RefundStatus = "pending" | "auto_approved" | "approved" | "rejected";
+type RefundStatus = "pending" | "approved" | "rejected";
 
 interface Restaurant {
   restaurant_id: number;

@@ -1,0 +1,25 @@
+# @import ../_imports.http
+
+# POST /cart multi-tenant guardrails (v301+)
+# Restaurant ID validation
+
+### Create cart requires restaurant_id - Basic Auth
+# @tag cart, r03, v301
+POST /cart
+Authorization: {{auth.basic("patrick")}}
+
+?? js $(response).isError() == true
+
+### Create cart requires restaurant_id - Cookie Auth
+# @tag cart, r03, v301
+POST /cart
+Cookie: {{auth.login("patrick")}}
+
+?? js $(response).isError() == true
+
+### Create cart requires valid restaurant_id
+# @tag cart, r03, v301
+POST /cart?restaurant_id=999
+Authorization: {{auth.basic("patrick")}}
+
+?? js $(response).isError() == true

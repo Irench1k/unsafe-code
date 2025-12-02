@@ -1,33 +1,34 @@
-@base = http://localhost:8000/api/v201
+# @import ../common/setup.http
+@host = {{base_host}}/v201
 
 ### Listing Menu Items (Public)
-GET {{base}}/menu
+GET /menu
 
-### Login as Plankton
-POST {{base}}/auth/login
+### Login as Sandy via cookie authentication
+POST /auth/login
 Content-Type: application/json
 
 {
-    "email": "plankton@chum-bucket.sea",
-    "password": "i_love_my_wife"
+    "email": "sandy@bikinibottom.sea",
+    "password": "fullStackSquirr3l!"
 }
 
-### Listing Plankton's Account Info
-GET {{base}}/account/info
+### Listing Sandy's Account Info
+GET /account/info
 
-### Listing Plankton's Balance Before New Order
-GET {{base}}/account/credits
+### Listing Sandy's Balance Before New Order
+GET /account/credits
 
-### Listing Plankton's Orders via Basic Auth
-GET {{base}}/orders
+### Listing Sandy's Orders via Basic Auth
+GET /orders
 
 
 ### Create a new cart and add items to it
 # @name cart
-POST {{base}}/cart
+POST /cart
 
 ### Add items to the cart
-POST {{base}}/cart/{{cart.response.body.cart_id}}/items
+POST /cart/{{cart.cart_id}}/items
 Content-Type: application/json
 
 {
@@ -36,19 +37,22 @@ Content-Type: application/json
 
 ### Checkout the cart
 # @name order
-POST {{base}}/cart/{{cart.response.body.cart_id}}/checkout
+POST /cart/{{cart.cart_id}}/checkout
 Content-Type: application/x-www-form-urlencoded
 
 tip=-1&delivery_address=Chum Backet Restaurant
 
 ### Refund the order: should not work, because the amount is more than the order total
-POST {{base}}/orders/{{order.response.body.order_id}}/refund
+POST /orders/{{order.order_id}}/refund
 Content-Type: application/x-www-form-urlencoded
 
 amount=50
 
 ### Refund the order: should work
-POST {{base}}/orders/{{order.response.body.order_id}}/refund
+POST /orders/{{order.order_id}}/refund
 Content-Type: application/x-www-form-urlencoded
 
 amount=1
+
+### Listing Sandy's Orders via Cookies
+GET /orders

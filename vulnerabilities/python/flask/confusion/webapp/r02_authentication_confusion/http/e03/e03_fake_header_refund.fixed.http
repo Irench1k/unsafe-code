@@ -1,47 +1,60 @@
 # @import ../common/setup.http
-@base = {{base_host}}/v204
+@host = {{base_host}}/v204
 
-### Plankton places an order and requests a refund
+# Sandy fixed the vulnerability, and rechecks it
+
+### Record Sandy's balance
+# @name initial_balance
+GET /account/credits
+Authorization: {{sandy_auth}}
+
+### Sandy creates a cart to test the refund validation
 # @name cart
-POST {{base}}/cart
-Authorization: {{plankton_auth}}
+POST /cart
+Authorization: {{sandy_auth}}
 
 ###
-POST {{base}}/cart/{{cart.cart_id}}/items
-Authorization: {{plankton_auth}}
+POST /cart/{{cart.cart_id}}/items
+Authorization: {{sandy_auth}}
 Content-Type: application/json
 
 { "item_id": "6" }
 
 ###
 # @name order
-POST {{base}}/cart/{{cart.cart_id}}/checkout
-Authorization: {{plankton_auth}}
+POST /cart/{{cart.cart_id}}/checkout
+Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
-tip=1&delivery_address=Chum Bucket
+tip=1&delivery_address=Treedome Research Lab
 
 ###
-POST {{base}}/orders/{{order.order_id}}/refund
-Authorization: {{plankton_auth}}
+POST /orders/{{order.order_id}}/refund
+Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
-amount=26.50
+amount={{order.total}}
 
-### Now Plankton cannot approve his own refund request by sending a fake X-API-Key header
-PATCH {{base}}/orders/{{order.order_id}}/refund/status
-Authorization: {{plankton_auth}}
+
+### Self-approval does not work anymore!
+PATCH /orders/{{order.order_id}}/refund/status
+Authorization: {{sandy_auth}}
 X-API-Key: trust_me_bro
 Content-Type: application/x-www-form-urlencoded
 
 status=approved
 
 # The request is rejected
+HTTP/1.1 400 Bad Request
+{
+  "error": "Authentication required"
+}
+
 ?? status >= 400
 
 ###
-GET {{base}}/orders/{{order.order_id}}/refund/status
-Authorization: {{plankton_auth}}
+GET /orders/{{order.order_id}}/refund/status
+Authorization: {{sandy_auth}}
 
 ?? status == 200
 ?? js response.parsedBody.status != approved

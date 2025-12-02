@@ -6,10 +6,10 @@ from flask import Flask
 
 def create_app():
     """Application factory with automatic route discovery.
-    
+
     This example demonstrates automatic route discovery using importlib and pkgutil.
     Routes can be registered in two ways:
-    
+
     1. Blueprint approach: Define 'bp' variable in routes.py
     2. Function approach: Define 'register(app)' function in routes.py
     """
@@ -22,7 +22,7 @@ def create_app():
 
 def _auto_discover_routes(app):
     """Automatically discover and register routes from subpackages.
-    
+
     Scans all subpackages in the current package for route modules.
     Each routes.py can either:
     - Export a 'bp' Blueprint that will be registered

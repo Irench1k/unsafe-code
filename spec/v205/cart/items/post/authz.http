@@ -1,0 +1,27 @@
+# @import ../_imports.http
+# @import ~happy.http
+
+# POST /cart/{id}/items authorization guardrails
+# Cart ownership rules
+
+### Cannot add items to another user's cart - Basic Auth
+# @forceRef cart_with_item
+# @tag authz, cart, r02, v205
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.item("Krabby Patty").id}}" }
+
+?? js $(response).isError() == true
+
+### Cannot add items to another user's cart - Cookie Auth
+# @ref cart_with_item
+# @tag authz, cart, r02, v205
+POST /cart/{{cart_id}}/items
+Cookie: {{auth.login("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.item("Krabby Patty").id}}" }
+
+?? js $(response).isError() == true

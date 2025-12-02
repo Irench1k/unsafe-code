@@ -1,31 +1,46 @@
-@base = http://localhost:8000/api/v100
+# @import ../common/setup.http
+@host = {{base_host}}/v101
 
 ### Listing Menu Items (Public)
-GET {{base}}/menu
+GET /menu
+
+?? status == 200
 
 ### Listing Sandy's Balance Before New Order
-GET {{base}}/account/credits
-Authorization: Basic sandy:testpassword
+GET /account/credits
+Authorization: {{sandy_auth}}
+
+?? status == 200
 
 ### Listing Existing Orders (Customer)
-GET {{base}}/orders
-Authorization: Basic sandy:testpassword
+GET /orders
+Authorization: {{sandy_auth}}
+
+?? status == 200
 
 ### Listing All Orders (Restaurant Manager)
-GET {{base}}/orders
-X-API-Key: key-krusty-krub-z1hu0u8o94
+GET /orders
+X-API-Key: {{krabs_api_key}}
+
+?? status == 200
 
 ### Place a New Order for a Krabby Patty
-POST {{base}}/orders
-Authorization: Basic sandy:testpassword
+POST /orders
+Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
 item=1
 
+?? status == 201
+
 ### Listing Existing Orders
-GET {{base}}/orders
-Authorization: Basic sandy:testpassword
+GET /orders
+Authorization: {{sandy_auth}}
+
+?? status == 200
 
 ### Listing Sandy's Balance After New Order
-GET {{base}}/account/credits
-Authorization: Basic sandy:testpassword
+GET /account/credits
+Authorization: {{sandy_auth}}
+
+?? status == 200

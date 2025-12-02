@@ -1,0 +1,87 @@
+# @import ../_imports.http
+# @import ../../create/post/happy.http
+
+# POST /cart/{id}/checkout multi-tenant guardrails (v301+)
+# Restaurant ID immutability during checkout
+
+### Create cart and add item for multi-tenant tests
+# @name plankton_cart
+# @forceRef new_cart
+# @tag cart, r03, v301
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("plankton")}}
+
+@plankton_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add item to Plankton's cart
+# @name plankton_cart_with_item
+# @forceRef plankton_cart
+# @tag cart, r03, v301
+POST /cart/{{plankton_cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.firstAvailable(1).id}}" }
+
+?? js $(response).isOk() == true
+
+### Restaurant ID ignored via query - JSON
+# @forceRef plankton_cart_with_item
+{{
+  await platform.seedCredits("plankton", 200);
+}}
+# @tag cart, r03, v301
+POST /cart/{{plankton_cart_id}}/checkout?restaurant_id=2
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0 }
+
+?? js $(response).isOk() == true
+?? js $(response).field("restaurant_id") == 1
+
+### Restaurant ID ignored via body - JSON
+# @ref plankton_cart_with_item
+{{
+  await platform.seedCredits("plankton", 200);
+}}
+# @tag cart, r03, v301
+POST /cart/{{plankton_cart_id}}/checkout
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0, "restaurant_id": 2 }
+
+?? js $(response).isOk() == true
+?? js $(response).field("restaurant_id") == 1
+
+### Restaurant ID ignored via query + body - JSON
+# @ref plankton_cart_with_item
+{{
+  await platform.seedCredits("plankton", 200);
+}}
+# @tag cart, r03, v301
+POST /cart/{{plankton_cart_id}}/checkout?restaurant_id=2
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0, "restaurant_id": 2 }
+
+?? js $(response).isOk() == true
+?? js $(response).field("restaurant_id") == 1
+
+### Restaurant ID ignored via query + body - Form
+# @ref plankton_cart_with_item
+{{
+  await platform.seedCredits("plankton", 200);
+}}
+# @tag cart, r03, v301
+POST /cart/{{plankton_cart_id}}/checkout?restaurant_id=2
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+tip=0&delivery_address=Chum Bucket&restaurant_id=2
+
+?? js $(response).isOk() == true
+?? js $(response).field("restaurant_id") == 1

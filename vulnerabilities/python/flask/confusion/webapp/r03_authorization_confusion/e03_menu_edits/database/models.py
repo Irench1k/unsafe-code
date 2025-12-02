@@ -2,13 +2,23 @@
 SQLAlchemy ORM Models
 
 These models map to PostgreSQL tables and handle data persistence.
+Note: Constraints are intentionally minimal to allow for authorization
+confusion vulnerabilities in this educational context.
 """
 
 import datetime
 import enum
 from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Integer, Numeric, String
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -22,7 +32,6 @@ class RefundStatus(enum.Enum):
     """Enumeration for refund statuses."""
 
     pending = "pending"
-    auto_approved = "auto_approved"
     approved = "approved"
     rejected = "rejected"
 

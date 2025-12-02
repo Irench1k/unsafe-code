@@ -1,0 +1,37 @@
+# @import ../_imports.http
+
+# GET /menu authentication tests
+# Menu is public - auth headers are ignored but should not cause errors
+
+### Menu works with Basic Auth (auth ignored for public endpoint)
+# @tag authn, menu, r02, v201
+GET /menu
+Authorization: {{auth.basic("patrick")}}
+
+?? js $(response).isOk() == true
+?? js $(response).count() > 0
+
+### Menu works with Cookie Auth (auth ignored for public endpoint)
+# @tag authn, menu, r02, v201
+GET /menu
+Cookie: {{auth.login("spongebob")}}
+
+?? js $(response).isOk() == true
+?? js $(response).count() > 0
+
+### Menu works with invalid Basic Auth (auth ignored for public endpoint)
+# @tag authn, menu, r02, v201
+GET /menu
+Authorization: Basic invalid:credentials
+
+?? js $(response).isOk() == true
+?? js $(response).count() > 0
+
+### Menu works with invalid cookie (auth ignored for public endpoint)
+# @tag authn, menu, r02, v201
+GET /menu
+Cookie: session=invalid-session-cookie
+
+?? js $(response).isOk() == true
+?? js $(response).count() > 0
+

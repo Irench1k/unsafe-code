@@ -1,21 +1,22 @@
 # @import ../common/setup.http
-@base = {{base_host}}/v202
-### Sandy fixed the vulnerability and now Plankton can't hijack other users' accounts
+@host = {{base_host}}/v202
 
-### Plankton logs in to the web app
-POST {{base}}/auth/login
+# Sandy fixed the vulnerability and verifies that it's no longer
+# possible to access other users' accounts
+
+### Sandy logs in to the web app
+POST /auth/login
 Content-Type: application/json
 
 {
-    "email": "plankton@chum-bucket.sea",
-    "password": "i_love_my_wife"
+    "email": "sandy@bikinibottom.sea",
+    "password": "fullStackSquirr3l!"
 }
 
-### now when Plankton tries to access Spongebob's orders without knowing his password, he sees his own orders anyway
-GET {{base}}/orders
-Authorization: Basic spongebob@bikinibottom.sea:wrong_password
+### She tries to access Plankton's orders without knowing his password
+GET /account/info
+Authorization: plankton@chum-bucket.sea:no-password
 
-### The account info still belongs to Plankton
-GET {{base}}/account/info
 ?? status == 200
-?? js response.parsedBody.email == plankton@chum-bucket.sea
+// Sandy sees her own account info, vulnerability is fixed
+?? js response.parsedBody.email == sandy@bikinibottom.sea

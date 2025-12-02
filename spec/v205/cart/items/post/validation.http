@@ -1,0 +1,16 @@
+# @import ../_imports.http
+# @import ~happy.http
+
+# POST /cart/{id}/items validation guardrails
+# Item validation rules
+
+### Add item with invalid item_id fails
+# @ref cart_with_item
+# @tag cart, r02, v205
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "9999" }
+
+?? js $(response).isError() == true

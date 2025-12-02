@@ -1,0 +1,13 @@
+{
+  "name": "unsafe-code-lab",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "uctest": "uctest"
+  },
+  "dependencies": {
+    "uctest": "github:execveat/uctest"
+  }
+}
