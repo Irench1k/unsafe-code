@@ -1,41 +1,61 @@
 # @import ../common/setup.http
-@base = {{base_host}}/v303
+@host = {{base_host}}/v303
 
-###
+### Menu items
+GET /menu
 
-GET {{base}}/menu
+@ultimate_krabby_feast = {{response.parsedBody.find(i => i.name == "Ultimate Krabby Feast")}}
+@krabby_patty = {{response.parsedBody.find(i => i.name == "Krabby Patty")}}
 
-### Check Plankton's balance
+
+### Plankton checks his balance before ordering
 # @name initial_balance
-GET {{base}}/account/info
+GET /account/info
 Authorization: {{plankton_auth}}
 
-### Plankton creates an expensive cart
+### Previous orders
+GET /orders
+Authorization: {{plankton_auth}}
+
+
+### He creates a cart with an expensive $50 meal
+# @no-cookie-jar
 # @name expensive_cart
-POST {{base}}/cart?restaurant_id=1
+POST /cart?restaurant_id=1
 Authorization: {{plankton_auth}}
 
 ###
-POST {{base}}/cart/{{expensive_cart.cart_id}}/items
+# @no-cookie-jar
+POST /cart/{{expensive_cart.cart_id}}/items
+Content-Type: application/json
 Authorization: {{plankton_auth}}
+
+{ "item_id": "{{ultimate_krabby_feast.id}}" }
+
+
+### Plankton logs in
+POST /auth/login
 Content-Type: application/json
 
-{ "item_id": "8" }
+{
+  "email": "plankton@chum-bucket.sea",
+  "password": "i_love_my_wife"
+}
 
-### Then creates a cheap cart
+
+### Then he creates another cart with just a Krabby Patty - without finishing the expensive cart
 # @name cheap_cart
-POST {{base}}/cart?restaurant_id=1
-Authorization: {{plankton_auth}}
+POST /cart?restaurant_id=1
 
-POST {{base}}/cart/{{cheap_cart.cart_id}}/items
-Authorization: {{plankton_auth}}
+###
+POST /cart/{{cheap_cart.cart_id}}/items
 Content-Type: application/json
 
-{ "item_id": "5" }
+{ "item_id": "{{krabby_patty.id}}" }
 
-### Plankton attempts to check out the expensive cart
-POST {{base}}/cart/{{expensive_cart.cart_id}}/checkout
-Authorization: {{plankton_auth}}
+### --- Vulnerability Fixed ---
+#Plankton sends a confusing checkout request, but this time he receives a cheap order, which he payed for.
+POST /cart/{{expensive_cart.cart_id}}/checkout
 Content-Type: application/json
 
 {
@@ -43,6 +63,12 @@ Content-Type: application/json
   "delivery_address": "Chum Bucket"
 }
 
-### This time, the full price is charged correctly
-GET {{base}}/account/info
-Authorization: {{plankton_auth}}
+?? status == 201
+
+
+### He was correctly charged for the cheap cart from his session
+GET /account/info
+
+
+### Order contains the cheap items
+GET /orders
