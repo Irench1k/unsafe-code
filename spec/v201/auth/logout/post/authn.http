@@ -1,0 +1,23 @@
+# @import ../_imports.http
+# @import ../../login/post/happy.http
+
+# POST /auth/logout authentication guardrails
+# Cannot logout without being logged in first
+
+# =============================================================================
+# UNAUTHENTICATED REQUESTS
+# =============================================================================
+
+### Logout without any auth fails
+# @tag auth, authn, r02, v201
+POST /auth/logout
+
+?? js $(response).isError() == true
+?? js $(response).field("error") != null
+
+### Logout with invalid cookie fails
+# @tag auth, authn, r02, v201
+POST /auth/logout
+Cookie: session=invalid-session-cookie-12345
+
+?? js $(response).isError() == true

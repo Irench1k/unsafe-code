@@ -158,10 +158,10 @@ def serialize_orders(orders: list[Order]) -> list[dict]:
 # ============================================================
 # CART SERVICES
 # ============================================================
-def create_cart() -> Cart:
-    """Creates and persists a new empty cart."""
+def create_cart(owner_id: str) -> Cart:
+    """Creates and persists a new empty cart owned by the specified user."""
     cart_id = generate_next_cart_id()
-    new_cart = Cart(cart_id=cart_id, items=[])
+    new_cart = Cart(cart_id=cart_id, owner_id=owner_id, items=[])
     save_cart(new_cart)
     logger.debug(f"Cart created: {cart_id}")
     return new_cart

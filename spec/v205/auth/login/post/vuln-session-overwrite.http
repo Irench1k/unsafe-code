@@ -1,5 +1,5 @@
 # @import ../_imports.http
-# @import happy.http
+# @import ~happy.http
 
 # [VULN] POST /auth/login - Session Overwrite via Login Form
 #

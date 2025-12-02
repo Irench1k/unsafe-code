@@ -1,5 +1,5 @@
 # @import ../_imports.http
-# @import ../../create/post/happy.http
+# @import ../../create/post/~happy.http
 
 # POST /cart/{id}/checkout parameter pollution guardrails
 # Prevents cart_id injection via query/body params

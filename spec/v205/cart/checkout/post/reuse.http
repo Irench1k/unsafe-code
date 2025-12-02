@@ -1,5 +1,5 @@
 # @import ../_imports.http
-# @import ../../items/post/happy.http
+# @import ../../items/post/~happy.http
 
 # POST /cart/{id}/checkout reuse isolation
 # Reusing a cart after checkout should create new orders

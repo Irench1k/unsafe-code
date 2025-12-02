@@ -79,9 +79,9 @@ db = {
     },
     "next_order_id": 4,
     "carts": {
-        "1": Cart(cart_id="1", items=["4", "5"]),
-        "2": Cart(cart_id="2", items=["8"]),
-        "3": Cart(cart_id="3", items=["5"]),
+        "1": Cart(cart_id="1", owner_id="patrick@bikinibottom.sea", items=["4", "5"]),
+        "2": Cart(cart_id="2", owner_id="spongebob@krusty-krab.sea", items=["8"]),
+        "3": Cart(cart_id="3", owner_id="plankton@chum-bucket.sea", items=["5"]),
     },
     "next_cart_id": 3,
     "refunds": {

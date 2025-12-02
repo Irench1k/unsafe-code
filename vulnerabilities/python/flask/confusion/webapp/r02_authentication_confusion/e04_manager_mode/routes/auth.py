@@ -76,7 +76,7 @@ def login_user():
     # Set session for future requests
     session["email"] = g.email
 
-    return jsonify({"message": "Login successful"}), 200
+    return jsonify({"message": "Login successful", "email": g.email}), 200
 
 
 @bp.post("/logout")

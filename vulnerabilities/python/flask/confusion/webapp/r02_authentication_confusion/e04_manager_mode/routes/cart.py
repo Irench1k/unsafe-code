@@ -27,7 +27,7 @@ def create_new_cart():
     This is step 1 of the new checkout flow. The cart gets an ID that
     the client will use in subsequent requests to add items.
     """
-    new_cart = create_cart()
+    new_cart = create_cart(owner_id=g.email)
     return jsonify(serialize_cart(new_cart)), 201
 
 
@@ -51,6 +51,10 @@ def add_item_to_cart_endpoint(cart_id):
     if not cart:
         raise CheekyApiError("Cart not found")
 
+    # Authorization: only the cart owner can add items
+    if cart.owner_id != g.email:
+        raise CheekyApiError("Access denied")
+
     updated_cart = add_item_to_cart(cart_id, item_id)
     return jsonify(serialize_cart(updated_cart)), 200
 
@@ -62,6 +66,10 @@ def checkout_cart(cart_id):
     cart = find_cart_by_id(cart_id)
     if not cart or not cart.items:
         raise CheekyApiError("Cart not found")
+
+    # Authorization: only the cart owner can checkout
+    if cart.owner_id != g.email:
+        raise CheekyApiError("Access denied")
 
     # Get user input - handle both JSON and form data
     user_data = request.json if request.is_json else request.form

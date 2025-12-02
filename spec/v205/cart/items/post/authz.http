@@ -1,5 +1,5 @@
 # @import ../_imports.http
-# @import happy.http
+# @import ~happy.http
 
 # POST /cart/{id}/items authorization guardrails
 # Cart ownership rules

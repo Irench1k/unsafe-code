@@ -1,5 +1,5 @@
 # @import ../_imports.http
-# @import ../../items/post/happy.http
+# @import ../../items/post/~happy.http
 
 # POST /cart/{id}/checkout content type variations
 # Auth + content-type combinations for single and multi-item carts

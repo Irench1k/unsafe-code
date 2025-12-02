@@ -1,5 +1,5 @@
 # @import ../_imports.http
-# @import ../../items/post/happy.http
+# @import ../../items/post/~happy.http
 
 # POST /cart/{id}/checkout authentication guardrails
 # Checkout requires valid customer authentication

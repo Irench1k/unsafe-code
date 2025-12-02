@@ -38,6 +38,7 @@ class Order(BaseModel):
 
 class Cart(BaseModel):
     cart_id: str
+    owner_id: str  # Email of the user who created this cart
     items: list[str]  # Array of item IDs
 
 

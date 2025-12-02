@@ -1,5 +1,5 @@
 # @import ../_imports.http
-# @import ../../refund/post/happy.http
+# @import ../../refund/post/~happy.http
 
 # PATCH /orders/{id}/refund/status happy path
 # Update refund status (restaurant manager)

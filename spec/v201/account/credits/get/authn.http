@@ -1,0 +1,51 @@
+# @import ../_imports.http
+
+# GET /account/credits authentication guardrails
+# Verifies credential handling and auth precedence
+
+# =============================================================================
+# VALID CREDENTIALS (email format)
+# =============================================================================
+
+### Basic Auth succeeds with email format
+# @name auth_email_success
+{{
+  await platform.seedCredits("plankton", 200);
+}}
+# @tag account, authn, r02, v201
+GET /account/credits
+Authorization: Basic {{user("plankton").email}}:{{user("plankton").password}}
+
+?? js $(response).isOk() == true
+?? js $(response).hasFields("balance", "email") == true
+?? js $(response).field("email") == {{user("plankton").email}}
+?? js Number($(response).field("balance")) == 200
+
+# =============================================================================
+# INVALID CREDENTIALS
+# =============================================================================
+
+### Basic Auth requires correct credentials
+# @name auth_email_format
+# @tag account, authn, r02, v201
+GET /account/credits
+Authorization: Basic {{user("plankton").email}}:wrongpassword
+
+?? js $(response).isError() == true
+?? js hasCookie(response) == false
+
+### Basic Auth rejects empty password (JSON body validation)
+# @tag account, authn, r02, v201
+GET /account/credits
+Authorization: Basic {{user("plankton").email}}:
+
+?? js $(response).isError() == true
+?? js hasCookie(response) == false
+
+# =============================================================================
+# AUTH PRIORITY
+# =============================================================================
+# NOTE: The "Cookie Auth takes precedence over invalid Basic Auth" test
+# is NOT included in v201 because v201 has an intentional authentication
+# confusion vulnerability where mixing auth methods causes identity confusion.
+# That behavior is tested in orders/list/get/vuln-session-hijack.http instead.

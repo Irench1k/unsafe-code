@@ -1,0 +1,27 @@
+# @import ../_imports.http
+
+# GET /account/info authentication guardrails
+# Verifies credential handling and auth precedence
+# NOTE: Username format testing (shortId vs email) lives in account/credits/get/authn.http
+
+# =============================================================================
+# INVALID CREDENTIALS
+# =============================================================================
+
+### Basic Auth requires correct credentials
+# @tag account, authn, r02, v201
+GET /account/info
+Authorization: {{auth.basic("plankton", "wrongpassword")}}
+
+?? js $(response).isError() == true
+?? js $(response).field("error")?.toLowerCase().includes("authentication required") == true
+
+# NOTE: Empty password test is covered in account/credits/get/authn.http
+
+# =============================================================================
+# AUTH PRIORITY
+# =============================================================================
+# NOTE: The "Cookie Auth takes precedence over invalid Basic Auth" test
+# is NOT included in v201 because v201 has an intentional authentication
+# confusion vulnerability where mixing auth methods causes identity confusion.
+# That behavior is tested in vuln-session-hijack.http instead.

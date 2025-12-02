@@ -61,28 +61,33 @@ v202:
   inherits: v201
   description: Credit Top-ups (r02/e02)
   tags: [r02, v202]
+  exclude:
+    # e02 accidentally fixed the session hijack by checking cookie auth before
+    # instantiating Basic Auth (no g.email poisoning)
+    - orders/list/get/vuln-session-hijack.http
 
 v203:
   inherits: v202
   description: Fake Header Refund (r02/e03)
   tags: [r02, v203]
+  # Inherits v202's exclusion of vuln-session-hijack.http
 
 v204:
   inherits: v203
   description: Manager Mode (r02/e04)
   tags: [r02, v204]
+  exclude:
+    # e04 intentionally fixed session hijack by setting g.email only after
+    # password verification succeeds
+    - orders/list/get/vuln-session-hijack.http
 
 v205:
   inherits: v204
   description: Session Overwrite Vulnerability (r02/e05)
   tags: [r02, v205]
   exclude:
-    # v205 has local overrides that differ from v201's inherited versions
-    - account/credits/get/happy.http  # Tests different response fields
-    - cart/items/post/happy.http      # Different test assertions
-    - cart/create/post/happy.http     # Different test assertions
-    - auth/logout/post/happy.http     # v205 has more extensive logout tests
-    - menu/list/get/authn.http        # v205 has local override
+    # v205 fixes the session hijack vulnerability from v201
+    - orders/list/get/vuln-session-hijack.http
 
 v206:
   inherits: v205

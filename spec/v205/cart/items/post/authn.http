@@ -1,5 +1,5 @@
 # @import ../_imports.http
-# @import ../../create/post/happy.http
+# @import ../../create/post/~happy.http
 
 # POST /cart/{id}/items authentication guardrails
 # Adding items requires valid authentication
