@@ -1,12 +1,10 @@
 # @import ../_imports.http
-# @import ../../login/post/happy.http
 
 # POST /auth/logout happy path
 # Session logout
 
 ### Logout with Cookie Auth
 # @name logout
-# @forceRef login_plankton
 {{
   exports.plankton_session = await auth.login("plankton");
 }}

@@ -221,10 +221,25 @@ For dynamically created users (e.g., registration tests):
 
 ### Platform Setup
 ```http
+# Full reset + seed (use sparingly - slow)
 {{
-  await platform.reset();
   await platform.seed({ plankton: 200, patrick: 150 });
 }}
+
+# Balance-only update (no DB reset - faster)
+{{
+  await platform.seedCredits("plankton", 200);
+  await platform.seedCredits("spongebob", 150);
+}}
+```
+
+### Cookie Helpers
+```http
+# Extract cookie from response
+@sessionCookie = {{extractCookie(response)}}
+
+# Check if response sets a cookie (auth failure should NOT set cookie)
+?? js hasCookie(response) == false
 ```
 
 ## Suppression Directives `@ucskip`
@@ -307,17 +322,17 @@ The right side of assertions is a literal, not JavaScript:
 
 ### Explicit Username Format Testing
 
-When testing BOTH username formats (short vs email), be explicit:
+When testing credentials with explicit username format, use the email format (short username format is not supported in most versions):
 
 ```http
-# Short username format
-Authorization: Basic {{Buffer.from(user("plankton").shortId + ":wrongpw").toString("base64")}}
+# Email format Basic Auth - explicit
+Authorization: Basic {{user("plankton").email}}:wrongpassword
 
-# Email format
-Authorization: Basic {{Buffer.from(user("plankton").email + ":wrongpw").toString("base64")}}
+# For wrong/empty password tests
+Authorization: Basic {{user("plankton").email}}:
 ```
 
-This makes it crystal clear which format is being tested.
+Use `auth.basic()` for standard tests; use explicit format only when testing the credential format itself.
 
 ### @forceRef Chain Consistency
 

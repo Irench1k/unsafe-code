@@ -1,0 +1,113 @@
+# @import ../_imports.http
+
+# POST /auth/login parameter pollution tests
+# Verifies login uses correct parameter sources
+
+# =============================================================================
+# QUERY vs BODY email
+# =============================================================================
+
+### Login uses email from body, not query (email param)
+# @tag auth, r03, v301
+POST /auth/login?email={{user("spongebob").email}}
+Content-Type: application/json
+
+{
+  "email": "{{user("plankton").email}}",
+  "password": "{{user("plankton").password}}"
+}
+
+?? js $(response).isOk() == true
+?? js $(response).field("email") == {{user("plankton").email}}
+?? js hasCookie(response) == true
+
+### Login ignores user param in query
+# @tag auth, r03, v301
+POST /auth/login?user={{user("spongebob").email}}
+Content-Type: application/json
+
+{
+  "email": "{{user("plankton").email}}",
+  "password": "{{user("plankton").password}}"
+}
+
+?? js $(response).isOk() == true
+?? js $(response).field("email") == {{user("plankton").email}}
+?? js hasCookie(response) == true
+
+### Login ignores user_id param in query
+# @tag auth, r03, v301
+POST /auth/login?user_id={{user("spongebob").id}}
+Content-Type: application/json
+
+{
+  "email": "{{user("plankton").email}}",
+  "password": "{{user("plankton").password}}"
+}
+
+?? js $(response).isOk() == true
+?? js $(response).field("email") == {{user("plankton").email}}
+?? js hasCookie(response) == true
+
+### Login ignores id param in query
+# @tag auth, r03, v301
+POST /auth/login?id={{user("spongebob").id}}
+Content-Type: application/json
+
+{
+  "email": "{{user("plankton").email}}",
+  "password": "{{user("plankton").password}}"
+}
+
+?? js $(response).isOk() == true
+?? js $(response).field("email") == {{user("plankton").email}}
+?? js hasCookie(response) == true
+
+# =============================================================================
+# EXTRA BODY params (should be ignored)
+# =============================================================================
+
+### Login ignores extra user param in body
+# @tag auth, r03, v301
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "{{user("plankton").email}}",
+  "password": "{{user("plankton").password}}",
+  "user": "{{user("spongebob").email}}"
+}
+
+?? js $(response).isOk() == true
+?? js $(response).field("email") == {{user("plankton").email}}
+?? js hasCookie(response) == true
+
+### Login ignores extra user_id param in body
+# @tag auth, r03, v301
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "{{user("plankton").email}}",
+  "password": "{{user("plankton").password}}",
+  "user_id": "{{user("spongebob").id}}"
+}
+
+?? js $(response).isOk() == true
+?? js $(response).field("email") == {{user("plankton").email}}
+?? js hasCookie(response) == true
+
+### Login ignores extra id param in body
+# @tag auth, r03, v301
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "{{user("plankton").email}}",
+  "password": "{{user("plankton").password}}",
+  "id": "{{user("spongebob").id}}"
+}
+
+?? js $(response).isOk() == true
+?? js $(response).field("email") == {{user("plankton").email}}
+?? js hasCookie(response) == true

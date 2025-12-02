@@ -12,7 +12,7 @@
 {{
   exports.regEmail = testEmail("reg");
 }}
-# @tag auth, happy, r03, v301
+# @tag auth, happy, r02, v205
 POST /auth/register
 Content-Type: application/json
 
@@ -34,7 +34,7 @@ Content-Type: application/json
 ### Token completes registration and creates account
 # @name finish_registration
 # @forceRef start_registration
-# @tag auth, happy, r03, v301
+# @tag auth, happy, r02, v205
 POST /auth/register
 Content-Type: application/json
 

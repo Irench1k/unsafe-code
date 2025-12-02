@@ -1,36 +1,30 @@
 # @import ../_imports.http
 
 # GET /account/credits happy path
-# View user balance with different auth methods
-#
-# v205 users: sandy, patrick, plankton, spongebob (no squidward/mrkrabs)
-#
-# Exports (for @forceRef by other tests):
-#   balance_plankton - Plankton's balance (Basic Auth)
-#   balance_cookie - SpongeBob's balance (Cookie Auth)
+# Covers Basic Auth and Cookie Auth
 
-### View balance with Basic Auth
-# @name balance_plankton
+### Basic Auth returns user's balance
+# @name balance_basic_auth
 {{
-  await platform.seed({ plankton: 200, spongebob: 150 });
+  await platform.seedCredits("plankton", 200);
+  await platform.seedCredits("spongebob", 150);
 }}
 # @tag account, happy, r02, v205
 GET /account/credits
 Authorization: {{auth.basic("plankton")}}
 
-?? js $(response).status() == 200
-?? js $(response).hasFields("email", "balance") == true
-?? js parseFloat($(response).field("balance")) == 200
+?? js $(response).isOk() == true
+?? js $(response).hasFields("balance", "email") == true
+?? js $(response).field("email") == {{user("plankton").email}}
+?? js Number($(response).field("balance")) == 200
 
-### View balance with Cookie Auth
-# @name balance_cookie
-{{
-  exports.spongebob_session = await auth.login("spongebob");
-}}
+### Cookie Auth returns user's balance
+# @forceRef balance_basic_auth
 # @tag account, happy, r02, v205
 GET /account/credits
-Cookie: {{spongebob_session}}
+Cookie: {{auth.login("spongebob")}}
 
-?? js $(response).status() == 200
-?? js $(response).hasFields("email", "balance") == true
-?? js parseFloat($(response).field("balance")) == 150
+?? js $(response).isOk() == true
+?? js $(response).hasFields("balance", "email") == true
+?? js $(response).field("email") == {{user("spongebob").email}}
+?? js Number($(response).field("balance")) == 150

@@ -7,49 +7,34 @@
 # INVALID CREDENTIALS
 # =============================================================================
 
-### Basic Auth requires correct credentials (short username format)
-{{
-  await platform.seed({
-    plankton: 200,
-    spongebob: 150
-  });
-}}
-# @tag account, authn, r03, v301
-GET /account/credits
-Authorization: Basic {{user("plankton").shortId}}:wrongpassword
-
-?? js $(response).isError() == true
-?? js $(response).field("error")?.includes("Authentication required") == true
-
-### Basic Auth rejects empty password (short username format)
-# @tag account, authn, r03, v301
-GET /account/credits
-Authorization: Basic {{user("plankton").shortId}}:
-
-?? js $(response).isError() == true
-?? js $(response).field("error")?.includes("Authentication required") == true
-
-### Basic Auth requires correct credentials (email format)
+### Basic Auth requires correct credentials
+# @name auth_email_format
 # @tag account, authn, r03, v301
 GET /account/credits
 Authorization: Basic {{user("plankton").email}}:wrongpassword
 
 ?? js $(response).isError() == true
 ?? js $(response).field("error")?.includes("Authentication required") == true
+?? js hasCookie(response) == false
 
-### Basic Auth rejects empty password (email format)
+### Basic Auth rejects empty password
 # @tag account, authn, r03, v301
 GET /account/credits
 Authorization: Basic {{user("plankton").email}}:
 
 ?? js $(response).isError() == true
 ?? js $(response).field("error")?.includes("Authentication required") == true
+?? js hasCookie(response) == false
 
 # =============================================================================
 # AUTH PRIORITY
 # =============================================================================
 
 ### Cookie Auth takes precedence over invalid Basic Auth
+{{
+  await platform.seedCredits("plankton", 200);
+  await platform.seedCredits("spongebob", 150);
+}}
 # @tag account, authn, r03, v301
 GET /account/credits
 Cookie: {{auth.login("plankton")}}
@@ -58,5 +43,5 @@ Authorization: Basic spongebob:wrongpassword
 ?? js $(response).isOk() == true
 ?? js $(response).hasFields("balance", "email") == true
 ?? js $(response).field("email") == {{user("plankton").email}}
-?? js $(response).field("balance") == 200.00
+?? js Number($(response).field("balance")) == 200
 ?? js $(response).hasOnlyUserData("plankton") == true

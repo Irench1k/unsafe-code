@@ -5,9 +5,6 @@
 
 ### Login with valid credentials returns session cookie
 # @name login_success
-{{
-  await platform.reset();
-}}
 # @tag auth, happy, r03, v301
 POST /auth/login
 Content-Type: application/json
@@ -22,4 +19,4 @@ Content-Type: application/json
 ?? js $(response).hasFields("email", "message") == true
 ?? js $(response).field("email") == {{user("spongebob").email}}
 ?? js $(response).field("message") == Login successful
-?? js extractCookie(response) != null == true
+?? js hasCookie(response) == true

@@ -1,0 +1,28 @@
+# @import ../_imports.http
+
+# GET /restaurants authentication tests
+# Restaurants list is public - auth headers are ignored but should not cause errors
+
+### Restaurants list works with Basic Auth (auth ignored for public endpoint)
+# @tag authn, r03, restaurants, v301
+GET /restaurants
+Authorization: {{auth.basic("patrick")}}
+
+?? js $(response).isOk() == true
+?? js $(response).count() >= 2
+
+### Restaurants list works with Cookie Auth (auth ignored for public endpoint)
+# @tag authn, r03, restaurants, v301
+GET /restaurants
+Cookie: {{auth.login("spongebob")}}
+
+?? js $(response).isOk() == true
+?? js $(response).count() >= 2
+
+### Restaurants list works with Restaurant API Key (auth ignored for public endpoint)
+# @tag authn, r03, restaurants, v301
+GET /restaurants
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+
+?? js $(response).isOk() == true
+?? js $(response).count() >= 2

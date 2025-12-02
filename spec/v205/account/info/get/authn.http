@@ -9,7 +9,7 @@
 # =============================================================================
 
 ### Basic Auth requires correct credentials
-# @tag account, authn, r03, v301
+# @tag account, authn, r02, v205
 GET /account/info
 Authorization: {{auth.basic("plankton", "wrongpassword")}}
 
@@ -17,7 +17,7 @@ Authorization: {{auth.basic("plankton", "wrongpassword")}}
 ?? js $(response).field("error")?.includes("Authentication required") == true
 
 ### Basic Auth rejects empty password
-# @tag account, authn, r03, v301
+# @tag account, authn, r02, v205
 GET /account/info
 Authorization: {{auth.basic("plankton", "")}}
 
@@ -33,7 +33,7 @@ Authorization: {{auth.basic("plankton", "")}}
   await platform.seedCredits("plankton", 200);
   await platform.seedCredits("spongebob", 150);
 }}
-# @tag account, authn, r03, v301
+# @tag account, authn, r02, v205
 GET /account/info
 Cookie: {{auth.login("plankton")}}
 Authorization: Basic spongebob:wrongpassword
@@ -41,5 +41,5 @@ Authorization: Basic spongebob:wrongpassword
 ?? js $(response).isOk() == true
 ?? js $(response).hasFields("balance", "email") == true
 ?? js $(response).field("email") == {{user("plankton").email}}
-?? js $(response).field("balance") == 200.00
+?? js Number($(response).field("balance")) == 200
 ?? js $(response).hasOnlyUserData("plankton") == true

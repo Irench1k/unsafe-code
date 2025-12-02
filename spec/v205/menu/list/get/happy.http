@@ -1,20 +1,11 @@
 # @import ../_imports.http
 
 # GET /menu happy path
-# List all menu items (no restaurant filter in v205)
-#
-# v205 differences from v301:
-#   - No restaurant_id filter parameter
-#   - No availability field in items
-#   - Single restaurant model
+# List all menu items (public access)
 
-### List menu items (no auth required)
-# @name menu_list
-{{
-  await platform.reset();
-}}
+### Menu is publicly accessible (no auth required)
 # @tag happy, menu, r02, v205
 GET /menu
 
-?? js $(response).status() == 200
+?? js $(response).isOk() == true
 ?? js $(response).count() > 0

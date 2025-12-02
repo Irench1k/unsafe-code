@@ -750,6 +750,27 @@ function extractCookie(response) {
   return Array.isArray(raw) ? raw[0] : raw;
 }
 
+/**
+ * Check if response has a Set-Cookie header (non-throwing version).
+ * Returns true/false instead of throwing on missing header.
+ *
+ * Use this to assert that authentication failures don't set cookies:
+ *   ?? js hasCookie(response) == false
+ *
+ * Example:
+ *   POST /auth/login
+ *   Content-Type: application/json
+ *   {"email": "user@example.com", "password": "wrongpassword"}
+ *
+ *   ?? js $(response).isError() == true
+ *   ?? js hasCookie(response) == false
+ */
+function hasCookie(response) {
+  const headers = response?.headers?.headers || response?.headers || {};
+  const raw = headers["set-cookie"] || headers["Set-Cookie"];
+  return raw != null;
+}
+
 // ============================================================================
 // PLATFORM ADMIN (makes actual HTTP requests)
 // ============================================================================
@@ -1057,8 +1078,9 @@ module.exports = function createUtils(versionOverride) {
     mailpit,
     verify,
 
-    // Cookie extraction
+    // Cookie helpers
     extractCookie,
+    hasCookie,
 
     // Utilities
     testEmail,

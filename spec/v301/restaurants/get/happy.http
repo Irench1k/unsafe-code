@@ -1,12 +1,9 @@
 # @import ../_imports.http
 
 # GET /restaurants happy path
-# Public restaurant listing
+# Public restaurant listing (v301+ multi-tenancy feature)
 
 ### Restaurants list is publicly accessible with all expected data
-{{
-  await platform.reset();
-}}
 # @tag happy, r03, restaurants, v301
 GET /restaurants
 

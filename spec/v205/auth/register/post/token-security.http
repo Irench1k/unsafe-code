@@ -10,7 +10,7 @@
 
 ### Token cannot be applied to different email via query param
 # @forceRef start_registration
-# @tag auth, r03, v301
+# @tag auth, r02, v205
 POST /auth/register?email={{testEmail()}}
 Content-Type: application/json
 
@@ -25,7 +25,7 @@ Content-Type: application/json
 
 ### Token cannot be applied to different email via form
 # @forceRef start_registration
-# @tag auth, r03, v301
+# @tag auth, r02, v205
 POST /auth/register
 Content-Type: application/x-www-form-urlencoded
 
@@ -41,7 +41,7 @@ email={{testEmail()}}&token={{token}}&password=hijacked&name=Test%20User
 # Token replay fails AND original credentials still work (hijacked don't)
 # @name hijack_registration
 # @forceRef finish_registration
-# @tag auth, r03, v301
+# @tag auth, r02, v205
 POST /auth/register
 Content-Type: application/json
 
@@ -59,7 +59,7 @@ Content-Type: application/json
 
 ### Cannot re-register with same token - JSON with email bypass
 # @ref finish_registration
-# @tag auth, r03, v301
+# @tag auth, r02, v205
 POST /auth/register
 Content-Type: application/json
 
@@ -74,7 +74,7 @@ Content-Type: application/json
 
 ### Cannot re-register with same token - form
 # @ref finish_registration
-# @tag auth, r03, v301
+# @tag auth, r02, v205
 POST /auth/register
 Content-Type: application/x-www-form-urlencoded
 
@@ -84,7 +84,7 @@ email={{testEmail()}}&token={{token}}&password=hijacked&name=Test%20User
 
 ### Cannot re-register with same token - query param
 # @ref finish_registration
-# @tag auth, r03, v301
+# @tag auth, r02, v205
 POST /auth/register?email={{testEmail()}}
 Content-Type: application/json
 

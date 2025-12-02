@@ -4,11 +4,10 @@
 # Covers Basic Auth and Cookie Auth
 
 ### Basic Auth returns full account info
+# @name info_basic_auth
 {{
-  await platform.seed({
-    plankton: 200,
-    spongebob: 150
-  });
+  await platform.seedCredits("plankton", 200);
+  await platform.seedCredits("spongebob", 150);
 }}
 # @tag account, happy, r03, v301
 GET /account/info
@@ -18,8 +17,10 @@ Authorization: {{auth.basic("plankton")}}
 ?? js $(response).hasFields("balance", "email", "name", "orders", "id") == true
 ?? js $(response).field("email") == {{user("plankton").email}}
 ?? js $(response).field("balance") == 200.00
+?? js $(response).field("orders") >= 1
 
 ### Cookie Auth returns full account info
+# @forceRef info_basic_auth
 # @tag account, happy, r03, v301
 GET /account/info
 Cookie: {{auth.login("spongebob")}}
@@ -28,3 +29,4 @@ Cookie: {{auth.login("spongebob")}}
 ?? js $(response).hasFields("balance", "email", "name", "orders", "id") == true
 ?? js $(response).field("email") == {{user("spongebob").email}}
 ?? js $(response).field("balance") == 150.00
+?? js $(response).field("orders") >= 1

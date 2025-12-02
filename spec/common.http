@@ -18,6 +18,7 @@
   exports.platform = utils.platform;
   exports.mailpit = utils.mailpit;
   exports.extractCookie = utils.extractCookie;
+  exports.hasCookie = utils.hasCookie;
   exports.versionAtLeast = utils.versionAtLeast;
   exports.url = utils.url;
   exports.verify = utils.verify;

@@ -1,0 +1,36 @@
+# @import ../_imports.http
+
+# GET /menu multi-tenant restaurant filtering
+# v301+ feature: filter menu by restaurant_id
+
+# =============================================================================
+# RESTAURANT FILTERING
+# =============================================================================
+
+### Filter by Krusty Krab (restaurant_id=1)
+# @tag menu, r03, v301
+GET /menu?restaurant_id=1
+
+?? js $(response).isOk() == true
+?? js $(response).every(item => item.restaurant_id === 1) == true
+
+### Filter by Chum Bucket (restaurant_id=2)
+# @tag menu, r03, v301
+GET /menu?restaurant_id=2
+
+?? js $(response).isOk() == true
+?? js $(response).every(item => item.restaurant_id === 2) == true
+
+### Invalid restaurant_id returns error or empty
+# @tag menu, r03, v301
+GET /menu?restaurant_id=999
+
+?? js $(response).isError() || $(response).isEmpty() == true
+
+### Menu without filter returns all restaurants
+# @tag menu, r03, v301
+GET /menu
+
+?? js $(response).isOk() == true
+?? js $(response).count() > 0
+?? js $(response).hasFields("id", "name", "price", "available", "restaurant_id") == true

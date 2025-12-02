@@ -166,7 +166,8 @@ All matching tags are applied to all requests in matching files. uctest handles 
 - `verify.canAccessAccount(email, password)` - Check account access
 
 **Platform helpers:**
-- `platform.seed({ plankton: 200 })` - Reset and seed balances
+- `platform.seed({ plankton: 200 })` - Reset DB and seed balances
+- `platform.seedCredits("plankton", 200)` - Set balance only (no DB reset)
 - `platform.reset()` - Reset database state
 
 **Response wrapper `$(response)`:**
@@ -174,6 +175,10 @@ All matching tags are applied to all requests in matching files. uctest handles 
 - `.field("email")`, `.hasFields("email", "balance")` - Data access
 - `.hasOnlyUserData("plankton")` - Ownership validation
 - `.total()`, `.balance()` - Financial data (already parsed as float)
+
+**Cookie helpers:**
+- `extractCookie(response)` - Extract session cookie from response
+- `hasCookie(response)` - Check if response sets a cookie (for auth failures)
 
 **See [HTTP_SYNTAX.md](./HTTP_SYNTAX.md)** for complete syntax reference and common gotchas.
 
@@ -201,9 +206,14 @@ Run `ucsync` after modifying `spec.yml` or adding new specs to regenerate inheri
 
 ## Versioning
 
-- `spec/v301` targets v301 of the API (r03 authorization confusion dual-auth refund).
-- `spec/v302` inherits from v301, adds cart-swap vulnerability, fixes dual-auth.
-- Future versions follow the same pattern: inherit, exclude fixed vulns, add new ones.
+The inheritance chain is: **v205 → v206 → v301 → v302**
+
+- `spec/v205` targets v205 (r02 authentication confusion, session overwrite vulnerable)
+- `spec/v206` inherits from v205, fixes session overwrite vulnerability
+- `spec/v301` inherits from v206 (r03 authorization confusion dual-auth refund)
+- `spec/v302` inherits from v301, adds cart-swap vulnerability, fixes dual-auth
+
+Future versions follow the same pattern: inherit, exclude fixed vulns, add new ones.
 
 ## Example Dependency Chain (Refund Status)
 

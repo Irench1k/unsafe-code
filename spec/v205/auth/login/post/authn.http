@@ -8,7 +8,7 @@
 # =============================================================================
 
 ### Login fails with wrong password
-# @tag auth, authn, r03, v301
+# @tag auth, authn, r02, v205
 POST /auth/login
 Content-Type: application/json
 
@@ -21,7 +21,7 @@ Content-Type: application/json
 ?? js hasCookie(response) == false
 
 ### Login fails with empty password
-# @tag auth, authn, r03, v301
+# @tag auth, authn, r02, v205
 POST /auth/login
 Content-Type: application/json
 
@@ -34,7 +34,7 @@ Content-Type: application/json
 ?? js hasCookie(response) == false
 
 ### Login fails with missing password
-# @tag auth, authn, r03, v301
+# @tag auth, authn, r02, v205
 POST /auth/login
 Content-Type: application/json
 
@@ -46,7 +46,7 @@ Content-Type: application/json
 ?? js hasCookie(response) == false
 
 ### Login fails with non-existent email
-# @tag auth, authn, r03, v301
+# @tag auth, authn, r02, v205
 POST /auth/login
 Content-Type: application/json
 

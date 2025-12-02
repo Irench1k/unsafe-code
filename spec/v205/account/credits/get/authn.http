@@ -1,28 +1,30 @@
 # @import ../_imports.http
 
-# GET /account/info authentication guardrails
+# GET /account/credits authentication guardrails
 # Verifies credential handling and auth precedence
-# NOTE: Username format testing (shortId vs email) lives in account/credits/get/authn.http
 
 # =============================================================================
 # INVALID CREDENTIALS
 # =============================================================================
 
 ### Basic Auth requires correct credentials
-# @tag account, authn, r03, v301
-GET /account/info
-Authorization: {{auth.basic("plankton", "wrongpassword")}}
+# @name auth_email_format
+# @tag account, authn, r02, v205
+GET /account/credits
+Authorization: Basic {{user("plankton").email}}:wrongpassword
 
 ?? js $(response).isError() == true
 ?? js $(response).field("error")?.includes("Authentication required") == true
+?? js hasCookie(response) == false
 
-### Basic Auth rejects empty password
-# @tag account, authn, r03, v301
-GET /account/info
-Authorization: {{auth.basic("plankton", "")}}
+### Basic Auth rejects empty password (JSON body validation)
+# @tag account, authn, r02, v205
+GET /account/credits
+Authorization: Basic {{user("plankton").email}}:
 
 ?? js $(response).isError() == true
 ?? js $(response).field("error")?.includes("Authentication required") == true
+?? js hasCookie(response) == false
 
 # =============================================================================
 # AUTH PRIORITY
@@ -33,13 +35,13 @@ Authorization: {{auth.basic("plankton", "")}}
   await platform.seedCredits("plankton", 200);
   await platform.seedCredits("spongebob", 150);
 }}
-# @tag account, authn, r03, v301
-GET /account/info
+# @tag account, authn, r02, v205
+GET /account/credits
 Cookie: {{auth.login("plankton")}}
 Authorization: Basic spongebob:wrongpassword
 
 ?? js $(response).isOk() == true
 ?? js $(response).hasFields("balance", "email") == true
 ?? js $(response).field("email") == {{user("plankton").email}}
-?? js $(response).field("balance") == 200.00
+?? js Number($(response).field("balance")) == 200
 ?? js $(response).hasOnlyUserData("plankton") == true

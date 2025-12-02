@@ -1,0 +1,14 @@
+# @import ../_imports.http
+
+# POST /auth/login content type validation
+# Login endpoint requires JSON content type
+
+### Login fails with urlencoded body (JSON required)
+# @tag auth, r03, v301
+POST /auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email={{user("spongebob").email}}&password={{user("spongebob").password}}
+
+?? js $(response).isError() == true
+?? js hasCookie(response) == false

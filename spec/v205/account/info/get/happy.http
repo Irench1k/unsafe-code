@@ -1,30 +1,30 @@
 # @import ../_imports.http
 
-# GET /account/credits happy path
+# GET /account/info happy path
 # Covers Basic Auth and Cookie Auth
 
-### Basic Auth returns user's balance
-# @name balance_basic_auth
+### Basic Auth returns full account info
+# @name info_basic_auth
 {{
   await platform.seedCredits("plankton", 200);
   await platform.seedCredits("spongebob", 150);
 }}
-# @tag account, happy, r03, v301
-GET /account/credits
+# @tag account, happy, r02, v205
+GET /account/info
 Authorization: {{auth.basic("plankton")}}
 
 ?? js $(response).isOk() == true
 ?? js $(response).hasFields("balance", "email") == true
 ?? js $(response).field("email") == {{user("plankton").email}}
-?? js $(response).field("balance") == 200.00
+?? js Number($(response).field("balance")) == 200
 
-### Cookie Auth returns user's balance
-# @forceRef balance_basic_auth
-# @tag account, happy, r03, v301
-GET /account/credits
+### Cookie Auth returns full account info
+# @forceRef info_basic_auth
+# @tag account, happy, r02, v205
+GET /account/info
 Cookie: {{auth.login("spongebob")}}
 
 ?? js $(response).isOk() == true
 ?? js $(response).hasFields("balance", "email") == true
 ?? js $(response).field("email") == {{user("spongebob").email}}
-?? js $(response).field("balance") == 150.00
+?? js Number($(response).field("balance")) == 150
