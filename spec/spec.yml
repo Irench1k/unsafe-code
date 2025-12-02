@@ -81,6 +81,7 @@ v205:
     - account/credits/get/happy.http  # Tests different response fields
     - cart/items/post/happy.http      # Different test assertions
     - cart/create/post/happy.http     # Different test assertions
+    - auth/logout/post/happy.http     # v205 has more extensive logout tests
 
 v206:
   inherits: v205
