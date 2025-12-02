@@ -9,7 +9,7 @@
 # @forceRef refund_created
 # @tag happy, orders, r02, v205
 GET /orders/{{order_id}}/refund/status
-Authorization: {{auth.basic("plankton")}}
+Authorization: {{auth.basic("patrick")}}
 
 ?? js $(response).status() == 200
 ?? js $(response).hasFields("refund_id", "order_id", "status") == true

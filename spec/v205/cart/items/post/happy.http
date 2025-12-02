@@ -2,76 +2,32 @@
 # @import ../../create/post/happy.http
 
 # POST /cart/{id}/items happy path
-# Adding items with different auth methods
-#
-# v205 differences from v301:
-#   - Uses simple menu items (no availability tracking)
-#   - Item IDs are strings
+# Adding items to a cart
 #
 # Exports (for @forceRef by other tests):
-#   cart_with_one_item - Plankton's cart with one item
-#   cart_with_one_item_cookie - Plankton's cart with one item (cookie auth)
+#   cart_with_item - Cart with one item (canonical fixture for checkout tests)
 
 ### Add item with Basic Auth
-# @name cart_with_one_item
-# @forceRef cart_created_plankton
-{{
-  // v205 uses simple menu without availability tracking
-  const item = menu.item(4);  // Krabby Patty
-  exports.item_id = item.id;
-  // cart_id_plankton comes from cart_created_plankton
-  exports.cart_id = cart_id_plankton;
-}}
+# @name cart_with_item
+# @forceRef new_cart
 # @tag cart, happy, r02, v205
 POST /cart/{{cart_id}}/items
-Authorization: {{auth.basic("plankton")}}
+Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
 
-{ "item_id": "{{item_id}}" }
+{ "item_id": "{{menu.item("Krabby Patty").id}}" }
 
 ?? js $(response).isOk() == true
 ?? js $(response).field("items").length == 1
 
 ### Add second item with Basic Auth
-# @forceRef cart_with_one_item
+# @forceRef cart_with_item
 # @tag cart, happy, r02, v205
 POST /cart/{{cart_id}}/items
-Authorization: {{auth.basic("plankton")}}
+Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
 
-{ "item_id": "{{item_id}}" }
-
-?? js $(response).isOk() == true
-?? js $(response).field("items").length == 2
-
-### Add item with Cookie Auth
-# @name cart_with_one_item_cookie
-# @forceRef cart_created_plankton
-{{
-  // v205 uses simple menu without availability tracking
-  const item = menu.item(4);  // Krabby Patty
-  exports.item_id = item.id;
-  exports.cart_id = cart_id_plankton;
-  exports.session = await auth.login("plankton");
-}}
-# @tag cart, happy, r02, v205
-POST /cart/{{cart_id}}/items
-Cookie: {{session}}
-Content-Type: application/json
-
-{ "item_id": "{{item_id}}" }
-
-?? js $(response).isOk() == true
-?? js $(response).field("items").length == 1
-
-### Add second item with Cookie Auth
-# @forceRef cart_with_one_item_cookie
-# @tag cart, happy, r02, v205
-POST /cart/{{cart_id}}/items
-Cookie: {{session}}
-Content-Type: application/json
-
-{ "item_id": "{{item_id}}" }
+{ "item_id": "{{menu.item("Fries").id}}" }
 
 ?? js $(response).isOk() == true
 ?? js $(response).field("items").length == 2

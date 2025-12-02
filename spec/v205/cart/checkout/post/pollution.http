@@ -1,0 +1,87 @@
+# @import ../_imports.http
+# @import ../../create/post/happy.http
+
+# POST /cart/{id}/checkout parameter pollution guardrails
+# Prevents cart_id injection via query/body params
+
+### Create and populate Patrick's cart
+# @name patrick_cart
+# @forceRef new_cart
+# @tag cart, r02, v205
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.item("Krabby Patty").id}}" }
+
+@patrick_cart_id = {{cart_id}}
+?? js $(response).isOk() == true
+
+### Create Plankton's cart
+# @name plankton_cart_setup
+# @forceRef patrick_cart
+# @tag cart, r02, v205
+POST /cart
+Authorization: {{auth.basic("plankton")}}
+
+@plankton_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add item to Plankton's cart
+# @name plankton_cart
+# @forceRef plankton_cart_setup
+# @tag cart, r02, v205
+POST /cart/{{plankton_cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.item("Krabby Patty").id}}" }
+
+?? js $(response).isOk() == true
+
+### Injection via query param fails
+# @forceRef plankton_cart
+{{
+  await platform.seedCredits("plankton", 200);
+}}
+# @tag cart, r02, v205
+POST /cart/{{patrick_cart_id}}/checkout?cart_id={{plankton_cart_id}}
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0 }
+
+?? js $(response).isError() == true
+
+### Injection via body param fails
+# @ref plankton_cart
+# @tag cart, r02, v205
+POST /cart/{{patrick_cart_id}}/checkout
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0, "cart_id": "{{plankton_cart_id}}" }
+
+?? js $(response).isError() == true
+
+### Injection via query + body fails - Basic Auth
+# @ref plankton_cart
+# @tag cart, r02, v205
+POST /cart/{{patrick_cart_id}}/checkout?cart_id={{plankton_cart_id}}
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0, "cart_id": "{{plankton_cart_id}}" }
+
+?? js $(response).isError() == true
+
+### Injection via query + body fails - Cookie Auth
+# @ref plankton_cart
+# @tag cart, r02, v205
+POST /cart/{{patrick_cart_id}}/checkout?cart_id={{plankton_cart_id}}
+Cookie: {{auth.login("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0, "cart_id": "{{plankton_cart_id}}" }
+
+?? js $(response).isError() == true

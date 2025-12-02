@@ -1,0 +1,114 @@
+# @import ../_imports.http
+# @import ../../items/post/happy.http
+
+# POST /cart/{id}/checkout content type variations
+# Auth + content-type combinations for single and multi-item carts
+
+# =============================================================================
+# SINGLE ITEM CHECKOUT
+# =============================================================================
+
+### Checkout - Basic Auth + Form
+# @forceRef cart_with_item
+{{
+  await platform.seedCredits("patrick", 200);
+}}
+# @tag cart, r02, v205
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/x-www-form-urlencoded
+
+tip=2&delivery_address=Under the Rock
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+
+### Checkout - Cookie Auth + Form
+# @ref cart_with_item
+{{
+  await platform.seedCredits("patrick", 200);
+}}
+# @tag cart, r02, v205
+POST /cart/{{cart_id}}/checkout
+Cookie: {{auth.login("patrick")}}
+Content-Type: application/x-www-form-urlencoded
+
+tip=2&delivery_address=Under the Rock
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+
+# =============================================================================
+# MULTIPLE ITEMS CHECKOUT
+# =============================================================================
+
+### Create cart with two items for content type tests
+# @name cart_two_items
+# @forceRef cart_with_item
+{{
+  // Add second item
+  await fetch(url("/cart/" + cart_id + "/items"), {
+    method: "POST",
+    headers: {
+      "Authorization": auth.basic("patrick"),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ item_id: menu.item("Fries").id })
+  });
+}}
+# @tag cart, r02, v205
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.item("Kelp Shake").id}}" }
+
+?? js $(response).isOk() == true
+
+### Multiple items checkout - Basic Auth + Form
+# @forceRef cart_two_items
+{{
+  await platform.seedCredits("patrick", 200);
+}}
+# @tag cart, r02, v205
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/x-www-form-urlencoded
+
+tip=2&delivery_address=Under the Rock
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+?? js $(response).field("items").length >= 2
+
+### Multiple items checkout - Cookie Auth + JSON
+# @ref cart_two_items
+{{
+  await platform.seedCredits("patrick", 200);
+}}
+# @tag cart, r02, v205
+POST /cart/{{cart_id}}/checkout
+Cookie: {{auth.login("patrick")}}
+Content-Type: application/json
+
+{ "delivery_address": "Under the Rock", "tip": 2 }
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+?? js $(response).field("items").length >= 2
+
+### Multiple items checkout - Cookie Auth + Form
+# @ref cart_two_items
+{{
+  await platform.seedCredits("patrick", 200);
+}}
+# @tag cart, r02, v205
+POST /cart/{{cart_id}}/checkout
+Cookie: {{auth.login("patrick")}}
+Content-Type: application/x-www-form-urlencoded
+
+tip=2&delivery_address=Under the Rock
+
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+?? js $(response).field("items").length >= 2

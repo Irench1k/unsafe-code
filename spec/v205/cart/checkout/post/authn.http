@@ -1,0 +1,50 @@
+# @import ../_imports.http
+# @import ../../items/post/happy.http
+
+# POST /cart/{id}/checkout authentication guardrails
+# Checkout requires valid customer authentication
+
+### Checkout without auth fails - JSON
+# @forceRef cart_with_item
+# @tag authn, cart, r02, v205
+POST /cart/{{cart_id}}/checkout
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0 }
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Checkout without auth fails - Form
+# @ref cart_with_item
+# @tag authn, cart, r02, v205
+POST /cart/{{cart_id}}/checkout
+Content-Type: application/x-www-form-urlencoded
+
+tip=0&delivery_address=Chum Bucket
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Checkout with wrong password fails - Basic Auth
+# @ref cart_with_item
+# @tag authn, cart, r02, v205
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("patrick", "wrongpassword")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0 }
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Checkout with invalid cookie fails
+# @ref cart_with_item
+# @tag authn, cart, r02, v205
+POST /cart/{{cart_id}}/checkout
+Cookie: session=invalid-session-cookie-12345
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 0 }
+
+?? js $(response).isError() == true

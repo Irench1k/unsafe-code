@@ -3,21 +3,13 @@
 # POST /cart happy path
 # Cart creation across auth methods
 #
-# v205 differences from v301:
-#   - No restaurant_id parameter (single restaurant model)
-#   - Response only has cart_id and items (no restaurant_id)
+# v205: Single restaurant model (no restaurant_id parameter)
 #
 # Exports (for @forceRef by other tests):
-#   cart_created - Patrick's cart (Basic Auth)
-#   cart_created_plankton - Plankton's cart (Basic Auth)
-#   cart_created_cookie - SpongeBob's cart (Cookie Auth)
+#   new_cart - Patrick's cart (canonical fixture)
 
 ### Create cart with Basic Auth (canonical fixture for downstream tests)
-# @name cart_created
-{{
-  // v205 users: sandy, patrick, plankton, spongebob (no squidward/mrkrabs)
-  await platform.seed({ patrick: 200, spongebob: 150, plankton: 200 });
-}}
+# @name new_cart
 # @tag cart, happy, r02, v205
 POST /cart
 Authorization: {{auth.basic("patrick")}}
@@ -27,20 +19,15 @@ Authorization: {{auth.basic("patrick")}}
 ?? js $(response).hasFields("cart_id", "items") == true
 
 ### Create cart with Cookie Auth
-# @name cart_created_cookie
-{{
-  exports.spongebob_session = await auth.login("spongebob");
-}}
+# @name cart_created
 # @tag cart, happy, r02, v205
 POST /cart
-Cookie: {{spongebob_session}}
+Cookie: {{auth.login("patrick")}}
 
-@cart_id_cookie = {{$(response).field("cart_id")}}
 ?? js $(response).status() == 201
 ?? js $(response).hasFields("cart_id", "items") == true
 
-### Create cart for Plankton (for items/checkout tests)
-# @name cart_created_plankton
+### Create cart for different user (plankton)
 # @tag cart, happy, r02, v205
 POST /cart
 Authorization: {{auth.basic("plankton")}}
