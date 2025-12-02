@@ -22,10 +22,18 @@ uctest -r                    # Resume from last failure
 
 ## Layout
 
-The inheritance chain is: **v205 → v206 → v301 → v302**
+The full inheritance chain is:
+
+**r02 (Authentication Confusion):** `v201 → v202 → v203 → v204 → v205 → v206`
+**r03 (Authorization Confusion):** `v206 → v301 → v302`
 
 ```
-spec/v205/                              # base version (r02 auth confusion)
+spec/v201/                              # base version (r02/e01 - Session Hijack)
+  _imports.http                         # version-wide imports
+  cart/create/post/happy.http           # cart creation tests (inherited by all)
+  cart/items/post/happy.http            # cart items tests (inherited by all)
+
+spec/v205/                              # inherits v204 (r02/e05 - Session Overwrite)
   _imports.http                         # version-wide imports
   auth/login/post/happy.http            # baseline auth tests
   auth/login/post/vuln-session-overwrite.http  # session overwrite vuln
@@ -171,6 +179,94 @@ Before writing assertions, manually test the endpoint to understand:
 4. What auth formats are supported?
 
 Don't copy assertions from other versions without verifying they match the API behavior.
+
+## Schema Standardization
+
+When extending specs across the inheritance chain, you'll encounter differences in API responses between versions. Handle these systematically:
+
+### The Goal: Maximize Inheritance
+
+Our goal is NOT to blindly encode current behavior. It is to:
+- **Maximize inherited specs** across versions
+- **Eliminate insignificant differences** that prevent inheritance
+- **Keep intentional deviations** that showcase natural app evolution
+
+### Decision Framework for Schema Differences
+
+When a test fails due to version differences (e.g., `tip` returns `0` vs `"0.00"`):
+
+```
+1. Is this difference significant to the vulnerability showcase?
+   │
+   ├─ YES → Document it, use version-specific test
+   │
+   └─ NO  → Standardize the source code
+            │
+            ├─ Pick the most robust behavior
+            │   - Decimal strings ("12.34") > floats (12.34) for precision
+            │   - Explicit fields > implicit defaults
+            │   - Structured errors > generic messages
+            │
+            └─ Fix ALL versions with the deviation
+                - Keep fixes similar across versions
+                - Minimize drift in the codebase
+```
+
+### Examples of Insignificant vs Significant Differences
+
+**Insignificant** (standardize the source):
+- Number vs string for monetary values (`0` vs `"0.00"`)
+- Date format variations (`2024-01-01` vs `2024-01-01T00:00:00`)
+- Missing vs empty arrays (`null` vs `[]`)
+- Whitespace in error messages
+
+**Significant** (keep version-specific):
+- Missing security controls (e.g., v201 lacks owner check, v205 has it)
+- Different authentication flows (part of the vulnerability showcase)
+- Intentional API evolution (new fields, expanded functionality)
+
+### Workflow for Fixing Deviations
+
+```bash
+# 1. Identify the deviation
+uctest v201/cart/checkout -k
+# ✖ $(response).field("tip") == "0" (got 0)
+
+# 2. Check relevance to vulnerability showcase
+#    Read: vulnerabilities/.../r02_authentication_confusion/README.md
+#    Question: Does tip format matter for demonstrating auth confusion?
+#    Answer: No → proceed to standardize
+
+# 3. Identify all affected versions
+grep -r "tip" vulnerabilities/.../r02_*/routes*.py
+
+# 4. Apply consistent fix to ALL affected files
+#    Use model_dump(mode="json") or explicit string conversion
+#    Keep the fix pattern identical across versions
+
+# 5. Verify fix
+uctest v201/cart v202/cart v203/cart v204/cart v205/cart -k
+```
+
+### Common Patterns That Need Standardization
+
+| Pattern | Preferred | Rationale |
+|---------|-----------|-----------|
+| Monetary values | `"12.34"` string | Precision, consistent with Decimal |
+| Empty collections | `[]` not `null` | Safer iteration |
+| Timestamps | ISO 8601 strings | Universal parsing |
+| Boolean fields | Explicit `true`/`false` | No type coercion |
+| Error responses | Structured `{"error": "..."}` | Machine-parseable |
+
+### When NOT to Standardize
+
+Keep differences when they:
+1. **Demonstrate vulnerability progression** (intentional security gaps)
+2. **Show realistic app evolution** (adding fields, expanding API)
+3. **Are documented in the README** as intentional
+4. **Would change the educational narrative**
+
+When in doubt, check the vulnerability's README and ask: "Does this difference help students understand the security concept?"
 
 ## ucspec
 

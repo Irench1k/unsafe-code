@@ -316,49 +316,6 @@ function user(name) {
   };
 }
 
-/**
- * Menu helper utilities
- */
-function menuHelpers() {
-  const items = getMenu();
-  return {
-    /**
-     * Get item by id (string or number)
-     */
-    item(id) {
-      const key = id.toString();
-      const item = items[key];
-      if (!item) {
-        throw new Error(`Unknown menu item: ${id}`);
-      }
-      return item;
-    },
-    /**
-     * First available item for restaurant
-     */
-    firstAvailable(restaurantId = 1) {
-      const entry = Object.values(items).find(
-        (i) => i.restaurant_id == restaurantId && i.available
-      );
-      if (!entry) {
-        throw new Error(`No available items for restaurant ${restaurantId}`);
-      }
-      return entry;
-    },
-    /**
-     * First unavailable item for restaurant
-     */
-    firstUnavailable(restaurantId = 1) {
-      const entry = Object.values(items).find(
-        (i) => i.restaurant_id == restaurantId && !i.available
-      );
-      if (!entry) {
-        throw new Error(`No unavailable items for restaurant ${restaurantId}`);
-      }
-      return entry;
-    },
-  };
-}
 
 // ============================================================================
 // AUTH
@@ -532,6 +489,43 @@ const menu = {
     }
 
     return items;
+  },
+
+  // Filter items (version-aware)
+  // Example: menu.filter(item => item.available && item.restaurant_id === 1)
+  filter(fn) {
+    const MENU = getMenu();
+    return Object.values(MENU).filter(fn);
+  },
+
+  /**
+   * First available item for restaurant (v301+ only)
+   * Example: menu.firstAvailable(1).id
+   */
+  firstAvailable(restaurantId = 1) {
+    const MENU = getMenu();
+    const entry = Object.values(MENU).find(
+      (i) => i.restaurant_id == restaurantId && i.available
+    );
+    if (!entry) {
+      throw new Error(`No available items for restaurant ${restaurantId}`);
+    }
+    return entry;
+  },
+
+  /**
+   * First unavailable item for restaurant (v301+ only)
+   * Example: menu.firstUnavailable(1).id
+   */
+  firstUnavailable(restaurantId = 1) {
+    const MENU = getMenu();
+    const entry = Object.values(MENU).find(
+      (i) => i.restaurant_id == restaurantId && !i.available
+    );
+    if (!entry) {
+      throw new Error(`No unavailable items for restaurant ${restaurantId}`);
+    }
+    return entry;
   },
 };
 
@@ -1081,7 +1075,6 @@ module.exports = function createUtils(versionOverride) {
     user,
     menu,
     order,
-    menuHelper: menuHelpers(),
     platform,
     mailpit,
     verify,

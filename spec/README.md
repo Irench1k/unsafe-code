@@ -206,14 +206,111 @@ Run `ucsync` after modifying `spec.yml` or adding new specs to regenerate inheri
 
 ## Versioning
 
-The inheritance chain is: **v205 → v206 → v301 → v302**
+The full inheritance chain is:
 
-- `spec/v205` targets v205 (r02 authentication confusion, session overwrite vulnerable)
-- `spec/v206` inherits from v205, fixes session overwrite vulnerability
-- `spec/v301` inherits from v206 (r03 authorization confusion dual-auth refund)
-- `spec/v302` inherits from v301, adds cart-swap vulnerability, fixes dual-auth
+**r02 (Authentication Confusion):**
+```
+v201 (Session Hijack - Base)
+  └── v202 (Credit Top-ups)
+       └── v203 (Fake Header Refund)
+            └── v204 (Manager Mode)
+                 └── v205 (Session Overwrite)
+                      └── v206 (Fixed Final)
+```
+
+**r03 (Authorization Confusion):**
+```
+v206
+  └── v301 (Dual-Auth Refund)
+       └── v302 (Cart Swap Checkout)
+```
 
 Future versions follow the same pattern: inherit, exclude fixed vulns, add new ones.
+
+## Adding New Versions
+
+Follow this workflow when adding a new API version to the spec suite:
+
+### Step 1: Create Directory Structure and Wire into spec.yml
+
+```bash
+# 1. Add version entry to spec.yml first
+#    Define inherits, tags, and any exclusions
+
+# 2. Run ucsync to generate the directory structure
+ucsync                    # or: uv run ucspec
+
+# This creates:
+#   spec/vXXX/.env        (VERSION=vXXX)
+#   spec/vXXX/_imports.http
+#   spec/vXXX/...         (inherited files with ~ prefix)
+```
+
+### Step 2: Copy Tests Incrementally
+
+**Never copy all tests at once.** Work file-by-file or category-by-category:
+
+```bash
+# 1. Identify a test file you expect to pass
+#    Manually inspect the source test and the API behavior
+
+# 2. Copy ONE file
+cp spec/v201/cart/create/post/happy.http spec/vXXX/cart/create/post/
+
+# 3. Run uctest immediately to verify
+uctest vXXX/cart/create/post/happy.http
+
+# 4. If it passes, commit. If not, investigate before proceeding.
+```
+
+### Step 3: Handle Test Failures from Schema Differences
+
+When tests fail due to API differences (e.g., `tip` returns `0` vs `"0.00"`):
+
+**DO NOT:**
+- Disable or skip the test
+- Add workarounds to support both behaviors
+- Fudge assertions to be looser
+- Just delete the problematic test
+
+**DO:**
+1. **Evaluate significance**: Is this difference intentional for the vulnerability showcase?
+   - Check `vulnerabilities/.../README.md` to see if the difference matters
+
+2. **If NOT significant** → Standardize the source code:
+   - Pick the more robust behavior (e.g., `"12.34"` strings are better than `12.34` floats for precision)
+   - Fix ALL versions where the deviation appears
+   - Keep fixes as similar as possible across versions to minimize drift
+
+3. **If intentional** → Document it:
+   - Use version-specific test files (not inherited)
+   - Document why the difference exists
+
+### Example: Fixing a Schema Deviation
+
+```bash
+# 1. Test fails: v201 returns tip as number, v205 returns as string
+uctest v201/cart/checkout/post/happy.http
+# ✖ $(response).field("tip") == "0" (got 0)
+
+# 2. Check if the difference matters for vulnerability showcase
+#    Read vulnerabilities/.../r02_authentication_confusion/README.md
+#    → The tip format is NOT relevant to auth confusion vulnerabilities
+
+# 3. Standardize: make v201-v204 return strings like v205-v206
+#    Edit source code in webapp/r02_authentication_confusion/e01_*/
+#    Ensure all examples return Decimal strings consistently
+
+# 4. Re-run tests to verify the fix
+uctest v201/cart -k
+```
+
+### Design Principles for Inheritance
+
+- **Maximize inherited specs**: The goal is high inheritance rate across versions
+- **Eliminate insignificant differences**: Drift between versions should be intentional
+- **Keep intentional deviations**: Natural evolution (adding security controls, etc.) is expected
+- **Standardize on robust behaviors**: When in doubt, pick the more precise/safe option
 
 ## Example Dependency Chain (Refund Status)
 

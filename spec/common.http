@@ -13,7 +13,6 @@
   exports.auth = utils.auth;
   exports.user = utils.user;
   exports.menu = utils.menu;
-  exports.menuHelper = utils.menuHelper;
   exports.order = utils.order;
   exports.platform = utils.platform;
   exports.mailpit = utils.mailpit;

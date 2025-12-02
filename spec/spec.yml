@@ -35,12 +35,12 @@
 # Run: ucsync (or uv run ucspec)
 
 # =============================================================================
-# Authentication Confusion (r02) - Base versions
+# Authentication Confusion (r02) - Full inheritance chain
 # =============================================================================
 
-v205:
-  description: Session Overwrite Vulnerability (r02/e05)
-  tags: [r02, v205]
+v201:
+  description: Session Hijack (r02/e01) - Base version
+  tags: [r02, v201]
 
   # Pattern-based tag additions (glob patterns)
   tag_rules:
@@ -56,6 +56,26 @@ v205:
     "cart/**": [cart]                 # Cart endpoints
     "orders/**": [orders]             # Order endpoints
     "menu/**": [menu]                 # Menu endpoints
+
+v202:
+  inherits: v201
+  description: Credit Top-ups (r02/e02)
+  tags: [r02, v202]
+
+v203:
+  inherits: v202
+  description: Fake Header Refund (r02/e03)
+  tags: [r02, v203]
+
+v204:
+  inherits: v203
+  description: Manager Mode (r02/e04)
+  tags: [r02, v204]
+
+v205:
+  inherits: v204
+  description: Session Overwrite Vulnerability (r02/e05)
+  tags: [r02, v205]
 
 v206:
   inherits: v205
@@ -73,6 +93,8 @@ v301:
   description: Dual-Auth Refund Approval
   tags: [r03, v301]
   inherits: v206
+  exclude:
+    - cart/create/post/happy.http
 
   # Pattern-based tag additions (glob patterns)
   tag_rules:
