@@ -82,6 +82,7 @@ v205:
     - cart/items/post/happy.http      # Different test assertions
     - cart/create/post/happy.http     # Different test assertions
     - auth/logout/post/happy.http     # v205 has more extensive logout tests
+    - menu/list/get/authn.http        # v205 has local override
 
 v206:
   inherits: v205
