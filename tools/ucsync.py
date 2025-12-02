@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ucspec - E2E spec suite generator for inherited test files
+ucsync - E2E spec suite generator for inherited test files
 
 Reads spec.yml and generates inherited test files for nested directory structures.
 Only new/override specs are stored in git; inherited files are generated on-demand.
@@ -17,10 +17,10 @@ File naming:
 - Inherited: ~{name}.http (generated, tracked in git for httpyac compatibility)
 
 Usage:
-  ucspec                    # Generate inherited files + sync tags (all versions)
-  ucspec v302               # Generate for specific version
-  ucspec --dry-run          # Preview changes
-  ucspec clean              # Remove all inherited files
+  ucsync                    # Generate inherited files + sync tags (all versions)
+  ucsync v302               # Generate for specific version
+  ucsync --dry-run          # Preview changes
+  ucsync clean              # Remove all inherited files
 """
 
 import argparse
@@ -69,8 +69,8 @@ class SyncResult:
     warnings: list[str] = field(default_factory=list)
 
 
-class UcspecError(Exception):
-    """Base exception for ucspec errors"""
+class UcsyncError(Exception):
+    """Base exception for ucsync errors"""
 
     pass
 
@@ -86,7 +86,7 @@ def load_spec_config(spec_yml_path: Path) -> dict:
         config = yaml.safe_load(f)
 
     if not config:
-        raise UcspecError("spec.yml is empty")
+        raise UcsyncError("spec.yml is empty")
 
     return config
 
@@ -94,7 +94,7 @@ def load_spec_config(spec_yml_path: Path) -> dict:
 def resolve_version(version_name: str, config: dict) -> VersionSpec:
     """Resolve a version's configuration from spec.yml"""
     if version_name not in config:
-        raise UcspecError(f"Version '{version_name}' not found in spec.yml")
+        raise UcsyncError(f"Version '{version_name}' not found in spec.yml")
 
     version_config = config[version_name]
 
@@ -854,7 +854,7 @@ def cmd_generate(spec_dir: Path, versions: list[str] | None, dry_run: bool, verb
             for error in tag_result.errors:
                 print(f"  ERROR: {error}")
 
-        except UcspecError as e:
+        except UcsyncError as e:
             print(f"Error in {version_name}: {e}")
             return 1
 
@@ -905,18 +905,18 @@ def cmd_clean(spec_dir: Path, versions: list[str] | None, dry_run: bool) -> int:
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="ucspec",
+        prog="ucsync",
         description="Generate inherited test files for E2E spec suite",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  ucspec                    Generate inherited files + sync tags (all versions)
-  ucspec v302               Generate for specific version only
-  ucspec v302 v303          Generate for multiple versions
-  ucspec --dry-run          Preview changes without modifying files
-  ucspec -n -v              Dry-run with verbose output
-  ucspec clean              Remove all inherited files
-  ucspec clean v302         Clean specific version only
+  ucsync                    Generate inherited files + sync tags (all versions)
+  ucsync v302               Generate for specific version only
+  ucsync v302 v303          Generate for multiple versions
+  ucsync --dry-run          Preview changes without modifying files
+  ucsync -n -v              Dry-run with verbose output
+  ucsync clean              Remove all inherited files
+  ucsync clean v302         Clean specific version only
 
 File naming:
   - New specs: path/to/file.http (git-tracked)
@@ -994,7 +994,7 @@ Pattern syntax (fnmatch-style):
                 args.dry_run,
                 args.verbose
             )
-    except UcspecError as e:
+    except UcsyncError as e:
         print(f"Error: {e}")
         return 1
     except Exception as e:

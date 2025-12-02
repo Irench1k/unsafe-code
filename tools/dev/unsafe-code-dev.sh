@@ -305,10 +305,10 @@ ucgo() {
 # ================================
 
 # Generate inherited e2e spec files based on spec.yml
-# Usage: ucspec [versions...] [-n|--dry-run] [-v|--verbose]
-#        ucspec clean [versions...]
+# Usage: ucsync [versions...] [-n|--dry-run] [-v|--verbose]
+#        ucsync clean [versions...]
 ucsync() {
-    (cd "$UNSAFE_CODE_ROOT" && uv run ucspec "$@")
+    (cd "$UNSAFE_CODE_ROOT" && uv run ucsync "$@")
 }
 
 # ================================
