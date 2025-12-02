@@ -4,6 +4,24 @@
 # Verifies credential handling and auth precedence
 
 # =============================================================================
+# VALID CREDENTIALS (email format)
+# =============================================================================
+
+### Basic Auth succeeds with email format
+# @name auth_email_success
+{{
+  await platform.seedCredits("plankton", 200);
+}}
+# @tag account, authn, r02, v205
+GET /account/credits
+Authorization: Basic {{user("plankton").email}}:{{user("plankton").password}}
+
+?? js $(response).isOk() == true
+?? js $(response).hasFields("balance", "email") == true
+?? js $(response).field("email") == {{user("plankton").email}}
+?? js Number($(response).field("balance")) == 200
+
+# =============================================================================
 # INVALID CREDENTIALS
 # =============================================================================
 

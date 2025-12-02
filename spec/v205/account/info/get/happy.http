@@ -14,9 +14,11 @@ GET /account/info
 Authorization: {{auth.basic("plankton")}}
 
 ?? js $(response).isOk() == true
-?? js $(response).hasFields("balance", "email") == true
+?? js $(response).hasFields("balance", "email", "name") == true
 ?? js $(response).field("email") == {{user("plankton").email}}
+?? js $(response).field("name") == {{user("plankton").displayName}}
 ?? js Number($(response).field("balance")) == 200
+?? js $(response).field("orders") >= 1
 
 ### Cookie Auth returns full account info
 # @forceRef info_basic_auth
@@ -25,6 +27,8 @@ GET /account/info
 Cookie: {{auth.login("spongebob")}}
 
 ?? js $(response).isOk() == true
-?? js $(response).hasFields("balance", "email") == true
+?? js $(response).hasFields("balance", "email", "name") == true
 ?? js $(response).field("email") == {{user("spongebob").email}}
+?? js $(response).field("name") == {{user("spongebob").displayName}}
 ?? js Number($(response).field("balance")) == 150
+?? js $(response).field("orders") >= 1

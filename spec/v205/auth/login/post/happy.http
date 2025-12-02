@@ -16,6 +16,7 @@ Content-Type: application/json
 
 @sessionCookie = {{extractCookie(response)}}
 ?? js $(response).isOk() == true
-?? js $(response).hasField("message") == true
+?? js $(response).hasFields("email", "message") == true
+?? js $(response).field("email") == {{user("spongebob").email}}
 ?? js $(response).field("message") == Login successful
 ?? js hasCookie(response) == true
