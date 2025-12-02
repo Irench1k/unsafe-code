@@ -1,5 +1,5 @@
 # @import ../_imports.http
-# @import ../../items/post/~happy.http
+# @import ../../items/post/_fixtures.http
 
 # Checkout fixtures for downstream tests (orders/)
 

@@ -5,8 +5,8 @@
 ### Setup menu items and carts
 {{
   await platform.seed({ patrick: 200, plankton: 200 });
-  exports.item_id = menuHelper.firstAvailable(1).id;
-  exports.unavailable_item_id = menuHelper.firstUnavailable(1).id;
+  exports.item_id = menu.firstAvailable(1).id;
+  exports.unavailable_item_id = menu.firstUnavailable(1).id;
 }}
 # @name patrick_cart
 # @tag authn, cart, r03, v301
@@ -18,11 +18,23 @@ Authorization: {{auth.basic("patrick")}}
 
 ### Plankton's cart (for pollution tests)
 # @name plankton_cart
-# @tag authn, cart, r03, v301
+# @tag authn, cart, r03, v302
 POST /cart?restaurant_id=1
 Authorization: {{auth.basic("plankton")}}
 
 @plankton_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).isOk() == true
+
+### Plankton's cart with one item (for checkout tests)
+# @name cart_with_one_item_plankton
+# @forceRef plankton_cart
+# @tag cart, r03, v302
+POST /cart/{{plankton_cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{item_id}}" }
+
 ?? js $(response).isOk() == true
 
 ### Chum Bucket cart (for cross-restaurant tests)

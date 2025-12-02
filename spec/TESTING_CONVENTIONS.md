@@ -20,6 +20,23 @@ uctest -k                    # Keep going (no fail-fast)
 uctest -r                    # Resume from last failure
 ```
 
+### Tag-Based vs Path-Based Execution
+
+**Path-based** (`uctest v301/orders`) scans only files within that directory. This is fast but has a limitation: **cross-directory dependencies may not resolve**.
+
+Example: `orders/list/get/multi-tenant.http` imports `cart/checkout/post/~happy.http` to get the `new_order` ref. If you run `uctest v301/orders`, the cart file isn't in scope, so `new_order` won't be found.
+
+**Tag-based** (`uctest @orders v301/`) uses semantic filtering. uctest scans the entire version directory, then filters by tag. Cross-directory imports work because all files are parsed.
+
+| Use Case | Command | Notes |
+|----------|---------|-------|
+| Quick endpoint test | `uctest v301/cart/create` | Fast, no cross-deps |
+| Tests with cross-deps | `uctest @orders v301/` | Orders import cart fixtures |
+| All vulnerabilities | `uctest @vulnerable` | Semantic filtering |
+| Debug single file | `uctest v301/path/to/file.http` | Direct file |
+
+**When debugging "ref not found" errors**: Try tag-based execution first. If `uctest v301/orders` fails with missing refs, use `uctest @orders v301/` instead.
+
 ## Layout
 
 The full inheritance chain is:
@@ -67,7 +84,7 @@ Rules:
 - Every request must have **either** `@name` (referenced elsewhere) **or** be in a tagged file. Do not leave unreferenced requests in untagged files.
 - Use `@ref` to reuse immutable or "good enough" state (list/lookups). Use `@forceRef` when state must be fresh for each test (state machines, balances, ownership you mutate).
 - Chain discipline: if request A uses `@forceRef B`, then B must use `@forceRef` for its own prerequisites. This keeps test ordering faithful.
-- Fixtures (`_fixtures.http`) export named requests only—no tags. Leaf files import them; tags are managed by ucspec.
+- Fixtures (`_fixtures.http`) export named requests only—no tags. Leaf files import them; tags are managed by ucsync.
 
 ## File Roles
 
@@ -268,9 +285,9 @@ Keep differences when they:
 
 When in doubt, check the vulnerability's README and ask: "Does this difference help students understand the security concept?"
 
-## ucspec
+## ucsync
 
-`ucsync` (alias for `uv run ucspec`) manages inherited test files for the nested directory structure:
+`ucsync` (or `uv run ucsync`) manages inherited test files for the nested directory structure:
 
 - Scans source version's directory tree and generates `~`-prefixed inherited files
 - Preserves `@name`/`@ref`/`@forceRef` chains and file structure
