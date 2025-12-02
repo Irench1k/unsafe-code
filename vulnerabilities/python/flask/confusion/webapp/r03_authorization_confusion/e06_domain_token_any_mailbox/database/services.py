@@ -420,7 +420,7 @@ def create_restaurant(name: str, domain: str) -> Restaurant:
     restaurant = Restaurant(
         name=name,
         description=f"Welcome to {name}!",
-        owner_email=f"admin@{domain}",
+        owner=f"admin@{domain}",
         api_key=api_key,
     )
     save_restaurant(restaurant)
