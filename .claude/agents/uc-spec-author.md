@@ -267,6 +267,63 @@ Skip linter checks for specific requests:
 
 ---
 
+# Reference: Designing for Inheritance
+
+## Core Principle
+
+**Write tests in v201 (base) whenever possible**. Tests automatically inherit to later versions, reducing duplication.
+
+## Resilient Assertions
+
+Different versions may return different error messages. Design assertions to be version-agnostic:
+
+```http
+# BAD - fragile, version-specific
+?? js $(response).field("error")?.toLowerCase().includes("authentication required") == true
+
+# GOOD - resilient, works across versions
+?? js $(response).isError() == true
+```
+
+Common error message variations:
+| Version | Error Message |
+|---------|---------------|
+| e01-e04 | "Unauthorized" |
+| e05+    | "Authentication required" |
+
+## Import References After Porting
+
+When files are ported to v201 and deleted from vXXX, imports must reference the inherited (`~`) version:
+
+```http
+# Before porting (file exists locally)
+# @import ./happy.http
+
+# After porting (file now inherited)
+# @import ./~happy.http
+```
+
+## What to Port vs What to Keep Local
+
+**Port to v201**:
+- Happy paths that work identically across versions
+- Authentication tests (use generic `isError()`)
+- Basic CRUD operations
+
+**Keep in vXXX (local)**:
+- Vulnerability tests specific to that version
+- Tests for endpoints that don't exist in v201
+- Tests with version-specific response formats
+
+## Checking Before Porting
+
+Before porting a test to v201:
+1. Does the endpoint exist in v201?
+2. Does the behavior match? (run against v201 server)
+3. Are assertions version-agnostic?
+
+---
+
 # Reference: File Organization
 
 ## One Endpoint Per File

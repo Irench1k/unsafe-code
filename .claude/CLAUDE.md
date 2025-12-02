@@ -95,6 +95,43 @@ Spec suite task
 1. uc-spec-sync (sync)
 2. uc-spec-runner (verify)
 
+**Porting tests to base version (v201):**
+1. Verify behavior exists in v201 (check API)
+2. Copy test, update tags from vXXX to v201
+3. uc-spec-runner v201 (verify)
+4. Delete original from vXXX (ucsync recreates as ~file.http)
+5. uc-spec-sync (regenerate)
+6. uc-spec-runner vXXX (verify inheritance)
+7. If vuln test fails in later version → check if vuln was fixed → add exclusion
+
+### E2E Spec Inheritance Principles
+
+**Goal**: Maximize inheritance by placing tests in earliest version where behavior exists.
+
+```
+v201 (base)     ← PUT tests here when possible
+  ↓ inherits
+v202            ← exclude tests when behavior changes
+  ↓ inherits
+v203            ← inherits exclusions from v202
+```
+
+**Key Discovery**: Code refactoring can ACCIDENTALLY fix vulnerabilities!
+- e01: `[A(), B()]` evaluates ALL constructors BEFORE `any()` iterates → g.email poisoned
+- e02-e04: Cookie auth checked FIRST, returns before Basic Auth instantiation → safe
+
+**When vulnerability test fails in later version**: ALWAYS investigate API code before assuming test is broken. The vulnerability may have been fixed.
+
+**Exclusion Strategy**:
+- Exclusions are version-specific, don't cascade automatically
+- Document WHY in spec.yml comments (intentionally fixed vs accidentally fixed)
+- See `spec/INHERITANCE.md` for full guide
+
+**Design for Resilience**:
+- Use `$(response).isError()` not specific error messages ("Unauthorized" vs "Authentication required")
+- Different versions may return different messages for same failure
+- See `spec/INHERITANCE.md` for .http file design best practices
+
 ## Quality Gates (Before Delegating)
 
 ### Before uc-exploit-narrator:

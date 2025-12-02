@@ -48,6 +48,8 @@ After diagnosing, I report:
 | `capture "X" undefined` | Upstream fixture didn't run or capture | Trace @ref chain → uc-spec-author |
 | `TypeError: X is not a function` | Wrong helper usage | uc-spec-author (fix helper call) |
 | Stale `~` file content | Inheritance out of sync | uc-spec-sync (run ucsync) |
+| Vuln test passes in v201, fails in v202+ | Vulnerability accidentally fixed | Add exclusion in spec.yml |
+| Error message mismatch | Different versions return different text | Use `isError()` instead |
 
 ---
 
@@ -279,6 +281,60 @@ grep -r "@name B" spec/v301/
 - Test passes first run, fails on subsequent runs
 - State from previous test "leaks" into current test
 - Assertions about state changes fail unexpectedly
+
+---
+
+# Reference: Accidental Vulnerability Fixes
+
+## The Pattern
+
+When a vulnerability test fails in a later version (v202+) but passes in v201, the vulnerability may have been **accidentally fixed** through code refactoring.
+
+## Session Hijack Case Study (r02)
+
+**v201 (VULNERABLE)** - `helpers.py`:
+```python
+# Both authenticators instantiated BEFORE any() iterates!
+authenticators = [CustomerAuthenticator(), CredentialAuthenticator.from_basic_auth()]
+return any(authenticator.authenticate() for authenticator in authenticators)
+```
+The list comprehension evaluates ALL constructors. `CredentialAuthenticator.from_basic_auth()` sets `g.email` BEFORE `any()` starts checking. If cookie auth succeeds, `g.email` is already poisoned.
+
+**v202-v204 (ACCIDENTALLY FIXED)** - `helpers.py`:
+```python
+# Cookie auth checked FIRST, returns before Basic Auth instantiation
+authenticator_from_cookie = CustomerAuthenticator()
+if authenticator_from_cookie.authenticate():
+    return True  # ← Returns BEFORE Basic Auth is instantiated
+
+authenticator_from_basic_auth = CredentialAuthenticator.from_basic_auth()
+```
+
+**Lesson**: Subtle code refactoring can accidentally fix vulnerabilities. When vulnerability tests fail, ALWAYS investigate the actual API code before assuming the test is broken.
+
+## Diagnostic Steps for "Vuln Test Fails"
+
+1. **Run test against v201** - Does it pass there? If yes, continue.
+2. **Compare auth/helpers.py** (or relevant code) between versions
+3. **Look for control flow changes** - especially early returns, constructor timing
+4. **Add exclusion to spec.yml** if vulnerability is genuinely fixed
+
+## Exclusion Comments
+
+Always document WHY in spec.yml:
+```yaml
+v202:
+  exclude:
+    # e02 accidentally fixed session hijack by checking cookie auth before
+    # instantiating Basic Auth (no g.email poisoning)
+    - orders/list/get/vuln-session-hijack.http
+
+v204:
+  exclude:
+    # e04 intentionally fixed session hijack by setting g.email only after
+    # password verification succeeds
+    - orders/list/get/vuln-session-hijack.http
+```
 
 ---
 

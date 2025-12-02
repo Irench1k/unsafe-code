@@ -114,6 +114,32 @@ v302:
 
 ---
 
+# Reference: Authentication Confusion (r02) Inheritance Chain
+
+Understanding this chain helps diagnose test failures:
+
+| Version | Exercise | Session Hijack Status |
+|---------|----------|----------------------|
+| v201 | e01_session_hijack | VULNERABLE |
+| v202 | e02_credit_top_ups | ACCIDENTALLY FIXED |
+| v203 | e03_fake_header_refund | ACCIDENTALLY FIXED (inherits v202) |
+| v204 | e04_manager_mode | INTENTIONALLY FIXED |
+| v205 | e05_session_overwrite | FIXED (inherits v204) |
+| v206 | e06_fixed_final_version | FIXED |
+
+**Why v202-v204 Accidentally Fixed Session Hijack**:
+- e01: `[A(), B()]` evaluates ALL constructors BEFORE `any()` iterates → g.email poisoned
+- e02+: Cookie auth checked FIRST, returns before Basic Auth instantiation → safe
+
+**Exclusion Inheritance**:
+- Exclusions DON'T cascade automatically
+- v203 inherits from v202, so it gets v202's files (minus v202's exclusions)
+- If v203 needs same exclusion, it either inherits via v202, or adds explicit exclusion
+
+See `spec/INHERITANCE.md` for full documentation.
+
+---
+
 # Reference: Inheritance Rules
 
 ## File Generation
@@ -200,6 +226,26 @@ v302:
 ```
 
 Then run `ucsync v302`.
+
+## Documenting Exclusion Reasons
+
+Always add comments explaining WHY a test is excluded:
+
+```yaml
+v202:
+  exclude:
+    # e02 accidentally fixed session hijack by checking cookie auth before
+    # instantiating Basic Auth (no g.email poisoning)
+    - orders/list/get/vuln-session-hijack.http
+
+v204:
+  exclude:
+    # e04 intentionally fixed session hijack by setting g.email only after
+    # password verification succeeds
+    - orders/list/get/vuln-session-hijack.http
+```
+
+This helps future maintainers understand the inheritance chain.
 
 ## Acknowledge Local Override
 
