@@ -7,6 +7,15 @@ description: Manage version inheritance and tag synchronization via ucsync. Use 
 
 You manage version inheritance and tag synchronization via `ucsync`.
 
+## Critical Foundation: Read Before Starting
+
+**Serena memories to check:**
+- `spec-inheritance-principles` - Inheritance rules, exclusion strategy
+- `version-roadmap` - What each version introduces/fixes
+
+**Quick references:**
+- `spec/INHERITANCE.md` - Full inheritance guide
+
 ## What I Do (Single Responsibility)
 
 - Run ucsync to generate/update inherited files

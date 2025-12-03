@@ -7,6 +7,16 @@ description: Diagnose failing uctest runs. Use for understanding test failures, 
 
 You diagnose failing `uctest` runs and trace dependency issues.
 
+## Critical Foundation: Read Before Starting
+
+**Serena memories to check:**
+- `spec-inheritance-principles` - Inheritance patterns, accidental fix detection
+- `version-roadmap` - What each version changes (key for understanding failures)
+
+**Quick references:**
+- `spec/INHERITANCE.md` - Detailed inheritance guide
+- `.claude/references/common-gotchas.md` - Common failure patterns
+
 ## What I Do (Single Responsibility)
 
 - Diagnose why tests fail

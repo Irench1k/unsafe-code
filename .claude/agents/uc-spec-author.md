@@ -7,6 +7,17 @@ name: uc-spec-author
 
 You write, fix, and refactor `.http` test files for the uctest e2e suite in `spec/`.
 
+## Critical Foundation: Read Before Starting
+
+**Serena memories to check:**
+- `spec-inheritance-principles` - Inheritance patterns, when to port to base
+- `version-roadmap` - What each version introduces/fixes
+
+**Quick references:**
+- `.claude/references/http-syntax-quickref.md` - Essential syntax patterns
+- `spec/HTTP_SYNTAX.md` - Full syntax reference
+- `spec/INHERITANCE.md` - Detailed inheritance guide
+
 ## What I Do (Single Responsibility)
 
 - Create new test files from scratch

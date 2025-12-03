@@ -2,220 +2,106 @@
 
 > **Mission**: Educational security content with intentionally vulnerable code. Vulnerabilities are features, not bugs.
 
-## Core Philosophy
+## Quick Start
 
-Vulnerabilities emerge from **production-quality code** through natural patterns:
-- Refactoring drift (decorator reads different source than handler)
-- Feature additions ("support delegated posting" → enables impersonation)
-- Helper functions with subtle precedence rules
+Before ANY task, check relevant Serena memories:
+- `pedagogical-design-philosophy` - ONE concept rule, progressive complexity, annotations
+- `spongebob-characters` - Who attacks whom, credential rules
+- `version-roadmap` - What each version introduces/fixes
+- `http-demo-standards` - Interactive demo quality standards
+- `spec-inheritance-principles` - E2E spec patterns
 
-**Never**: CTF-style puzzles, `# VULNERABILITY HERE` comments, `vulnerable_handler()` names, code that fails non-security review.
+## Slash Commands
 
-## Orchestrator Role (You)
+Use these for common workflows:
+- `/project:review-exercises v301-v303` - Comprehensive exercise review
+- `/project:run-specs v301/` - Smart spec execution
+- `/project:validate-demos e01` - Interactive demo validation
+- `/project:check-inheritance v302` - Inheritance health check
+- `/project:brainstorm-exercise "idea"` - New vulnerability ideation
+- `/project:quick-context` - Dump current state
+
+## Orchestrator Role
 
 **Plan, Delegate, Verify, Coordinate**—don't implement directly.
 
 1. **Break tasks** into clear steps
-2. **Delegate** to specialized uc-* agents with precise instructions
-3. **Verify** outputs against pedagog-design-philosophy memory
+2. **Delegate** to uc-* agents with precise instructions
+3. **Verify** outputs against memories
 4. **Pass context** between agents efficiently
 
-## Specialized Agents (uc-* prefix)
+## Specialized Agents
 
-**Content Creation**:
-- `uc-vulnerability-designer`: Designs WHAT/WHY/HOW (not implementation)
-- `uc-code-crafter`: Implements vulnerable code + @unsafe annotations
-- `uc-exploit-narrator`: Creates .http PoCs with SpongeBob narrative
+| Category | Agent | Purpose |
+|----------|-------|---------|
+| **Content** | uc-vulnerability-designer | Design WHAT/WHY/HOW |
+| | uc-code-crafter | Implement vulnerable code |
+| | uc-exploit-narrator | Create .http PoCs |
+| **Docs** | uc-docs-editor | Edit READMEs |
+| | uc-taxonomy-maintainer | Maintain classifications |
+| | uc-curriculum-strategist | Gap analysis |
+| **Infra** | uc-docs-generator-maintainer | Maintain `uv run docs` |
+| | commit-agent | Verify + commit |
+| **E2E Specs** | uc-spec-runner | Execute uctest (haiku) |
+| | uc-spec-debugger | Diagnose failures (sonnet) |
+| | uc-spec-author | Write/fix tests (sonnet) |
+| | uc-spec-sync | Manage inheritance (haiku) |
 
-**Documentation**:
-- `uc-docs-editor`: Edits READMEs, reviews for behavioral language + character logic
-- `uc-taxonomy-maintainer`: Maintains docs/ANNOTATION_FORMAT.md classifications
-- `uc-curriculum-strategist`: Analyzes gaps, evaluates pedagogical flow
-
-**Infrastructure**:
-- `uc-docs-generator-maintainer`: Maintains `uv run docs` tool
-- `commit-agent`: Runs verification + commits
-
-**E2E Spec Suite** (for `spec/` directory work):
-- `uc-spec-author`: Write/fix .http test files (sonnet - complex chains)
-- `uc-spec-debugger`: Diagnose failing tests, trace ref issues (sonnet - complex reasoning)
-- `uc-spec-runner`: Execute uctest, interpret results (haiku - fast)
-- `uc-spec-sync`: Run ucsync, manage inheritance (haiku - mechanical ops)
-
-### E2E Spec Agent Decision Tree
+## E2E Spec Decision Tree
 
 ```
-Spec suite task
-│
-├── Need to run tests?
-│   └── → uc-spec-runner
-│       └── Returns: pass/fail + suggested next agent
-│
-├── Test failed - "ref X not found"
-│   ├── After ucsync or spec.yml change?
-│   │   └── → uc-spec-sync (regenerate)
-│   └── Scope/import issue?
-│       └── → uc-spec-debugger (trace imports)
-│           └── After diagnosis → uc-spec-author or uc-spec-sync
-│
-├── Test failed - Assertion mismatch
-│   └── → uc-spec-debugger (understand API response)
-│       └── After diagnosis → uc-spec-author (fix test)
-│
-├── Task: Write new test file
-│   └── → uc-spec-author
-│       └── After writing → uc-spec-runner (verify)
-│
-├── Task: Fix test code
-│   └── → uc-spec-author
-│       └── After fixing → uc-spec-runner (verify)
-│
-├── Task: Update spec.yml / regenerate files
-│   └── → uc-spec-sync
-│       └── After sync → uc-spec-runner (verify)
-│
-└── Task: Diagnose why test fails
-    └── → uc-spec-debugger
-        └── Returns: root cause + which agent to fix
+Spec task
+├── Run tests? → uc-spec-runner → pass/fail + next agent
+├── "ref not found"? → uc-spec-debugger → uc-spec-author OR uc-spec-sync
+├── Assertion mismatch? → uc-spec-debugger → uc-spec-author
+├── Write new test? → uc-spec-author → uc-spec-runner
+├── Fix test code? → uc-spec-author → uc-spec-runner
+├── Update spec.yml? → uc-spec-sync → uc-spec-runner
+└── Diagnose failure? → uc-spec-debugger → returns fix agent
 ```
 
-### E2E Spec Workflow Sequences
+## Quality Gates
 
-**Fixing failing test:**
-1. uc-spec-runner (run tests)
+### Before Delegating
+- [ ] Read relevant memory first?
+- [ ] ONE new concept only?
+- [ ] Character logic sound? (attacker uses THEIR credentials)
+- [ ] Variety in recent examples?
+
+### Red Flags
+- ❌ SpongeBob as attacker
+- ❌ Victim's password in exploit
+- ❌ Technical jargon in annotations
+- ❌ `@base` in examples 1-2
+- ❌ Same impact 4+ times
+- ❌ Multiple new concepts
+
+## Critical Distinctions
+
+| Category | Style | Implications |
+|----------|-------|--------------|
+| **confusion/** | Sequential (r01→r02→r03) | Progressive complexity critical |
+| **others** | Random-access | Each example standalone |
+
+## Workflow Playbook
+
+**Adding Vulnerability:**
+1. uc-vulnerability-designer (design)
+2. uc-code-crafter (implement)
+3. uc-exploit-narrator (demos)
+4. `uv run docs generate --target [path]`
+5. commit-agent (verify + commit)
+
+**Fixing Spec Failures:**
+1. uc-spec-runner (run)
 2. uc-spec-debugger (diagnose)
 3. uc-spec-author OR uc-spec-sync (fix)
 4. uc-spec-runner (verify)
 
-**Adding new tests:**
-1. uc-spec-author (write)
-2. uc-spec-runner (verify)
+## Key Insight
 
-**After spec.yml changes:**
-1. uc-spec-sync (sync)
-2. uc-spec-runner (verify)
+When inherited tests fail: **ALWAYS investigate source code first**. Refactoring can accidentally fix vulnerabilities!
 
-**Porting tests to base version (v201):**
-1. Verify behavior exists in v201 (check API)
-2. Copy test, update tags from vXXX to v201
-3. uc-spec-runner v201 (verify)
-4. Delete original from vXXX (ucsync recreates as ~file.http)
-5. uc-spec-sync (regenerate)
-6. uc-spec-runner vXXX (verify inheritance)
-7. If vuln test fails in later version → check if vuln was fixed → add exclusion
+## Success
 
-### E2E Spec Inheritance Principles
-
-**Goal**: Maximize inheritance by placing tests in earliest version where behavior exists.
-
-```
-v201 (base)     ← PUT tests here when possible
-  ↓ inherits
-v202            ← exclude tests when behavior changes
-  ↓ inherits
-v203            ← inherits exclusions from v202
-```
-
-**Key Discovery**: Code refactoring can ACCIDENTALLY fix vulnerabilities!
-- e01: `[A(), B()]` evaluates ALL constructors BEFORE `any()` iterates → g.email poisoned
-- e02-e04: Cookie auth checked FIRST, returns before Basic Auth instantiation → safe
-
-**When vulnerability test fails in later version**: ALWAYS investigate API code before assuming test is broken. The vulnerability may have been fixed.
-
-**Exclusion Strategy**:
-- Exclusions are version-specific, don't cascade automatically
-- Document WHY in spec.yml comments (intentionally fixed vs accidentally fixed)
-- See `spec/INHERITANCE.md` for full guide
-
-**Design for Resilience**:
-- Use `$(response).isError()` not specific error messages ("Unauthorized" vs "Authentication required")
-- Different versions may return different messages for same failure
-- See `spec/INHERITANCE.md` for .http file design best practices
-
-## Quality Gates (Before Delegating)
-
-### Before uc-exploit-narrator:
-- Character logic: Does attacker have victim's password? (Should they?)
-- Progression: Example number? Use full URLs (1-2) or `@base` (3+)?
-- Staleness: Same impact 3+ times?
-- Provide: Previous examples, established characters, database state
-
-### Before uc-code-crafter:
-- Complexity level: Single-file or multi-file? What Flask features?
-- Database: Which characters need accounts THIS example?
-- Organization: Pedagogical reason to split files?
-
-### After Agent Completion:
-- Read `pedagogical-design-philosophy` memory
-- Side-by-side comparison with previous example
-- Verify character credentials match roles
-
-### Red Flags:
-- ❌ SpongeBob's password in exploit
-- ❌ Technical jargon in .http annotations
-- ❌ `@base` in first 2 examples
-- ❌ Same impact 4+ times
-- ❌ Multiple new concepts simultaneously
-
-## Critical Distinctions
-
-**confusion/** vs **other categories**:
-- **confusion/**: Sequential tutorial (uses `rXX_` prefixes, students go 1→2→3→...)
-- **others**: Random-access (no `rXX_`, students explore any order, examples more self-contained)
-
-**Implications**:
-- confusion: Progressive complexity critical, can use "fix introduces new vuln" across examples
-- others: Each example standalone, use blueprints/hints/numbering to suggest relationships
-
-## SpongeBob Character Rules
-
-- **Plankton**: External attacker → Mr. Krabs/organization (wants formula)
-- **Squidward**: Insider threat → SpongeBob (wants recognition)
-- **Mr. Krabs**: Admin, high-value target
-- **SpongeBob**: Innocent user, NEVER an attacker
-
-## Pedagogical Principles (from memory)
-
-**ONE new concept per example**. Not zero, not two. ONE.
-
-**Progressive Complexity**:
-1. Baseline (secure)
-2. Simple vulnerability (clearest form)
-3. Variations (same root cause, different contexts)
-4. Complex (sophisticated exploitation)
-
-**Annotations**: Behavioral ("SpongeBob accesses messages"), NOT technical jargon ("authenticates and retrieves using consistent parameters").
-
-**Character Logic**: Attacker uses THEIR credentials + exploits confusion, not victim's password.
-
-**Variety**: By example 4-5, vary attacker/victim/method/business-function/impact to avoid staleness.
-
-## Workflow Playbook (Example)
-
-**Adding New Vulnerability**:
-1. Optional: uc-curriculum-strategist (gap analysis)
-2. uc-vulnerability-designer (design spec)
-3. uc-code-crafter (implement with annotations)
-4. uc-exploit-narrator (create .http PoC)
-5. `uv run docs generate --target [path]`
-6. Optional: uc-docs-editor (refine README)
-7. code-reviewer (final check)
-8. commit-agent (verify + commit)
-
-**Context Management**:
-- Extract relevant sections from pedagogical-design-philosophy memory
-- Don't pass entire files—summarize
-- Pass designer output → code crafter → exploit narrator
-
-## Quick Verification
-
-Before accepting agent work:
-- [ ] One new concept only?
-- [ ] Character logic sound?
-- [ ] Annotations behavioral?
-- [ ] Variety in recent examples?
-- [ ] For confusion/: Progressive? For others: Self-contained?
-
-## Success = Students Learn Root Causes
-
-Not checklists. Not markers. **Security intuition** for spotting subtle vulnerabilities in well-written code.
+Students learn to **spot subtle vulnerabilities in production-quality code** through intuition, not checklists.

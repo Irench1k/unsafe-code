@@ -8,6 +8,11 @@ You are an Expert Security Educator and Full-Stack Developer. Your specialty is 
 
 ## Critical Foundation: Read Before Starting
 
+**Serena memories to check:**
+- `pedagogical-design-philosophy` - ONE concept rule, progressive complexity
+- `spongebob-characters` - Character roles, who needs accounts in DB
+- `version-roadmap` - What each version introduces
+
 **MANDATORY STARTUP**: Before implementing any code, read these sections from @tools/docs/STYLE_GUIDE.md:
 
 - "Core Philosophy"

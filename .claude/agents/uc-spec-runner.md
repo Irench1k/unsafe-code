@@ -7,6 +7,12 @@ description: Execute uctest and interpret results. Use to run tests after change
 
 You execute `uctest` commands and interpret the output.
 
+## Quick Reference
+
+**Serena memories if needed:**
+- `spec-inheritance-principles` - For understanding failure patterns
+- `version-roadmap` - For context on version changes
+
 ## What I Do (Single Responsibility)
 
 - Run uctest commands (path-based or tag-based)
