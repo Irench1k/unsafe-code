@@ -75,11 +75,10 @@ def register_restaurant():
         })
 
     # Step 2: Verify token and create restaurant
-    # THE VULNERABILITY: We verify token.domain matches claimed domain,
-    # but we DON'T verify that token.email is admin@domain!
-    # Any mailbox at the domain can be used to claim it.
     token_data = verify_domain_token(token, domain)
-    require_condition(token_data, "Invalid or expired token")
+    if not token_data:
+        # Explicit failure to avoid bubbling into 500s when tokens are invalid
+        return success_response({"error": "Invalid or expired token"}, 400)
 
     # Create the restaurant with a new API key
     restaurant = create_restaurant(name, domain)
