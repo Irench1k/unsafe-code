@@ -22,22 +22,44 @@ For the best development experience with instant code reload and debug-level log
 
 ### Option 1: Environment Variable
 
-Set this in your shell before running examples:
+Set these in your shell before running examples:
 
 ```bash
+# Docker Compose configuration
 export COMPOSE_FILE=compose.yml:compose.dev.yml
+
+# Python configuration (prevents __pycache__ clutter)
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONUNBUFFERED=1
+export PYTHONUTF8=1
 ```
 
 ### Option 2: .envrc with direnv (Recommended)
 
-If you use [direnv](https://direnv.net/):
+If you use [direnv](https://direnv.net/), create a `.envrc` file in the project root:
 
 ```bash
-echo "export COMPOSE_FILE=compose.yml:compose.dev.yml" > .envrc
+# Docker Compose configuration
+export COMPOSE_FILE=compose.yml:compose.dev.yml
+
+# Python configuration for local development
+export PYTHONDONTWRITEBYTECODE=1  # Prevents bytecode (.pyc) files and __pycache__ directories
+export PYTHONUNBUFFERED=1          # Ensures real-time log output (no buffering)
+export PYTHONUTF8=1                # Force UTF-8 encoding for cross-platform compatibility
+```
+
+Then activate it:
+
+```bash
 direnv allow
 ```
 
-The development configuration (`compose.dev.yml`) provides instant code reload and debug-level logs.
+**Why these Python variables?**
+- `PYTHONDONTWRITEBYTECODE=1` prevents Python from creating `__pycache__` directories and `.pyc` files when running local tools (`uv run docs`, `uv run mypy`, etc.), keeping your working directory clean
+- `PYTHONUNBUFFERED=1` provides real-time log visibility, essential for debugging
+- `PYTHONUTF8=1` ensures consistent UTF-8 handling across different platforms
+
+The development configuration (`compose.dev.yml`) provides instant code reload and debug-level logs. Note that the Docker containers already have these Python variables set in the Dockerfile.
 
 ### Optional: Shell Ergonomics
 
