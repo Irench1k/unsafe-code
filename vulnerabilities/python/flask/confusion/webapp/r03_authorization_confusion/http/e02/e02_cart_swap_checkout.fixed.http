@@ -1,28 +1,27 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v303
 
-### Menu items
-GET /menu
+# v303 FIX: Checkout now uses path cart_id instead of session cart_id
+#
+# In v302, the checkout decorator charged session cart but handler fulfilled
+# path cart. v303 fixes this by using the path cart_id consistently.
 
-@ultimate_krabby_feast = {{response.parsedBody.find(i => i.name.includes("Ultimate Krabby"))}}
-@krabby_patty = {{response.parsedBody.find(i => i.name.includes("Krabby Patty") && !i.name.includes("Ultimate") && !i.name.includes("Combo") && !i.name.includes("Supreme"))}}
+### Reset Plankton's balance using admin API
+POST /account/credits
+X-Admin-API-Key: {{platform_api_key}}
+Content-Type: application/x-www-form-urlencoded
 
+user=plankton@chum-bucket.sea&amount=200
 
-### Plankton checks his balance before ordering
-# @name initial_balance
-GET /account/info
-Authorization: {{plankton_auth}}
-
-### Previous orders
-GET /orders
-Authorization: {{plankton_auth}}
+?? status == 200
 
 
-### He creates a cart with an expensive $50 meal
+### Plankton creates a cart with an expensive meal ($27.99)
 # @no-cookie-jar
 # @name expensive_cart
 POST /cart?restaurant_id=1
 Authorization: {{plankton_auth}}
+
 
 ###
 # @no-cookie-jar
@@ -30,10 +29,10 @@ POST /cart/{{expensive_cart.cart_id}}/items
 Content-Type: application/json
 Authorization: {{plankton_auth}}
 
-{ "item_id": "{{ultimate_krabby_feast.id}}" }
+{ "item_id": "8" }
 
 
-### Plankton logs in
+### Plankton logs in (creates session)
 POST /auth/login
 Content-Type: application/json
 
@@ -43,18 +42,21 @@ Content-Type: application/json
 }
 
 
-### Then he creates another cart with just a Krabby Patty - without finishing the expensive cart
+### He creates another cart with just Fries ($2.49)
 # @name cheap_cart
 POST /cart?restaurant_id=1
+
 
 ###
 POST /cart/{{cheap_cart.cart_id}}/items
 Content-Type: application/json
 
-{ "item_id": "{{krabby_patty.id}}" }
+{ "item_id": "5" }
+
 
 ### --- Vulnerability Fixed ---
-# Plankton tries the same trick, but v303 fixes the session/path confusion
+# Plankton tries the same trick: path=expensive, session=cheap
+# In v303, path cart_id is now used consistently
 # @name checkout
 POST /cart/{{expensive_cart.cart_id}}/checkout
 Content-Type: application/json
@@ -67,8 +69,9 @@ Content-Type: application/json
 ?? status == 201
 
 
-### The order contains the CHEAP item (session cart), not the expensive one
+### The order contains the EXPENSIVE item (path cart), charged correctly
 GET /orders
 
-# Verify the last order has Krabby Patty, NOT Ultimate Krabby Feast
-?? js response.parsedBody[response.parsedBody.length - 1].items[0].name.includes("Krabby Patty")
+# Verify the last order has Ultimate Krabby Feast, not Fries
+?? js response.parsedBody[response.parsedBody.length - 1].items[0].name.includes("Ultimate")
+

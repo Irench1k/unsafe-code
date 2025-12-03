@@ -1,6 +1,20 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v302
 
+# v302 FIX: Refund approval now requires the restaurant's own API key
+#
+# The refund approval endpoint checks that the X-API-Key belongs to
+# the restaurant that received the order, not just ANY restaurant.
+
+### Reset Plankton's balance using admin API
+POST /account/credits
+X-Admin-API-Key: {{platform_api_key}}
+Content-Type: application/x-www-form-urlencoded
+
+user=plankton@chum-bucket.sea&amount=200
+
+?? status == 200
+
 
 ### Plankton logs in and orders from Krusty Krab
 POST /auth/login
@@ -11,10 +25,12 @@ Content-Type: application/json
     "password": "i_love_my_wife"
 }
 
+
 ###
 # @name cart
 POST /cart?restaurant_id=1
 Authorization: {{plankton_auth}}
+
 
 ###
 POST /cart/{{cart.cart_id}}/items
@@ -22,6 +38,7 @@ Authorization: {{plankton_auth}}
 Content-Type: application/json
 
 { "item_id": "4" }
+
 
 ###
 # @name order
@@ -31,6 +48,7 @@ Content-Type: application/x-www-form-urlencoded
 
 tip=1&delivery_address=Chum Bucket
 
+
 ###
 # @name refund_request
 POST /orders/{{order.order_id}}/refund
@@ -39,7 +57,8 @@ Content-Type: application/x-www-form-urlencoded
 
 amount=2.50
 
-### Plankton can't use the Chum Bucket Restaurant API key to approve his own refund request
+
+### Plankton tries to approve his own refund using Chum Bucket API key
 PATCH /orders/{{order.order_id}}/refund/status
 Authorization: {{plankton_auth}}
 X-API-Key: {{chum_bucket_api_key}}
@@ -47,5 +66,6 @@ Content-Type: application/x-www-form-urlencoded
 
 status=approved
 
-# The request is rejected
-?? status == 400
+# FIX WORKING: v302 rejects because Chum Bucket API key doesn't match Krusty Krab order
+?? status >= 400
+

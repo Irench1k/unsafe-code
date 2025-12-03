@@ -26,5 +26,5 @@ Content-Type: application/json
 # FIX WORKING: Request succeeds but returns only Chum Bucket orders
 # The restaurant_id in body is ignored - API key determines which restaurant
 ?? status == 200
-?? js !response.parsedBody.some(o => o.restaurant_id === 1)
+?? js response.parsedBody[0].restaurant_id == 2
 

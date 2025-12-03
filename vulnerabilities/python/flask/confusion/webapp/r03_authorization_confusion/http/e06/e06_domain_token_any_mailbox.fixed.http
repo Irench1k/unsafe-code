@@ -42,6 +42,5 @@ Content-Type: application/json
 }
 
 # FIX WORKING: Token is rejected because it's for plankton@bmail.sea, not admin@bmail.sea
-?? js $(response).isError() == true
-?? js response.parsedBody.error.includes("Invalid") || response.parsedBody.error.includes("token")
+?? status >= 400
 

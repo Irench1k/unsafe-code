@@ -17,6 +17,6 @@ status=created
 
 # FIX WORKING: Authorization check happens first - Plankton is blocked
 # No order data is leaked because auth runs before the idempotency check
-?? js $(response).isError() == true
-?? js response.parsedBody.order_id == null
+?? status >= 400
+?? js response.parsedBody.order_id == undefined
 
