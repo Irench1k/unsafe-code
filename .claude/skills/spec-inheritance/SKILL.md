@@ -1,6 +1,6 @@
 ---
 name: spec-inheritance
-description: Managing E2E spec inheritance via spec.yml and ucsync. Auto-invoke for "ref not found" errors, ucsync usage, exclusion decisions, spec.yml configuration, or when working with inherited (~) files. Do NOT use for writing test content - use http-e2e-specs skill instead.
+description: Managing E2E spec inheritance via spec.yml and ucsync. Auto-invoke for "ref not found" errors, ucsync usage, exclusion decisions, spec.yml configuration, inherited (~) files, tests failing after version bump, or understanding why inherited tests break. Do NOT use for writing test content - use http-e2e-specs skill instead.
 ---
 
 # Spec Inheritance Management

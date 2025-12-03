@@ -1,16 +1,48 @@
 ---
-description: "Comprehensive review of Unsafe Code Lab exercises - validates code, specs, and demos"
+description: "Comprehensive review and fix of Unsafe Code Lab exercises - validates and implements code, specs, and demos using TDD"
+model: opus
+argument-hint: [section] [exercise-range|all]
 ---
 
 # Review Exercises: $ARGUMENTS
 
-Thoroughly review, validate, and improve the specified exercise versions.
+Think carefully and methodically about how to coordinate this multi-step review and fix process.
 
-## Before Starting
+**This command**: Thoroughly review AND FIX the specified exercises using Test-Driven Development.
 
-1. Read Serena memory `pedagogical-design-philosophy` for core principles
-2. Read Serena memory `spongebob-characters` for character rules
-3. Read Serena memory `version-roadmap` to understand what each version introduces
+**Arguments**: `[section] [exercise-range]` or `[section] in [path/to/http/]`
+- Examples: `r03 e01-e07`, `r03 in vulnerabilities/python/flask/confusion/webapp/r03_authorization_confusion/http/`
+
+**For NEW command** that only implements (doesn't review): Use `/fix-exercises` instead.
+
+**Scope**: This command IMPLEMENTS fixes, not just reviews. Use TDD approach.
+
+## Health Check
+!`docker compose ps 2>/dev/null | head -5 || echo "Docker status unknown"`
+!`uclogs --since 30m 2>/dev/null | grep -c -i error || echo "0 recent errors"`
+
+## Required Context
+
+Load these files before proceeding:
+- [AGENTS.md](AGENTS.md) - Single source of truth for invariants
+- [docs/ai/runbooks.md](docs/ai/runbooks.md) - Workflow checklists
+- Section README based on $ARGUMENTS (e.g., `r03_authorization_confusion/README.md`)
+
+## Definition of Done
+
+For each exercise, ALL must be complete:
+- [ ] Source code implements vulnerability correctly
+- [ ] Source code fixes previous vulnerability
+- [ ] `.exploit.http` works and demonstrates vuln
+- [ ] `.fixed.http` works and demonstrates previous fix
+- [ ] `vuln-*.http` e2e spec tests vulnerability
+- [ ] `vXXX.http` e2e spec tests previous fix
+- [ ] All httpyac demos pass with correct assertions
+- [ ] All uctest specs pass
+- [ ] Inheritance works (ucsync + test)
+- [ ] No server errors in uclogs
+- [ ] No technical jargon in demos
+- [ ] Character logic correct (attacker uses own credentials)
 
 ## Workflow
 

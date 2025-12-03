@@ -32,11 +32,27 @@ uclogs --since 30m | grep -c error  # Any recent errors?
 | `/project:run-specs v301/` | Run specs smartly |
 | `/project:extend-exercise v304` | Add next exercise |
 | `/project:fix-failing-specs v303/` | Debug test failures |
+| `/project:fix-exercises r03 e01-e07` | Implement exercises with TDD |
 | `/project:maximize-inheritance v201` | Backport specs |
 | `/project:validate-demos e01` | Check demo quality |
 | `/project:check-inheritance v302` | Inheritance health |
 | `/project:brainstorm-exercise "idea"` | New vulnerability ideation |
 | `/project:quick-context` | Dump current state |
+| `/project:health-check v301` | Quick verification (specs, docs, git) |
+
+### Common Command Sequences
+
+Commands often chain naturally. Here are proven workflows:
+
+| Workflow | Command Sequence |
+|----------|------------------|
+| **Fix then verify** | `/fix-failing-specs v301` → `/health-check v301` |
+| **Add exercise** | `/brainstorm-exercise "idea"` → `/extend-exercise r03 v308` → `/health-check v308` |
+| **Full review** | `/review-exercises r03 e01-e07` → `/health-check v301 v302 v303...` |
+| **Debug inheritance** | `/check-inheritance v302` → `/run-specs v302/` → `/fix-failing-specs v302` |
+| **Maximize reuse** | `/maximize-inheritance v201` → `/run-specs v201 v202 v203` |
+
+**Pro tip:** After any fix command, run `/health-check` to verify everything is green.
 
 ## Agent Routing Table
 

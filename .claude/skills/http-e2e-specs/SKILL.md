@@ -1,6 +1,6 @@
 ---
 name: http-e2e-specs
-description: Writing E2E tests in spec/vNNN/ using uctest and utils.cjs helpers. Auto-invoke when working with files in spec/ directory, $(response) helpers, auth.basic(), @ref/@forceRef patterns, or platform.seed(). Do NOT use for interactive demos in vulnerabilities/.../http/ directories - those use plain httpyac syntax without helpers.
+description: Writing E2E tests in spec/vNNN/ using uctest and utils.cjs helpers. Auto-invoke when working with files in spec/ directory, $(response) helpers, auth.basic(), @ref/@forceRef patterns, platform.seed(), _imports.http infrastructure, _fixtures.http setups, or creating happy.http/authn.http/authz.http files. Do NOT use for interactive demos in vulnerabilities/.../http/ - those use plain httpyac syntax without helpers.
 ---
 
 # E2E Spec Writing
@@ -187,5 +187,6 @@ Run `ucsync` after changing `spec.yml` to update tags.
 
 - [syntax.md](syntax.md) - Full syntax reference
 - [helpers.md](helpers.md) - utils.cjs helper reference
-- `http-assertion-gotchas` skill - Detailed pitfall explanations
-- `spec-inheritance` skill - Managing inheritance
+- [HTTP Syntax Quick Reference](../../references/http-syntax-quickref.md) - Cheat sheet
+- [http-assertion-gotchas](../http-assertion-gotchas/SKILL.md) - Detailed pitfall explanations
+- [spec-inheritance](../spec-inheritance/SKILL.md) - Managing inheritance

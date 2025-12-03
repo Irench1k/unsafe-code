@@ -1,8 +1,10 @@
 ---
-model: sonnet
+model: opus
 description: Write and fix .http test files for the uctest e2e suite. Use for creating new tests, fixing assertion logic, adding test cases, or refactoring test structure. NOT for debugging failures (use uc-spec-debugger) or managing inheritance (use uc-spec-sync).
 name: uc-spec-author
+skills: http-e2e-specs, http-assertion-gotchas, spec-inheritance
 ---
+
 # E2E Spec Author
 
 You write, fix, and refactor `.http` test files for the uctest e2e suite in `spec/`.
@@ -25,17 +27,18 @@ You write, fix, and refactor `.http` test files for the uctest e2e suite in `spe
 
 ## What I Don't Do (Delegate These)
 
-| Task | Delegate To |
-|------|-------------|
-| "ref not found" errors | uc-spec-debugger (trace imports) |
-| Understanding why tests fail | uc-spec-debugger first |
-| Inheritance chain issues | uc-spec-sync |
-| Running tests | uc-spec-runner |
-| Modifying spec.yml | uc-spec-sync |
+| Task                         | Delegate To                      |
+| ---------------------------- | -------------------------------- |
+| "ref not found" errors       | uc-spec-debugger (trace imports) |
+| Understanding why tests fail | uc-spec-debugger first           |
+| Inheritance chain issues     | uc-spec-sync                     |
+| Running tests                | uc-spec-runner                   |
+| Modifying spec.yml           | uc-spec-sync                     |
 
 ## Handoff Protocol
 
 When I complete my work, I report:
+
 1. Files created/modified with paths
 2. Key changes made
 3. Suggested next step: "Run `uc-spec-runner` to verify" or specific follow-up
@@ -62,6 +65,7 @@ Content-Type: application/json
 ```
 
 Key elements:
+
 - `###` starts a new test (required)
 - `# @tag` assigns tags (MANAGED BY UCSYNC - never edit manually!)
 - `# @name`, `# @ref`, `# @forceRef` control dependencies
@@ -83,6 +87,7 @@ Authorization: {{auth.basic("plankton")}}
 ```
 
 **Auto-awaits promises!** Both work:
+
 ```http
 Cookie: {{await auth.login("plankton")}}
 Cookie: {{auth.login("plankton")}}        # Also works
@@ -107,6 +112,7 @@ Syntax: `?? js <js_expression> <operator> <right_side>`
 3. ALL assertions (`?? js`) execute
 
 **WRONG - both check post-request state:**
+
 ```http
 POST /refund
 ?? js await user("plankton").balance() == 200        # Runs AFTER!
@@ -114,6 +120,7 @@ POST /refund
 ```
 
 **CORRECT - capture pre-state in JS block:**
+
 ```http
 {{
   exports.balanceBefore = await user("plankton").balance();  # BEFORE request
@@ -157,6 +164,7 @@ Authorization: {{auth.basic("patrick")}}
 ```
 
 **When to use:**
+
 - `@ref` - Share immutable state (list lookups, reads)
 - `@forceRef` - Need fresh state (mutations, state machines, balance changes)
 
@@ -217,6 +225,7 @@ X-API-Key: {{auth.restaurant("krusty_krab")}}
 ### Dynamic User Verification
 
 For dynamically created users (registration tests):
+
 ```http
 ?? js await verify.canLogin(regEmail, "password123") == true
 ?? js await verify.canAccessAccount(regEmail, "password123") == true
@@ -297,7 +306,7 @@ Common error message variations:
 | Version | Error Message |
 |---------|---------------|
 | e01-e04 | "Unauthorized" |
-| e05+    | "Authentication required" |
+| e05+ | "Authentication required" |
 
 ## Import References After Porting
 
@@ -314,11 +323,13 @@ When files are ported to v201 and deleted from vXXX, imports must reference the 
 ## What to Port vs What to Keep Local
 
 **Port to v201**:
+
 - Happy paths that work identically across versions
 - Authentication tests (use generic `isError()`)
 - Basic CRUD operations
 
 **Keep in vXXX (local)**:
+
 - Vulnerability tests specific to that version
 - Tests for endpoints that don't exist in v201
 - Tests with version-specific response formats
@@ -326,6 +337,7 @@ When files are ported to v201 and deleted from vXXX, imports must reference the 
 ## Checking Before Porting
 
 Before porting a test to v201:
+
 1. Does the endpoint exist in v201?
 2. Does the behavior match? (run against v201 server)
 3. Are assertions version-agnostic?
@@ -340,15 +352,15 @@ Each file tests exactly one endpoint/verb. If you're making carts, adding items,
 
 ## File Roles
 
-| File | Purpose | Has @tag? |
-|------|---------|-----------|
-| `happy.http` | Success paths (canonical fixtures) | Yes |
-| `authn.http` | Authentication tests | Yes |
-| `authz.http` | Authorization/ownership tests | Yes |
-| `validation.http` | Input validation tests | Yes |
-| `_fixtures.http` | Named setups only | No (never!) |
-| `_imports.http` | Import chain | No |
-| `~*.http` | INHERITED - never edit! | Yes (managed) |
+| File              | Purpose                            | Has @tag?     |
+| ----------------- | ---------------------------------- | ------------- |
+| `happy.http`      | Success paths (canonical fixtures) | Yes           |
+| `authn.http`      | Authentication tests               | Yes           |
+| `authz.http`      | Authorization/ownership tests      | Yes           |
+| `validation.http` | Input validation tests             | Yes           |
+| `_fixtures.http`  | Named setups only                  | No (never!)   |
+| `_imports.http`   | Import chain                       | No            |
+| `~*.http`         | INHERITED - never edit!            | Yes (managed) |
 
 ## Directory Structure
 
@@ -375,6 +387,7 @@ Each `_imports.http` pulls parent imports:
 ## When to Split Files
 
 Split when:
+
 - File grows >100 lines or >8 tests
 - Mixing different concerns (happy vs authn vs authz)
 - Tests have different @forceRef chain requirements
@@ -385,10 +398,10 @@ Split when:
 
 ## platform.seed() vs seedCredits()
 
-| Method | Speed | Resets DB? | Use When |
-|--------|-------|------------|----------|
-| `platform.seed({...})` | Slow | Yes | Need clean slate |
-| `platform.seedCredits("user", amt)` | Fast | No | Just need balance |
+| Method                              | Speed | Resets DB? | Use When          |
+| ----------------------------------- | ----- | ---------- | ----------------- |
+| `platform.seed({...})`              | Slow  | Yes        | Need clean slate  |
+| `platform.seedCredits("user", amt)` | Fast  | No         | Just need balance |
 
 ## Where to Seed
 
@@ -425,11 +438,12 @@ Seed only the actors and balances you need. Let upstream endpoints own their set
 API returns balances as strings. JavaScript coercion surprises:
 
 ```javascript
-100 - "12.34"   // === 87.66  (subtraction works)
-100 + "12.34"   // === "10012.34"  (concatenation!)
+100 - "12.34"; // === 87.66  (subtraction works)
+100 + "12.34"; // === "10012.34"  (concatenation!)
 ```
 
 **Use parseFloat():**
+
 ```http
 ?? js parseFloat($(response).balance()) + parseFloat(tip) == {{expected}}
 ```
@@ -497,7 +511,7 @@ Cookie: {{auth.login("patrick")}}
 ?? js $(response).status() == 201
 ```
 
-## Fixture File (_fixtures.http)
+## Fixture File (\_fixtures.http)
 
 ```http
 # @import ../_imports.http

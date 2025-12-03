@@ -2,6 +2,11 @@
 
 Copy-paste templates for complex scenarios that don't fit slash commands.
 
+> **Note**: Some common templates have been converted to slash commands:
+> - Quick health check → `/project:health-check vNNN`
+> - Debugging specs → `/project:fix-failing-specs vNNN`
+> - Exercise review → `/project:review-exercises section range`
+
 ---
 
 ## Reviewing a Single .http Demo

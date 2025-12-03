@@ -1,207 +1,204 @@
-# AI-Assisted Development Guide
+# Unsafe Code Lab: AI-Assisted Development Guide
 
-Guide for human contributors on using AI tools effectively in Unsafe Code Lab.
+Guide for human contributors on using Claude Code effectively in this project.
 
-## Overview
+## Quick Reference: Which Command to Use
 
-This project uses Claude Code with specialized agents and auto-loading Skills. The AI tools are optimized for:
+| I want to... | Command | Arguments |
+|--------------|---------|-----------|
+| Start new exercise | `/extend-exercise` | `[section] [version]` |
+| Review exercise range | `/review-exercises` | `[section] [exercise-range\|all]` |
+| Fix failing tests | `/fix-failing-specs` | `[version-or-path]` |
+| Run tests quickly | `/run-specs` | `[version-path] [options]` |
+| Check inheritance | `/check-inheritance` | `[version-spec]` |
+| Validate demo quality | `/validate-demos` | `[exercise-id\|path]` |
+| Brainstorm new vuln | `/brainstorm-exercise` | `[vulnerability-idea]` |
+| Get project context | `/quick-context` | (none) |
+| Maximize inheritance | `/maximize-inheritance` | `[base-version] [target-versions]` |
+| Implement using TDD | `/fix-exercises` | `[section] [exercise-range\|all]` |
 
-- Writing E2E specs and interactive demos
-- Managing test inheritance across versions
-- Creating vulnerability demonstrations
-- Maintaining documentation consistency
+## Agent Architecture
 
-## Quick Start
-
-### 1. Use Slash Commands
-
-```bash
-# Review exercises comprehensively
-/project:review-exercises v301-v303
-
-# Run E2E specs with smart interpretation
-/project:run-specs v301/
-
-# Validate interactive demos
-/project:validate-demos e01
-
-# Check inheritance health
-/project:check-inheritance v302
-
-# Brainstorm new vulnerability ideas
-/project:brainstorm-exercise "type confusion in JSON parsing"
-
-# Get quick context dump
-/project:quick-context
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      uc-maintainer                              │
+│              (Top-level orchestrator, sonnet)                   │
+└───────────┬────────────────────────────────────────┬────────────┘
+            │                                        │
+    ┌───────┴───────┐                       ┌───────┴───────┐
+    │   CONTENT     │                       │   E2E SPECS   │
+    └───────────────┘                       └───────────────┘
+    │                                       │
+    ├─ uc-vulnerability-designer (sonnet)   ├─ uc-spec-runner (haiku)
+    │  └─ Design WHAT/WHY vulnerabilities   │  └─ Execute uctest
+    │                                       │
+    ├─ uc-code-crafter (sonnet)             ├─ uc-spec-debugger (sonnet)
+    │  └─ Implement vulnerable code         │  └─ Diagnose failures
+    │                                       │
+    └─ uc-exploit-narrator (sonnet)         ├─ uc-spec-author (sonnet)
+       └─ Create .http PoC demos            │  └─ Write/fix tests
+                                            │
+                                            └─ uc-spec-sync (haiku)
+    ┌───────────────┐                          └─ Manage inheritance
+    │   DOCS        │
+    └───────────────┘                       ┌───────────────┐
+    │                                       │   DEBUG       │
+    ├─ uc-docs-editor (haiku)               └───────────────┘
+    │  └─ Edit READMEs                      │
+    │                                       └─ uc-demo-debugger (haiku)
+    ├─ uc-taxonomy-maintainer (haiku)          └─ Debug httpyac demos
+    │  └─ Maintain @unsafe annotations
+    │
+    └─ uc-curriculum-strategist (sonnet)    ┌───────────────┐
+       └─ Gap analysis                      │   INFRA       │
+                                            └───────────────┘
+                                            │
+                                            └─ commit-agent (haiku)
+                                               └─ Verify + commit
 ```
 
-### 2. Skills Auto-Load
+### Model Selection Rationale
 
-Claude automatically loads relevant Skills based on context:
+| Model | Used For | Why |
+|-------|----------|-----|
+| **opus** | Multi-agent orchestration commands | Complex coordination, extended thinking |
+| **sonnet** | Reasoning-heavy agents | Design, debugging, authoring |
+| **haiku** | Execution-focused agents | Fast, mechanical verification |
 
-| Working In | Auto-Loaded Skill |
-|------------|-------------------|
-| `spec/vNNN/` files | `http-e2e-specs` |
-| `http/eNN/` directories | `http-interactive-demos` |
-| Assertion failures | `http-assertion-gotchas` |
-| `spec.yml`, ucsync | `spec-inheritance` |
-| Demo narratives | `spongebob-characters` |
-| CLI tool usage | `uclab-tools` |
+## Common Workflows
 
-### 3. Subagents Handle Complex Work
+### Adding New Exercise
 
-Specialized agents are delegated automatically:
+```
+1. /brainstorm-exercise "your idea"  → Design
+   └─ uc-vulnerability-designer creates spec
 
-| Task Type | Agent |
-|-----------|-------|
-| Run E2E specs | `uc-spec-runner` |
-| Debug failures | `uc-spec-debugger` |
-| Write/fix tests | `uc-spec-author` |
-| Manage inheritance | `uc-spec-sync` |
-| Create demos | `uc-exploit-narrator` |
-| Design vulnerabilities | `uc-vulnerability-designer` |
+2. /extend-exercise r03 v308         → Full pipeline
+   └─ uc-code-crafter implements code
+   └─ uc-spec-author creates specs
+   └─ uc-exploit-narrator creates demos
 
-## Key Workflows
+3. /run-specs v308/                  → Verify
+   └─ uc-spec-runner executes
 
-### Writing E2E Specs
-
-1. Work in `spec/vNNN/` directory
-2. Claude auto-loads `http-e2e-specs` skill
-3. Use helpers like `$(response).field()`, `auth.basic()`
-4. Run with `uctest v301/path/to/file.http`
-
-```http
-### Test title here
-# @tag authn, v301
-POST /endpoint
-Authorization: {{auth.basic("plankton")}}
-
-?? js $(response).status() == 200
-?? js $(response).field("email") == {{user("plankton").email}}
+4. commit-agent                      → Finalize
 ```
 
-### Creating Interactive Demos
+### Fixing Failing Tests
 
-1. Work in `vulnerabilities/.../http/eNN/`
-2. Claude auto-loads `http-interactive-demos` skill
-3. Use plain `response.parsedBody` (NO utils.cjs helpers!)
-4. Run with `httpyac file.http -a`
+```
+1. /run-specs v303/                  → Identify failures
+   └─ Returns pass/fail summary
 
-```http
-### SpongeBob checks his messages
-GET {{host}}/messages
-Authorization: Basic {{btoa("spongebob:bikinibottom")}}
+2. /fix-failing-specs v303/          → Diagnose + fix
+   └─ uc-spec-debugger classifies failures
+   └─ Routes to: uc-spec-author OR uc-spec-sync OR uc-code-crafter
 
-?? status == 200
-
-### EXPLOIT: Squidward reads SpongeBob's messages
-GET {{host}}/messages?user=spongebob
-Authorization: Basic {{btoa("squidward:clarinet123")}}
-
-?? status == 200
-# IMPACT: Squidward accessed SpongeBob's private data!
+3. Repeat until green
 ```
 
-### Fixing Spec Failures
+### Reviewing Exercises
 
-1. Run `/project:fix-failing-specs v301/`
-2. Claude uses `spec-inheritance` skill automatically
-3. **Remember**: Inherited test fails → suspect code first!
-
-Decision flow:
 ```
-Inherited test fails
-├── Check source code for changes
-├── Did refactoring accidentally fix vuln?
-│   └── YES → Restore vulnerable code
-└── Should test be excluded?
-    └── Only after confirming vuln shouldn't exist
+1. /review-exercises r03 e01-e07     → Full quality review
+   └─ Runs specs across all versions
+   └─ Validates demo quality
+   └─ Checks character logic
+   └─ Reports issues
 ```
 
-### Managing Inheritance
+## Skills Auto-Loading
 
-```bash
-# Regenerate inherited files
-ucsync v302
-```
+Skills load automatically based on context:
+
+| Working With | Auto-Loaded Skill | Key Triggers |
+|--------------|-------------------|--------------|
+| `spec/vNNN/` files | `http-e2e-specs` | `$(response)`, `auth.basic()`, `@ref` |
+| `http/eNN/` demos | `http-interactive-demos` | `.exploit.http`, `IMPACT:` |
+| Assertion errors | `http-assertion-gotchas` | "Expected X but got Y", 500 errors |
+| `~` files, ucsync | `spec-inheritance` | "ref not found", version bumps |
+| Demo narratives | `spongebob-characters` | SpongeBob, Squidward, Plankton |
+| CLI tools | `uclab-tools` | uctest, httpyac, uclogs |
+| Vuln design | `vulnerability-design-methodology` | ONE concept rule, complexity |
+| @unsafe code | `vulnerable-code-patterns` | Annotations, Flask patterns |
+| Failure diagnosis | `spec-debugging` | Fix code vs fix test decisions |
+| README editing | `documentation-style` | Behavioral language, jargon |
+| Committing | `commit-workflow` | Quality gates, message format |
 
 ## Critical Distinctions
 
 ### E2E Specs vs Interactive Demos
 
-| Aspect | E2E Specs | Interactive Demos |
-|--------|-----------|-------------------|
-| Location | `spec/vNNN/` | `http/eNN/` |
-| Run with | `uctest` | `httpyac` |
-| Response access | `$(response).field()` | `response.parsedBody` |
-| Auth helper | `{{auth.basic()}}` | Manual `Authorization:` header |
-| Imports | Heavy use | NO imports (except setup.http) |
-| Asserts per test | Multiple OK | ONE per test |
-| Style | Technical, DRY | Narrative, engaging |
+| Aspect | E2E Specs (`spec/`) | Interactive Demos (`http/`) |
+|--------|---------------------|----------------------------|
+| **Runner** | `uctest` | `httpyac` |
+| **Response** | `$(response).field()` | `response.parsedBody` |
+| **Auth** | `{{auth.basic()}}` | Manual `Authorization:` |
+| **Imports** | Heavy use | Only `setup.http` |
+| **Asserts** | Multiple OK | ONE per test |
+| **Debugger** | `uc-spec-debugger` | `uc-demo-debugger` |
 
-### Confusion Categories
+### Fix Code vs Fix Test?
 
-| Category | Style | Implications |
-|----------|-------|--------------|
-| `confusion/` | Sequential | Progressive complexity (r01→r02→r03) |
-| Others | Random-access | Each example standalone |
+**Default rule**: Inherited test fails → **SUSPECT CODE FIRST**
 
-## File Conventions
+```
+Inherited test fails
+├── Check source code for changes
+├── Did refactoring accidentally fix vuln?
+│   └── YES → Restore vulnerable code (code issue)
+└── Should test be excluded?
+    └── Only after confirming vuln shouldn't exist (spec issue)
+```
 
-| Pattern | Meaning |
-|---------|---------|
-| `~*.http` | INHERITED - never edit directly |
-| `*.exploit.http` | Shows vulnerability succeeds |
-| `*.fixed.http` | Shows vulnerability is fixed |
-| `_fixtures.http` | Shared setup (no tags) |
-| `_imports.http` | Import chain file |
+## CLI Tool Reference
+
+| Tool | Purpose | Example |
+|------|---------|---------|
+| `uctest` | Run E2E specs | `uctest v301/cart/` |
+| `httpyac` | Run demos | `httpyac file.http -a` |
+| `ucsync` | Manage inheritance | `ucsync v302` |
+| `uclogs` | View logs | `uclogs --since 10m` |
+| `uv run docs` | Generate READMEs | `uv run docs generate` |
 
 ## Character Rules
 
-**Attacker uses THEIR OWN credentials** - exploit = confusion, not password theft!
+> **CRITICAL**: Attacker uses THEIR OWN credentials. Exploit = confusion, not theft!
 
-| Character | Role | Use For |
-|-----------|------|---------|
-| SpongeBob | Victim | Never attacker |
-| Squidward | Insider threat | r01, r02 attacks |
-| Plankton | External attacker | r03+ attacks |
-| Patrick | VIP victim | High-impact scenarios |
+| Character | Role | Attacks | Never |
+|-----------|------|---------|-------|
+| SpongeBob | Victim | — | Never attacker |
+| Squidward | Insider threat | SpongeBob, Mr. Krabs | — |
+| Plankton | External attacker | Mr. Krabs, Patrick | SpongeBob directly |
+| Patrick | VIP victim | — | — |
+| Mr. Krabs | High-value target | — | — |
 
-## Assertion Gotchas
+## Assertion Quick Reference
 
-1. **Operator required** - `?? js value` becomes body → 500!
-2. **No quotes on RHS** - `== "approved"` fails
-3. **Assertions run AFTER request** - capture pre-state in `{{ }}`
-4. **Use parseFloat()** for numeric comparisons
+```http
+# CORRECT - operator required, no quotes on RHS
+?? js $(response).field("status") == approved
+?? js parseFloat($(response).balance()) > 100
 
-## Available Tools
+# WRONG - missing operator (becomes request body!)
+?? js $(response).field("active")
 
-### CLI Commands
+# WRONG - quotes become part of literal
+?? js $(response).field("status") == "approved"
 
-```bash
-uctest v301/          # Run E2E specs
-httpyac file.http -a  # Run demos
-ucsync v302           # Manage inheritance
-uclogs                # View Docker logs
-uv run docs generate  # Generate READMEs
+# CORRECT - capture pre-state BEFORE request
+{{
+  exports.before = await user("plankton").balance();
+}}
+POST /refund
+?? js await user("plankton").balance() == {{before + 10}}
 ```
-
-### Slash Commands
-
-| Command | Purpose |
-|---------|---------|
-| `/project:run-specs v301/` | Run E2E specs |
-| `/project:review-exercises v301-v303` | Full review |
-| `/project:validate-demos e01` | Check demo quality |
-| `/project:check-inheritance v302` | Inheritance health |
-| `/project:brainstorm-exercise "idea"` | New vulnerability ideation |
-| `/project:quick-context` | Dump current state |
 
 ## Quality Checklist
 
-Before committing changes:
+Before committing:
 
-- [ ] E2E specs pass (`uctest v301/`)
+- [ ] E2E specs pass (`uctest vNNN/`)
 - [ ] Interactive demos run (`httpyac ... -a`)
 - [ ] Character logic correct (attacker uses own creds)
 - [ ] ONE new concept per example
@@ -215,13 +212,17 @@ Stop and reconsider if you see:
 - ❌ SpongeBob as attacker
 - ❌ Victim's password in exploit request
 - ❌ Technical jargon in demo annotations
-- ❌ About to edit a `~` prefixed file
+- ❌ About to edit a `~` prefixed file (run ucsync instead)
 - ❌ About to exclude inherited test without checking code
 - ❌ Multiple new concepts in one example
 
 ## Getting Help
 
-- Skills: Auto-load based on file context
-- Slash commands: `/project:*` for common workflows
-- AGENTS.md: Full agent documentation
-- docs/ai/: Decision trees and runbooks
+| Resource | Purpose |
+|----------|---------|
+| Skills | Auto-load based on context |
+| Slash commands | `/project:*` for workflows |
+| `AGENTS.md` | Full agent documentation |
+| `docs/ai/runbooks.md` | Step-by-step workflows |
+| `docs/ai/decision-trees.md` | Diagnosis flowcharts |
+| `docs/ai/gotchas.md` | Common mistakes |

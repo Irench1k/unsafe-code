@@ -280,11 +280,41 @@ Skills provide auto-loaded context when working in specific areas. They load jus
 | `spongebob-characters` | Choosing attacker/victim, writing demos | `.claude/skills/spongebob-characters/` |
 | `uclab-tools` | Running tests, debugging, CLI commands | `.claude/skills/uclab-tools/` |
 
-### Skill Contents
+### Skill Directory Structure
 
-Each skill directory contains:
-- `SKILL.md` - Main skill with frontmatter description (triggers auto-loading)
-- Supporting files - Detailed reference docs
+Each skill directory follows this pattern:
+```
+.claude/skills/{skill-name}/
+├── SKILL.md          # Main skill (required)
+│                     # - Frontmatter with name, description
+│                     # - "When to Use" / "When NOT to Use" sections
+│                     # - Core reference content
+├── syntax.md         # Optional: detailed syntax reference
+├── helpers.md        # Optional: helper function docs
+└── decision-tree.md  # Optional: diagnostic flowcharts
+```
+
+**SKILL.md frontmatter** (required fields):
+```yaml
+---
+name: skill-name
+description: Brief description with auto-invoke triggers...
+---
+```
+
+The `description` field should include trigger phrases like "Auto-invoke when..."
+
+### Shared References
+
+The `.claude/references/` directory contains reusable quick-reference docs:
+
+| File | Purpose | Used By |
+|------|---------|---------|
+| `character-profiles.md` | SpongeBob character quick ref | spongebob-characters skill, agents |
+| `http-syntax-quickref.md` | HTTP syntax patterns | http-* skills |
+| `common-gotchas.md` | Frequently encountered issues | debugging skills |
+
+Reference these from skills using relative paths: `../../references/character-profiles.md`
 
 ### E2E vs Demo Distinction
 
@@ -294,6 +324,28 @@ Each skill directory contains:
 |------------|--------------|--------|
 | `spec/vNNN/` | `http-e2e-specs` | `$(response).field()`, `auth.basic()` |
 | `http/eNN/` | `http-interactive-demos` | `response.parsedBody`, manual headers |
+
+### Agent Resume Pattern
+
+For long-running or multi-step tasks, agents can be **resumed** to continue from where they left off. This preserves context and avoids re-reading files.
+
+**When to use resume:**
+- Agent hit a blocker and needs human input
+- Task was interrupted but context is still valid
+- Continuing iterative refinement
+
+**How to resume:**
+```
+Use the Task tool with:
+- subagent_type: "uc-spec-debugger"
+- resume: "{agent_id}"  # ID from previous run
+- prompt: "Continue with the fix for..."
+```
+
+**Best practices:**
+- Resume the same agent type (don't resume spec-runner as spec-author)
+- Provide brief context of what changed since last run
+- Clear the resume if starting fresh on same problem
 
 ### Human Contributor Guide
 

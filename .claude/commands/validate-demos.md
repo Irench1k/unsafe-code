@@ -1,12 +1,17 @@
 ---
 description: "Validate interactive .http demos for quality, character logic, and engagement"
+model: opus
+argument-hint: [exercise-id|path]
 ---
 
 # Validate Demos: $ARGUMENTS
 
+Consider carefully the student experience. Is the demo engaging? Is character logic sound?
+
 Validate student-facing interactive exploit demonstrations.
 
 ## Location Pattern
+
 ```
 vulnerabilities/python/flask/confusion/webapp/r{NN}_{category}/http/e{XX}/
 ├── e{XX}_{name}.exploit.http    # Demonstrates the vulnerability
@@ -16,6 +21,7 @@ vulnerabilities/python/flask/confusion/webapp/r{NN}_{category}/http/e{XX}/
 ## Before Validating
 
 Read Serena memories:
+
 - `spongebob-characters` - Character rules and logic
 - `http-demo-standards` - Demo quality standards
 - `pedagogical-design-philosophy` - ONE concept rule
@@ -23,6 +29,7 @@ Read Serena memories:
 ## Validation Checklist
 
 ### Technical Correctness
+
 - [ ] Exploit actually exploits the vulnerability
 - [ ] Fixed version actually blocks the exploit
 - [ ] Assertions verify expected behavior
@@ -30,6 +37,7 @@ Read Serena memories:
 - [ ] Works with `httpyac {file}.http -a`
 
 ### Character Logic
+
 - [ ] Attacker uses THEIR credentials (not victim's)
 - [ ] Plankton attacks Mr. Krabs/organization
 - [ ] Squidward attacks SpongeBob (petty revenge)
@@ -37,6 +45,7 @@ Read Serena memories:
 - [ ] Credentials match character roles
 
 ### Engagement Quality
+
 - [ ] Business impact immediately clear
 - [ ] Not boring or formulaic
 - [ ] Fun in underhanded way (via examples, not explanations)
@@ -44,6 +53,7 @@ Read Serena memories:
 - [ ] No overexplaining what's visible in the code
 
 ### Format Standards
+
 - [ ] One assert per test (unlike e2e specs)
 - [ ] Variables defined for reusable values
 - [ ] Console.info at key moments (sparingly)
@@ -70,10 +80,10 @@ httpyac vulnerabilities/.../http/e01/e01_demo.exploit.http -a
 
 ## Demo vs E2E Spec Comparison
 
-| Aspect | Interactive Demo | E2E Spec |
-|--------|------------------|----------|
+| Aspect          | Interactive Demo            | E2E Spec              |
+| --------------- | --------------------------- | --------------------- |
 | Response access | `response.parsedBody.field` | `$(response).field()` |
-| Auth | Raw `Authorization:` header | `{{auth.basic()}}` |
-| Asserts | 1 per test | Multiple OK |
-| Helpers | None (plain httpyac) | Full utils.cjs |
-| Purpose | Student learning | Automated testing |
+| Auth            | Raw `Authorization:` header | `{{auth.basic()}}`    |
+| Asserts         | 1 per test                  | Multiple OK           |
+| Helpers         | None (plain httpyac)        | Full utils.cjs        |
+| Purpose         | Student learning            | Automated testing     |

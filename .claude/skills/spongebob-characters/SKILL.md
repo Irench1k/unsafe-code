@@ -1,6 +1,6 @@
 ---
 name: spongebob-characters
-description: Character rules for exploit narratives in Unsafe Code Lab. Auto-invoke when choosing attacker/victim roles, writing demo annotations, or validating character logic. CRITICAL RULE - Attacker uses THEIR OWN credentials; exploit comes from application confusion, NOT password theft.
+description: Character rules for exploit narratives in Unsafe Code Lab. Auto-invoke when choosing attacker/victim roles, writing demo annotations, mentioning SpongeBob/Squidward/Plankton/Patrick/Mr.Krabs/Sandy, or validating character logic. CRITICAL RULE - Attacker uses THEIR OWN credentials; exploit comes from application confusion, NOT password theft.
 ---
 
 # SpongeBob Characters Guide
@@ -190,3 +190,8 @@ To avoid staleness, rotate these elements:
 | Patrick | patrick@rock.sea | rock123 | VIP victim |
 | Mr. Krabs | krabs@krusty-krab.sea | money4ever | High-value target |
 | Sandy | sandy@treedome.sea | science! | Technical user |
+
+## See Also
+
+- [Character Profiles Quick Ref](../../references/character-profiles.md) - Condensed reference card
+- [http-interactive-demos](../http-interactive-demos/SKILL.md) - Using characters in demos

@@ -1,6 +1,6 @@
 ---
 name: uclab-tools
-description: CLI tool quick reference for Unsafe Code Lab. Auto-invoke when running tests, debugging failures, managing inheritance, or checking logs. Covers uctest, ucsync, httpyac, uclogs, and the docs generator.
+description: CLI tool quick reference for Unsafe Code Lab. Auto-invoke when running tests, debugging failures, managing inheritance, checking logs, troubleshooting "Connection refused" errors, diagnosing 500 errors, or needing uctest/ucsync/httpyac/uclogs/docs command syntax. Covers all project CLI tools.
 ---
 
 # Unsafe Code Lab CLI Tools

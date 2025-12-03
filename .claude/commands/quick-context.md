@@ -1,24 +1,28 @@
 ---
 description: "Dump current project state for quick orientation"
+model: haiku
 ---
 
 # Quick Context
 
 Get oriented in the Unsafe Code Lab project quickly.
 
-## Gather State
+## Current State (Auto-Gathered)
 
 ### Git Status
-```bash
-git status --short
-git branch --show-current
-git log --oneline -5
-```
+!`git status --short`
+
+### Current Branch
+!`git branch --show-current`
+
+### Recent Commits
+!`git log --oneline -5`
 
 ### Recent Changes
-```bash
-git diff --stat HEAD~3
-```
+!`git diff --stat HEAD~3 2>/dev/null || echo "Not enough history"`
+
+### Docker Health
+!`docker compose ps 2>/dev/null || echo "Docker not running"`
 
 ### Active Version Detection
 Look for recent work in:

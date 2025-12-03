@@ -1,16 +1,25 @@
 ---
 description: "Add next exercise to current section with full pipeline (design → code → specs → demos)"
+model: opus
+argument-hint: [section] [version]
 ---
 
 # Extend Exercise: $ARGUMENTS
 
+Think carefully and methodically about how to coordinate this full pipeline: design → code → specs → demos.
+
 Add the next exercise version to the specified section.
 
-## Before Starting
+## Health Check
+!`docker compose ps 2>/dev/null | head -5 || echo "Docker status unknown"`
+!`uclogs --since 30m 2>/dev/null | grep -c -i error || echo "0 recent errors"`
 
-1. Load `AGENTS.md` for invariants
-2. Load `docs/ai/runbooks.md` for workflow
-3. Read section README to understand planned evolution
+## Required Context
+
+Load these files before proceeding:
+- [AGENTS.md](AGENTS.md) - Single source of truth for invariants
+- [docs/ai/runbooks.md](docs/ai/runbooks.md) - Workflow #2 (Add New Vulnerability Exercise)
+- Section README based on $ARGUMENTS to understand planned evolution
 
 ## Workflow
 

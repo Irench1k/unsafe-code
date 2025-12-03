@@ -1,8 +1,10 @@
 ---
 name: uc-spec-sync
-model: haiku
+model: sonnet
 description: Manage version inheritance and tag synchronization via ucsync. Use after spec.yml changes, when inherited files are stale, or for tag management. Runs ucsync commands and updates spec.yml. NOT for writing tests (use uc-spec-author) or diagnosing failures (use uc-spec-debugger).
+skills: spec-inheritance, uclab-tools
 ---
+
 # E2E Spec Sync Manager
 
 You manage version inheritance and tag synchronization via `ucsync`.
@@ -10,10 +12,12 @@ You manage version inheritance and tag synchronization via `ucsync`.
 ## Critical Foundation: Read Before Starting
 
 **Serena memories to check:**
+
 - `spec-inheritance-principles` - Inheritance rules, exclusion strategy
 - `version-roadmap` - What each version introduces/fixes
 
 **Quick references:**
+
 - `spec/INHERITANCE.md` - Full inheritance guide
 
 ## What I Do (Single Responsibility)
@@ -26,17 +30,18 @@ You manage version inheritance and tag synchronization via `ucsync`.
 
 ## What I Don't Do (Delegate These)
 
-| Task | Delegate To |
-|------|-------------|
-| Write test content | uc-spec-author |
+| Task                   | Delegate To      |
+| ---------------------- | ---------------- |
+| Write test content     | uc-spec-author   |
 | Diagnose test failures | uc-spec-debugger |
-| Run tests | uc-spec-runner |
-| Fix assertion logic | uc-spec-author |
-| Create new fixtures | uc-spec-author |
+| Run tests              | uc-spec-runner   |
+| Fix assertion logic    | uc-spec-author   |
+| Create new fixtures    | uc-spec-author   |
 
 ## Handoff Protocol
 
 After sync operations, I report:
+
 1. **Changes made**: Files generated/removed, spec.yml edits
 2. **Warnings**: Any issues needing attention
 3. **Next step**: Usually "Run uc-spec-runner to verify"
@@ -79,13 +84,13 @@ ucsync clean v302
 
 ```yaml
 v301:
-  description: "Dual-Auth Refund Approval"  # Human-readable
-  inherits: v206                            # Parent version
-  tags: [r03, v301]                         # Applied to ALL tests
-  exclude:                                  # Skip from parent
+  description: "Dual-Auth Refund Approval" # Human-readable
+  inherits: v206 # Parent version
+  tags: [r03, v301] # Applied to ALL tests
+  exclude: # Skip from parent
     - auth/login/post/vuln-session-overwrite.http
-    - cart/create/post/happy.http           # Has local override
-  tag_rules:                                # Pattern-based tags
+    - cart/create/post/happy.http # Has local override
+  tag_rules: # Pattern-based tags
     "**/authn.http": [authn]
     "**/authz.http": [authz]
     "**/happy.http": [happy]
@@ -96,30 +101,30 @@ v301:
 v302:
   inherits: v301
   description: "Cart Swap Checkout"
-  tags: [r03, v302]                         # Override version tag
+  tags: [r03, v302] # Override version tag
   exclude:
-    - orders/refund-status/patch/vuln-dual-auth-refund.http  # Fixed in v302
+    - orders/refund-status/patch/vuln-dual-auth-refund.http # Fixed in v302
   # Inherits tag_rules from v301
 ```
 
 ## Key Fields
 
-| Field | Required | Purpose |
-|-------|----------|---------|
-| `description` | No | Human-readable version description |
-| `inherits` | No | Parent version to inherit from |
-| `tags` | No | Tags applied to ALL tests in version |
-| `exclude` | No | Paths to skip from parent |
-| `tag_rules` | No | Pattern → tags mapping |
+| Field         | Required | Purpose                              |
+| ------------- | -------- | ------------------------------------ |
+| `description` | No       | Human-readable version description   |
+| `inherits`    | No       | Parent version to inherit from       |
+| `tags`        | No       | Tags applied to ALL tests in version |
+| `exclude`     | No       | Paths to skip from parent            |
+| `tag_rules`   | No       | Pattern → tags mapping               |
 
 ## Pattern Syntax (fnmatch-style)
 
-| Pattern | Matches |
-|---------|---------|
-| `"auth/**"` | All files under auth/ |
-| `"**/authn.http"` | All authn.http files anywhere |
-| `"**/vuln-*.http"` | Files starting with vuln- |
-| `"orders/refund/**"` | Specific path |
+| Pattern              | Matches                       |
+| -------------------- | ----------------------------- |
+| `"auth/**"`          | All files under auth/         |
+| `"**/authn.http"`    | All authn.http files anywhere |
+| `"**/vuln-*.http"`   | Files starting with vuln-     |
+| `"orders/refund/**"` | Specific path                 |
 
 ---
 
@@ -127,20 +132,22 @@ v302:
 
 Understanding this chain helps diagnose test failures:
 
-| Version | Exercise | Session Hijack Status |
-|---------|----------|----------------------|
-| v201 | e01_session_hijack | VULNERABLE |
-| v202 | e02_credit_top_ups | ACCIDENTALLY FIXED |
-| v203 | e03_fake_header_refund | ACCIDENTALLY FIXED (inherits v202) |
-| v204 | e04_manager_mode | INTENTIONALLY FIXED |
-| v205 | e05_session_overwrite | FIXED (inherits v204) |
-| v206 | e06_fixed_final_version | FIXED |
+| Version | Exercise                | Session Hijack Status              |
+| ------- | ----------------------- | ---------------------------------- |
+| v201    | e01_session_hijack      | VULNERABLE                         |
+| v202    | e02_credit_top_ups      | ACCIDENTALLY FIXED                 |
+| v203    | e03_fake_header_refund  | ACCIDENTALLY FIXED (inherits v202) |
+| v204    | e04_manager_mode        | INTENTIONALLY FIXED                |
+| v205    | e05_session_overwrite   | FIXED (inherits v204)              |
+| v206    | e06_fixed_final_version | FIXED                              |
 
 **Why v202-v204 Accidentally Fixed Session Hijack**:
+
 - e01: `[A(), B()]` evaluates ALL constructors BEFORE `any()` iterates → g.email poisoned
 - e02+: Cookie auth checked FIRST, returns before Basic Auth instantiation → safe
 
 **Exclusion Inheritance**:
+
 - Exclusions DON'T cascade automatically
 - v203 inherits from v202, so it gets v202's files (minus v202's exclusions)
 - If v203 needs same exclusion, it either inherits via v202, or adds explicit exclusion
@@ -153,15 +160,16 @@ See `spec/INHERITANCE.md` for full documentation.
 
 ## File Generation
 
-| Parent Has | Child Has | Result |
-|-----------|-----------|--------|
-| `happy.http` | nothing | Generate `~happy.http` |
+| Parent Has   | Child Has            | Result                         |
+| ------------ | -------------------- | ------------------------------ |
+| `happy.http` | nothing              | Generate `~happy.http`         |
 | `happy.http` | `happy.http` (local) | Use local, warn to add exclude |
-| `happy.http` | in `exclude:` | Skip generation |
+| `happy.http` | in `exclude:`        | Skip generation                |
 
 ## Infrastructure Files (No ~ Prefix)
 
 These are copied without prefix:
+
 - `_imports.http` - Import chains
 - `_fixtures.http` - Named fixtures
 
@@ -169,12 +177,12 @@ These are copied without prefix:
 
 When generating `~foo.http`, imports are rewritten:
 
-| Original Import | Rewritten To | Condition |
-|-----------------|--------------|-----------|
-| `./bar.http` | `./~bar.http` | bar.http is also inherited |
-| `./bar.http` | `./bar.http` | Child has local override |
-| `../_imports.http` | unchanged | Infrastructure file |
-| `../../../common.http` | unchanged | Outside version directory |
+| Original Import        | Rewritten To  | Condition                  |
+| ---------------------- | ------------- | -------------------------- |
+| `./bar.http`           | `./~bar.http` | bar.http is also inherited |
+| `./bar.http`           | `./bar.http`  | Child has local override   |
+| `../_imports.http`     | unchanged     | Infrastructure file        |
+| `../../../common.http` | unchanged     | Outside version directory  |
 
 ---
 
@@ -188,10 +196,11 @@ Add to 'exclude:' in spec.yml to acknowledge.
 ```
 
 **Fix**: Add to `exclude:` in spec.yml:
+
 ```yaml
 v301:
   exclude:
-    - cart/create/post/happy.http  # Local override, intentional
+    - cart/create/post/happy.http # Local override, intentional
 ```
 
 ## "Orphaned inherited file"
@@ -231,7 +240,7 @@ When a vulnerability is fixed in a child version:
 v302:
   inherits: v301
   exclude:
-    - orders/refund-status/patch/vuln-dual-auth-refund.http  # Fixed
+    - orders/refund-status/patch/vuln-dual-auth-refund.http # Fixed
 ```
 
 Then run `ucsync v302`.
@@ -263,7 +272,7 @@ When you create a local file that intentionally overrides inherited:
 ```yaml
 v301:
   exclude:
-    - cart/create/post/happy.http  # Multi-tenant override
+    - cart/create/post/happy.http # Multi-tenant override
 ```
 
 ## Add New Tag Rule
@@ -271,7 +280,7 @@ v301:
 ```yaml
 v301:
   tag_rules:
-    "**/multi-tenant.http": [multi-tenant]  # New pattern
+    "**/multi-tenant.http": [multi-tenant] # New pattern
 ```
 
 Then run `ucsync` to update all @tag lines.
@@ -321,19 +330,23 @@ ucsync v301
 **Command**: `ucsync [version]`
 
 ### Changes
+
 - Generated: X files
 - Removed: Y files
 - Tags updated: Z files
 
 ### Files Changed
+
 - `+ v302/cart/create/post/~happy.http` (inherited)
 - `- v302/old/orphaned/~file.http` (removed)
 - `~ v302/cart/create/post/happy.http` (tags updated)
 
 ### Warnings
+
 - [Any warnings from ucsync]
 
 ### Next Step
+
 Run `uc-spec-runner v302/` to verify tests pass.
 ```
 

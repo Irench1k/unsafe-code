@@ -1,6 +1,6 @@
 ---
 name: http-assertion-gotchas
-description: Quick reference for HTTP assertion syntax pitfalls. Auto-invoke when assertions fail unexpectedly, 500 errors after adding assertions, type mismatch issues, or when user asks about assertion syntax. Covers both E2E specs (uctest) and interactive demos (httpyac).
+description: Quick reference for HTTP assertion syntax pitfalls. Auto-invoke when assertions fail unexpectedly, "Expected X but got Y" errors, 500 errors after adding assertions, type coercion/mismatch issues, quotes-on-RHS problems, or pre-state vs post-state confusion. Covers both E2E specs (uctest) and interactive demos (httpyac).
 ---
 
 # HTTP Assertion Gotchas
@@ -138,5 +138,6 @@ API values are often strings. Use `parseFloat()` for numeric comparisons.
 
 ## See Also
 
-- `http-e2e-specs` skill - Full E2E spec syntax
-- `http-interactive-demos` skill - Demo syntax (different helpers!)
+- [Common Gotchas Reference](../../references/common-gotchas.md) - Extended troubleshooting guide
+- [http-e2e-specs](../http-e2e-specs/SKILL.md) - Full E2E spec syntax
+- [http-interactive-demos](../http-interactive-demos/SKILL.md) - Demo syntax (different helpers!)

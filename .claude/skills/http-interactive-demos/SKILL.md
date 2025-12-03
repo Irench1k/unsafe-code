@@ -1,6 +1,6 @@
 ---
 name: http-interactive-demos
-description: Creating student-facing exploit demos run with httpyac in vulnerabilities/.../http/ directories. Auto-invoke when working with .exploit.http or .fixed.http files, or directories like http/e01/, http/e02/. Do NOT use for E2E specs in spec/ - those use utils.cjs helpers like $(response) and auth.basic() which are NOT available here.
+description: Creating student-facing exploit demos run with httpyac in vulnerabilities/.../http/ directories. Auto-invoke when working with .exploit.http or .fixed.http files, directories like http/e01/, http/e02/, demo annotations, narrative-style request titles, or IMPACT comments. Do NOT use for E2E specs in spec/ - those use utils.cjs helpers like $(response) and auth.basic() which are NOT available here.
 ---
 
 # Interactive Demo Writing
@@ -218,5 +218,7 @@ Use `console.info()` to show values that aren't visible otherwise:
 
 - [syntax.md](syntax.md) - Plain httpyac syntax reference
 - [narrative-guide.md](narrative-guide.md) - Character voice and impact writing
-- `http-assertion-gotchas` skill - Assertion pitfalls
-- `spongebob-characters` skill - Character rules
+- [HTTP Syntax Quick Reference](../../references/http-syntax-quickref.md) - Cheat sheet
+- [Character Profiles](../../references/character-profiles.md) - Quick character lookup
+- [http-assertion-gotchas](../http-assertion-gotchas/SKILL.md) - Assertion pitfalls
+- [spongebob-characters](../spongebob-characters/SKILL.md) - Character rules
