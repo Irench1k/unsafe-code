@@ -1,0 +1,229 @@
+{
+  "model": {
+    "name": "gemini-3-pro",
+    "maxSessionTurns": -1,
+    "compressionThreshold": 0.9,
+    "skipNextSpeakerCheck": true
+  },
+  "tools": {
+    "shell": {
+      "showColor": true
+    },
+    "autoAccept": true
+  },
+  "context": {
+    "fileName": [
+      "AGENTS.md"
+    ],
+    "includeDirectories": [],
+    "loadMemoryFromIncludeDirectories": false,
+    "fileFiltering": {
+      "respectGitIgnore": false
+    }
+  },
+  "modelConfigs": {
+    "aliases": {
+      "base": {
+        "modelConfig": {
+          "generateContentConfig": {
+            "temperature": 0,
+            "topP": 1
+          }
+        }
+      },
+      "chat-base": {
+        "extends": "base",
+        "modelConfig": {
+          "generateContentConfig": {
+            "temperature": 0.8,
+            "topP": 0.95,
+            "topK": 64,
+            "thinkingConfig": {
+              "includeThoughts": true
+            }
+          }
+        }
+      },
+      "chat-base-2.5": {
+        "extends": "chat-base",
+        "modelConfig": {
+          "generateContentConfig": {
+            "thinkingConfig": {
+              "thinkingBudget": 32768
+            }
+          }
+        }
+      },
+      "chat-base-3": {
+        "extends": "chat-base",
+        "modelConfig": {
+          "generateContentConfig": {
+            "thinkingConfig": {
+              "thinkingLevel": "HIGH",
+              "thinkingBudget": 32768
+            }
+          }
+        }
+      },
+      "gemini-3-pro": {
+        "extends": "chat-base-3",
+        "modelConfig": {
+          "model": "gemini-3-pro-preview"
+        }
+      },
+      "gemini-2.5-pro": {
+        "extends": "chat-base-2.5",
+        "modelConfig": {
+          "model": "gemini-2.5-pro",
+          "generateContentConfig": {
+            "thinkingConfig": {
+              "thinkingBudget": 32768
+            }
+          }
+        }
+      },
+      "gemini-2.5-flash": {
+        "extends": "chat-base-2.5",
+        "modelConfig": {
+          "model": "gemini-2.5-flash",
+          "generateContentConfig": {
+            "thinkingConfig": {
+              "thinkingBudget": 24576
+            }
+          }
+        }
+      },
+      "gemini-2.5-flash-base": {
+        "extends": "base",
+        "modelConfig": {
+          "model": "gemini-2.5-flash",
+          "generateContentConfig": {
+            "thinkingConfig": {
+              "thinkingBudget": 24576
+            }
+          }
+        }
+      },
+      "gemini-2.5-flash-lite": {
+        "extends": "gemini-2.5-flash"
+      },
+      "classifier": {
+        "extends": "gemini-2.5-flash",
+        "modelConfig": {
+          "generateContentConfig": {
+            "maxOutputTokens": 1024,
+            "thinkingConfig": {
+              "thinkingBudget": 24576
+            }
+          }
+        }
+      },
+      "prompt-completion": {
+        "extends": "gemini-2.5-flash",
+        "modelConfig": {
+          "generateContentConfig": {
+            "temperature": 0.3,
+            "maxOutputTokens": 16000,
+            "thinkingConfig": {
+              "thinkingBudget": 0
+            }
+          }
+        }
+      },
+      "edit-corrector": {
+        "extends": "gemini-2.5-flash",
+        "modelConfig": {
+          "generateContentConfig": {
+            "thinkingConfig": {
+              "thinkingBudget": 0
+            }
+          }
+        }
+      },
+      "summarizer-default": {
+        "extends": "gemini-2.5-flash",
+        "modelConfig": {
+          "generateContentConfig": {
+            "maxOutputTokens": 2000,
+            "thinkingConfig": {
+              "thinkingBudget": 24576
+            }
+          }
+        }
+      },
+      "summarizer-shell": {
+        "extends": "gemini-2.5-flash",
+        "modelConfig": {
+          "generateContentConfig": {
+            "maxOutputTokens": 2000,
+            "thinkingConfig": {
+              "thinkingBudget": 24576
+            }
+          }
+        }
+      },
+      "web-search": {
+        "extends": "gemini-2.5-flash-base",
+        "modelConfig": {
+          "generateContentConfig": {
+            "tools": [
+              { "googleSearch": {} }
+            ]
+          }
+        }
+      },
+      "web-fetch": {
+        "extends": "gemini-2.5-flash-base",
+        "modelConfig": {
+          "generateContentConfig": {
+            "tools": [
+              { "urlContext": {} }
+            ]
+          }
+        }
+      },
+      "web-fetch-fallback": {
+        "extends": "gemini-2.5-flash-base"
+      },
+      "loop-detection": {
+        "extends": "gemini-2.5-flash-base"
+      },
+      "loop-detection-double-check": {
+        "extends": "gemini-2.5-pro"
+      },
+      "llm-edit-fixer": {
+        "extends": "gemini-2.5-flash-base"
+      },
+      "next-speaker-checker": {
+        "extends": "gemini-2.5-flash-base"
+      },
+      "chat-compression-3-pro": {
+        "modelConfig": {
+          "model": "gemini-3-pro-preview"
+        }
+      },
+      "chat-compression-2.5-pro": {
+        "modelConfig": {
+          "model": "gemini-2.5-pro"
+        }
+      },
+      "chat-compression-2.5-flash": {
+        "modelConfig": {
+          "model": "gemini-2.5-flash"
+        }
+      },
+      "chat-compression-2.5-flash-lite": {
+        "modelConfig": {
+          "model": "gemini-2.5-flash"
+        }
+      },
+      "chat-compression-default": {
+        "modelConfig": {
+          "model": "gemini-2.5-pro"
+        }
+      }
+    },
+    "customAliases": {},
+    "overrides": []
+  }
+}
