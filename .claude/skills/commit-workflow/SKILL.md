@@ -218,4 +218,4 @@ git status
 ## See Also
 
 - [uclab-tools](../uclab-tools/SKILL.md) - CLI commands
-- [spec-debugging](../spec-debugging/SKILL.md) - If tests fail during verification
+- [http-spec-debugging](../http-spec-debugging/SKILL.md) - If tests fail during verification

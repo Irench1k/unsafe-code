@@ -16,9 +16,9 @@ description: Writing educational documentation for Unsafe Code Lab. Auto-invoke 
 ## When NOT to Use This Skill
 
 - Writing @unsafe annotations (technical is fine there)
-- Writing e2e specs (use http-e2e-specs)
-- Writing exploit demos (use http-interactive-demos)
-- Maintaining the docs generator tool (use uc-docs-generator-maintainer)
+- Writing e2e specs (use http-spec-conventions)
+- Writing exploit demos (use http-demo-conventions)
+- Maintaining the docs generator tool (use infra-maintainer)
 
 ## Core Principles
 
@@ -183,5 +183,5 @@ Must show "✓ No broken links found" before completing.
 ## See Also
 
 - [spongebob-characters](../spongebob-characters/SKILL.md) - Character reference
-- [http-interactive-demos](../http-interactive-demos/SKILL.md) - Demo writing (similar style)
+- [http-demo-conventions](../http-demo-conventions/SKILL.md) - Demo writing (similar style)
 - `tools/docs/STYLE_GUIDE.md` - Extended style guidance

@@ -177,34 +177,34 @@ Avoid staleness by rotating:
 
 ## 8. Agent Roster
 
-### Content Agents
+### Content & Docs
 | Agent | Purpose |
 |-------|---------|
-| `uc-vulnerability-designer` | Design WHAT to build, WHY it matters |
-| `uc-code-crafter` | Implement vulnerable code |
-| `uc-exploit-narrator` | Create .http PoC demos |
+| `content-planner` | Design exercises, taxonomy, and curriculum progression |
+| `code-author` | Implement vulnerable code to match the design |
+| `docs-author` | Polish READMEs, annotations, learner docs |
 
-### Docs Agents
+### Spec (E2E) Agents
 | Agent | Purpose |
 |-------|---------|
-| `uc-docs-editor` | Edit READMEs, polish text |
-| `uc-taxonomy-maintainer` | Maintain @unsafe annotations |
-| `uc-curriculum-strategist` | Gap analysis, curriculum planning |
+| `spec-runner` | Run `uctest` and `ucsync`; summarize failures |
+| `spec-debugger` | Diagnose spec failures; decide who fixes |
+| `spec-author` | Write/fix `spec/**/*.http` tests |
 
-### Spec Agents
+### Demo Agents
 | Agent | Purpose |
 |-------|---------|
-| `uc-spec-runner` | Execute uctest (haiku - fast) |
-| `uc-spec-debugger` | Diagnose failures (sonnet) |
-| `uc-spec-author` | Write/fix .http tests (sonnet) |
-| `uc-spec-sync` | Manage inheritance (haiku) |
+| `demo-author` | Create/maintain interactive demos (`*.exploit.http`, `*.fixed.http`) |
+| `demo-debugger` | Diagnose demo/httpyac failures |
 
 ### Infrastructure
 | Agent | Purpose |
 |-------|---------|
-| `uc-docs-generator-maintainer` | Maintain `uv run docs` tooling |
+| `infra-maintainer` | Maintain tools, docs generator, Docker, scripts |
 | `commit-agent` | Verify + commit changes |
-| `uc-maintainer` | Top-level orchestrator |
+| `uc-maintainer` | Top-level orchestrator (name unchanged) |
+
+**Spec vs Demo editing lock:** Only `spec-author`, `spec-debugger`, `demo-author`, and `demo-debugger` may edit `.http` files. Others must delegate.
 
 ---
 
@@ -215,13 +215,13 @@ Avoid staleness by rotating:
 ```
 Inherited test fails in vN+1
 ├── Was behavior supposed to change? (Check README)
-│   ├── YES → uc-spec-author: adjust spec for new behavior
+│   ├── YES → spec-author: adjust spec for new behavior
 │   └── NO → Continue...
 ├── Did refactoring accidentally fix the vulnerability?
-│   ├── YES → Add exclusion to spec.yml, document WHY
+│   ├── YES → spec-runner: add exclusion to spec.yml, run ucsync
 │   └── NO → Continue...
 └── Is there a bug in the exercise code?
-    └── YES → uc-code-crafter: fix to match intended behavior
+    └── YES → code-author: fix to match intended behavior
 ```
 
 ### When to Fix Code vs Spec
@@ -230,10 +230,10 @@ Inherited test fails in vN+1
 Test fails
 ├── Inherited from earlier version? → SUSPECT CODE
 ├── New test for new feature? → Verify assertion logic
-├── "ref not found"? → Check imports, run ucsync
+├── "ref not found"? → Run ucsync, check imports
 └── Assertion mismatch?
-    ├── API changed intentionally → Fix spec
-    └── API changed accidentally → Fix code
+    ├── API changed intentionally → Fix spec (spec-author)
+    └── API changed accidentally → Fix code (code-author)
 ```
 
 ---
@@ -243,23 +243,24 @@ Test fails
 ### Extend E2E to Next Exercise
 1. Read section README
 2. `uctest vN/` (baseline green?)
-3. Update spec.yml to inherit
-4. `ucsync && uctest vN+1/`
-5. Debug failures → code fix OR spec fix
+3. Update spec.yml if needed
+4. `ucsync && uctest vN+1/` via spec-runner
+5. Debug failures → code-author or spec-author
 6. Verify all green
 
 ### Add New Vulnerability Exercise
-1. `uc-vulnerability-designer` → design
-2. `uc-code-crafter` → implement
-3. `uc-spec-author` + `uc-spec-sync` → specs
-4. `uc-exploit-narrator` → demos
-5. `commit-agent` → finalize
+1. `content-planner` → design
+2. `code-author` → implement
+3. `spec-author` + `spec-runner` → specs + inheritance
+4. `demo-author` → demos
+5. `docs-author` → polish
+6. `commit-agent` → finalize
 
 ### Fix Failing Specs
-1. `uc-spec-runner` → run, capture failures
-2. `uc-spec-debugger` → classify each failure
-3. Appropriate fix agent → fix
-4. `uc-spec-runner` → verify
+1. `spec-runner` → run, capture failures
+2. `spec-debugger` → classify each failure
+3. Appropriate fix agent (spec-author / code-author / spec-runner) → fix
+4. `spec-runner` → verify
 
 See `docs/ai/runbooks.md` for complete workflows.
 
@@ -267,63 +268,32 @@ See `docs/ai/runbooks.md` for complete workflows.
 
 ## 11. Claude Code Skills
 
-Skills provide auto-loaded context when working in specific areas. They load just-in-time based on file patterns and task context.
+Skills auto-load based on context.
 
 ### Available Skills
 
 | Skill | Auto-Triggers When | Location |
 |-------|-------------------|----------|
-| `http-e2e-specs` | Working in `spec/vNNN/`, using `$(response)`, `@ref` | `.claude/skills/http-e2e-specs/` |
-| `http-interactive-demos` | Working in `http/eNN/`, `.exploit.http` files | `.claude/skills/http-interactive-demos/` |
-| `http-assertion-gotchas` | Assertion failures, 500 errors, syntax issues | `.claude/skills/http-assertion-gotchas/` |
-| `spec-inheritance` | "ref not found", `ucsync`, `spec.yml` edits | `.claude/skills/spec-inheritance/` |
-| `spongebob-characters` | Choosing attacker/victim, writing demos | `.claude/skills/spongebob-characters/` |
-| `uclab-tools` | Running tests, debugging, CLI commands | `.claude/skills/uclab-tools/` |
-
-### Skill Directory Structure
-
-Each skill directory follows this pattern:
-```
-.claude/skills/{skill-name}/
-├── SKILL.md          # Main skill (required)
-│                     # - Frontmatter with name, description
-│                     # - "When to Use" / "When NOT to Use" sections
-│                     # - Core reference content
-├── syntax.md         # Optional: detailed syntax reference
-├── helpers.md        # Optional: helper function docs
-└── decision-tree.md  # Optional: diagnostic flowcharts
-```
-
-**SKILL.md frontmatter** (required fields):
-```yaml
----
-name: skill-name
-description: Brief description with auto-invoke triggers...
----
-```
-
-The `description` field should include trigger phrases like "Auto-invoke when..."
-
-### Shared References
-
-The `.claude/references/` directory contains reusable quick-reference docs:
-
-| File | Purpose | Used By |
-|------|---------|---------|
-| `character-profiles.md` | SpongeBob character quick ref | spongebob-characters skill, agents |
-| `http-syntax-quickref.md` | HTTP syntax patterns | http-* skills |
-| `common-gotchas.md` | Frequently encountered issues | debugging skills |
-
-Reference these from skills using relative paths: `../../references/character-profiles.md`
+| `http-editing-policy` | Any `.http` proximity (enforces delegation) | `.claude/skills/http-editing-policy/` |
+| `http-syntax` | Editing any `.http` | `.claude/skills/http-syntax/` |
+| `http-gotchas` | Editing/reviewing `.http` | `.claude/skills/http-gotchas/` |
+| `http-demo-conventions` | Working in `vulnerabilities/.../http/` | `.claude/skills/http-demo-conventions/` |
+| `http-spec-conventions` | Working in `spec/vNNN/` | `.claude/skills/http-spec-conventions/` |
+| `http-spec-debugging` | Investigating failing `uctest` runs | `.claude/skills/http-spec-debugging/` |
+| `http-spec-inheritance` | Editing `spec.yml` / running `ucsync` | `.claude/skills/http-spec-inheritance/` |
+| `spongebob-characters` | Choosing attacker/victim for demos | `.claude/skills/spongebob-characters/` |
+| `vulnerability-design-methodology` | Planning new exercises | `.claude/skills/vulnerability-design-methodology/` |
+| `vulnerable-code-patterns` | Implementing vulnerable code | `.claude/skills/vulnerable-code-patterns/` |
+| `documentation-style` | Polishing docs | `.claude/skills/documentation-style/` |
+| `uclab-tools` | Running uctest/ucsync/httpyac | `.claude/skills/uclab-tools/` |
+| `commit-workflow` | Preparing commits | `.claude/skills/commit-workflow/` |
 
 ### E2E vs Demo Distinction
 
-**This is the most critical distinction.** Skills enforce it:
-
-| Working In | Skill Loaded | Syntax |
-|------------|--------------|--------|
-| `spec/vNNN/` | `http-e2e-specs` | `$(response).field()`, `auth.basic()` |
-| `http/eNN/` | `http-interactive-demos` | `response.parsedBody`, manual headers |
+| Working In | Agents to Use | Core Skills | Syntax |
+|------------|---------------|------------|--------|
+| `spec/**/*.http` | spec-author / spec-debugger / spec-runner | http-editing-policy, http-syntax, http-gotchas, http-spec-conventions | `$(response).field()`, `auth.basic()` |
+| `vulnerabilities/.../http/**/*.http` | demo-author / demo-debugger | http-editing-policy, http-syntax, http-gotchas, http-demo-conventions | `response.parsedBody`, manual headers |
 
 ### Agent Resume Pattern
 
@@ -337,7 +307,7 @@ For long-running or multi-step tasks, agents can be **resumed** to continue from
 **How to resume:**
 ```
 Use the Task tool with:
-- subagent_type: "uc-spec-debugger"
+- subagent_type: "spec-debugger"
 - resume: "{agent_id}"  # ID from previous run
 - prompt: "Continue with the fix for..."
 ```

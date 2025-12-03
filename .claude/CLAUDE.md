@@ -2,181 +2,102 @@
 
 > **Mission**: Educational security content with intentionally vulnerable code. Vulnerabilities are features, not bugs.
 
-## Foundation (Load First)
-
-Before ANY task, load these files:
-- `AGENTS.md` - Single source of truth for all invariants
-- `docs/ai/runbooks.md` - Workflow checklists
-
-## Session Startup Sequence
-
-At the START of every session involving specs or demos:
-
-1. Load `AGENTS.md` (single source of truth)
-2. Check `docs/ai/runbooks.md` for the workflow you need
-3. Check server health with `uclogs` if touching tests
-4. Read the relevant section `README.md` to confirm intent
-
-### Quick Health Check
+## Health Check
 ```bash
-# Run at session start if working with tests
-docker compose ps  # Are containers running?
 uclogs --since 30m | grep -c error  # Any recent errors?
 ```
 
-## Slash Commands
+## Commands
 
-| Command | Use When |
-|---------|----------|
-| `/project:review-exercises v301-v303` | Full exercise review |
-| `/project:run-specs v301/` | Run specs smartly |
-| `/project:extend-exercise v304` | Add next exercise |
-| `/project:fix-failing-specs v303/` | Debug test failures |
-| `/project:fix-exercises r03 e01-e07` | Implement exercises with TDD |
-| `/project:maximize-inheritance v201` | Backport specs |
-| `/project:validate-demos e01` | Check demo quality |
-| `/project:check-inheritance v302` | Inheritance health |
-| `/project:brainstorm-exercise "idea"` | New vulnerability ideation |
-| `/project:quick-context` | Dump current state |
-| `/project:health-check v301` | Quick verification (specs, docs, git) |
+### Exercise Workflow
+| Command | Purpose |
+|---------|---------|
+| `/exercise/brainstorm "idea"` | New vulnerability ideation |
+| `/exercise/extend r03 v308` | Add next exercise |
+| `/exercise/fix r03 e01-e07` | Implement with TDD |
+| `/exercise/review r03 all` | Review and fix |
 
-### Common Command Sequences
+### Spec Workflow
+| Command | Purpose |
+|---------|---------|
+| `/spec/run v301/` | Run specs |
+| `/spec/fix v301/` | Debug failures |
+| `/spec/inheritance v302` | Check inheritance health |
+| `/spec/maximize v201` | Backport specs |
 
-Commands often chain naturally. Here are proven workflows:
+### Demo Workflow
+| Command | Purpose |
+|---------|---------|
+| `/demo/validate e01` | Check demo quality |
+| `/demo/improve r02` | Enhance demos (assertions, state, clarity) |
 
-| Workflow | Command Sequence |
-|----------|------------------|
-| **Fix then verify** | `/fix-failing-specs v301` → `/health-check v301` |
-| **Add exercise** | `/brainstorm-exercise "idea"` → `/extend-exercise r03 v308` → `/health-check v308` |
-| **Full review** | `/review-exercises r03 e01-e07` → `/health-check v301 v302 v303...` |
-| **Debug inheritance** | `/check-inheritance v302` → `/run-specs v302/` → `/fix-failing-specs v302` |
-| **Maximize reuse** | `/maximize-inheritance v201` → `/run-specs v201 v202 v203` |
+### Meta
+| Command | Purpose |
+|---------|---------|
+| `/meta/health v301` | Quick verification |
+| `/meta/context` | Dump current state |
+| `/meta/align` | Improve .claude/ config based on feedback |
 
-**Pro tip:** After any fix command, run `/health-check` to verify everything is green.
+## Command Sequences
 
-## Agent Routing Table
+| Workflow | Sequence |
+|----------|----------|
+| **Fix then verify** | `/spec/fix v301` → `/meta/health v301` |
+| **Add exercise** | `/exercise/brainstorm "idea"` → `/exercise/extend r03 v308` |
+| **Full review** | `/exercise/review r03 all` → `/meta/health v301...` |
+| **Improve demos** | `/demo/improve r02` → `/demo/validate r02` |
+| **Config feedback** | `/meta/align` after frustrating interaction |
 
-| You say... | First Agent | Then... |
-|------------|-------------|---------|
-| "review v301-v303" | uc-maintainer | orchestrates all |
-| "extend specs", "new version" | uc-spec-sync | → uc-spec-runner → uc-spec-author |
-| "uctest failed", "spec failing" | uc-spec-runner | → uc-spec-debugger → fix agent |
-| "new exercise", "add vuln" | uc-vulnerability-designer | → uc-code-crafter → specs → demos |
-| "exploit demo", ".http demo" | uc-exploit-narrator | → uc-docs-editor |
-| "inheritance broken", "ref not found" | uc-spec-sync | → uc-spec-runner |
-| "commit", "done" | commit-agent | — |
+## Agent Routing
 
-## Orchestrator Role
+| Task | Agent |
+|------|-------|
+| Review exercises | uc-maintainer |
+| Run/sync specs | spec-runner |
+| Debug spec failures | spec-debugger |
+| Write/fix specs | spec-author |
+| Write/fix demos | demo-author |
+| Debug demos | demo-debugger |
+| Implement vuln code | code-author |
+| Design vulns | content-planner |
+| Edit docs | docs-author |
+| Commit | commit-agent |
 
-**Plan, Delegate, Verify, Coordinate** — don't implement directly.
+## Spec vs Demo
 
-1. **Break tasks** into clear steps
-2. **Delegate** to uc-* agents with precise instructions
-3. **Verify** outputs against `AGENTS.md` invariants
-4. **Pass context** between agents efficiently
+| Aspect | Spec (`spec/**/*.http`) | Demo (`http/**/*.http`) |
+|--------|-------------------------|-------------------------|
+| Runner | uctest | httpyac |
+| Response | `$(response).field()` | `response.parsedBody.field` |
+| Auth | `auth.basic()` helpers | Raw `Authorization:` header |
+| Purpose | Automated testing | Student learning |
+| Editor | spec-author | demo-author |
 
-Use `uc-maintainer` for complex tasks that require multi-agent orchestration.
+## Key Rules
 
-## Specialized Agents
-
-### Content
-| Agent | Purpose |
-|-------|---------|
-| uc-vulnerability-designer | Design WHAT/WHY/HOW |
-| uc-code-crafter | Implement vulnerable code |
-| uc-exploit-narrator | Create .http PoCs |
-
-### Docs
-| Agent | Purpose |
-|-------|---------|
-| uc-docs-editor | Edit READMEs |
-| uc-taxonomy-maintainer | Maintain @unsafe annotations |
-| uc-curriculum-strategist | Gap analysis |
-
-### E2E Specs
-| Agent | Purpose |
-|-------|---------|
-| uc-spec-runner | Execute uctest (haiku) |
-| uc-spec-debugger | Diagnose failures (sonnet) |
-| uc-spec-author | Write/fix tests (sonnet) |
-| uc-spec-sync | Manage inheritance (haiku) |
-
-### Infrastructure
-| Agent | Purpose |
-|-------|---------|
-| uc-maintainer | Top-level orchestrator |
-| uc-docs-generator-maintainer | Maintain `uv run docs` |
-| commit-agent | Verify + commit |
-
-## E2E Spec Decision Tree
-
-```
-Spec task
-├── Run tests? → uc-spec-runner → pass/fail + next agent
-├── "ref not found"? → uc-spec-debugger → uc-spec-author OR uc-spec-sync
-├── Assertion mismatch? → uc-spec-debugger → check code vs spec
-├── Write new test? → uc-spec-author → uc-spec-runner
-├── Fix test code? → uc-spec-author → uc-spec-runner
-├── Update spec.yml? → uc-spec-sync → uc-spec-runner
-└── Diagnose failure? → uc-spec-debugger → returns fix agent
-```
+- **Inherited test fails** → investigate source code first (may have accidentally fixed vuln)
+- **Never edit `~` files** → run ucsync instead
+- **Attacker uses OWN credentials** → never victim's password
+- **ONE concept per exercise** → progressive complexity
 
 ## Decision: Fix Code or Fix Test?
 
-**Default rule**: If inherited test fails → **CODE IS SUSPECT**
-
-- Inherited test fails → Investigate source code first (refactoring may have accidentally fixed vuln)
-- New test for new feature → Verify assertion logic
-- Test expects old behavior → Check README for intentional change
-
-See `docs/ai/decision-trees.md` for complete decision trees.
+| Situation | Action |
+|-----------|--------|
+| Inherited test fails | Investigate code first |
+| New test for new feature | Verify assertion logic |
+| Test expects old behavior | Check README for intent |
 
 ## Quality Gates
 
-### Before Delegating
-- [ ] Read relevant section README?
-- [ ] ONE new concept only?
-- [ ] Character logic sound? (attacker uses THEIR credentials)
-- [ ] Variety in recent examples?
+Before delegating:
+- [ ] Read section README
+- [ ] ONE new concept only
+- [ ] Character logic correct
+- [ ] Variety in impacts
 
-### Red Flags (Stop & Think)
-- ❌ SpongeBob as attacker
-- ❌ Victim's password in exploit
-- ❌ Technical jargon in annotations
-- ❌ `@base` in examples 1-2
-- ❌ Same impact 4+ times
-- ❌ Multiple new concepts
-- ❌ About to edit a `~` prefixed file (run ucsync instead)
-- ❌ About to exclude inherited test (investigate code first)
-
-## Critical Distinctions
-
-| Category | Style | Implications |
-|----------|-------|--------------|
-| **confusion/** | Sequential (r01→r02→r03) | Progressive complexity critical |
-| **others** | Random-access | Each example standalone |
-
-## Workflow Playbook
-
-**Adding Vulnerability:**
-1. uc-vulnerability-designer (design)
-2. uc-code-crafter (implement)
-3. uc-exploit-narrator (demos)
-4. `uv run docs generate --target [path]`
-5. commit-agent (verify + commit)
-
-**Fixing Spec Failures:**
-1. uc-spec-runner (run)
-2. uc-spec-debugger (diagnose)
-3. uc-spec-author OR uc-spec-sync (fix)
-4. uc-spec-runner (verify)
-
-See `docs/ai/runbooks.md` for complete workflows.
-
-## Key Insight
-
-When inherited tests fail: **ALWAYS investigate source code first**. Refactoring can accidentally fix vulnerabilities!
-
-## Success Criteria
-
-Students learn to **spot subtle vulnerabilities in production-quality code** through intuition, not checklists.
+Red flags:
+- SpongeBob as attacker
+- Victim's password in exploit
+- Technical jargon in demos
+- Same impact 4+ times

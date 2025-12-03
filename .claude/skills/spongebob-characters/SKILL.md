@@ -194,4 +194,4 @@ To avoid staleness, rotate these elements:
 ## See Also
 
 - [Character Profiles Quick Ref](../../references/character-profiles.md) - Condensed reference card
-- [http-interactive-demos](../http-interactive-demos/SKILL.md) - Using characters in demos
+- [http-demo-conventions](../http-demo-conventions/SKILL.md) - Using characters in demos

@@ -1,6 +1,6 @@
 # HTTP Test Syntax Reference
 
-Prescriptive guide for writing `.http` test files using `uctest` (our fork of httpyac). This covers only what we use - not the full httpyac feature set.
+Canonical syntax reference now lives in `.claude/skills/http-syntax/SKILL.md` (authoritative for *all* `.http`). This file remains as a spec-focused quick reference for `uctest` users.
 
 ## Request Structure
 

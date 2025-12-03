@@ -15,8 +15,8 @@ description: Implementing production-quality vulnerable code for Unsafe Code Lab
 ## When NOT to Use This Skill
 
 - Designing what vulnerability to build (use vulnerability-design-methodology)
-- Writing .http demos (use http-interactive-demos)
-- Writing e2e specs (use http-e2e-specs)
+- Writing .http demos (use http-demo-conventions)
+- Writing e2e specs (use http-spec-conventions)
 
 ## Code Quality Standards
 
@@ -175,5 +175,5 @@ Before completing implementation:
 ## See Also
 
 - [vulnerability-design-methodology](../vulnerability-design-methodology/SKILL.md) - Design phase
-- [http-interactive-demos](../http-interactive-demos/SKILL.md) - Demo creation
+- [http-demo-conventions](../http-demo-conventions/SKILL.md) - Demo creation
 - `docs/ANNOTATION_FORMAT.md` - Full annotation specification

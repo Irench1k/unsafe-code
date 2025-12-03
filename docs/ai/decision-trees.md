@@ -11,7 +11,7 @@ Inherited test from vN fails in vN+1
 │
 ├─→ Was behavior change documented in README?
 │   │
-│   ├─ YES → uc-spec-author: Create version-specific override
+│   ├─ YES → spec-author: Create version-specific override
 │   │         (Add new file, not ~prefixed)
 │   │
 │   └─ NO → Continue to next question...
@@ -34,7 +34,7 @@ Inherited test from vN fails in vN+1
     │  The test worked before. The code should match
     │  the intended behavior from the README.
     │
-    └─ YES → uc-code-crafter: Fix source code
+    └─ YES → code-author: Fix source code
              Don't change the test!
 ```
 
@@ -58,7 +58,7 @@ Error: ref "X" not found in scope Y.http
 │   │
 │   │  grep -r "@name X" spec/v301/
 │   │
-│   ├─ NOT FOUND → uc-spec-author: Create the named request
+│   ├─ NOT FOUND → spec-author: Create the named request
 │   │              It simply doesn't exist
 │   │
 │   └─ FOUND → Check import chain...
@@ -68,7 +68,7 @@ Error: ref "X" not found in scope Y.http
 │   │  Check Y.http for @import statements
 │   │  Trace chain: Y → _imports → parent → ...
 │   │
-│   ├─ Missing import → uc-spec-author: Add import statement
+│   ├─ Missing import → spec-author: Add import statement
 │   │
 │   └─ Import exists → Check ~ prefix issue...
 │
@@ -78,7 +78,7 @@ Error: ref "X" not found in scope Y.http
     │  # @import ./happy.http    ← WRONG
     │  # @import ./~happy.http   ← CORRECT
     │
-    └─ YES → uc-spec-sync: Run ucsync to regenerate
+    └─ YES → spec-runner: Run ucsync to regenerate
 ```
 
 ---
@@ -95,7 +95,7 @@ Expected X but got Y
 │   │
 │   │  Right side is a literal, not JavaScript string
 │   │
-│   └─ YES → uc-spec-author: Remove quotes from RHS
+│   └─ YES → spec-author: Remove quotes from RHS
 │
 ├─→ Is it a type mismatch?
 │   │
@@ -120,13 +120,13 @@ Expected X but got Y
 │   │  POST /refund
 │   │  ?? js await user("x").balance() == {{before + 10}}
 │   │
-│   └─ YES → uc-spec-author: Add pre-state capture
+│   └─ YES → spec-author: Add pre-state capture
 │
 └─→ Did the API actually change behavior?
     │
-    ├─ Change is intentional (documented) → uc-spec-author: Update spec
+    ├─ Change is intentional (documented) → spec-author: Update spec
     │
-    └─ Change is accidental (bug) → uc-code-crafter: Fix source
+    └─ Change is accidental (bug) → code-author: Fix source
 ```
 
 ---
@@ -142,7 +142,7 @@ vuln-*.http test PASSES in version where vuln should be FIXED
 │   │  Check if attack still works
 │   │
 │   ├─ Vuln still exists → The test assertion is wrong
-│   │                      uc-spec-author: Fix test logic
+│   │                      spec-author: Fix test logic
 │   │
 │   └─ Vuln is fixed → Why is test passing?
 │
@@ -151,7 +151,7 @@ vuln-*.http test PASSES in version where vuln should be FIXED
     │  Test may check for 200 OK but not verify
     │  that unauthorized data was NOT returned
     │
-    └─ uc-spec-author: Strengthen assertion
+    └─ spec-author: Strengthen assertion
        Add check for what SHOULDN'T happen
 ```
 
@@ -190,7 +190,7 @@ vuln-*.http test FAILS in version where vuln SHOULD EXIST
     │  - Wrong endpoint?
     │  - Import chain broken?
     │
-    └─ uc-spec-debugger: Trace the issue
+    └─ spec-debugger: Trace the issue
 ```
 
 ---
@@ -269,11 +269,11 @@ Something doesn't work
 
 | Situation | Agent |
 |-----------|-------|
-| Run tests | uc-spec-runner |
-| Diagnose failures | uc-spec-debugger |
-| Write/fix tests | uc-spec-author |
-| Manage inheritance | uc-spec-sync |
-| Fix source code | uc-code-crafter |
-| Create demos | uc-exploit-narrator |
-| Polish docs | uc-docs-editor |
+| Run tests | spec-runner |
+| Diagnose failures | spec-debugger |
+| Write/fix tests | spec-author |
+| Manage inheritance | spec-runner |
+| Fix source code | code-author |
+| Create demos | demo-author |
+| Polish docs | docs-author |
 | Commit changes | commit-agent |

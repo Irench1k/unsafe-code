@@ -19,43 +19,11 @@ Guide for human contributors on using Claude Code effectively in this project.
 
 ## Agent Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      uc-maintainer                              │
-│              (Top-level orchestrator, sonnet)                   │
-└───────────┬────────────────────────────────────────┬────────────┘
-            │                                        │
-    ┌───────┴───────┐                       ┌───────┴───────┐
-    │   CONTENT     │                       │   E2E SPECS   │
-    └───────────────┘                       └───────────────┘
-    │                                       │
-    ├─ uc-vulnerability-designer (sonnet)   ├─ uc-spec-runner (haiku)
-    │  └─ Design WHAT/WHY vulnerabilities   │  └─ Execute uctest
-    │                                       │
-    ├─ uc-code-crafter (sonnet)             ├─ uc-spec-debugger (sonnet)
-    │  └─ Implement vulnerable code         │  └─ Diagnose failures
-    │                                       │
-    └─ uc-exploit-narrator (sonnet)         ├─ uc-spec-author (sonnet)
-       └─ Create .http PoC demos            │  └─ Write/fix tests
-                                            │
-                                            └─ uc-spec-sync (haiku)
-    ┌───────────────┐                          └─ Manage inheritance
-    │   DOCS        │
-    └───────────────┘                       ┌───────────────┐
-    │                                       │   DEBUG       │
-    ├─ uc-docs-editor (haiku)               └───────────────┘
-    │  └─ Edit READMEs                      │
-    │                                       └─ uc-demo-debugger (haiku)
-    ├─ uc-taxonomy-maintainer (haiku)          └─ Debug httpyac demos
-    │  └─ Maintain @unsafe annotations
-    │
-    └─ uc-curriculum-strategist (sonnet)    ┌───────────────┐
-       └─ Gap analysis                      │   INFRA       │
-                                            └───────────────┘
-                                            │
-                                            └─ commit-agent (haiku)
-                                               └─ Verify + commit
-```
+- **uc-maintainer** (opus): top-level orchestrator (name unchanged)
+- **Content & Docs**: `content-planner` (design/taxonomy), `code-author` (implement), `docs-author` (docs)
+- **Specs**: `spec-runner` (uctest + ucsync), `spec-debugger` (diagnose), `spec-author` (write/fix specs)
+- **Demos**: `demo-author` (create/maintain demos), `demo-debugger` (diagnose demos)
+- **Infra**: `infra-maintainer` (tooling, docs generator), `commit-agent` (verify + commit)
 
 ### Model Selection Rationale
 
@@ -71,15 +39,15 @@ Guide for human contributors on using Claude Code effectively in this project.
 
 ```
 1. /brainstorm-exercise "your idea"  → Design
-   └─ uc-vulnerability-designer creates spec
+   └─ content-planner creates design brief
 
 2. /extend-exercise r03 v308         → Full pipeline
-   └─ uc-code-crafter implements code
-   └─ uc-spec-author creates specs
-   └─ uc-exploit-narrator creates demos
+   └─ code-author implements code
+   └─ spec-author creates specs (spec-runner runs ucsync/uctest)
+   └─ demo-author creates demos
 
 3. /run-specs v308/                  → Verify
-   └─ uc-spec-runner executes
+   └─ spec-runner executes
 
 4. commit-agent                      → Finalize
 ```
@@ -91,8 +59,8 @@ Guide for human contributors on using Claude Code effectively in this project.
    └─ Returns pass/fail summary
 
 2. /fix-failing-specs v303/          → Diagnose + fix
-   └─ uc-spec-debugger classifies failures
-   └─ Routes to: uc-spec-author OR uc-spec-sync OR uc-code-crafter
+   └─ spec-debugger classifies failures
+   └─ Routes to: spec-author or spec-runner (inheritance) or code-author
 
 3. Repeat until green
 ```
@@ -113,15 +81,16 @@ Skills load automatically based on context:
 
 | Working With | Auto-Loaded Skill | Key Triggers |
 |--------------|-------------------|--------------|
-| `spec/vNNN/` files | `http-e2e-specs` | `$(response)`, `auth.basic()`, `@ref` |
-| `http/eNN/` demos | `http-interactive-demos` | `.exploit.http`, `IMPACT:` |
-| Assertion errors | `http-assertion-gotchas` | "Expected X but got Y", 500 errors |
-| `~` files, ucsync | `spec-inheritance` | "ref not found", version bumps |
+| `spec/**/*.http` | `http-spec-conventions` + `http-syntax` + `http-gotchas` | `$(response)`, `auth.basic()`, `@ref` |
+| `vulnerabilities/.../http/**/*.http` | `http-demo-conventions` + `http-syntax` + `http-gotchas` | `.exploit.http`, `.fixed.http` |
+| Any `.http` edit | `http-editing-policy` | enforce delegation |
+| Assertion errors | `http-gotchas` | "Expected X but got Y", 500 errors |
+| Inheritance/ucsync | `http-spec-inheritance` | `~` files, version bumps |
+| Spec debugging | `http-spec-debugging` | `uctest` failure triage |
 | Demo narratives | `spongebob-characters` | SpongeBob, Squidward, Plankton |
 | CLI tools | `uclab-tools` | uctest, httpyac, uclogs |
 | Vuln design | `vulnerability-design-methodology` | ONE concept rule, complexity |
 | @unsafe code | `vulnerable-code-patterns` | Annotations, Flask patterns |
-| Failure diagnosis | `spec-debugging` | Fix code vs fix test decisions |
 | README editing | `documentation-style` | Behavioral language, jargon |
 | Committing | `commit-workflow` | Quality gates, message format |
 
@@ -136,7 +105,7 @@ Skills load automatically based on context:
 | **Auth** | `{{auth.basic()}}` | Manual `Authorization:` |
 | **Imports** | Heavy use | Only `setup.http` |
 | **Asserts** | Multiple OK | ONE per test |
-| **Debugger** | `uc-spec-debugger` | `uc-demo-debugger` |
+| **Debugger** | `spec-debugger` | `demo-debugger` |
 
 ### Fix Code vs Fix Test?
 

@@ -260,11 +260,11 @@ uclogs -f  # Watch startup
 ```
 
 ### "Assertion syntax error"
-Check for missing operator in `?? js` line. See `http-assertion-gotchas` skill.
+Check for missing operator in `?? js` line. See `http-gotchas` + `http-syntax` skills.
 
 ## See Also
 
-- `http-e2e-specs` skill - Writing E2E tests
-- `http-interactive-demos` skill - Writing demos
-- `spec-inheritance` skill - Inheritance details
-- `http-assertion-gotchas` skill - Assertion syntax
+- `http-spec-conventions` skill - Writing E2E tests
+- `http-demo-conventions` skill - Writing demos
+- `http-spec-inheritance` skill - Inheritance details
+- `http-gotchas` + `http-syntax` skills - Assertion syntax & structure

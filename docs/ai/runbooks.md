@@ -19,15 +19,15 @@
 5. RUN uctest vN+1/
 6. FOR EACH failure:
    - Is behavior change documented in README?
-     YES → uc-spec-author adjusts spec
-     NO  → uc-code-crafter fixes code
+     YES → spec-author adjusts spec
+     NO  → code-author fixes code
    - Is it "ref not found"?
      → Check imports, run ucsync again
 7. VERIFY all green
 8. commit-agent
 ```
 
-**Agents**: uc-spec-sync → uc-spec-runner → uc-spec-debugger → uc-spec-author OR uc-code-crafter
+**Agents**: spec-runner → spec-runner → spec-debugger → spec-author OR code-author
 
 ---
 
@@ -36,32 +36,32 @@
 **Goal**: Create complete new exercise with code, specs, and demos
 
 ```
-1. uc-vulnerability-designer:
+1. content-planner:
    - Read section README
    - Design: What vuln? What fix? What new feature?
    - Output: Design spec document
 
-2. uc-code-crafter:
+2. code-author:
    - Clone previous exercise directory
    - Implement design spec
    - Add @unsafe annotations
    - Ensure backward compatible (usually)
 
-3. uc-spec-author + uc-spec-sync:
+3. spec-author + spec-runner:
    - Update spec.yml for new version
    - Create specs for new endpoints/behavior
    - Run ucsync
 
-4. uc-spec-runner:
+4. spec-runner:
    - Run uctest until green
    - Debug failures as needed
 
-5. uc-exploit-narrator:
+5. demo-author:
    - Create .exploit.http (demonstrates vuln)
    - Create .fixed.http (shows fix works)
    - Follow character rules, one assert per test
 
-6. uc-docs-editor:
+6. docs-author:
    - Polish any README changes
    - Ensure behavioral language, not jargon
 
@@ -72,7 +72,7 @@
    - Commit with clear message
 ```
 
-**Agents**: uc-vulnerability-designer → uc-code-crafter → uc-spec-author → uc-spec-sync → uc-spec-runner → uc-exploit-narrator → uc-docs-editor → commit-agent
+**Agents**: content-planner → code-author → spec-author → spec-runner → spec-runner → demo-author → docs-author → commit-agent
 
 ---
 
@@ -95,7 +95,7 @@ uctest fails
     └─ 3. DECIDE: Code or Spec?
           ├─ README says X, code does X, spec expects Y → Fix spec
           ├─ README says X, code does Y, spec expects X → Fix code
-          └─ README unclear → Check with uc-vulnerability-designer
+          └─ README unclear → Check with content-planner
 ```
 
 ### Example: 500 Error Investigation
@@ -183,7 +183,7 @@ echo "# @import ./~cart-common.http" >> spec/v302/cart-tests.http
 ucsync
 ```
 
-**Agents**: uc-spec-author (port files) → uc-spec-sync (update inheritance) → uc-spec-runner (verify)
+**Agents**: spec-author (port files) → spec-runner (update inheritance) → spec-runner (verify)
 
 ---
 
@@ -223,7 +223,7 @@ ucsync
    - Recommendations
 ```
 
-**Agents**: uc-spec-runner → uc-exploit-narrator (review) → uc-docs-editor (polish)
+**Agents**: spec-runner → demo-author (review) → docs-author (polish)
 
 ---
 
@@ -243,7 +243,7 @@ ucsync
       → Is vuln absent where it should be?
 
    b. If wrong:
-      → uc-code-crafter adjusts implementation
+      → code-author adjusts implementation
 
    c. Check specs
       → vuln-*.http should pass where vuln exists
@@ -289,9 +289,9 @@ ucsync
       → Not same impact as last 3 examples
       → Rotate attackers/victims/impacts
 
-3. uc-exploit-narrator rewrites as needed
+3. demo-author rewrites as needed
 
-4. uc-docs-editor polishes language
+4. docs-author polishes language
 
 5. RE-RUN demos to verify
 ```
