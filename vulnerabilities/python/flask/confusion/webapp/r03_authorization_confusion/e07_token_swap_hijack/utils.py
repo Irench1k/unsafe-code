@@ -234,28 +234,24 @@ def verify_domain_token(token: str, claimed_domain: str) -> dict | None:
     """
     Verify a domain verification token.
 
-    @unsafe {
-        "vuln_id": "v306",
-        "severity": "medium",
-        "category": "authorization-confusion",
-        "description": "Checks domain matches but doesn't require admin@ local part",
-        "cwe": "CWE-863"
-    }
+    v307 FIX: Now properly checks that token was issued to admin@domain,
+    not just any mailbox at the domain.
     """
     decoded = verify_and_decode_token(token)
     if not decoded:
         return None
 
     email = decoded.get("email", "")
-    # Extract domain from email
+    # Extract local part and domain from email
     if "@" not in email:
         return None
 
-    email_domain = email.split("@")[1]
+    local_part, email_domain = email.split("@", 1)
 
-    # THE VULNERABILITY: We check that the token's email domain matches,
-    # but we DON'T check that it's admin@domain!
-    # Any user with ANY mailbox at the domain can claim it.
+    # v307 FIX: Must be admin@ not just any mailbox at the domain
+    if local_part != "admin":
+        return None
+
     if email_domain != claimed_domain:
         return None
 

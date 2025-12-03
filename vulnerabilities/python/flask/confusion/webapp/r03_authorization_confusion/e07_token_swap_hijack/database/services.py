@@ -89,6 +89,7 @@ def serialize_restaurant(restaurant: Restaurant) -> dict:
         "id": restaurant.id,
         "name": restaurant.name,
         "description": restaurant.description,
+        "owner_email": restaurant.owner,
     }
 
 
@@ -266,6 +267,7 @@ def serialize_order(order: Order) -> dict:
             }
             for item in order_items
         ],
+        "status": order.status.value,
     }
 
 

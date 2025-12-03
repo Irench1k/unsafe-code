@@ -1,0 +1,22 @@
+# @import ../common/setup.http
+@host = {{base_host}}/v306
+
+# v306 FIX: Authorization check now happens BEFORE idempotency check
+#
+# The handler verifies ownership before any validation or error response.
+# Plankton can no longer leak order data by triggering validation errors.
+
+### Plankton tries the failed update attack from v305
+# Trying to set order 1 to its current state (created)
+# In v305, this would return order data in the "rejection" response BEFORE auth check
+PATCH /orders/1/status
+X-API-Key: {{chum_bucket_api_key}}
+Content-Type: application/x-www-form-urlencoded
+
+status=created
+
+# FIX WORKING: Authorization check happens first - Plankton is blocked
+# No order data is leaked because auth runs before the idempotency check
+?? js $(response).isError() == true
+?? js response.parsedBody.order_id == null
+

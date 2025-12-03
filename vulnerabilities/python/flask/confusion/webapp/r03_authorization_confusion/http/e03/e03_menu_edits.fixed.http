@@ -1,28 +1,29 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v304
 
+# v304 fixes the cross-tenant menu edit vulnerability from v303
+
 
 ### Plankton checks that the Krabby Patty is available
 GET /menu
 
-@krabby_patty = {{response.parsedBody.find(i => i.name == "Krabby Patty")}}
+@krabby_patty = {{response.parsedBody.find(i => i.name.includes("Krabby Patty") && !i.name.includes("Ultimate") && !i.name.includes("Combo") && !i.name.includes("Supreme"))}}
 
 
-### Plankton tries to use his Chum Bucket manager key to disable the Krabby Patty
+### Plankton tries to sabotage Krusty Krab's menu - but the fix blocks him
 PATCH /menu/{{krabby_patty.id}}
 X-API-Key: {{chum_bucket_api_key}}
 Content-Type: application/json
 
 {
-  "available": true,
-  "price": "00.50",
-  "name": "Krabby Patty (DISCOUNTED DUE TO SALMONELLA OUTBREAK)"
+  "available": false,
+  "name": "Krabby Patty (OUT OF STOCK - CONTAMINATION RECALL)"
 }
 
-?? status == 200
+?? status == 400
 
 
-### The Krabby Patty is now unavailable
+### The Krabby Patty is safe - Plankton's attack was blocked
 GET /menu
 
 ?? js response.parsedBody.find(i => i.id == krabby_patty.id).available == true

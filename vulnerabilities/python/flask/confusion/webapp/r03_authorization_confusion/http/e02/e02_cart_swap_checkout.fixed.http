@@ -4,8 +4,8 @@
 ### Menu items
 GET /menu
 
-@ultimate_krabby_feast = {{response.parsedBody.find(i => i.name == "Ultimate Krabby Feast")}}
-@krabby_patty = {{response.parsedBody.find(i => i.name == "Krabby Patty")}}
+@ultimate_krabby_feast = {{response.parsedBody.find(i => i.name.includes("Ultimate Krabby"))}}
+@krabby_patty = {{response.parsedBody.find(i => i.name.includes("Krabby Patty") && !i.name.includes("Ultimate") && !i.name.includes("Combo") && !i.name.includes("Supreme"))}}
 
 
 ### Plankton checks his balance before ordering
@@ -54,7 +54,8 @@ Content-Type: application/json
 { "item_id": "{{krabby_patty.id}}" }
 
 ### --- Vulnerability Fixed ---
-#Plankton sends a confusing checkout request, but this time he receives a cheap order, which he payed for.
+# Plankton tries the same trick, but v303 fixes the session/path confusion
+# @name checkout
 POST /cart/{{expensive_cart.cart_id}}/checkout
 Content-Type: application/json
 
@@ -66,9 +67,8 @@ Content-Type: application/json
 ?? status == 201
 
 
-### He was correctly charged for the cheap cart from his session
-GET /account/info
-
-
-### Order contains the cheap items
+### The order contains the CHEAP item (session cart), not the expensive one
 GET /orders
+
+# Verify the last order has Krabby Patty, NOT Ultimate Krabby Feast
+?? js response.parsedBody[response.parsedBody.length - 1].items[0].name.includes("Krabby Patty")

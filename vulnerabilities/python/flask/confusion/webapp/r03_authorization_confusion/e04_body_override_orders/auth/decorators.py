@@ -117,12 +117,15 @@ def restaurant_owns(resource_class: type, resource_id_param: str):
             if resource is None:
                 raise CheekyApiError(f"{resource_class.__name__} {resource_id} not found")
 
-            requested_restaurant = values.get("restaurant_id")
-            if requested_restaurant and requested_restaurant != resource.restaurant_id:
+            # v304 fix: ALWAYS check that authenticated restaurant owns the resource
+            # Previously only checked when restaurant_id was in the route path
+            if resource.restaurant_id != g.restaurant_id:
                 raise CheekyApiError(
                     f"{resource_class.__name__} {resource_id} does not belong to this restaurant"
                 )
 
+            # Optional: validate route restaurant_id matches (when present in path)
+            requested_restaurant = values.get("restaurant_id")
             if requested_restaurant and requested_restaurant != g.restaurant_id:
                 raise CheekyApiError("Unauthorized")
 

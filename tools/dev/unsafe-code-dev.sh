@@ -265,7 +265,7 @@ uclogs() {
         return 1
     fi
 
-    (cd "$compose_dir" && docker compose logs -f "$@")
+    (cd "$compose_dir" && docker compose logs "$@")
 }
 
 # ================================

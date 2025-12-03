@@ -1,0 +1,56 @@
+# Unsafe Code Lab - Cursor Rules
+# See AGENTS.md for complete AI agent guide
+
+## Foundation
+
+Always load before any task:
+- AGENTS.md - Single source of truth for invariants
+- docs/ai/runbooks.md - Workflow checklists
+
+## Priority of Truth
+
+1. Section README (planned evolution)
+2. Exercise source code (actual implementation)
+3. E2E specs in spec/vNNN/ (behavioral contracts)
+4. Interactive demos in vulnerabilities/.../http/ (student-facing)
+
+## Key Invariants
+
+- Inheritance is DEFAULT for specs. Breaking it = investigate code first.
+- ONE new concept per exercise
+- Interactive demos: behavior + impact only, no root-cause explanation
+- Attacker uses THEIR OWN credentials (exploit = confusion, not password theft)
+
+## Character Rules (SpongeBob)
+
+- SpongeBob: NEVER an attacker
+- Plankton: External threat → targets Krabs
+- Squidward: Insider threat → targets SpongeBob
+
+## Tool Commands
+
+- `uctest vNNN/` - Run e2e specs
+- `ucsync` - Regenerate inherited files
+- `httpyac file.http -a` - Run interactive demos
+- `uclogs` - Docker compose logs
+
+## Red Flags (Stop & Think)
+
+- SpongeBob attacking anyone
+- Victim's password in exploit
+- Technical jargon in annotations
+- Same impact 4+ times
+- @base in examples 1-2
+- About to edit a ~ prefixed file (run ucsync instead)
+
+## Decision: Fix Code or Fix Test?
+
+If inherited test fails → CODE IS SUSPECT
+
+Unless README explicitly documents behavior change.
+
+## File Types
+
+- spec/vNNN/*.http - E2E specs (multiple asserts OK, use helpers)
+- vulnerabilities/.../http/*.http - Interactive demos (ONE assert, plain syntax)
+- ~*.http - Inherited files (NEVER edit, run ucsync)

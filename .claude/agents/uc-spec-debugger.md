@@ -7,15 +7,12 @@ description: Diagnose failing uctest runs. Use for understanding test failures, 
 
 You diagnose failing `uctest` runs and trace dependency issues.
 
-## Critical Foundation: Read Before Starting
+## Foundation (Load First)
 
-**Serena memories to check:**
-- `spec-inheritance-principles` - Inheritance patterns, accidental fix detection
-- `version-roadmap` - What each version changes (key for understanding failures)
-
-**Quick references:**
+- `AGENTS.md` - Single source of truth for invariants
+- `docs/ai/decision-trees.md` - Complete diagnosis decision trees
+- `docs/ai/gotchas.md` → `.claude/references/common-gotchas.md` - Common failure patterns
 - `spec/INHERITANCE.md` - Detailed inheritance guide
-- `.claude/references/common-gotchas.md` - Common failure patterns
 
 ## What I Do (Single Responsibility)
 
@@ -34,6 +31,24 @@ You diagnose failing `uctest` runs and trace dependency issues.
 | Create new fixtures | uc-spec-author |
 | Run tests | uc-spec-runner |
 | Execute tests to verify fixes | uc-spec-runner |
+
+## Diagnostic Protocol (Mandatory Order)
+
+1. **Check server logs FIRST**:
+   ```bash
+   uclogs --since 10m
+   ```
+   Server errors often explain "mysterious" test failures.
+
+2. **Check README intent**:
+   ```bash
+   cat vulnerabilities/.../r0X_*/README.md | grep -A5 "vNNN"
+   ```
+   Understand what behavior SHOULD exist before diagnosing.
+
+3. **Trace the specific error** (existing methodology)
+
+4. **Reference runbooks**: Always cite `docs/ai/runbooks.md` section in handoff
 
 ## Handoff Protocol
 

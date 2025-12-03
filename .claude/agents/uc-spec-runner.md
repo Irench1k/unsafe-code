@@ -30,13 +30,26 @@ You execute `uctest` commands and interpret the output.
 | Manage inheritance/tags | uc-spec-sync |
 | Understand complex errors | uc-spec-debugger |
 
+## Mandatory Diagnostic Sequence
+
+When tests fail, ALWAYS follow this sequence:
+
+1. **Run uctest** with `-k` flag to see all failures
+2. **Check uclogs** immediately after failures:
+   ```bash
+   uclogs --since 5m | grep -Ei "error|exception|traceback"
+   ```
+3. **Categorize** failures with server context
+4. **Reference** `docs/ai/runbooks.md` Section 3 for next steps
+
 ## Handoff Protocol
 
 After running tests, I report:
 1. **Summary**: Pass/fail counts
-2. **Failures**: Error messages and files
-3. **Pattern**: Type of failure (ref not found, assertion, etc.)
-4. **Suggested next**: Which agent should handle failures
+2. **Server health**: Any errors from uclogs
+3. **Failures**: Error messages and files
+4. **Pattern**: Type of failure (ref not found, assertion, etc.)
+5. **Suggested next**: Which agent should handle failures
 
 ---
 

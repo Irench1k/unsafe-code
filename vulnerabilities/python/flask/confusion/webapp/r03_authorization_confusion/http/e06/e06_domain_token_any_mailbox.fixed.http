@@ -1,0 +1,47 @@
+# @import ../common/setup.http
+@host = {{base_host}}/v307
+@mailpit = http://127.0.0.1:8025/api/v1
+
+# v307 FIX: Domain verification now requires admin@domain token
+#
+# The verify_domain_token() function now checks that the token was issued
+# to admin@domain, not just any mailbox at the domain.
+
+### Step 1: Plankton registers as a regular user at bmail.sea
+POST /auth/register
+Content-Type: application/json
+
+{
+    "email": "plankton@bmail.sea"
+}
+
+?? status == 200
+
+
+### Step 2: Get the verification email
+GET {{mailpit}}/messages?limit=1
+
+@email_id = {{response.parsedBody.messages[0].ID}}
+
+
+### Step 3: Extract the USER verification token
+GET {{mailpit}}/message/{{email_id}}
+
+@user_token = {{response.parsedBody.Text.match(/token=([a-zA-Z0-9\-_.]+)/)[1]}}
+
+
+### Step 4: Plankton tries to claim the domain with his user token
+# v307 verifies the token was sent to admin@domain
+POST /restaurants
+Content-Type: application/json
+
+{
+    "name": "Plankton's Evil Empire",
+    "domain": "bmail.sea",
+    "token": "{{user_token}}"
+}
+
+# FIX WORKING: Token is rejected because it's for plankton@bmail.sea, not admin@bmail.sea
+?? js $(response).isError() == true
+?? js response.parsedBody.error.includes("Invalid") || response.parsedBody.error.includes("token")
+

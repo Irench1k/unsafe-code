@@ -163,3 +163,53 @@ v303:
   #   - menu/item/patch/happy.http (manager updates own menu item)
   #   - menu/item/patch/authn.http (requires restaurant API key auth)
   #   - menu/item/patch/vuln-cross-tenant-menu.http (new vulnerability)
+
+v304:
+  inherits: v303
+  description: Body Override Leaks Competitor Orders (query vs body confusion)
+  tags: [r03, v304]
+  exclude:
+    # v304 fixes the cross-tenant menu edit vulnerability from v303
+    # The fix adds proper restaurant_id validation to the menu edit route
+    - menu/item/patch/vuln-cross-tenant-menu.http
+  # New files in v304/:
+  #   - orders/list/get/vuln-body-override-orders.http (new vulnerability)
+
+v305:
+  inherits: v304
+  description: Failed Update Leaks Order Data (validation before authorization)
+  tags: [r03, v305]
+  exclude:
+    # v305 fixes the body override vulnerability from v304
+    # The fix ensures bind_to_restaurant() only reads from authorized sources
+    - orders/list/get/vuln-body-override-orders.http
+    # v305 vulnerability: idempotency check runs before authorization, so these
+    # tests that use idempotent requests on cancelled orders will leak data
+    # instead of returning auth errors (the vulnerability is demonstrated in
+    # vuln-failed-update-leaks.http instead)
+    - orders/status/patch/authz.http
+    - orders/status/patch/transitions.http
+  # New files in v305/:
+  #   - orders/status/patch/vuln-failed-update-leaks.http (new vulnerability)
+
+v306:
+  inherits: v305
+  description: Domain Tokens Accept Any Mailbox (token scope confusion)
+  tags: [r03, v306]
+  exclude:
+    # v306 fixes the failed update leak vulnerability from v305
+    # The fix returns appropriate error without leaking order data
+    - orders/status/patch/vuln-failed-update-leaks.http
+  # New files in v306/:
+  #   - restaurants/post/vuln-domain-token-any-mailbox.http (new vulnerability)
+
+v307:
+  inherits: v306
+  description: Token Swap Hijacks Restaurants (middleware confusion)
+  tags: [r03, v307]
+  exclude:
+    # v307 fixes the domain token any mailbox vulnerability from v306
+    # The fix verifies the token email matches admin@domain
+    - restaurants/post/vuln-domain-token-any-mailbox.http
+  # New files in v307/:
+  #   - restaurants/patch/vuln-token-swap-hijack.http (new vulnerability)

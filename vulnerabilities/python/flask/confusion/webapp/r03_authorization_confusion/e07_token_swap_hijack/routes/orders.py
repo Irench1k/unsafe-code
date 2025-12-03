@@ -22,7 +22,6 @@ from ..database.services import (
 )
 from ..errors import CheekyApiError
 from ..utils import (
-    bind_to_restaurant,
     get_decimal_param,
     get_param,
     require_condition,
@@ -40,21 +39,10 @@ def list_orders():
     """
     Customers can list their own orders, restaurant managers can list ALL of them.
 
-    @unsafe {
-        "vuln_id": "v304",
-        "severity": "high",
-        "category": "authorization-confusion",
-        "description": "Decorator implicitly trusts g.restaurant_id from API key, but bind_to_restaurant() overrides with body params",
-        "cwe": "CWE-863"
-    }
+    v305 FIX: Use g.restaurant_id directly from authenticated API key context.
     """
     if g.get("manager_request") and g.get("restaurant_id"):
-        # Use bind_to_restaurant() to auto-detect restaurant ID from any container
-        # This is Sandy's new helper that checks query, form, AND JSON body
-        # The vulnerability: decorator trusts API key's restaurant_id,
-        # but we override it here with body params!
-        bound_restaurant_id = bind_to_restaurant() or g.restaurant_id
-        orders = find_orders_by_restaurant(bound_restaurant_id)
+        orders = find_orders_by_restaurant(g.restaurant_id)
     elif g.get("customer_request") and g.get("user_id"):
         orders = get_user_orders(g.user_id)
     else:
@@ -75,8 +63,8 @@ def refund_order(order_id: int):
         "amount", OrderConfig.DEFAULT_REFUND_PERCENTAGE * g.order.total
     )
 
-    # Integrity check: order must not already be refunded
-    require_condition(g.order.status != OrderStatus.refunded, "Order has already been refunded")
+    # Integrity check: order must be delivered, not refunded or cancelled
+    require_condition(g.order.status == OrderStatus.delivered, "Order must be delivered to be refunded")
 
     # Integrity check: there should NOT be other refunds for this order
     require_condition(not get_refund_by_order_id(order_id), "Refund already exists for this order")
@@ -137,39 +125,23 @@ def update_order_status(order_id: int):
     """
     Update order status. Available to both customers and restaurant managers.
 
-    Sandy rewrote this to push authorization into the database query itself.
-    The UPDATE only affects rows where restaurant_id matches the authenticated user.
-
-    @unsafe {
-        "vuln_id": "v305",
-        "severity": "high",
-        "category": "authorization-confusion",
-        "description": "Handler returns order data even when update is rejected due to invalid state transition",
-        "cwe": "CWE-863"
-    }
+    v306 FIX: Authorization check now happens BEFORE any data could be leaked.
     """
     status = get_param("status")
     require_condition(
-        status in ["created", "delivered", "cancelled", "refunded"], "Status is missing or invalid"
+        status in ["delivered", "cancelled"], "Status is missing or invalid"
     )
 
-    # Load order first (before any authorization!)
     order = find_order_by_id(order_id)
     require_condition(order, f"Order {order_id} not found")
 
-    # Idempotency check - guard against illegal transitions
-    # The vulnerability: this check happens BEFORE authorization,
-    # and we return the order data even on rejection!
-    if order.status == OrderStatus(status):
-        # Can't transition to same state - return the order anyway!
-        return success_response({
-            **serialize_order(order),
-            "updated": False,
-            "rejection_reason": f"Order is already in '{status}' state"
-        })
-
-    # Authorization would happen in the UPDATE query itself...
-    # but we already leaked the order data above!
+    # Authorization check FIRST
+    if g.get("user_id"):
+        require_ownership(order.user_id, g.user_id, "order")
+        require_condition(status == "cancelled", "Order can only be cancelled")
+    else:
+        require_ownership(order.restaurant_id, g.restaurant_id, "order")
+        require_condition(status in ("delivered", "cancelled"), "Order can only be delivered or cancelled")
 
     # Integrity check: order status can be changed only from "created"
     require_condition(
@@ -177,6 +149,6 @@ def update_order_status(order_id: int):
     )
 
     # Update order status
-    order.status = status
+    order.status = OrderStatus(status)
     save_order(order)
     return success_response(serialize_order(order))

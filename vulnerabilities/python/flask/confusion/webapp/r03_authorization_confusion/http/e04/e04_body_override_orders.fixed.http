@@ -1,0 +1,30 @@
+# @import ../common/setup.http
+@host = {{base_host}}/v305
+
+# v305 FIX: No longer uses bind_to_restaurant() which could be poisoned via body params
+#
+# The handler now uses g.restaurant_id directly from the authenticated API key context.
+# Plankton can no longer override which restaurant's orders he sees.
+
+### Plankton checks his own Chum Bucket orders first
+GET /orders
+X-API-Key: {{chum_bucket_api_key}}
+
+?? status == 200
+
+
+### Plankton tries the body override attack from v304
+# The body param is now IGNORED - handler only trusts the API key
+GET /orders
+X-API-Key: {{chum_bucket_api_key}}
+Content-Type: application/json
+
+{
+    "restaurant_id": 1
+}
+
+# FIX WORKING: Request succeeds but returns only Chum Bucket orders
+# The restaurant_id in body is ignored - API key determines which restaurant
+?? status == 200
+?? js !response.parsedBody.some(o => o.restaurant_id === 1)
+
