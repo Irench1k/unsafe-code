@@ -2,7 +2,10 @@
 # @description Base host, default actors, and helper utilities for authorization confusion scenarios.
 @base_host = http://localhost:8000/api
 
-# Common variables
+# E2E key for state reset (idempotent demos)
+@e2e_key = e2e-test-key-unsafe-code-lab
+
+# Common actors
 @sandy_auth = Basic sandy@bikinibottom.sea:fullStackSquirr3l!
 @patrick_auth = Basic patrick@bikinibottom.sea:mayonnaise
 @plankton_auth = Basic plankton@chum-bucket.sea:i_love_my_wife
@@ -13,6 +16,23 @@
 
 ### @title helper: tenants + cookies
 {{
+  /**
+   * Extract or refresh session cookie.
+   * Returns new cookie if Set-Cookie present, otherwise returns existing.
+   * Usage: @session = {{refreshCookie(response)}}
+   *    or: @session = {{refreshCookie(response, session)}}
+   */
+  exports.refreshCookie = (resp, existing = "") => {
+    const raw = resp?.headers?.["set-cookie"];
+    if (!raw) return existing;
+    const cookieHeader = Array.isArray(raw) ? raw[0] : raw;
+    return cookieHeader.split(";")[0];
+  };
+
+  /**
+   * Extract a specific cookie value from a login response.
+   * @deprecated Use refreshCookie() for session management.
+   */
   exports.pickCookie = (resp, name = "session_id") => {
     const raw = resp?.headers?.["set-cookie"];
     const cookieHeader = Array.isArray(raw) ? raw.find(h => h.startsWith(`${name}=`)) : raw;

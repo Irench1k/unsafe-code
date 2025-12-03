@@ -3,6 +3,9 @@
 @base_host = http://localhost:8000/api
 @mailpit_host = http://127.0.0.1:8025/api/v1
 
+# E2E key for state reset (idempotent demos)
+@e2e_key = e2e-test-key-unsafe-code-lab
+
 # Common actors
 @sandy_auth = Basic sandy:fullStackSquirr3l!
 @patrick_auth = Basic patrick:mayonnaise
@@ -18,6 +21,19 @@
 
 ### @title helper: menu pickers
 {{
+  /**
+   * Extract or refresh session cookie.
+   * Returns new cookie if Set-Cookie present, otherwise returns existing.
+   * Usage: @session = {{refreshCookie(response)}}
+   *    or: @session = {{refreshCookie(response, session)}}
+   */
+  exports.refreshCookie = (resp, existing = "") => {
+    const raw = resp?.headers?.["set-cookie"];
+    if (!raw) return existing;
+    const cookieHeader = Array.isArray(raw) ? raw[0] : raw;
+    return cookieHeader.split(";")[0];
+  };
+
   /**
    * Pick representative menu items for exploit/happy-path flows.
    */
