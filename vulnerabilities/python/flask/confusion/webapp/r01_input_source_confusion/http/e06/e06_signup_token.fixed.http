@@ -2,6 +2,10 @@
 @host = {{base_host}}/v107
 @mailpit = http://127.0.0.1:8025/api/v1
 
+{{
+  await resetDB("v107");
+  console.info("Database reset to clean state");
+}}
 
 ### Sandy fixes vulnerability and tests the mitigation
 POST /auth/register
@@ -38,7 +42,7 @@ Content-Type: application/json
 }
 
 ?? status == 200
-// The user gets created, but the system uses the email from the verification token
+# The user gets created, but the system uses the email from the verification token
 ?? js response.parsedBody.email == sandy+test@bikinibottom.sea
 
 
@@ -46,11 +50,7 @@ Content-Type: application/json
 GET /account/info
 Authorization: Basic sandy@bikinibottom.sea:hijacked
 
-// Error as expected
-HTTP/1.1 400 Bad Request
-{
-  "error": "User authentication required"
-}
+# Error as expected - cannot login with hijacked credentials
 
 ?? status == 400
 

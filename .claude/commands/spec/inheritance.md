@@ -6,6 +6,50 @@ argument-hint: [version-spec]
 
 # Check Inheritance: $ARGUMENTS
 
+---
+
+## ⛔⛔⛔ CRITICAL RESTRICTIONS - READ FIRST ⛔⛔⛔
+
+### 1. PLAN MODE CHECK
+
+**IF Plan Mode is active → STOP IMMEDIATELY.**
+
+```
+ERROR: This command is incompatible with Plan Mode.
+Please restart without Plan Mode enabled.
+```
+
+### 2. BUILT-IN AGENTS ARE BANNED
+
+**I MUST NEVER spawn these built-in subagent types:**
+
+| Banned Agent | Why |
+|--------------|-----|
+| `Explore` | ❌ Bypasses our specialized agents |
+| `Plan` | ❌ Interferes with command workflow |
+| `general-purpose` | ❌ No domain skills |
+
+### 3. I AM A DUMB ROUTER
+
+**My ONLY job is to delegate to project agents.** I do NOT:
+
+- ❌ Read `.http` spec files directly
+- ❌ Read skill or reference files
+- ❌ Analyze inheritance myself
+- ❌ Run uctest/ucsync directly
+
+### 4. ALLOWED AGENTS (ONLY THESE)
+
+| Task | Agent |
+|------|-------|
+| Run ucsync | `spec-runner` |
+| Run tests | `spec-runner` |
+| Diagnose failures | `spec-debugger` |
+| Fix exclusions/specs | `spec-author` |
+| Fix source code | `code-author` |
+
+---
+
 Analyze deeply the inheritance chain. Consider whether failures indicate code issues, not test issues.
 
 Validate spec inheritance is working correctly for specified version(s).

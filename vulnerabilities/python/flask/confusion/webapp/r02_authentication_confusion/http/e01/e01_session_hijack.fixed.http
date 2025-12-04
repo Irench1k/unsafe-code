@@ -13,10 +13,17 @@ Content-Type: application/json
     "password": "fullStackSquirr3l!"
 }
 
+@session = {{refreshCookie(response)}}
+
 ### She tries to access Plankton's orders without knowing his password
 GET /account/info
 Authorization: Basic plankton@chum-bucket.sea:no-password
+Cookie: {{session}}
 
 ?? status == 200
-// Sandy sees her own account info, vulnerability is fixed
+# Sandy sees her own account info, vulnerability is fixed
 ?? js response.parsedBody.email == sandy@bikinibottom.sea
+
+{{
+  console.info("Fix confirmed: Sandy sees her own data despite Plankton's Basic Auth header");
+}}

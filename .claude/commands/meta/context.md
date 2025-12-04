@@ -5,6 +5,37 @@ model: haiku
 
 # Quick Context
 
+---
+
+## ⛔⛔⛔ CRITICAL RESTRICTIONS - READ FIRST ⛔⛔⛔
+
+### 1. PLAN MODE CHECK
+
+**IF Plan Mode is active → STOP IMMEDIATELY.**
+
+```
+ERROR: This command is incompatible with Plan Mode.
+Please restart without Plan Mode enabled.
+```
+
+### 2. BUILT-IN AGENTS ARE BANNED
+
+**I MUST NEVER spawn these built-in subagent types:**
+
+| Banned Agent | Why |
+|--------------|-----|
+| `Explore` | ❌ Bypasses our specialized agents |
+| `Plan` | ❌ Interferes with command workflow |
+
+### 3. THIS IS A READ-ONLY DIAGNOSTIC
+
+This command only gathers state and reports it. It does NOT:
+- ❌ Make changes
+- ❌ Spawn agents
+- ❌ Analyze deeply
+
+---
+
 Get oriented in the Unsafe Code Lab project quickly.
 
 ## Current State (Auto-Gathered)

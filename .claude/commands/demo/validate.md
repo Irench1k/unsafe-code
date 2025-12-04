@@ -6,6 +6,52 @@ argument-hint: [exercise-id|path]
 
 # Validate Demos: $ARGUMENTS
 
+---
+
+## ⛔⛔⛔ CRITICAL RESTRICTIONS - READ FIRST ⛔⛔⛔
+
+### 1. PLAN MODE CHECK
+
+**IF Plan Mode is active → STOP IMMEDIATELY.**
+
+```
+ERROR: This command is incompatible with Plan Mode.
+Please restart without Plan Mode enabled.
+```
+
+### 2. BUILT-IN AGENTS ARE BANNED
+
+**I MUST NEVER spawn these built-in subagent types:**
+
+| Banned Agent | Why |
+|--------------|-----|
+| `Explore` | ❌ Bypasses our specialized agents |
+| `Plan` | ❌ Interferes with command workflow |
+| `general-purpose` | ❌ No domain skills |
+| `code-reviewer` | ❌ Use project agents instead |
+
+### 3. I AM A DUMB ROUTER
+
+**My ONLY job is to delegate to project agents.** I do NOT:
+
+- ❌ Read `.http` files directly
+- ❌ Read skill files (`.claude/skills/`)
+- ❌ Read reference files (`.claude/references/`)
+- ❌ Analyze code or syntax myself
+- ❌ Run httpyac directly
+- ❌ Make validation judgments myself
+
+### 4. ALLOWED AGENTS (ONLY THESE)
+
+| Task | Agent | How to Spawn |
+|------|-------|--------------|
+| Run & analyze demos | `demo-debugger` | `Task(subagent_type="demo-debugger")` |
+| Fix issues found | `demo-author` | `Task(subagent_type="demo-author")` |
+
+**Validation = Spawn demo-debugger, report its findings to user.**
+
+---
+
 Consider carefully the student experience. Is the demo engaging? Is character logic sound?
 
 Validate student-facing interactive exploit demonstrations.

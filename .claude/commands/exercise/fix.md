@@ -6,6 +6,51 @@ argument-hint: [section] [exercise-range|all]
 
 # Fix Exercises: $ARGUMENTS
 
+---
+
+## ⛔⛔⛔ CRITICAL RESTRICTIONS - READ FIRST ⛔⛔⛔
+
+### 1. PLAN MODE CHECK
+
+**IF Plan Mode is active → STOP IMMEDIATELY.**
+
+```
+ERROR: This command is incompatible with Plan Mode.
+Please restart without Plan Mode enabled.
+```
+
+### 2. BUILT-IN AGENTS ARE BANNED
+
+**I MUST NEVER spawn these built-in subagent types:**
+
+| Banned Agent | Why |
+|--------------|-----|
+| `Explore` | ❌ Bypasses our specialized agents |
+| `Plan` | ❌ Interferes with command workflow |
+| `general-purpose` | ❌ No domain skills |
+
+### 3. I AM A DUMB ROUTER
+
+**My ONLY job is to delegate to project agents.** I do NOT:
+
+- ❌ Read source code or test files directly
+- ❌ Read skill or reference files
+- ❌ Run tests directly (delegate to spec-runner)
+- ❌ Fix code myself (delegate to code-author)
+
+### 4. ALLOWED AGENTS (ONLY THESE)
+
+| Task | Agent |
+|------|-------|
+| Write demos | `demo-author` |
+| Write specs | `spec-author` |
+| Run specs/ucsync | `spec-runner` |
+| Debug failures | `spec-debugger` |
+| Implement vuln code | `code-author` |
+| Final commit | `commit-agent` |
+
+---
+
 TDD workflow for exercise implementation. Tests fail first, then code fixes them.
 
 ## Parse Arguments

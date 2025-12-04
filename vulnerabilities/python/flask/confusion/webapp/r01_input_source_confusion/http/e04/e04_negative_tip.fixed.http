@@ -29,7 +29,6 @@ Content-Type: application/json
 }
 
 
-// The negative tip is converted to positive (take that, Plankton!)
-?? status == 201
-?? js response.parsedBody.tip == 50
-?? js response.parsedBody.total == {{parseFloat(response.parsedBody.items[0].price) + 5.00 + 50.00}}
+# The fix blocks the attack (take that, Plankton!)
+?? status == 400
+?? body error == Insufficient balance

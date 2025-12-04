@@ -4,6 +4,10 @@
 
 # Sandy fixed the vulnerability by enforcing account uniqueness
 
+{{
+  await resetDB("v108");
+  console.info("🔄 Database reset to clean state");
+}}
 
 ### She registers a new test account
 POST /auth/register

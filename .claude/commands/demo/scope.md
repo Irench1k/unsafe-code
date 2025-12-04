@@ -6,6 +6,53 @@ argument-hint: [section-or-path]
 
 # Scope Demo Work: $ARGUMENTS
 
+---
+
+## ⛔⛔⛔ CRITICAL RESTRICTIONS - READ FIRST ⛔⛔⛔
+
+### 1. PLAN MODE CHECK
+
+**IF Plan Mode is active → STOP IMMEDIATELY.**
+
+```
+ERROR: This command is incompatible with Plan Mode.
+Please restart without Plan Mode enabled.
+```
+
+### 2. BUILT-IN AGENTS ARE BANNED
+
+**I MUST NEVER spawn these built-in subagent types:**
+
+| Banned Agent | Why |
+|--------------|-----|
+| `Explore` | ❌ Bypasses our specialized agents |
+| `Plan` | ❌ Interferes with command workflow |
+| `general-purpose` | ❌ No domain skills |
+| `code-reviewer` | ❌ Use project agents instead |
+
+### 3. I AM A DUMB ROUTER
+
+**My ONLY job is to:**
+1. Ask clarifying questions (via `AskUserQuestion`)
+2. Delegate to project agents for any analysis
+3. Summarize agent reports for the user
+
+**I do NOT:**
+- ❌ Read `.http` files
+- ❌ Read skill or reference files
+- ❌ Analyze anything myself
+- ❌ Run bash commands beyond trivial `ls`
+
+### 4. ALLOWED AGENTS (ONLY THESE)
+
+| Task | Agent |
+|------|-------|
+| Quick demo assessment | `demo-debugger` |
+| Execute improvements | `/demo/improve` → `demo-author` |
+| Validate results | `/demo/validate` → `demo-debugger` |
+
+---
+
 ## ⚠️ DIALOG FIRST - DO NOT EXECUTE YET ⚠️
 
 This command establishes scope through conversation BEFORE expensive execution.
@@ -50,12 +97,14 @@ Only after clarifying requirements, do **minimal** exploration:
 ls vulnerabilities/python/flask/confusion/webapp/$ARGUMENTS/http/*/
 ```
 
-Use `Explore` agent with `"quick"` thoroughness if needed.
+**If deeper analysis is needed** → Spawn `demo-debugger` agent.
+
+**NEVER use built-in `Explore` agent** - it bypasses our specialized agents.
 
 **Avoid:**
-- Running all demos
+- Running all demos yourself
 - Deep analysis of .http syntax
-- Reading many files
+- Reading many files directly
 
 ---
 

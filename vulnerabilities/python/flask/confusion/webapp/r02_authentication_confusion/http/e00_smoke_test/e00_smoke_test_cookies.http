@@ -13,46 +13,72 @@ Content-Type: application/json
     "password": "fullStackSquirr3l!"
 }
 
+@session = {{refreshCookie(response)}}
+
 ### Listing Sandy's Account Info
 GET /account/info
+Cookie: {{session}}
+
+@session = {{refreshCookie(response, session)}}
 
 ### Listing Sandy's Balance Before New Order
 GET /account/credits
+Cookie: {{session}}
 
-### Listing Sandy's Orders via Basic Auth
+@session = {{refreshCookie(response, session)}}
+
+### Listing Sandy's Orders via Cookie Auth
 GET /orders
+Cookie: {{session}}
 
+@session = {{refreshCookie(response, session)}}
 
 ### Create a new cart and add items to it
 # @name cart
 POST /cart
+Cookie: {{session}}
+
+@session = {{refreshCookie(response, session)}}
 
 ### Add items to the cart
 POST /cart/{{cart.cart_id}}/items
+Cookie: {{session}}
 Content-Type: application/json
 
 {
   "item_id": "1"
 }
 
+@session = {{refreshCookie(response, session)}}
+
 ### Checkout the cart
 # @name order
 POST /cart/{{cart.cart_id}}/checkout
+Cookie: {{session}}
 Content-Type: application/x-www-form-urlencoded
 
 tip=-1&delivery_address=Chum Backet Restaurant
 
+@session = {{refreshCookie(response, session)}}
+
 ### Refund the order: should not work, because the amount is more than the order total
 POST /orders/{{order.order_id}}/refund
+Cookie: {{session}}
 Content-Type: application/x-www-form-urlencoded
 
 amount=50
 
+@session = {{refreshCookie(response, session)}}
+
 ### Refund the order: should work
 POST /orders/{{order.order_id}}/refund
+Cookie: {{session}}
 Content-Type: application/x-www-form-urlencoded
 
 amount=1
 
+@session = {{refreshCookie(response, session)}}
+
 ### Listing Sandy's Orders via Cookies
 GET /orders
+Cookie: {{session}}

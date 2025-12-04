@@ -1,24 +1,39 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v203
 
+# Named variables for clarity
+@initial_balance = 50
+@exploit_amount = 100
+
+# Seed balance for idempotent demo
+{{
+  await seedBalance("v203", "plankton@chum-bucket.sea", initial_balance);
+  console.info("🎬 Demo: Plankton's balance seeded to $" + initial_balance);
+}}
+
+
 # Sandy fixed the vulnerability, and now data from body is ignored for updating balance if the request is not from the platform admin
 
-
-### Sandy checks her own balance
-# @name initial_balance
+### Sandy checks her own balance as a customer
 GET /account/credits
 Authorization: {{sandy_auth}}
 
-?? js response.parsedBody.email == sandy@bikinibottom.sea
+{{
+  exports.balanceBefore = parseFloat(response.parsedBody.balance);
+  console.info("💰 Balance BEFORE: $" + response.parsedBody.balance);
+}}
 
 
-### Regular customers can't add credits anymore
+### --- FIXED: Regular customers can't add credits anymore
 GET /account/credits
 Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
-user=sandy@bikinibottom.sea&amount=100
+amount={{exploit_amount}}&user=sandy@bikinibottom.sea
 
-### The balance remains unchanged
+{{
+  console.info("✅ FIXED: Balance unchanged at $" + response.parsedBody.balance);
+}}
+
 ?? status == 200
-?? js parseFloat(response.parsedBody.balance) == parseFloat(initial_balance.balance)
+?? js parseFloat(response.parsedBody.balance) == {{balanceBefore}}

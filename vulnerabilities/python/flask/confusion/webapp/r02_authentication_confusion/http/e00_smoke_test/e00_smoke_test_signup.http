@@ -2,11 +2,16 @@
 @host = {{base_host}}/v201
 @mailpit = http://127.0.0.1:8025/api/v1
 
+### Reset database for clean state
+{{
+  await resetDB("v201");
+  console.info("🔄 Database reset to clean state");
+}}
+
 ### Listing Menu Items (Public)
 GET /menu
 
 ### Create a new user: should be already taken
-# @no-cookie-jar
 POST /auth/register
 Content-Type: application/json
 
@@ -19,7 +24,6 @@ Content-Type: application/json
 
 
 ### Create a new user
-# @no-cookie-jar
 POST /auth/register
 Content-Type: application/json
 

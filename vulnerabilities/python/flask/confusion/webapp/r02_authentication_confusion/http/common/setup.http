@@ -13,7 +13,7 @@
 @platform_api_key = key-sandy-42841a8d-0e65-41db-8cce-8588c23e53dc
 @krabs_api_key = key-krusty-krub-z1hu0u8o94
 
-### @title helper: session + ids
+# Helper exports (file-level block - available via @import)
 {{
   /**
    * Extract or refresh session cookie.
@@ -43,4 +43,40 @@
    * Generate a unique email to avoid clashing with seeded fixtures.
    */
   exports.nextMail = (label = "learner") => `${label}+${Date.now()}@example.test`;
+
+  /**
+   * Seed a customer's balance to a known value (for idempotent demos).
+   * Usage: await seedBalance("v202", "plankton@chum-bucket.sea", 50)
+   * @param {string} version - API version (e.g., "v202")
+   * @param {string} email - Full email of the customer
+   * @param {number} amount - Balance to set
+   * @returns {Promise<object>} - Response JSON with new balance
+   */
+  exports.seedBalance = async (version, email, amount) => {
+    const resp = await fetch(`${base_host}/${version}/e2e/balance`, {
+      method: "POST",
+      headers: {
+        "X-E2E-API-Key": e2e_key,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ user_id: email, balance: amount }),
+    });
+    if (!resp.ok) throw new Error(`seedBalance failed: ${resp.status}`);
+    return resp.json();
+  };
+
+  /**
+   * Reset entire database to clean state (for demos with user registration).
+   * Usage: await resetDB("v201")
+   * @param {string} version - API version (e.g., "v201")
+   * @returns {Promise<object>} - Response JSON
+   */
+  exports.resetDB = async (version) => {
+    const resp = await fetch(`${base_host}/${version}/e2e/reset`, {
+      method: "POST",
+      headers: { "X-E2E-API-Key": e2e_key },
+    });
+    if (!resp.ok) throw new Error(`resetDB failed: ${resp.status}`);
+    return resp.json();
+  };
 }}

@@ -1,6 +1,6 @@
 ---
 name: uclab-tools
-description: CLI tool quick reference for Unsafe Code Lab. Auto-invoke when running tests, debugging failures, managing inheritance, checking logs, troubleshooting "Connection refused" errors, diagnosing 500 errors, or needing uctest/ucsync/httpyac/uclogs/docs command syntax. Covers all project CLI tools.
+description: CLI tool quick reference for Unsafe Code Lab. Auto-invoke when running tests, debugging failures, managing inheritance, checking logs, troubleshooting "Connection refused" errors, diagnosing 500 errors, or needing uctest/ucdemo/ucsync/uclogs/docs command syntax. Covers all project CLI tools.
 ---
 
 # Unsafe Code Lab CLI Tools
@@ -12,7 +12,7 @@ Quick reference for project CLI tools.
 | Tool | Purpose | Used For |
 |------|---------|----------|
 | `uctest` | E2E spec runner | `spec/vNNN/` files ONLY |
-| `httpyac` | HTTP client | Interactive demos ONLY |
+| `ucdemo` | Demo runner | Interactive demos in `vulnerabilities/.../http/` |
 | `ucsync` | Inheritance manager | `spec.yml` sync |
 | `uclogs` | Docker log viewer | Debugging server issues |
 | `uv run docs` | Doc generator | README generation |
@@ -67,22 +67,58 @@ uctest v301/ --tag happy
 - `✓` = Test passed
 - `✗` = Test failed (shows expected vs actual)
 
-## httpyac - Interactive Demo Runner
+## ucdemo - Interactive Demo Runner
 
-Run interactive demos in `vulnerabilities/.../http/` directories.
+**ALWAYS use `ucdemo` for demos.** It wraps httpyac with sensible defaults.
 
 ```bash
-# Run all requests in file
-httpyac file.http -a
+# Run all demos in a section
+ucdemo r02
 
-# Run single request (by name/line)
-httpyac file.http -n "SpongeBob checks messages"
+# Run specific exercise demos
+ucdemo r02/e03
 
-# Verbose output
-httpyac file.http -a -v
+# Run single file
+ucdemo path/to/demo.http
 
-# Output response bodies
-httpyac file.http -a --output-responses
+# Stop on first failure (for debugging)
+ucdemo r02 --bail
+
+# Keep going to see ALL failures (for analysis)
+ucdemo r02 -k
+
+# Verbose output (show all request/response exchanges)
+ucdemo r02 -v
+
+# Full help
+ucdemo --help
+```
+
+### What ucdemo Does Automatically
+
+1. **Finds config:** Locates `.httpyac.js` and runs from correct directory
+2. **Isolates failures:** Runs each file separately to prevent cascading errors
+3. **Shows debug info:** On failure, shows request/response exchange + docker logs
+4. **Reports summary:** Pass/fail counts with failed file list
+
+### Output Example
+
+```
+Running 14 demo file(s) in: vulnerabilities/.../r02/http
+
+  e01_session_hijack.exploit.http                   PASS
+  e01_session_hijack.fixed.http                     PASS
+  e02_credit_top_ups.exploit.http                   FAIL
+
+─── Failure Details: e02_credit_top_ups.exploit.http ───
+✖ status == 200 (AssertionError: status (401) == 200)
+───────────────────────────────────────────
+
+─── Docker Compose Logs (last 30 lines) ───
+app-1    | Invalid credentials for plankton@...
+────────────────────────────────────────────
+
+Summary: 2 passed, 1 failed (of 3 files)
 ```
 
 ### Demo Locations
@@ -211,9 +247,9 @@ ucsync v301 --check
 
 ```bash
 # 1. Run the demo
-httpyac vulnerabilities/.../http/e03/e03_exploit.http -a
+ucdemo r02/e03
 
-# 2. Check server processed correctly
+# 2. If failures, check docker logs (ucdemo shows them automatically)
 uclogs --since 1m
 
 # 3. Regenerate docs if annotations changed
@@ -238,7 +274,7 @@ uclogs --level error
 | Task | Tool |
 |------|------|
 | Run E2E tests | `uctest` |
-| Run student demos | `httpyac` |
+| Run student demos | `ucdemo` |
 | Fix "ref not found" | `ucsync` |
 | Debug 500 errors | `uclogs` |
 | Update READMEs | `uv run docs` |

@@ -6,6 +6,52 @@ argument-hint: [target-version-or-path]
 
 # Scope Spec Work: $ARGUMENTS
 
+---
+
+## ⛔⛔⛔ CRITICAL RESTRICTIONS - READ FIRST ⛔⛔⛔
+
+### 1. PLAN MODE CHECK
+
+**IF Plan Mode is active → STOP IMMEDIATELY.**
+
+```
+ERROR: This command is incompatible with Plan Mode.
+Please restart without Plan Mode enabled.
+```
+
+### 2. BUILT-IN AGENTS ARE BANNED
+
+**I MUST NEVER spawn these built-in subagent types:**
+
+| Banned Agent | Why |
+|--------------|-----|
+| `Explore` | ❌ Bypasses our specialized agents |
+| `Plan` | ❌ Interferes with command workflow |
+| `general-purpose` | ❌ No domain skills |
+
+### 3. I AM A DUMB ROUTER
+
+**My ONLY job is to:**
+1. Ask clarifying questions (via `AskUserQuestion`)
+2. Delegate to project agents for any analysis
+3. Summarize agent reports for the user
+
+**I do NOT:**
+- ❌ Read `.http` files
+- ❌ Read skill or reference files
+- ❌ Analyze anything myself
+- ❌ Run bash commands beyond trivial `ls`
+
+### 4. ALLOWED AGENTS (ONLY THESE)
+
+| Task | Agent |
+|------|-------|
+| Quick spec health check | `spec-runner` (dry-run) |
+| Detailed analysis | `spec-debugger` |
+| Execute fixes | `/spec/fix` → appropriate agents |
+
+---
+
 ## ⚠️ DIALOG FIRST - DO NOT EXECUTE YET ⚠️
 
 This command establishes scope through conversation BEFORE expensive execution.
@@ -40,18 +86,16 @@ Before any research, ask the user:
 
 Only after clarifying requirements, do **minimal** exploration:
 
-```bash
-# Quick health check - NOT full test run
-uctest $ARGUMENTS --dry-run 2>&1 | head -20
-ucsync --check 2>&1 | head -10
-```
+**Delegate to `spec-runner`** for quick health check:
+- Dry-run mode to see execution plan
+- Check ucsync status
 
-Use `Explore` agent with `"quick"` thoroughness if needed.
+**NEVER use built-in `Explore` agent** - it bypasses our specialized agents.
 
 **Avoid:**
-- Running full test suites
+- Running full test suites yourself
 - Deep code analysis
-- Reading many files
+- Reading many files directly
 
 ---
 

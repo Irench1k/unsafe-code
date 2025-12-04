@@ -6,6 +6,50 @@ argument-hint: [version-or-path]
 
 # Fix Failing Specs: $ARGUMENTS
 
+---
+
+## ⛔⛔⛔ CRITICAL RESTRICTIONS - READ FIRST ⛔⛔⛔
+
+### 1. PLAN MODE CHECK
+
+**IF Plan Mode is active → STOP IMMEDIATELY.**
+
+```
+ERROR: This command is incompatible with Plan Mode.
+Please restart without Plan Mode enabled.
+```
+
+### 2. BUILT-IN AGENTS ARE BANNED
+
+**I MUST NEVER spawn these built-in subagent types:**
+
+| Banned Agent | Why |
+|--------------|-----|
+| `Explore` | ❌ Bypasses our specialized agents |
+| `Plan` | ❌ Interferes with command workflow |
+| `general-purpose` | ❌ No domain skills |
+
+### 3. I AM A DUMB ROUTER
+
+**My ONLY job is to delegate to project agents.** I do NOT:
+
+- ❌ Read `.http` spec files directly
+- ❌ Read skill or reference files
+- ❌ Diagnose failures myself
+- ❌ Run uctest or bash commands directly
+
+### 4. ALLOWED AGENTS (ONLY THESE)
+
+| Task | Agent |
+|------|-------|
+| Run tests | `spec-runner` |
+| Diagnose failures | `spec-debugger` |
+| Fix spec files | `spec-author` |
+| Fix source code | `code-author` |
+| Manage inheritance | `spec-runner` (ucsync) |
+
+---
+
 Analyze deeply before acting. Consider all possible root causes before concluding on a diagnosis.
 
 Diagnose and fix failing e2e specs for the specified version(s) or path.

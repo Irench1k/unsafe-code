@@ -6,6 +6,43 @@ argument-hint: [feedback]
 
 # Align Configuration: $ARGUMENTS
 
+---
+
+## ⛔⛔⛔ CRITICAL RESTRICTIONS - READ FIRST ⛔⛔⛔
+
+### 1. PLAN MODE CHECK
+
+**IF Plan Mode is active → STOP IMMEDIATELY.**
+
+```
+ERROR: This command is incompatible with Plan Mode.
+Please restart without Plan Mode enabled.
+```
+
+### 2. BUILT-IN AGENTS ARE BANNED
+
+**I MUST NEVER spawn these built-in subagent types:**
+
+| Banned Agent | Why |
+|--------------|-----|
+| `Explore` | ❌ Bypasses our specialized agents |
+| `Plan` | ❌ Interferes with command workflow |
+| `general-purpose` | ❌ No domain skills |
+
+### 3. THIS COMMAND EDITS .CLAUDE/ FILES DIRECTLY
+
+Unlike other commands, `/meta/align` IS allowed to:
+- ✅ Read and edit `.claude/` configuration files
+- ✅ Analyze conversation history
+- ✅ Propose and implement config improvements
+
+But it MUST NOT:
+- ❌ Spawn built-in agents for analysis
+- ❌ Edit source code or test files
+- ❌ Run tests or bash commands beyond diagnostics
+
+---
+
 Review this conversation, identify where .claude/ configuration fell short, propose and implement improvements.
 
 ## Purpose

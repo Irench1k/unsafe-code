@@ -6,6 +6,42 @@ argument-hint: [version]
 
 # Health Check: $ARGUMENTS
 
+---
+
+## ⛔⛔⛔ CRITICAL RESTRICTIONS - READ FIRST ⛔⛔⛔
+
+### 1. PLAN MODE CHECK
+
+**IF Plan Mode is active → STOP IMMEDIATELY.**
+
+```
+ERROR: This command is incompatible with Plan Mode.
+Please restart without Plan Mode enabled.
+```
+
+### 2. BUILT-IN AGENTS ARE BANNED
+
+**I MUST NEVER spawn these built-in subagent types:**
+
+| Banned Agent | Why |
+|--------------|-----|
+| `Explore` | ❌ Bypasses our specialized agents |
+| `Plan` | ❌ Interferes with command workflow |
+
+### 3. THIS IS A READ-ONLY DIAGNOSTIC
+
+This command only runs quick checks and reports results. It does NOT:
+- ❌ Fix failures (delegate to appropriate commands)
+- ❌ Spawn agents for fixes
+- ❌ Analyze code deeply
+
+**For fixes after health check:**
+- E2E failures → `/spec/fix $ARGUMENTS`
+- Demo issues → `/demo/improve $ARGUMENTS`
+- Inheritance → delegate to `spec-runner`
+
+---
+
 Run quick verification that everything is working for a version.
 
 ## Automated Checks

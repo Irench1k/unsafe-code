@@ -7,6 +7,22 @@ description: Interactive demo conventions for httpyac. Covers response.parsedBod
 
 Patterns for `.http` files in `vulnerabilities/.../http/` directories, run with **httpyac** (NOT uctest).
 
+## ⚠️ MANDATORY: Read Style Philosophy FIRST
+
+**Before editing ANY demo, read:** `.claude/references/demo-style-philosophy.md`
+
+It defines:
+- Post-request element ordering (session → vars → asserts → logs)
+- When to use console.info (2-3 strategic placements, not 7+)
+- Section markers (only for complex demos >4 requests)
+- Preserving existing quality (surgical changes)
+
+**TL;DR:**
+- `GET /path` not `GET {{host}}/path` (httpyac auto-prefixes from `@host`)
+- Every line must justify its existence
+- CLEAN > VERBOSE - fewer lines, less noise
+- 2-3 console.info max per file, at key state transitions
+
 ## Key Differences from E2E Specs
 
 | Aspect | Demo (this skill) | E2E Spec |
@@ -42,7 +58,7 @@ Patterns for `.http` files in `vulnerabilities/.../http/` directories, run with 
 ```http
 @plankton_auth = Basic plankton@chum-bucket.sea:i_love_my_wife
 
-GET {{host}}/orders
+GET /orders
 Authorization: {{plankton_auth}}
 ```
 
@@ -50,7 +66,7 @@ Authorization: {{plankton_auth}}
 ```http
 @krabs_api_key = key-krusty-krub-z1hu0u8o94
 
-GET {{host}}/orders
+GET /orders
 X-API-Key: {{krabs_api_key}}
 ```
 
@@ -68,7 +84,7 @@ Use `refreshCookie()` helper for session management:
 ```http
 ### Login
 # @name login
-POST {{host}}/auth/login
+POST /auth/login
 Content-Type: application/json
 
 {"email": "plankton@chum-bucket.sea", "password": "i_love_my_wife"}
@@ -76,15 +92,17 @@ Content-Type: application/json
 @session = {{refreshCookie(login)}}
 
 ### Use session
-GET {{host}}/account/info
+GET /account/info
 Cookie: {{session}}
 
 @session = {{refreshCookie(response, session)}}
 
 ### Another request using updated session
-GET {{host}}/orders
+GET /orders
 Cookie: {{session}}
 ```
+
+**⚠️ CRITICAL:** The `refreshCookie()` helper must be in a **file-level** JS block (no `###` before it) in `common/setup.http` to be available via `@import`. See `http-syntax` skill for details on JS block scoping.
 
 **refreshCookie() behavior:**
 - Returns new cookie if Set-Cookie header present
@@ -111,7 +129,7 @@ Use E2E endpoint at demo start to reset state:
 @e2e_key = e2e-test-key-unsafe-code-lab
 
 ### Reset Plankton's balance for demo
-POST {{host}}/e2e/balance
+POST /e2e/balance
 X-E2E-API-Key: {{e2e_key}}
 Content-Type: application/json
 
@@ -122,34 +140,43 @@ Content-Type: application/json
 
 **⚠️ DO NOT use `POST /account/credits` for reset—it increments, not sets!**
 
-## Console.info for State Transitions
+## Console.info: Strategic Use Only
 
-Make hidden state visible to students:
+**Target:** 2-3 per demo file. See philosophy doc for full guidance.
+
+### ✅ Good Uses
 
 ```http
 ### Check balance before exploit
-# @name before
-GET {{host}}/account/credits
+GET /account/credits
 Authorization: {{plankton_auth}}
 
 {{
-  console.info(`💰 Plankton's balance BEFORE: $${response.parsedBody.balance}`);
+  exports.balanceBefore = parseFloat(response.parsedBody.balance);
+  console.info("💰 Balance BEFORE: $" + response.parsedBody.balance);
 }}
 
-### [EXPLOIT HAPPENS HERE]
-...
-
-### Check balance after exploit
-GET {{host}}/account/credits
+### After exploit - summarize impact
+GET /account/credits
 Authorization: {{plankton_auth}}
 
-{{
-  const after = response.parsedBody.balance;
-  console.info(`💰 Plankton's balance AFTER: $${after}`);
-  console.info(`📈 Gained: $${after - before.balance} (should not be possible!)`);
-}}
+?? js parseFloat(response.parsedBody.balance) > {{balanceBefore}}
 
-?? js parseFloat(response.parsedBody.balance) > {{parseFloat(before.balance)}}
+{{
+  console.info("📈 Free food worth $" + order_total + "!");
+}}
+```
+
+### ❌ Avoid
+
+```http
+# Don't echo what assertion already shows
+?? body email == plankton@chum-bucket.sea
+{{ console.info("Logged in as:", response.parsedBody.email); }}  // REDUNDANT
+
+# Don't narrate every step
+{{ console.info("Step 1..."); }}
+{{ console.info("Step 2..."); }}  // TOO MANY
 ```
 
 ## Named Variables for Magic Numbers
@@ -188,8 +215,10 @@ vulnerabilities/.../http/
 
 ## common/setup.http Template
 
+**⚠️ CRITICAL:** The `{{ }}` block must be at FILE LEVEL (no `###` before it) to export `refreshCookie()` globally.
+
 ```http
-# @title Section shared setup
+# Section shared setup
 @base_host = http://localhost:8000/api
 
 # E2E key for state reset
@@ -205,6 +234,7 @@ vulnerabilities/.../http/
 @platform_api_key = key-sandy-42841a8d-0e65-41db-8cce-8588c23e53dc
 @krabs_api_key = key-krusty-krub-z1hu0u8o94
 
+# ⚠️ NO ### before this block - must be file-level for @import to work!
 {{
   /**
    * Extract or refresh session cookie.
@@ -227,12 +257,37 @@ vulnerabilities/.../http/
 - **Squidward** attacks SpongeBob (petty revenge)
 - **SpongeBob** is NEVER an attacker
 
-### Exploit Narrative Flow
-1. Show legitimate usage (optional)
-2. Clear marker: `### --- EXPLOIT ---`
-3. Attacker performs attack with their own auth
-4. Assertion proves attack succeeded
-5. Show business impact (balance changed, data accessed)
+See `spongebob-characters` skill for full character profiles.
+
+### Section Markers (Complexity-Based)
+
+**Simple demos (≤4 requests):** No markers needed - flow is obvious.
+
+**Complex demos (>4 requests, mixed stages):**
+```http
+# --- Legitimate Usage ---
+
+### Sandy demonstrates normal flow
+...
+
+
+# --- EXPLOIT ---
+
+### Plankton discovers the loophole
+...
+```
+
+Place marker as standalone `#` comment ABOVE the `###` title.
+
+### exploit.http vs fixed.http
+
+| Aspect | exploit.http | fixed.http |
+|--------|--------------|------------|
+| Actor | Attacker (Plankton) | Sandy (testing fix) |
+| Flow | Same sequence | Same sequence |
+| Outcome | Attack succeeds | Attack blocked |
+
+**Parallel structure** makes comparison easy.
 
 ### Keep It Simple
 - One concept per demo

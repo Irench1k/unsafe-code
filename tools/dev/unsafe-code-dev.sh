@@ -328,6 +328,16 @@ uclint() {
 }
 
 # ================================
+# Interactive Demo Testing
+# ================================
+
+# Interactive demo runner for httpyac .http files
+# Use `ucdemo --help` for full documentation
+ucdemo() {
+    "$UNSAFE_CODE_ROOT/tools/dev/ucdemo" "$@"
+}
+
+# ================================
 # Helpful Aliases
 # ================================
 
@@ -377,6 +387,14 @@ Spec Linting:
   uclint v302            Lint specific version
   uclint --all           Lint all versions
   uclint --strict        Exit non-zero on any issue (for CI)
+
+Interactive Demo Testing (httpyac .http files):
+  ucdemo r02             Run all demos in r02 section
+  ucdemo r02/e03         Run demos in r02, exercise 03
+  ucdemo r02 --bail      Stop on first failure (for debugging)
+  ucdemo r02 -k          Keep going on failures (for analysis)
+  ucdemo r02 -v          Verbose output (show all exchanges)
+  ucdemo --help          Full documentation
 
 Focus Management:
   ucfocus r02/e03        Focus VSCode on round 2, example 3

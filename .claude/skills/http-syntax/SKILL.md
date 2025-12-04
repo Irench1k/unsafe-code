@@ -39,6 +39,21 @@ Content-Type: application/json
 @plankton_email = plankton@chum-bucket.sea
 ```
 
+### @host Auto-Prefix (httpyac)
+
+When `@host` is defined, httpyac **automatically** prefixes all request URLs:
+
+```http
+@host = http://localhost:8000/api/v201
+
+### This WORKS - no {{host}} needed!
+GET /orders
+POST /auth/login
+```
+
+❌ **DO NOT** write `GET {{host}}/orders` - it adds visual noise
+✅ **DO** write `GET /orders` - cleaner, httpyac handles the prefix
+
 ### Computed Variables
 ```http
 @plankton_auth = Basic {{btoa(plankton_email + ":" + plankton_password)}}
@@ -64,7 +79,7 @@ POST {{host}}/cart/{{cart_id}}/items
   console.info("Starting request...");
   exports.timestamp = Date.now();
 }}
-POST {{host}}/endpoint
+POST /endpoint
 
 {{
   // Runs AFTER request (for logging, NOT assertions)
@@ -76,6 +91,34 @@ POST {{host}}/endpoint
 - Auto-await Promises
 - Export with `exports.foo = ...`
 - Use for seeding, capturing pre-state, logging
+
+### ⚠️ File-Level vs Request-Level Blocks (CRITICAL)
+
+httpyac has **TWO types** of `{{ }}` blocks with **different scoping**:
+
+**File-level JS block** (NO `###` before it):
+```http
+@host = http://localhost:8000/api
+
+{{
+  // Runs ONCE at file load time
+  // Exports are GLOBALLY available to @import-ing files
+  exports.refreshCookie = (resp) => { ... };
+}}
+```
+
+**Request-level JS block** (AFTER a `###` line):
+```http
+### Some Request
+{{
+  // Runs for THIS request only
+  // Exports NOT available via @import!
+  exports.someValue = ...;
+}}
+GET /path
+```
+
+**Key insight:** To share helpers via `@import`, put the `{{ }}` block at FILE LEVEL (no `###` before it).
 
 ## Assertions `?? js` / `?? status` / `?? body`
 
@@ -150,7 +193,7 @@ GET /users/{{setup_user.id}}
 @session = {{refreshCookie(response)}}                  # Demos with cookies
 ```
 
-Scope: same file only, not across imports.
+**Scope:** Variables are file-local. However, exports from **file-level** `{{ }}` blocks (no `###` before them) ARE available via `@import`. See "File-Level vs Request-Level Blocks" above.
 
 ## Tags (Specs Only)
 

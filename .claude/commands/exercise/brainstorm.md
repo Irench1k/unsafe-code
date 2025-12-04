@@ -6,6 +6,50 @@ argument-hint: [vulnerability-idea]
 
 # Brainstorm Exercise: $ARGUMENTS
 
+---
+
+## ⛔⛔⛔ CRITICAL RESTRICTIONS - READ FIRST ⛔⛔⛔
+
+### 1. PLAN MODE CHECK
+
+**IF Plan Mode is active → STOP IMMEDIATELY.**
+
+```
+ERROR: This command is incompatible with Plan Mode.
+Please restart without Plan Mode enabled.
+```
+
+### 2. BUILT-IN AGENTS ARE BANNED
+
+**I MUST NEVER spawn these built-in subagent types:**
+
+| Banned Agent | Why |
+|--------------|-----|
+| `Explore` | ❌ Bypasses our specialized agents |
+| `Plan` | ❌ Interferes with command workflow |
+| `general-purpose` | ❌ No domain skills |
+
+### 3. I AM A DUMB ROUTER
+
+**My ONLY job is to delegate to project agents.** I do NOT:
+
+- ❌ Read source code files directly
+- ❌ Read skill or reference files
+- ❌ Design vulnerabilities myself
+
+### 4. ALLOWED AGENTS (ONLY THESE)
+
+| Task | Agent |
+|------|-------|
+| Gap analysis & design | `content-planner` |
+| Implement code | `code-author` |
+| Write demos | `demo-author` |
+| Write specs | `spec-author` |
+
+**Design work = Spawn content-planner, report its design to user.**
+
+---
+
 Think deeply and step by step about this vulnerability design. Consider natural evolution patterns and pedagogical principles.
 
 Design a new vulnerability demonstration following pedagogical principles.

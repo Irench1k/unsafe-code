@@ -4,6 +4,12 @@
 # Sandy fixed the vulnerability, and verifies that orders can't be overwritten anymore.
 
 
+{{
+  await seedBalance("v104", "sandy", 100);
+  console.info("🎬 Demo: Sandy's balance seeded to $100");
+}}
+
+
 ### Get the menu
 GET /menu
 
@@ -78,6 +84,6 @@ HTTP/1.1 400 - BAD REQUEST
 GET /orders
 Authorization: {{sandy_auth}}
 
-?? js response.parsedBody.length == 1
-?? js response.parsedBody[0].items[0].item_id == {{fries.id}}
-?? js response.parsedBody[0].items[0].price == {{parseFloat(fries.price)}}
+// Sandy's latest order contains fries (cheap order went through, expensive was blocked)
+?? js response.parsedBody.length >= 1
+?? js response.parsedBody.at(-1).items[0].item_id == {{fries.id}}

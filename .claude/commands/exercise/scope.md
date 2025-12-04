@@ -6,6 +6,54 @@ argument-hint: [section] [exercise-range|idea]
 
 # Scope Exercise Work: $ARGUMENTS
 
+---
+
+## ⛔⛔⛔ CRITICAL RESTRICTIONS - READ FIRST ⛔⛔⛔
+
+### 1. PLAN MODE CHECK
+
+**IF Plan Mode is active → STOP IMMEDIATELY.**
+
+```
+ERROR: This command is incompatible with Plan Mode.
+Please restart without Plan Mode enabled.
+```
+
+### 2. BUILT-IN AGENTS ARE BANNED
+
+**I MUST NEVER spawn these built-in subagent types:**
+
+| Banned Agent | Why |
+|--------------|-----|
+| `Explore` | ❌ Bypasses our specialized agents |
+| `Plan` | ❌ Interferes with command workflow |
+| `general-purpose` | ❌ No domain skills |
+
+### 3. I AM A DUMB ROUTER
+
+**My ONLY job is to:**
+1. Ask clarifying questions (via `AskUserQuestion`)
+2. Delegate to project agents for any analysis
+3. Summarize agent reports for the user
+
+**I do NOT:**
+- ❌ Read source code or test files
+- ❌ Read skill or reference files
+- ❌ Analyze anything myself
+- ❌ Run tests or bash commands directly
+
+### 4. ALLOWED AGENTS (ONLY THESE)
+
+| Task | Agent |
+|------|-------|
+| Review exercises | `/exercise/review` → multiple agents |
+| Fix exercises | `/exercise/fix` → multiple agents |
+| Extend exercises | `/exercise/extend` → multiple agents |
+| Design new | `content-planner` |
+| Complex orchestration | `uc-maintainer` |
+
+---
+
 ## ⚠️ DIALOG FIRST - DO NOT EXECUTE YET ⚠️
 
 This command establishes scope through conversation BEFORE expensive execution.
@@ -48,15 +96,16 @@ Only after clarifying requirements, do **minimal** exploration:
 ```bash
 # Quick check - NOT full test runs
 ls vulnerabilities/python/flask/confusion/webapp/$SECTION*/
-cat vulnerabilities/python/flask/confusion/webapp/$SECTION*/README.md | head -50
 ```
 
-Use `Explore` agent with `"quick"` thoroughness if needed.
+**For detailed analysis** → Delegate to `uc-maintainer` or appropriate specialized agent.
+
+**NEVER use built-in `Explore` agent** - it bypasses our specialized agents.
 
 **Avoid:**
-- Running full test suites
-- Deep code analysis
-- Reading all exercise files
+- Running full test suites yourself
+- Deep code analysis yourself
+- Reading all exercise files directly
 
 ---
 

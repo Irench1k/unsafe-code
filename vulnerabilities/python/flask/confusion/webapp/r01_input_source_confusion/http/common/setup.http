@@ -19,27 +19,14 @@
 
 @krabs_api_key = key-krusty-krub-z1hu0u8o94
 
-### @title helper: menu pickers
+# Helper exports (file-level block - available via @import)
 {{
-  /**
-   * Extract or refresh session cookie.
-   * Returns new cookie if Set-Cookie present, otherwise returns existing.
-   * Usage: @session = {{refreshCookie(response)}}
-   *    or: @session = {{refreshCookie(response, session)}}
-   */
-  exports.refreshCookie = (resp, existing = "") => {
-    const raw = resp?.headers?.["set-cookie"];
-    if (!raw) return existing;
-    const cookieHeader = Array.isArray(raw) ? raw[0] : raw;
-    return cookieHeader.split(";")[0];
-  };
-
   /**
    * Pick representative menu items for exploit/happy-path flows.
    */
   exports.pickMenuExtremes = (menu) => {
-    const cheap = menu.find(i => i.price < 5);
-    const expensive = [...menu].reverse().find(i => i.price > 15);
+    const cheap = menu.find(i => parseFloat(i.price) < 5);
+    const expensive = [...menu].reverse().find(i => parseFloat(i.price) > 15);
     return { cheap, expensive };
   };
 
@@ -53,9 +40,36 @@
   };
 
   /**
-   * Quick unique email generator to avoid clashing with seeded data.
+   * Reset entire database to clean state (for demos with user registration).
+   * Usage: await resetDB("v101")
+   * @param {string} version - API version (e.g., "v101")
    */
-  exports.nextMail = (label = "learner") => {
-    return `${label}+${Date.now()}@example.test`;
+  exports.resetDB = async (version) => {
+    const resp = await fetch(`${base_host}/${version}/e2e/reset`, {
+      method: "POST",
+      headers: { "X-E2E-API-Key": e2e_key },
+    });
+    if (!resp.ok) throw new Error(`resetDB failed: ${resp.status}`);
+    return resp.json();
+  };
+
+  /**
+   * Seed a customer's balance to a known value (for idempotent demos).
+   * Usage: await seedBalance("v101", "plankton", 50)  // r01 uses nicknames!
+   * @param {string} version - API version
+   * @param {string} userId - Nickname in r01 (e.g., "plankton"), email in r02+
+   * @param {number} amount - Balance to set
+   */
+  exports.seedBalance = async (version, userId, amount) => {
+    const resp = await fetch(`${base_host}/${version}/e2e/balance`, {
+      method: "POST",
+      headers: {
+        "X-E2E-API-Key": e2e_key,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ user_id: userId, balance: amount }),
+    });
+    if (!resp.ok) throw new Error(`seedBalance failed: ${resp.status}`);
+    return resp.json();
   };
 }}

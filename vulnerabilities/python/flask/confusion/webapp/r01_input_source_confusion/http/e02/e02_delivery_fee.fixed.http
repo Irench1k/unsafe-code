@@ -1,7 +1,14 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v103
 
-### Sandy fixes the vulnerability, so now the delivery fee is calculated correctly.
+# Sandy fixes the delivery fee bypass vulnerability.
+
+{{
+  await seedBalance("v103", "sandy", 100);
+  console.info("Demo: Sandy starts with $100 balance");
+}}
+
+### Get menu items for the demo
 GET /menu
 
 @cheap_item = {{response.parsedBody.find(i => parseFloat(i.price) < 10)}}

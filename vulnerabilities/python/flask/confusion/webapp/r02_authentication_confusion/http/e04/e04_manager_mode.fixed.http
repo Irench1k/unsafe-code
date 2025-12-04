@@ -1,28 +1,40 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v205
 
-# Sandy fixed the vulnerability, and now API key is validated before the request is processed.
+# Sandy fixed the vulnerability: API key is validated before setting manager mode.
 
-### --- Legitimate Usage: Mr. Krabs can see orders from all customers ---
-# @name all_orders
+### Mr. Krabs views all orders (legitimate manager access)
+# @name manager_orders
 GET /orders
 X-API-Key: {{krabs_api_key}}
 
-?? status == 200
+{{
+  const users = [...new Set(response.parsedBody.map(o => o.user_id))];
+  console.info("Manager sees", response.parsedBody.length, "orders from:", users.join(", "));
+}}
 
+?? js response.parsedBody.length > 1
 
-### Customers can only see their own orders
+### Plankton views his own orders (regular customer)
+# @name plankton_orders
 GET /orders
-Authorization: {{sandy_auth}}
+Authorization: {{plankton_auth}}
+
+{{
+  console.info("Plankton normally sees", response.parsedBody.length, "order (just his own)");
+}}
 
 ?? status == 200
-?? js response.parsedBody.length < {{all_orders.length}}
+?? js response.parsedBody.length < {{manager_orders.length}}
 
-
-### API key is validated before the request is processed
+### Plankton tries fake API key (blocked!)
 GET /orders
-Authorization: {{sandy_auth}}
+Authorization: {{plankton_auth}}
 X-API-Key: fake
 
+{{
+  console.info("BLOCKED: Plankton still sees only", response.parsedBody.length, "order (fake key ignored)");
+}}
+
 ?? status == 200
-?? js response.parsedBody.length < {{all_orders.length}}
+?? js response.parsedBody.length == {{plankton_orders.length}}

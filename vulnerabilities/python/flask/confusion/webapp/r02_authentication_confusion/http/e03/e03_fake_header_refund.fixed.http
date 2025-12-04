@@ -1,60 +1,70 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v204
 
-# Sandy fixed the vulnerability, and rechecks it
+# Sandy fixed the vulnerability: now the server validates that the API key
+# actually belongs to a registered restaurant before processing refund approvals.
 
-### Record Sandy's balance
-# @name initial_balance
-GET /account/credits
-Authorization: {{sandy_auth}}
+{{
+  await seedBalance("v204", "sandy@bikinibottom.sea", 100);
+  exports.balanceBefore = 100;
+  console.info("💰 Balance BEFORE: $100");
+}}
 
-### Sandy creates a cart to test the refund validation
-# @name cart
+### Fetch menu to pick an item
+GET /menu
+
+{{
+  exports.kelp = response.parsedBody.find(i => i.name.includes("Kelp"));
+}}
+
+### Create cart and checkout
 POST /cart
 Authorization: {{sandy_auth}}
 
+@cart_id = {{response.parsedBody.cart_id}}
+
 ###
-POST /cart/{{cart.cart_id}}/items
+POST /cart/{{cart_id}}/items
 Authorization: {{sandy_auth}}
 Content-Type: application/json
 
-{ "item_id": "6" }
+{"item_id": "{{kelp.id}}"}
 
-###
-# @name order
-POST /cart/{{cart.cart_id}}/checkout
+### Checkout
+POST /cart/{{cart_id}}/checkout
 Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
 tip=1&delivery_address=Treedome Research Lab
 
-###
-POST /orders/{{order.order_id}}/refund
+{{
+  exports.order_total = parseFloat(response.parsedBody.total);
+  exports.order_id = response.parsedBody.order_id;
+}}
+
+### Request refund
+POST /orders/{{order_id}}/refund
 Authorization: {{sandy_auth}}
 Content-Type: application/x-www-form-urlencoded
 
-amount={{order.total}}
+amount={{order_total}}
 
-
-### Self-approval does not work anymore!
-PATCH /orders/{{order.order_id}}/refund/status
+### Try self-approval with fake API key - should fail now!
+PATCH /orders/{{order_id}}/refund/status
 Authorization: {{sandy_auth}}
 X-API-Key: trust_me_bro
 Content-Type: application/x-www-form-urlencoded
 
 status=approved
 
-# The request is rejected
-HTTP/1.1 400 Bad Request
-{
-  "error": "Authentication required"
-}
-
 ?? status >= 400
 
-###
-GET /orders/{{order.order_id}}/refund/status
+### Verify refund still pending (not approved)
+GET /orders/{{order_id}}/refund/status
 Authorization: {{sandy_auth}}
 
-?? status == 200
-?? js response.parsedBody.status != approved
+?? body status != approved
+
+{{
+  console.info("✅ Fix verified: fake API key rejected, refund still pending");
+}}

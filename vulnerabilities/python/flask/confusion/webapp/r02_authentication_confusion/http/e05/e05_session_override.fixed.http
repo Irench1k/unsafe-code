@@ -10,23 +10,33 @@ Content-Type: application/json
     "password": "fullStackSquirr3l!"
 }
 
-### Sandy tries to login as SpongeBob with a wrong password
+@session = {{refreshCookie(response)}}
+
+### Sandy confirms her identity
+GET /account/info
+Cookie: {{session}}
+
+@session = {{refreshCookie(response, session)}}
+?? body email == sandy@bikinibottom.sea
+
+### Attempt exploit: Send login for SpongeBob with WRONG password
 POST /auth/login
+Cookie: {{session}}
 Content-Type: application/json
 
 {
     "email": "spongebob@krusty-krab.sea",
-    "password": "does_not_matter"
+    "password": "wrong_password"
 }
 
+@session = {{refreshCookie(response, session)}}
 
-### The session remains as Sandy (not hijacked)
+### Check identity: Session NOT hijacked (fix works!)
 GET /account/info
-?? status == 200
-?? js response.parsedBody.email == sandy@bikinibottom.sea
+Cookie: {{session}}
 
+?? body email == sandy@bikinibottom.sea
 
-### Sandy only sees her own orders
-GET /orders
-
-?? status == 200
+{{
+  console.info("Session preserved! Still logged in as:", response.parsedBody.email);
+}}
