@@ -3,6 +3,19 @@
 
 # Sandy fixed the vulnerability by taking the absolute value of the tip.
 
+# Seed low balance so that abs(-50) tip makes order unaffordable
+{{
+  await seedBalance("v105", "sandy", 50);
+}}
+
+
+### Fetch menu to get item details
+GET /menu
+
+{{
+  exports.coral_bits = response.parsedBody.find(i => i.name.includes("Coral"));
+}}
+
 
 ### She creates a cart to test the fix
 # @name cart
@@ -15,7 +28,7 @@ POST /cart/{{cart.cart_id}}/items
 Authorization: {{sandy_auth}}
 Content-Type: application/json
 
-{ "item_id": "2" }
+{ "item_id": "{{coral_bits.id}}" }
 
 
 ### Sandy tries the negative tip trick

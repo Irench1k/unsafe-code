@@ -6,7 +6,6 @@
 
 {{
   await seedBalance("v104", "sandy", 100);
-  console.info("🎬 Demo: Sandy's balance seeded to $100");
 }}
 
 

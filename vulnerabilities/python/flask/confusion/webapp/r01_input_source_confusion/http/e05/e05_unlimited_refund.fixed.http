@@ -3,6 +3,17 @@
 
 # Sandy fixed the vulnerability, and now Plankton can't request a unlimited refund anymore.
 
+{{
+  await seedBalance("v106", "sandy", 100);
+}}
+
+
+### Fetch menu to get item details
+GET /menu
+
+{{
+  exports.krabby_patty = response.parsedBody.find(i => i.name.includes("Krabby Patty") && !i.name.includes("Ultimate"));
+}}
 
 
 ### Sandy creates a cart to test the refund validation
@@ -16,7 +27,7 @@ POST /cart/{{cart.cart_id}}/items
 Authorization: {{sandy_auth_email}}
 Content-Type: application/json
 
-{ "item_id": "4" }
+{ "item_id": "{{krabby_patty.id}}" }
 
 
 ### And finishes check out

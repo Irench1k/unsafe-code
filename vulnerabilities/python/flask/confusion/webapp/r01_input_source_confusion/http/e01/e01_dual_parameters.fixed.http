@@ -3,10 +3,12 @@
 
 # Sandy fixes the vulnerability: the legacy `item` parameter is now ignored.
 
-### Reset Sandy's balance for idempotent demo
 {{
   await seedBalance("v102", "sandy", 100);
 }}
+
+
+### Check Sandy's balance (seeded for idempotent demo)
 GET /account/credits
 Authorization: {{sandy_auth}}
 

@@ -38,6 +38,50 @@ It defines:
 ❌ `$(response)` is **undefined** in demos
 ❌ `auth.basic()` is **unavailable** in demos
 
+## Variable Definition Patterns
+
+**Three patterns, each for a specific use case:**
+
+| Pattern | When to Use | Example |
+|---------|-------------|---------|
+| `@var = value` | Static config, constants | `@host = {{base_host}}/v203` |
+| `@var = {{response...}}` | Simple response capture | `@cart_id = {{response.parsedBody.cart_id}}` |
+| `{{ exports.var = ... }}` | Computed values, array ops | `{{ exports.kelp = response.parsedBody.find(...); }}` |
+
+### Static Variables: `@var = value`
+```http
+@host = {{base_host}}/v203
+@initial_balance = 50
+@plankton_auth = Basic plankton@chum-bucket.sea:i_love_my_wife
+```
+
+### Response Capture: `@var = {{...}}`
+```http
+POST /cart
+Authorization: {{plankton_auth}}
+
+@cart_id = {{response.parsedBody.cart_id}}
+```
+
+### Computed/Complex Values: `exports.var`
+```http
+GET /menu
+
+{{ exports.kelp = response.parsedBody.find(i => i.name.includes("Kelp")); }}
+
+### Later access properties
+POST /cart/{{cart_id}}/items
+Content-Type: application/json
+
+{"item_id": "{{kelp.id}}"}
+
+{{
+  console.info("Ordered:", kelp.name, "for $" + kelp.price);
+}}
+```
+
+**⚠️ CRITICAL:** `exports.var` is ONLY used inside `{{ }}` JS blocks. Never mix patterns!
+
 ## Response Access
 
 ```http
@@ -123,20 +167,20 @@ Cookie: {{session}}
 
 ### Making Demos Idempotent
 
-Use E2E endpoint at demo start to reset state:
+Use `seedBalance()` helper at demo start to reset state:
 
 ```http
-@e2e_key = e2e-test-key-unsafe-code-lab
+# @import ../common/setup.http
+@host = {{base_host}}/v203
 
-### Reset Plankton's balance for demo
-POST /e2e/balance
-X-E2E-API-Key: {{e2e_key}}
-Content-Type: application/json
+{{
+  await seedBalance("v203", "plankton@chum-bucket.sea", 100);
+}}
 
-{"user_id": "plankton@chum-bucket.sea", "balance": 100}
-
-?? status == 200
+### First real request...
 ```
+
+**⚠️ `seedBalance()` must be in a multi-line `{{ }}` block** - httpyac interprets single-line `{{ await ... }}` as a URL!
 
 **⚠️ DO NOT use `POST /account/credits` for reset—it increments, not sets!**
 
@@ -179,24 +223,29 @@ Authorization: {{plankton_auth}}
 {{ console.info("Step 2..."); }}  // TOO MANY
 ```
 
-## Named Variables for Magic Numbers
+## Menu Items: Fetch, Don't Hardcode
 
-Replace magic numbers with descriptive variables:
+**Never hardcode item IDs** - fetch from `/menu` and extract dynamically:
 
 ```http
-# ❌ BAD: What is 6?
-POST {{host}}/cart/{{cart_id}}/items
-Content-Type: application/json
-
+# ❌ BAD: Magic number
 {"item_id": "6"}
 
-# ✅ GOOD: Self-documenting
+# ❌ STILL BAD: Named magic number (still hardcoded!)
 @kelp_shake = 6
+{"item_id": "{{kelp_shake}}"}
 
-POST {{host}}/cart/{{cart_id}}/items
+# ✅ GOOD: Fetch menu, extract dynamically
+### Get menu items
+GET /menu
+
+{{ exports.kelp = response.parsedBody.find(i => i.name.includes("Kelp")); }}
+
+### Add item to cart
+POST /cart/{{cart_id}}/items
 Content-Type: application/json
 
-{"item_id": "{{kelp_shake}}"}
+{"item_id": "{{kelp.id}}"}
 ```
 
 ## File Structure

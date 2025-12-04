@@ -92,6 +92,17 @@ POST /endpoint
 - Export with `exports.foo = ...`
 - Use for seeding, capturing pre-state, logging
 
+**⚠️ Single-line `{{ await ... }}` is interpreted as a URL!** Always use multi-line for statements:
+```http
+# ❌ WRONG - httpyac interprets this as a URL
+{{ await seedBalance("v203", "plankton@chum-bucket.sea", 100); }}
+
+# ✅ CORRECT - multi-line block
+{{
+  await seedBalance("v203", "plankton@chum-bucket.sea", 100);
+}}
+```
+
 ### ⚠️ File-Level vs Request-Level Blocks (CRITICAL)
 
 httpyac has **TWO types** of `{{ }}` blocks with **different scoping**:
@@ -185,12 +196,43 @@ GET /users/{{setup_user.id}}
 - Keep chains acyclic
 - Typo in @ref → `ref "x" not found`
 
-## Variable Capture
+## Variable Definition Patterns
 
+**Three patterns for different use cases:**
+
+| Pattern | When to Use | Example |
+|---------|-------------|---------|
+| `@var = value` | Static config | `@host = {{base_host}}/v203` |
+| `@var = {{response...}}` | Simple response capture | `@cart_id = {{response.parsedBody.cart_id}}` |
+| `{{ exports.var = ... }}` | Computed values, array ops | `{{ exports.item = response.parsedBody.find(...); }}` |
+
+### Simple Capture: `@var = {{...}}`
 ```http
 @orderId = {{$(response).field("order_id")}}           # Specs
 @orderId = {{response.parsedBody.order_id}}            # Demos
 @session = {{refreshCookie(response)}}                  # Demos with cookies
+```
+
+### Computed Values: `exports.var` (INSIDE JS blocks only)
+```http
+GET /menu
+
+{{ exports.kelp = response.parsedBody.find(i => i.name.includes("Kelp")); }}
+
+### Use the extracted object
+POST /cart/{{cart_id}}/items
+Content-Type: application/json
+
+{"item_id": "{{kelp.id}}"}
+```
+
+**⚠️ CRITICAL:** `exports.var` is ONLY valid inside `{{ }}` blocks!
+```http
+# ❌ WRONG - exports outside JS block
+exports.foo = 123
+
+# ✅ CORRECT - inside JS block
+{{ exports.foo = 123; }}
 ```
 
 **Scope:** Variables are file-local. However, exports from **file-level** `{{ }}` blocks (no `###` before them) ARE available via `@import`. See "File-Level vs Request-Level Blocks" above.
