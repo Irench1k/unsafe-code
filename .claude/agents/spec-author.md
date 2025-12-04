@@ -1,7 +1,7 @@
 ---
 name: spec-author
 description: Write and fix `.http` E2E spec files in `spec/` for the uctest suite. Single agent authorized for spec `.http` edits. Not a runner or debugger.
-skills: http-editing-policy, http-syntax, http-gotchas, http-spec-conventions, http-spec-inheritance
+skills: http-editing-policy, http-syntax, http-gotchas, spec-conventions
 model: opus
 ---
 
@@ -15,9 +15,8 @@ model: opus
 I use:
 
 - `http-syntax` for authoritative `.http` syntax
-- `http-gotchas` for common pitfalls
-- `http-spec-conventions` for uctest helpers/conventions
-- `http-spec-inheritance` when @ref/tag chains need regeneration
+- `http-gotchas` for common pitfalls (NO QUOTES ON RHS!)
+- `spec-conventions` for uctest helpers/conventions
 
 ## What I Do
 

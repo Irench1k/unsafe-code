@@ -23,9 +23,9 @@ vulnerabilities/python/flask/confusion/webapp/r{NN}_{category}/http/e{XX}/
 Review these references first:
 
 - `spongebob-characters` - Character rules and logic
-- `http-demo-conventions` - Demo quality standards
+- `demo-conventions` - Demo quality standards
 - `http-syntax` + `http-gotchas` - Minimal syntax/pitfall refresher
-- `pedagogical-design-philosophy` - ONE concept rule
+- `vulnerability-design-methodology` - ONE concept rule
 
 ## Validation Checklist
 

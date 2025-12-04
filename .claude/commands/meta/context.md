@@ -59,15 +59,14 @@ unsafe-code/
     └── dev/               # uctest, ucsync, etc.
 ```
 
-## Key Memories to Check
+## Key Skills to Check
 
-If you need deeper context, read these Serena memories:
+If you need deeper context, load these skills:
 
-- `pedagogical-design-philosophy` - Design principles
-- `version-roadmap` - What each version introduces
+- `vulnerability-design-methodology` - Design principles
 - `spongebob-characters` - Character rules
-- `http-demo-conventions` - Demo quality standards
-- `http-spec-inheritance` - E2E spec inheritance patterns
+- `demo-conventions` - Demo quality standards
+- `spec-conventions` - E2E spec patterns + inheritance
 
 ## Common Starting Points
 

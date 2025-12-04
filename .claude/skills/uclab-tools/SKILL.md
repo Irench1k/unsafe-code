@@ -264,7 +264,6 @@ Check for missing operator in `?? js` line. See `http-gotchas` + `http-syntax` s
 
 ## See Also
 
-- `http-spec-conventions` skill - Writing E2E tests
-- `http-demo-conventions` skill - Writing demos
-- `http-spec-inheritance` skill - Inheritance details
-- `http-gotchas` + `http-syntax` skills - Assertion syntax & structure
+- `spec-conventions` skill - Writing E2E tests + inheritance
+- `demo-conventions` skill - Writing demos
+- `http-syntax` + `http-gotchas` skills - Assertion syntax & pitfalls

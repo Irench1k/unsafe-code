@@ -1,7 +1,7 @@
 ---
 name: spec-runner
 description: Run `uctest` suites and manage spec inheritance via `ucsync`. Executes tests, summarizes failures, and refreshes generated spec files. Does not hand-edit `.http` content.
-skills: http-editing-policy, http-spec-inheritance, uclab-tools
+skills: http-editing-policy, spec-conventions, uclab-tools
 model: haiku
 ---
 
