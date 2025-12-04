@@ -1,10 +1,12 @@
-@base = http://localhost:8000/api/v301
+# Manual smoke test for signup flow
+# Requires interactive input via @prompt - run manually in VSCode/httpyac GUI
+@host = http://localhost:8000/api/v301
 
 ### Listing Menu Items (Public)
-GET {{base}}/menu
+GET /menu
 
 ### Create a new user: should be already taken
-POST {{base}}/auth/register
+POST /auth/register
 Content-Type: application/json
 
 {
@@ -12,7 +14,7 @@ Content-Type: application/json
 }
 
 ### Create a new user
-POST {{base}}/auth/register
+POST /auth/register
 Content-Type: application/json
 
 {
@@ -21,7 +23,7 @@ Content-Type: application/json
 
 ### Should fail
 # @prompt token Get the token from verification email, using Mailpit UI: http://127.0.0.1:8025/
-POST {{base}}/auth/register
+POST /auth/register
 Content-Type: application/json
 
 {
@@ -31,10 +33,10 @@ Content-Type: application/json
     "name": "SpongeBob"
 }
 
-###
-GET {{base}}/account/info
+### Check login attempt with fake password
+GET /account/info
 Authorization: Basic spongebob@bikinibottom.sea:whatever
 
-###
-GET {{base}}/account/info
+### Check login attempt with hijacked credentials
+GET /account/info
 Authorization: Basic plankton.jr@chum-bucket.sea:hijacked

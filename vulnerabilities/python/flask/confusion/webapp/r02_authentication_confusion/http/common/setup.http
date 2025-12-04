@@ -29,22 +29,6 @@
   };
 
   /**
-   * Extract a specific cookie value from a login response.
-   * @deprecated Use refreshCookie() for session management.
-   */
-  exports.pickCookie = (resp, name = "session_id") => {
-    const raw = resp?.headers?.["set-cookie"];
-    const cookieHeader = Array.isArray(raw) ? raw.find(h => h.startsWith(`${name}=`)) : raw;
-    if (!cookieHeader) return "";
-    return cookieHeader.split(";")[0];
-  };
-
-  /**
-   * Generate a unique email to avoid clashing with seeded fixtures.
-   */
-  exports.nextMail = (label = "learner") => `${label}+${Date.now()}@example.test`;
-
-  /**
    * Seed a customer's balance to a known value (for idempotent demos).
    * Usage: await seedBalance("v202", "plankton@chum-bucket.sea", 50)
    * @param {string} version - API version (e.g., "v202")

@@ -41,15 +41,19 @@ Content-Type: application/json
   "password": "i_love_my_wife"
 }
 
+@session = {{refreshCookie(response)}}
+
 
 ### He creates another cart with just Fries ($2.49)
 # @name cheap_cart
 POST /cart?restaurant_id=1
+Cookie: {{session}}
 
 
 ###
 POST /cart/{{cheap_cart.cart_id}}/items
 Content-Type: application/json
+Cookie: {{session}}
 
 { "item_id": "5" }
 
@@ -60,6 +64,7 @@ Content-Type: application/json
 # @name checkout
 POST /cart/{{expensive_cart.cart_id}}/checkout
 Content-Type: application/json
+Cookie: {{session}}
 
 {
   "tip": "0",
@@ -71,6 +76,7 @@ Content-Type: application/json
 
 ### The order contains the EXPENSIVE item (path cart), charged correctly
 GET /orders
+Cookie: {{session}}
 
 # Verify the last order has Ultimate Krabby Feast, not Fries
 ?? js response.parsedBody[response.parsedBody.length - 1].items[0].name.includes("Ultimate")

@@ -1,10 +1,11 @@
-@base = http://localhost:8000/api/v301
+# @import ../common/setup.http
+@host = {{base_host}}/v301
 
 ### Listing Menu Items (Public)
-GET {{base}}/menu
+GET /menu
 
 ### Login as Plankton
-POST {{base}}/auth/login
+POST /auth/login
 Content-Type: application/json
 
 {
@@ -12,43 +13,60 @@ Content-Type: application/json
     "password": "i_love_my_wife"
 }
 
+@session = {{refreshCookie(response)}}
+
 ### Listing Plankton's Account Info
-GET {{base}}/account/info
+GET /account/info
+Cookie: {{session}}
 
 ### Listing Plankton's Balance Before New Order
-GET {{base}}/account/credits
+GET /account/credits
+Cookie: {{session}}
 
-### Listing Plankton's Orders via Basic Auth
-GET {{base}}/orders
+### Listing Plankton's Orders via Cookie Auth
+GET /orders
+Cookie: {{session}}
 
+### Create a new cart
+POST /cart
+Cookie: {{session}}
 
-### Create a new cart and add items to it
-# @name cart
-POST {{base}}/cart
+@session = {{refreshCookie(response, session)}}
+@cart_id = {{response.parsedBody.cart_id}}
 
 ### Add items to the cart
-POST {{base}}/cart/{{cart.response.body.cart_id}}/items
+POST /cart/{{cart_id}}/items
+Cookie: {{session}}
 Content-Type: application/json
 
 {
   "item_id": "1"
 }
 
+@session = {{refreshCookie(response, session)}}
+
 ### Checkout the cart
-# @name order
-POST {{base}}/cart/{{cart.response.body.cart_id}}/checkout
+POST /cart/{{cart_id}}/checkout
+Cookie: {{session}}
 Content-Type: application/x-www-form-urlencoded
 
 tip=-1&delivery_address=Chum Backet Restaurant
 
+@session = {{refreshCookie(response, session)}}
+@order_id = {{response.parsedBody.order_id}}
+
 ### Refund the order: should not work, because the amount is more than the order total
-POST {{base}}/orders/{{order.response.body.order_id}}/refund
+POST /orders/{{order_id}}/refund
+Cookie: {{session}}
 Content-Type: application/x-www-form-urlencoded
 
 amount=50
 
+@session = {{refreshCookie(response, session)}}
+
 ### Refund the order: should work
-POST {{base}}/orders/{{order.response.body.order_id}}/refund
+POST /orders/{{order_id}}/refund
+Cookie: {{session}}
 Content-Type: application/x-www-form-urlencoded
 
 amount=1

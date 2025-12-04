@@ -27,13 +27,13 @@ Content-Type: application/json
 
 
 ###
-# @name cart
 POST /cart?restaurant_id=1
 Authorization: {{plankton_auth}}
 
+@cart_id = {{response.parsedBody.cart_id}}
 
 ###
-POST /cart/{{cart.cart_id}}/items
+POST /cart/{{cart_id}}/items
 Authorization: {{plankton_auth}}
 Content-Type: application/json
 
@@ -41,17 +41,16 @@ Content-Type: application/json
 
 
 ###
-# @name order
-POST /cart/{{cart.cart_id}}/checkout
+POST /cart/{{cart_id}}/checkout
 Authorization: {{plankton_auth}}
 Content-Type: application/x-www-form-urlencoded
 
 tip=1&delivery_address=Chum Bucket
 
+@order_id = {{response.parsedBody.order_id}}
 
 ###
-# @name refund_request
-POST /orders/{{order.order_id}}/refund
+POST /orders/{{order_id}}/refund
 Authorization: {{plankton_auth}}
 Content-Type: application/x-www-form-urlencoded
 
@@ -59,7 +58,7 @@ amount=2.50
 
 
 ### Plankton tries to approve his own refund using Chum Bucket API key
-PATCH /orders/{{order.order_id}}/refund/status
+PATCH /orders/{{order_id}}/refund/status
 Authorization: {{plankton_auth}}
 X-API-Key: {{chum_bucket_api_key}}
 Content-Type: application/x-www-form-urlencoded

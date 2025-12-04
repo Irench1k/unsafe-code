@@ -272,7 +272,12 @@ If you can't apply something **consistently everywhere**, DON'T add it:
 
 | Anti-Pattern | Why It's Wrong | Do This Instead |
 |--------------|----------------|-----------------|
-| `GET {{host}}/orders` | httpyac auto-prefixes from @host | `GET /orders` |
+| `GET {{host}}/orders` or `GET {{base}}/orders` | httpyac auto-prefixes from @host | `GET /orders` |
+| `# @disabled` | Demos are manually clicked, not CI-run | Fix or delete the file |
+| `@name cart` → `cart.cart_id` | Generic, indirect | `@cart_id = {{response.parsedBody.cart_id}}` |
+| `refreshCookie()` after GET | GET never sets cookies | Only after login/mutating POST |
+| `/account/credits` for reset | Increments, not idempotent | `seedBalance()` helper |
+| `{"item_id": "4"}` | Magic number | Fetch from /menu |
 | 7+ console.info per file | Noise obscures exploit | 2-3 at key moments |
 | `?? status == 200` everywhere | Implied by body assertions | Only when status IS the test |
 | `@name` without using it | Dead code | Remove or use it |
@@ -285,9 +290,14 @@ If you can't apply something **consistently everywhere**, DON'T add it:
 
 Before finalizing ANY demo change:
 
+- [ ] No `{{base}}/` or `{{host}}/` prefixes in URLs
+- [ ] No `@disabled` directives added
+- [ ] `@name` only when truly needed (with descriptive name, not generic)
+- [ ] `refreshCookie()` only after login or mutating POST (NOT after GETs)
+- [ ] State reset uses `seedBalance()` not `/account/credits`
+- [ ] Item IDs fetched from /menu, not hardcoded
 - [ ] Is the file SHORTER or same length? (If longer, justify each line)
 - [ ] Did I use the simplest syntax available?
-- [ ] Did I avoid unnecessary prefixes/boilerplate?
 - [ ] Does every assertion serve the exploit demonstration?
 - [ ] Are console.info statements strategic (2-3 max)?
 - [ ] Is post-request ordering correct (session → vars → asserts → logs)?

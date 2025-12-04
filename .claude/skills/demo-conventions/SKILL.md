@@ -7,18 +7,24 @@ description: Interactive demo conventions for httpyac. Covers response.parsedBod
 
 Patterns for `.http` files in `vulnerabilities/.../http/` directories, run with **httpyac** (NOT uctest).
 
-## ⚠️ MANDATORY: Read Style Philosophy FIRST
+## ⛔⛔⛔ CRITICAL: Read These FIRST ⛔⛔⛔
 
-**Before editing ANY demo, read:** `.claude/references/demo-style-philosophy.md`
+1. **Style Philosophy:** `.claude/references/demo-style-philosophy.md`
+2. **Principles (anti-patterns):** `.claude/skills/demo-principles/SKILL.md`
 
-It defines:
-- Post-request element ordering (session → vars → asserts → logs)
-- When to use console.info (2-3 strategic placements, not 7+)
-- Section markers (only for complex demos >4 requests)
-- Preserving existing quality (surgical changes)
+## The Non-Negotiable Rules
+
+| Rule | Wrong | Right |
+|------|-------|-------|
+| URL prefix | `GET {{base}}/menu` | `GET /menu` |
+| @disabled | Never add | Fix or delete the file |
+| @name | `@name cart` → `cart.cart_id` | `@cart_id = {{response.parsedBody.cart_id}}` |
+| refreshCookie | After every request | Only after login/mutating POST |
+| State reset | `/account/credits` | `seedBalance()` helper |
+| Item IDs | `"item_id": "4"` | Fetch from /menu |
 
 **TL;DR:**
-- `GET /path` not `GET {{host}}/path` (httpyac auto-prefixes from `@host`)
+- `GET /path` not `GET {{host}}/path` - httpyac auto-prefixes from `@host`
 - Every line must justify its existence
 - CLEAN > VERBOSE - fewer lines, less noise
 - 2-3 console.info max per file, at key state transitions
@@ -114,7 +120,7 @@ GET /orders
 X-API-Key: {{krabs_api_key}}
 ```
 
-### Cookie Auth (Manual - NEW CONVENTION)
+### Cookie Auth (Manual - Explicit Control)
 
 **Cookies are disabled by default** via `httpyac.config.js`:
 ```javascript
@@ -123,35 +129,49 @@ module.exports = {
 };
 ```
 
-Use `refreshCookie()` helper for session management:
+Use `refreshCookie()` helper **strategically** - NOT after every request:
 
 ```http
-### Login
-# @name login
+### Login - ALWAYS capture cookie here
 POST /auth/login
 Content-Type: application/json
 
 {"email": "plankton@chum-bucket.sea", "password": "i_love_my_wife"}
 
-@session = {{refreshCookie(login)}}
+@session = {{refreshCookie(response)}}
 
-### Use session
+### Use session - NO refreshCookie needed (GET doesn't set cookies)
 GET /account/info
 Cookie: {{session}}
 
-@session = {{refreshCookie(response, session)}}
-
-### Another request using updated session
+### Another GET - still NO refreshCookie needed
 GET /orders
 Cookie: {{session}}
+
+### POST that might update session - refresh here
+POST /orders
+Cookie: {{session}}
+Content-Type: application/json
+
+{"item_id": "1"}
+
+@session = {{refreshCookie(response, session)}}
 ```
 
-**⚠️ CRITICAL:** The `refreshCookie()` helper must be in a **file-level** JS block (no `###` before it) in `common/setup.http` to be available via `@import`. See `http-syntax` skill for details on JS block scoping.
+**⛔ CRITICAL: When to use refreshCookie()**
+
+| Request Type | refreshCookie Needed? | Why |
+|--------------|----------------------|-----|
+| `POST /auth/login` | ✅ YES - always | Sets session cookie |
+| `GET /anything` | ❌ NO - never | GET doesn't modify cookies |
+| `POST/PUT/PATCH/DELETE` | ⚠️ Rarely | Only if endpoint modifies session (check source code) |
+
+**Adding refreshCookie after every request is NOISE.** It clutters the demo and teaches bad habits.
 
 **refreshCookie() behavior:**
 - Returns new cookie if Set-Cookie header present
 - Returns existing value if no Set-Cookie header
-- Allows seamless session updates through request chain
+- Only NEEDED when server actually sends Set-Cookie
 
 ## State Reset: E2E vs In-Universe
 

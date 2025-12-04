@@ -30,15 +30,36 @@
   };
 
   /**
-   * Extract a specific cookie value from a login response.
-   * @deprecated Use refreshCookie() for session management.
+   * Seed a customer's balance to a known value (for idempotent demos).
+   * Usage: await seedBalance("v301", "plankton@chum-bucket.sea", 100)
+   * @param {string} version - API version (e.g., "v301")
+   * @param {string} email - Full email of the customer
+   * @param {number} amount - Balance to set
    */
-  exports.pickCookie = (resp, name = "session_id") => {
-    const raw = resp?.headers?.["set-cookie"];
-    const cookieHeader = Array.isArray(raw) ? raw.find(h => h.startsWith(`${name}=`)) : raw;
-    if (!cookieHeader) return "";
-    return cookieHeader.split(";")[0];
+  exports.seedBalance = async (version, email, amount) => {
+    const resp = await fetch(`${base_host}/${version}/e2e/balance`, {
+      method: "POST",
+      headers: {
+        "X-E2E-API-Key": e2e_key,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ user_id: email, balance: amount }),
+    });
+    if (!resp.ok) throw new Error(`seedBalance failed: ${resp.status}`);
+    return resp.json();
   };
 
-  exports.nextMail = (label = "tenant") => `${label}+${Date.now()}@example.test`;
+  /**
+   * Reset entire database to clean state (for demos with user registration).
+   * Usage: await resetDB("v301")
+   * @param {string} version - API version (e.g., "v301")
+   */
+  exports.resetDB = async (version) => {
+    const resp = await fetch(`${base_host}/${version}/e2e/reset`, {
+      method: "POST",
+      headers: { "X-E2E-API-Key": e2e_key },
+    });
+    if (!resp.ok) throw new Error(`resetDB failed: ${resp.status}`);
+    return resp.json();
+  };
 }}
