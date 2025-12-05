@@ -6,16 +6,6 @@
 # The refund approval endpoint checks that the X-API-Key belongs to
 # the restaurant that received the order, not just ANY restaurant.
 
-### Reset Plankton's balance using admin API
-POST /account/credits
-X-Admin-API-Key: {{platform_api_key}}
-Content-Type: application/x-www-form-urlencoded
-
-user=plankton@chum-bucket.sea&amount=200
-
-?? status == 200
-
-
 ### Plankton logs in and orders from Krusty Krab
 POST /auth/login
 Content-Type: application/json
@@ -25,33 +15,53 @@ Content-Type: application/json
     "password": "i_love_my_wife"
 }
 
+@session = {{refreshCookie(response)}}
 
-###
+### Plankton creates a cart and adds Krabby Patty to it (1/3)
+{{
+  await seedBalance("v301", "plankton@chum-bucket.sea", 100);
+}}
 POST /cart?restaurant_id=1
-Authorization: {{plankton_auth}}
+Cookie: {{session}}
 
 @cart_id = {{response.parsedBody.cart_id}}
 
-###
+### (2/3)
 POST /cart/{{cart_id}}/items
-Authorization: {{plankton_auth}}
+Cookie: {{session}}
 Content-Type: application/json
 
 { "item_id": "4" }
 
 
-###
+### (3/3)
 POST /cart/{{cart_id}}/checkout
-Authorization: {{plankton_auth}}
+Cookie: {{session}}
 Content-Type: application/x-www-form-urlencoded
 
 tip=1&delivery_address=Chum Bucket
 
 @order_id = {{response.parsedBody.order_id}}
 
-###
+
+### Krusty Krab processes and delivers the order
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{krabs_api_key}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+
+### Plankton's balance is now lower
+GET /account/credits
+Cookie: {{session}}
+
+@balance_before = {{response.parsedBody.balance}}
+
+
+### Plankton requests a refund for his order
 POST /orders/{{order_id}}/refund
-Authorization: {{plankton_auth}}
+Cookie: {{session}}
 Content-Type: application/x-www-form-urlencoded
 
 amount=2.50
@@ -59,7 +69,7 @@ amount=2.50
 
 ### Plankton tries to approve his own refund using Chum Bucket API key
 PATCH /orders/{{order_id}}/refund/status
-Authorization: {{plankton_auth}}
+Cookie: {{session}}
 X-API-Key: {{chum_bucket_api_key}}
 Content-Type: application/x-www-form-urlencoded
 
@@ -68,3 +78,9 @@ status=approved
 # FIX WORKING: v302 rejects because Chum Bucket API key doesn't match Krusty Krab order
 ?? status >= 400
 
+
+### Plankton did NOT receive his refund
+GET /account/credits
+Cookie: {{session}}
+
+?? js parseFloat(response.parsedBody.balance) == {{balance_before}}
