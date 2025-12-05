@@ -330,7 +330,7 @@ def _create_orders_with_items(
         customer=users["spongebob@krusty-krab.sea"],
         restaurant=krusty_krab,
         items=[
-            krusty_menu["Ultimate Krabby Feast"],  # $27.99
+            krusty_menu["Krabby Patty"],  # $3.99
         ],
         delivery_address="Pineapple Under the Sea",
         delivery_fee=Decimal("0.00"),
@@ -358,9 +358,9 @@ def _create_orders_with_items(
         customer=users["plankton@chum-bucket.sea"],
         restaurant=chum_bucket,
         items=[
-            krusty_menu["Krabby Patty"],  # $3.99
+            chum_menu["ChumBalaya"],  # $15.99
         ],
-        delivery_address="The Chum Bucket",
+        delivery_address="localhost",
         delivery_fee=Decimal("5.00"),
         tip=Decimal("2.00"),
     )

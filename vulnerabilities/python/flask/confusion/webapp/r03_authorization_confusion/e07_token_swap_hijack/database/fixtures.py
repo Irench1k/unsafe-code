@@ -360,7 +360,7 @@ def _create_orders_with_items(
         customer=users["plankton@chum-bucket.sea"],
         restaurant=chum_bucket,
         items=[
-            krusty_menu["Ultimate Krabby Feast"],  # $27.99
+            chum_menu["ChumBalaya"],  # $15.99
         ],
         delivery_address="localhost",
         delivery_fee=Decimal("5.00"),
