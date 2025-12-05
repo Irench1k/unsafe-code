@@ -7,23 +7,22 @@
 ### Plankton checks that the Krabby Patty is available
 GET /menu
 
-@krabby_patty = {{response.parsedBody.find(i => i.name.includes("Krabby Patty") && !i.name.includes("Ultimate") && !i.name.includes("Combo") && !i.name.includes("Supreme"))}}
-
+@fries = {{response.parsedBody.find(i => i.name == "Fries")}}
 
 ### Plankton tries to sabotage Krusty Krab's menu - but the fix blocks him
-PATCH /menu/{{krabby_patty.id}}
+PATCH /menu/{{fries.id}}
 X-API-Key: {{chum_bucket_api_key}}
 Content-Type: application/json
 
 {
   "available": false,
-  "name": "Krabby Patty (OUT OF STOCK - CONTAMINATION RECALL)"
+  "name": "Fries (SALMONELLA OUTBREAK)"
 }
 
 ?? status == 400
 
 
-### The Krabby Patty is safe - Plankton's attack was blocked
+### The Fries are safe - Plankton's attack was blocked
 GET /menu
 
-?? js response.parsedBody.find(i => i.id == krabby_patty.id).available == true
+?? js response.parsedBody.find(i => i.id == fries.id).available == true
