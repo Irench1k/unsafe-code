@@ -91,6 +91,13 @@ def find_restaurant_by_id(restaurant_id: int | str) -> Restaurant | None:
     return session.get(Restaurant, rest_id)
 
 
+def find_restaurant_by_domain(domain: str) -> Restaurant | None:
+    """Finds a restaurant by domain."""
+    session = get_request_session()
+    stmt = select(Restaurant).where(Restaurant.domain == domain)
+    return session.execute(stmt).scalar_one_or_none()
+
+
 def find_restaurant_by_api_key(api_key: str) -> Restaurant | None:
     """Finds a restaurant by API key."""
     session = get_request_session()
@@ -109,6 +116,13 @@ def find_restaurant_users(restaurant_id: int | str) -> list[User]:
         return []
     stmt = select(User).where(User.email.endswith("@" + restaurant.domain))
     return list(session.execute(stmt).scalars().all())
+
+
+def save_restaurant(restaurant: Restaurant) -> None:
+    """Saves a restaurant to the database."""
+    session = get_request_session()
+    session.add(restaurant)
+    session.flush()
 
 
 # ============================================================
@@ -324,16 +338,6 @@ def get_refund_by_order_id(order_id: int | str) -> Refund | None:
         return None
     stmt = select(Refund).where(Refund.order_id == oid)
     return session.execute(stmt).scalar_one_or_none()
-
-
-# ============================================================
-# RESTAURANTS
-# ============================================================
-def save_restaurant(restaurant: Restaurant) -> None:
-    """Saves a restaurant to the database."""
-    session = get_request_session()
-    session.add(restaurant)
-    session.flush()
 
 
 # ============================================================

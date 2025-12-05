@@ -70,7 +70,6 @@ def register_restaurant():
     require_condition(domain, "domain is required")
 
     # TODO: Validate domain syntax
-    # TODO: Validate domain is not already registered
     require_condition(not find_restaurant_by_domain(domain), "Domain already registered")
 
     if not token:

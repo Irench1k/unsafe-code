@@ -9,6 +9,7 @@ from ..database.models import MenuItem
 from ..database.repository import (
     find_all_restaurants,
     find_menu_items_by_restaurant,
+    find_restaurant_by_domain,
     find_restaurant_by_id,
     find_restaurant_users,
 )
@@ -68,6 +69,10 @@ def register_restaurant():
 
     require_condition(name, "name is required")
     require_condition(domain, "domain is required")
+
+    # TODO: Validate domain syntax
+    require_condition(not find_restaurant_by_domain(domain), "Domain already registered")
+
 
     if not token:
         # Step 1: Send verification email to admin@domain
