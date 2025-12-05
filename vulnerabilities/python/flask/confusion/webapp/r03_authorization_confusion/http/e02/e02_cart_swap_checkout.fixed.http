@@ -6,33 +6,35 @@
 # In v302, the checkout decorator charged session cart but handler fulfilled
 # path cart. v303 fixes this by using the path cart_id consistently.
 
-### Reset Plankton's balance using admin API
-POST /account/credits
-X-Admin-API-Key: {{platform_api_key}}
-Content-Type: application/x-www-form-urlencoded
+### Menu items
+GET /menu
 
-user=plankton@chum-bucket.sea&amount=200
+{{
+  await seedBalance("v302", "plankton@chum-bucket.sea", 100);
 
-?? status == 200
+  exports.ultimate_krabby_feast = response.parsedBody.find(i => i.name.includes("Ultimate Krabby"));
+  exports.fries = response.parsedBody.find(i => i.name == "Fries");
+
+  console.info(`Fries: ${exports.fries.id} (${exports.fries.price})`);
+  console.info(`Ultimate Krabby Feast: ${exports.ultimate_krabby_feast.id} (${exports.ultimate_krabby_feast.price})`);
+}}
 
 
 ### Plankton creates a cart with an expensive meal ($27.99)
-# @no-cookie-jar
 # @name expensive_cart
 POST /cart?restaurant_id=1
 Authorization: {{plankton_auth}}
 
 
 ###
-# @no-cookie-jar
 POST /cart/{{expensive_cart.cart_id}}/items
 Content-Type: application/json
 Authorization: {{plankton_auth}}
 
-{ "item_id": "8" }
+{ "item_id": "{{ultimate_krabby_feast.id}}" }
 
 
-### Plankton logs in (creates session)
+### Plankton logs in to get cookie session
 POST /auth/login
 Content-Type: application/json
 
@@ -49,13 +51,16 @@ Content-Type: application/json
 POST /cart?restaurant_id=1
 Cookie: {{session}}
 
+@session = {{refreshCookie(response, session)}}
 
 ###
 POST /cart/{{cheap_cart.cart_id}}/items
 Content-Type: application/json
 Cookie: {{session}}
 
-{ "item_id": "5" }
+{ "item_id": "{{fries.id}}" }
+
+@session = {{refreshCookie(response, session)}}
 
 
 ### --- Vulnerability Fixed ---
@@ -72,12 +77,12 @@ Cookie: {{session}}
 }
 
 ?? status == 201
+?? body total == {{parseFloat(fries.price) + 5.00}}
 
 
-### The order contains the EXPENSIVE item (path cart), charged correctly
+### The order contains the CHEAP item (path cart), charged correctly
 GET /orders
 Cookie: {{session}}
 
-# Verify the last order has Ultimate Krabby Feast, not Fries
-?? js response.parsedBody[response.parsedBody.length - 1].items[0].name.includes("Ultimate")
-
+# Verify the last order has Fries, not Ultimate Krabby Feast
+?? js response.parsedBody[response.parsedBody.length - 1].items[0].name == Fries
