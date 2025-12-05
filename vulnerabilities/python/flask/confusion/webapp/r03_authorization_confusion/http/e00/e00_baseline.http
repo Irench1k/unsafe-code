@@ -7,6 +7,9 @@ GET /restaurants
 ### Plankton creates a cart in Krusty Krab and adds a krabby patty to it
 # NOTE: New argument, restaurant_id is **required**!
 # Note #2: Plankton is using his customer credentials to create the cart, he does not login, so there is no session.
+{{
+  await seedBalance("v301", "plankton@chum-bucket.sea", 100);
+}}
 POST /cart?restaurant_id=1
 Authorization: {{plankton_auth}}
 
@@ -30,7 +33,16 @@ tip=1&delivery_address=Chum Backet Restaurant
 
 @order_id = {{response.parsedBody.order_id}}
 
-### Plankton's balance is now $73.50 (remember this amount)
+
+### Krusty Krab processes and delivers the order
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{krabs_api_key}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+
+### Plankton's balance is now $90.01 (remember this amount)
 GET /account/info
 Authorization: {{plankton_auth}}
 
@@ -47,6 +59,7 @@ X-API-Key: {{chum_bucket_api_key}}
 Content-Type: application/x-www-form-urlencoded
 
 status=approved
+?? status == 400
 
 ### Plankton tries to approve his own refund request using his basic auth credentials, and still no luck
 PATCH /orders/{{order_id}}/refund/status
@@ -54,6 +67,7 @@ Content-Type: application/x-www-form-urlencoded
 Authorization: {{plankton_auth}}
 
 status=approved
+?? status == 400
 
 ### Legitimate example: Krabs can reject the refund request
 PATCH /orders/{{order_id}}/refund/status
@@ -61,11 +75,16 @@ X-API-Key: {{krabs_api_key}}
 Content-Type: application/x-www-form-urlencoded
 
 status=rejected
+?? status == 200
 
 ### Refund status is rejected no matter what Plankton does... (or is there another way?)
 GET /orders/{{order_id}}/refund/status
 Authorization: {{plankton_auth}}
 
-### Plankton's balance is still $73.50
+?? body status == rejected
+
+### Plankton's balance is still $90.01
 GET /account/info
 Authorization: {{plankton_auth}}
+
+?? body balance == 90.01
