@@ -10,6 +10,7 @@ from ..database.repository import (
     find_all_restaurants,
     find_menu_items_by_restaurant,
     find_restaurant_by_id,
+    find_restaurant_users,
 )
 from ..database.repository import save_restaurant as update_restaurant
 from ..database.services import (
@@ -17,12 +18,15 @@ from ..database.services import (
     serialize_menu_item,
     serialize_menu_items,
     serialize_restaurant,
+    serialize_restaurant_creation,
+    serialize_restaurant_users,
     serialize_restaurants,
 )
 from ..utils import (
     created_response,
     get_param,
     require_condition,
+    require_ownership,
     send_domain_verification_email,
     success_response,
     verify_domain_token,
@@ -69,20 +73,20 @@ def register_restaurant():
         # Step 1: Send verification email to admin@domain
         admin_email = f"admin@{domain}"
         send_domain_verification_email(admin_email, domain)
-        return success_response({
-            "status": "verification_email_sent",
-            "verification_email": admin_email,
-        })
+        return success_response(
+            {
+                "status": "verification_email_sent",
+                "verification_email": admin_email,
+            }
+        )
 
     # Step 2: Verify token and create restaurant
     token_data = verify_domain_token(token, domain)
-    if not token_data:
-        # Explicit failure to avoid bubbling into 500s when tokens are invalid
-        return success_response({"error": "Invalid or expired token"}, 400)
+    require_condition(token_data, "Invalid or expired token")
 
     # Create the restaurant with a new API key
     restaurant = create_restaurant(name, domain)
-    return created_response(serialize_restaurant(restaurant))
+    return created_response(serialize_restaurant_creation(restaurant))
 
 
 @bp.get("/<int:restaurant_id>/")
@@ -91,6 +95,18 @@ def get_restaurant(restaurant_id: int):
     restaurant = find_restaurant_by_id(restaurant_id)
     require_condition(restaurant, f"Restaurant {restaurant_id} not found")
     return success_response(serialize_restaurant(restaurant))
+
+
+@bp.get("/<int:restaurant_id>/users")
+@require_auth(["restaurant_api_key"])
+def list_users(restaurant_id: int):
+    """List all users in the system with a matching email address."""
+    restaurant = find_restaurant_by_id(restaurant_id)
+    require_condition(restaurant, f"Restaurant {restaurant_id} not found")
+    require_ownership(restaurant.id, g.restaurant_id, "restaurant")
+
+    users = find_restaurant_users(restaurant_id)
+    return success_response(serialize_restaurant_users(users))
 
 
 @bp.get("/<int:restaurant_id>/menu")

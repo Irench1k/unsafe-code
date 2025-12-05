@@ -46,6 +46,7 @@ class Restaurant(Base):
     description: Mapped[str] = mapped_column(String, nullable=False, default="")
     owner: Mapped[str] = mapped_column(String, nullable=False)
     api_key: Mapped[str] = mapped_column(String, nullable=False)
+    domain: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class User(Base):

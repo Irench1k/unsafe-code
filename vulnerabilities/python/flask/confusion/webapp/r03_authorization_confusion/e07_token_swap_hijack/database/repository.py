@@ -98,6 +98,19 @@ def find_restaurant_by_api_key(api_key: str) -> Restaurant | None:
     return session.execute(stmt).scalar_one_or_none()
 
 
+def find_restaurant_users(restaurant_id: int | str) -> list[User]:
+    """Finds all users for a specific restaurant."""
+    session = get_request_session()
+    rest_id = _coerce_int_id(restaurant_id, "restaurant_id")
+    if rest_id is None:
+        return []
+    restaurant = find_restaurant_by_id(restaurant_id)
+    if restaurant is None:
+        return []
+    stmt = select(User).where(User.email.endswith("@" + restaurant.domain))
+    return list(session.execute(stmt).scalars().all())
+
+
 # ============================================================
 # MENU ITEMS
 # ============================================================

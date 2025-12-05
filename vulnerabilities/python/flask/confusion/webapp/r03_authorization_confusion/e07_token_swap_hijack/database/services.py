@@ -89,13 +89,31 @@ def serialize_restaurant(restaurant: Restaurant) -> dict:
         "id": restaurant.id,
         "name": restaurant.name,
         "description": restaurant.description,
-        "owner_email": restaurant.owner,
+        "domain": restaurant.domain,
+    }
+
+
+def serialize_restaurant_creation(restaurant: Restaurant) -> dict:
+    """Serializes a restaurant creation to a JSON-compatible dict."""
+    return {
+        "id": restaurant.id,
+        "name": restaurant.name,
+        "description": restaurant.description,
+        "owner": restaurant.owner,
+        "api_key": restaurant.api_key,
+        "domain": restaurant.domain,
+        "status": "created",
     }
 
 
 def serialize_restaurants(restaurants: list[Restaurant]) -> list[dict]:
     """Serializes a list of restaurants."""
     return [serialize_restaurant(restaurant) for restaurant in restaurants]
+
+
+def serialize_restaurant_users(users: list[User]) -> list[dict]:
+    """Serializes a list of restaurant users to JSON-compatible dicts."""
+    return [{"email": user.email, "name": user.name} for user in users]
 
 
 # ============================================================
@@ -422,8 +440,9 @@ def create_restaurant(name: str, domain: str) -> Restaurant:
     restaurant = Restaurant(
         name=name,
         description=f"Welcome to {name}!",
-        owner_email=f"admin@{domain}",
+        owner=f"admin@{domain}",
         api_key=api_key,
+        domain=domain,
     )
     save_restaurant(restaurant)
     logger.info(f"Restaurant created: {restaurant.id} - {name}")
