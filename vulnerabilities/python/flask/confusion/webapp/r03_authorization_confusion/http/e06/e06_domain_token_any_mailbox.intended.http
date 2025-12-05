@@ -1,0 +1,68 @@
+# @import ../common/setup.http
+@host = {{base_host}}/v306
+@mailpit = http://127.0.0.1:8025/api/v1
+
+# Sandy plans to make autoregister new managers by email domain. 
+# She sends an email to restaurant owners to check what users exist.
+
+### Mr. Krabs can see Krusty Krab's users.
+GET /restaurants/1/users
+X-API-Key: {{krabs_api_key}}
+
+?? status == 200
+
+### Plankton can see Chum Bucket's users.
+GET /restaurants/2/users
+X-API-Key: {{chum_bucket_api_key}}
+
+?? status == 200
+
+### Plankton can't see Krusty Krab's users.
+GET /restaurants/1/users
+X-API-Key: {{chum_bucket_api_key}}
+
+?? status == 400
+
+# Sandy opens registration for new restaurants. At this moment her system includes only 2 restaurants: 
+# - Krusty Krab: krusty-krab.sea
+# - Chum Bucket: chum-bucket.sea
+# The new restaurants need to provide their name and domain. 
+# To prove domain ownership, they need to verify admin@{{domain}} email address.
+
+### New customer sends their domain and system requires verification via admin@{{domain}}
+POST /restaurants
+Content-Type: application/json
+
+{
+    "name": "Bikinibottom Restaurant",
+    "domain": "bikinibottom.sea"
+}
+
+?? body status == verification_email_sent
+
+# Upon creation the system sends an email to admin@{{domain}} with a link to finish the registration.
+
+### Extract the verification email, we use mailpit to get the email. These two requests are the simulation of the email client.
+GET {{mailpit}}/messages?limit=1
+
+@email_id = {{response.parsedBody.messages[0].ID}}
+?? js response.parsedBody.messages[0].To[0].Address == admin@bikinibottom.sea
+
+### Extract the USER verification token
+GET {{mailpit}}/message/{{email_id}}
+
+@user_token = {{response.parsedBody.Text.match(/token=([a-zA-Z0-9\-_.]+)/)[1]}}
+
+### Finish the registration
+POST /restaurants
+Content-Type: application/json
+
+{
+    "name": "Bikinibottom Restaurant",
+    "domain": "bikinibottom.sea",
+    "token": "{{user_token}}"
+}
+
+?? status == 201
+?? body domain == bikinibottom.sea
+?? body owner == admin@bikinibottom.sea

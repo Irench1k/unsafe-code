@@ -7,40 +7,41 @@
 # The verify_domain_token() function now checks that the token was issued
 # to admin@domain, not just any mailbox at the domain.
 
-### Step 1: Plankton registers as a regular user at bmail.sea
+### Plankton registers as a regular user at bikinibottom.sea
 POST /auth/register
 Content-Type: application/json
 
 {
-    "email": "plankton@bmail.sea"
+    "email": "plankton@bikinibottom.sea"
 }
 
 ?? status == 200
 
 
-### Step 2: Get the verification email
+### Get the verification email
 GET {{mailpit}}/messages?limit=1
 
 @email_id = {{response.parsedBody.messages[0].ID}}
 
 
-### Step 3: Extract the USER verification token
+### Extract the USER verification token
 GET {{mailpit}}/message/{{email_id}}
 
 @user_token = {{response.parsedBody.Text.match(/token=([a-zA-Z0-9\-_.]+)/)[1]}}
 
 
-### Step 4: Plankton tries to claim the domain with his user token
+### Plankton tries to claim the domain with his user token
 # v307 verifies the token was sent to admin@domain
 POST /restaurants
 Content-Type: application/json
 
 {
-    "name": "Plankton's Evil Empire",
-    "domain": "bmail.sea",
+    "name": "Bikinibottom Restaurant",
+    "domain": "bikinibottom.sea",
     "token": "{{user_token}}"
 }
 
-# FIX WORKING: Token is rejected because it's for plankton@bmail.sea, not admin@bmail.sea
-?? status >= 400
+# FIX WORKING: Token is rejected because it's for plankton@bikinibottom.sea, not admin@bikinibottom.sea
+?? status == 400
+?? body error == Invalid or expired token
 
