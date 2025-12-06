@@ -2,6 +2,8 @@
 
 Guide for human contributors on using Claude Code effectively in this project.
 
+Primary references for AI agents live in `docs/ai/` (see `docs/ai/README.md` for scopes). Keep this guide aligned with those documents and `AGENTS.md`.
+
 ## Quick Reference: Which Command to Use
 
 | I want to... | Command | Arguments |
@@ -81,17 +83,16 @@ Skills load automatically based on context:
 
 | Working With | Auto-Loaded Skill | Key Triggers |
 |--------------|-------------------|--------------|
-| `spec/**/*.http` | `http-spec-conventions` + `http-syntax` + `http-gotchas` | `$(response)`, `auth.basic()`, `@ref` |
-| `vulnerabilities/.../http/**/*.http` | `http-demo-conventions` + `http-syntax` + `http-gotchas` | `.exploit.http`, `.fixed.http` |
-| Any `.http` edit | `http-editing-policy` | enforce delegation |
+| `spec/**/*.http` | `spec-conventions`, `http-syntax`, `http-gotchas` | `$(response)`, `auth.basic()`, `@ref` |
+| `vulnerabilities/.../http/**/*.http` | `demo-conventions`, `demo-principles`, `http-syntax`, `http-gotchas` | `.exploit.http`, `.fixed.http` |
+| Any `.http` edit | `http-editing-policy` | Enforce delegation and safety |
 | Assertion errors | `http-gotchas` | "Expected X but got Y", 500 errors |
-| Inheritance/ucsync | `http-spec-inheritance` | `~` files, version bumps |
-| Spec debugging | `http-spec-debugging` | `uctest` failure triage |
+| Inheritance/ucsync | `spec-conventions`, `uclab-tools` | `~` files, version bumps |
+| Spec debugging | `uclab-tools`, `spec-conventions` | `uctest` failure triage |
 | Demo narratives | `spongebob-characters` | SpongeBob, Squidward, Plankton |
 | CLI tools | `uclab-tools` | uctest, httpyac, uclogs |
-| Vuln design | `vulnerability-design-methodology` | ONE concept rule, complexity |
-| @unsafe code | `vulnerable-code-patterns` | Annotations, Flask patterns |
-| README editing | `documentation-style` | Behavioral language, jargon |
+| Vulnerability design | `vulnerability-design-methodology`, `vulnerable-code-patterns` | ONE concept rule, Flask patterns |
+| README/docs editing | `documentation-style` | Behavioral language, jargon |
 | Committing | `commit-workflow` | Quality gates, message format |
 
 ## Critical Distinctions
@@ -189,9 +190,12 @@ Stop and reconsider if you see:
 
 | Resource | Purpose |
 |----------|---------|
-| Skills | Auto-load based on context |
-| Slash commands | `/project:*` for workflows |
-| `AGENTS.md` | Full agent documentation |
+| `docs/ai/README.md` | Knowledgebase index |
+| `AGENTS.md` | Full agent rules and invariants |
+| `docs/ai/unsafe-lab-playbook.md` | One-page orientation |
 | `docs/ai/runbooks.md` | Step-by-step workflows |
 | `docs/ai/decision-trees.md` | Diagnosis flowcharts |
-| `docs/ai/gotchas.md` | Common mistakes |
+| `docs/ai/http-syntax.md` | `.http` syntax rules |
+| `docs/ai/http-demos.md` / `docs/ai/http-specs.md` | Context-specific conventions |
+| Skills | Auto-load based on context |
+| Slash commands | `/project:*` workflows |

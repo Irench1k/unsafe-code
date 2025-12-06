@@ -265,6 +265,52 @@ Something doesn't work
 
 ---
 
+## 8. Test Fails (Any Context)
+
+```
+Test fails
+    │
+    ├─ Is it inherited (~)?
+    │   ├─ YES → Check parent version behavior
+    │   │         └─ Parent correct → Create local override
+    │   │         └─ Parent wrong → Fix parent
+    │   └─ NO → Continue
+    │
+    ├─ Read README for intended behavior
+    │
+    ├─ Is test correct?
+    │   ├─ YES → Fix code
+    │   └─ NO → Fix test
+    │
+    └─ Is feature removed/changed?
+        ├─ YES → Add to exclude in spec.yml
+        └─ NO → Investigate further
+```
+
+---
+
+## 9. Where to Add an Assertion
+
+```
+New assertion needed
+    │
+    ├─ Is it testing existing stable behavior?
+    │   └─ YES → Add to earliest version that has it
+    │
+    ├─ Is it testing new behavior in current version?
+    │   └─ YES → Add to current version only
+    │
+    ├─ Will this behavior change in future versions?
+    │   ├─ YES → Create separate file for this lifecycle
+    │   └─ NO → Add to existing file
+    │
+    └─ Does it fit existing file's responsibility?
+        ├─ YES → Add to that file
+        └─ NO → Create new file with clear purpose
+```
+
+---
+
 ## Quick Reference: Agent Selection
 
 | Situation | Agent |

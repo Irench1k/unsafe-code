@@ -1,305 +1,131 @@
 # Task Runbooks
 
-> Compact workflow checklists for common Unsafe Code Lab tasks.
-> See `AGENTS.md` for full context and decision trees.
+Compact, authoritative workflow checklists for common Unsafe Code Lab tasks. Use alongside `docs/ai/decision-trees.md` when diagnosing.
 
 ---
 
-## 1. Extend E2E Specs to Next Exercise
-
-**Goal**: vN → vN+1 with maximum inheritance
-
+## 1. Review & Fix Failing Demo
+**Goal**: Make a student-facing httpyac demo pass for the right reasons.
 ```
-1. READ section README (authoritative plan)
-2. RUN uctest vN/ (ensure baseline is green)
-3. UPDATE spec.yml:
-   - Add vN+1 entry with `inherits: vN`
-   - Add version-specific tags
-4. RUN ucsync (generate inherited files)
-5. RUN uctest vN+1/
-6. FOR EACH failure:
-   - Is behavior change documented in README?
-     YES → spec-author adjusts spec
-     NO  → code-author fixes code
-   - Is it "ref not found"?
-     → Check imports, run ucsync again
-7. VERIFY all green
-8. commit-agent
-```
-
-**Agents**: spec-runner → spec-runner → spec-debugger → spec-author OR code-author
-
----
-
-## 2. Add New Vulnerability Exercise
-
-**Goal**: Create complete new exercise with code, specs, and demos
-
-```
-1. content-planner:
-   - Read section README
-   - Design: What vuln? What fix? What new feature?
-   - Output: Design spec document
-
-2. code-author:
-   - Clone previous exercise directory
-   - Implement design spec
-   - Add @unsafe annotations
-   - Ensure backward compatible (usually)
-
-3. spec-author + spec-runner:
-   - Update spec.yml for new version
-   - Create specs for new endpoints/behavior
-   - Run ucsync
-
-4. spec-runner:
-   - Run uctest until green
-   - Debug failures as needed
-
-5. demo-author:
-   - Create .exploit.http (demonstrates vuln)
-   - Create .fixed.http (shows fix works)
-   - Follow character rules, one assert per test
-
-6. docs-author:
-   - Polish any README changes
-   - Ensure behavioral language, not jargon
-
-7. uv run docs generate --target [path]
-
-8. commit-agent:
-   - Run full verification
-   - Commit with clear message
-```
-
-**Agents**: content-planner → code-author → spec-author → spec-runner → spec-runner → demo-author → docs-author → commit-agent
-
----
-
-## 3. Fix Failing E2E Specs (Enhanced)
-
-**Goal**: Diagnose and fix spec failures correctly
-
-### Diagnostic Flow
-```
-uctest fails
-    │
-    ├─ 1. CHECK SERVER LOGS FIRST
-    │     uclogs --since 5m
-    │     Look for: 500 errors, exceptions, stack traces
-    │
-    ├─ 2. CHECK README INTENT
-    │     Read section README.md
-    │     What behavior is SUPPOSED to exist?
-    │
-    └─ 3. DECIDE: Code or Spec?
-          ├─ README says X, code does X, spec expects Y → Fix spec
-          ├─ README says X, code does Y, spec expects X → Fix code
-          └─ README unclear → Check with content-planner
-```
-
-### Example: 500 Error Investigation
-```bash
-# Step 1: Run failing test
-uctest v301/cart/checkout/post/happy.http
-# Output: 500 Internal Server Error
-
-# Step 2: Check server logs
-uclogs --since 5m | grep -i error
-# Found: TypeError in auth/decorators.py line 42
-
-# Step 3: Read README to understand intent
-cat vulnerabilities/.../r03_authorization_confusion/README.md
-# Intent: "v301 should have body_override vulnerability"
-
-# Step 4: Decide
-# Code has bug unrelated to vulnerability → Fix code
+1) Run with detail: ucdemo <target> --bail -v
+2) Classify failure:
+   - 500 error → usually missing operator or malformed body
+   - Assertion mismatch → quotes on RHS or real behavior bug
+   - Undefined var/import → missing capture or @import
+   - Connection refused → docker not running
+3) Check logs: uclogs --tail=50
+4) Decide root cause:
+   - Syntax issue → fix demo file (see http-syntax + http-demos)
+   - Behavior issue → fix app code
+5) Re-run ucdemo target (expect pass)
 ```
 
 ---
 
-## 4. Maximize Inheritance (Backport Specs)
-
-**Goal**: Move tests to earliest valid version for max DRYness
-
-### Detailed Workflow
-
-#### Step 1: Find Backport Candidates
-```bash
-# Compare test coverage between versions
-diff <(ls spec/v302/cart/checkout/post/) <(ls spec/v301/cart/checkout/post/)
-
-# Find tests that exist in v302 but not v301
-comm -23 <(ls spec/v302/cart/checkout/post/*.http | xargs -n1 basename) \
-         <(ls spec/v301/cart/checkout/post/*.http | xargs -n1 basename)
+## 2. Fix Failing E2E Specs (Enhanced)
+**Goal**: Diagnose and correct spec failures without weakening coverage.
 ```
-
-#### Step 2: Verify Behavior Exists in Earlier Version
-```bash
-# Start the earlier version's server
-cd vulnerabilities/.../e01_*/  && docker compose up -d
-
-# Run the test against it manually
-uctest --target-version v301 spec/v302/cart/checkout/post/happy.http
+1) Run failing file verbose: uctest <path> -v
+2) Check inheritance: ucsync <version> -n (is it ~ file?)
+3) Read README intent (section + curriculum)
+4) Decide: code vs spec vs exclusion
+   - Inherited test → default fix code unless README says behavior changed
+   - New test → verify assertion logic
+5) If "ref not found": trace @name + imports; regenerate ucsync
+6) Apply fix; rerun ucsync (if needed) + uctest
 ```
-
-#### Step 3: Port Test File
-```bash
-# Copy to earlier version
-cp spec/v302/cart/checkout/post/new-feature.http \
-   spec/v301/cart/checkout/post/new-feature.http
-
-# Update any version-specific refs in the file
-sed -i 's/v302/v301/g' spec/v301/cart/checkout/post/new-feature.http
-```
-
-#### Step 4: Delete Original and Regenerate
-```bash
-# Remove from later version (will become inherited)
-rm spec/v302/cart/checkout/post/new-feature.http
-
-# Regenerate inheritance
-ucsync
-
-# Verify both versions pass
-uctest v301/cart/checkout/post/ && uctest v302/cart/checkout/post/
-```
-
-### Example: Split Monolithic Test File
-If v302 has `cart-tests.http` with 10 tests but only 3 apply to v301:
-
-```bash
-# 1. Extract common tests to v301
-grep -A20 "### Test 1\\|### Test 2\\|### Test 3" spec/v302/cart-tests.http \
-  > spec/v301/cart-common.http
-
-# 2. Keep v302-specific tests
-# Edit v302/cart-tests.http to only have v302-specific tests
-
-# 3. Add import in v302
-echo "# @import ./~cart-common.http" >> spec/v302/cart-tests.http
-
-# 4. Run ucsync
-ucsync
-```
-
-**Agents**: spec-author (port files) → spec-runner (update inheritance) → spec-runner (verify)
+Use decision trees for deeper branching.
 
 ---
 
-## 5. Review Exercise Quality
-
-**Goal**: Comprehensive quality check on exercise set
-
+## 3. Extend E2E Specs to Next Exercise
+**Goal**: vN → vN+1 with maximum inheritance.
 ```
-1. READ section README
-   - Understand planned evolution
-   - Note which vulns/fixes per version
-
-2. RUN uctest for each version
-   - All should be green
-   - Note inheritance health
-
-3. VALIDATE interactive demos:
-   - httpyac [file].http -a for each
-   - Check character logic (attacker uses own creds)
-   - Check one assert per test
-   - Check narrative quality
-
-4. CROSS-REFERENCE:
-   - Diff source code between versions
-   - Compare actual changes to README plan
-   - Flag any accidental fixes
-
-5. CHECK variety:
-   - Different attackers across examples?
-   - Different impacts?
-   - No repetition of same pattern 4+ times?
-
-6. REPORT:
-   - Versions reviewed
-   - Specs passed/failed
-   - Demo quality issues
-   - Recommendations
-```
-
-**Agents**: spec-runner → demo-author (review) → docs-author (polish)
-
----
-
-## 6. Fix Vulnerability Chain
-
-**Goal**: Ensure vuln appears/disappears correctly across versions
-
-```
-1. IDENTIFY the vulnerability and its lifecycle:
-   - Which version introduces it?
-   - Which version fixes it?
-   - Is fix intentional or accidental?
-
-2. FOR EACH version in chain:
-   a. Check source code
-      → Is vuln present where it should be?
-      → Is vuln absent where it should be?
-
-   b. If wrong:
-      → code-author adjusts implementation
-
-   c. Check specs
-      → vuln-*.http should pass where vuln exists
-      → vuln-*.http should be excluded where fixed
-
-3. UPDATE spec.yml exclusions with documentation
-
-4. RUN full chain: uctest v301 v302 v303 ...
-
-5. UPDATE interactive demos if needed
+1) Read section README (authoritative plan)
+2) uctest vN/ (baseline green)
+3) Update spec.yml: add vN+1 with inherits: vN + tags
+4) ucsync
+5) uctest vN+1/
+6) For each failure: README alignment? code vs spec?
+7) Verify all green
+8) commit-agent
 ```
 
 ---
 
-## 7. Refresh Interactive Demos (Enhanced)
-
-**Goal**: Improve student-facing exploit demonstrations
-
-### Workflow
-
+## 4. Add New Vulnerability Exercise
+**Goal**: Complete new exercise (code + specs + demos) via TDD.
 ```
-1. READ section README + exercise code
-
-2. FOR EACH demo pair (.exploit.http + .fixed.http):
-
-   a. VERIFY technical correctness:
-      → httpyac [file].http -a
-      → Does exploit actually work?
-      → Does fix actually work?
-
-   b. CHECK character logic:
-      → Attacker uses OWN credentials
-      → Right character for attack type
-      → SpongeBob NEVER attacks
-
-   c. CHECK narrative quality:
-      → Behavioral annotations (not jargon)
-      → Business impact clear
-      → Fun without cringe
-      → One assert per test
-
-   d. CHECK variety:
-      → Not same impact as last 3 examples
-      → Rotate attackers/victims/impacts
-
-3. demo-author rewrites as needed
-
-4. docs-author polishes language
-
-5. RE-RUN demos to verify
+1) content-planner: read README; design vuln/fix/new feature
+2) code-author: clone previous exercise; add @unsafe; keep backward compatibility
+3) spec-author/spec-runner: update spec.yml, create specs, run ucsync
+4) spec-runner: run uctest until green
+5) demo-author: write .exploit.http + .fixed.http (one assert each)
+6) docs-author: polish README language (behavioral)
+7) uv run docs generate --target [path]
+8) commit-agent: full verification
 ```
 
-### Storytelling Templates
+---
 
-#### Template A: Coworker Grudge (Squidward → SpongeBob)
-```http
+## 5. Maximize Inheritance (Backport Specs)
+**Goal**: Move tests to earliest valid version to reduce overrides.
+```
+1) Find duplicate overrides:
+   find spec/v3* -name "*.http" ! -name "~*" ! -name "_*"
+2) Analyze lifecycle (which versions need behavior)
+3) Move canonical test to earliest valid version
+4) Add exclusions where behavior genuinely diverges
+5) Split files by lifecycle if assertions change midstream
+6) ucsync; uctest across versions
+```
+
+---
+
+## 6. Review Exercise Quality
+**Goal**: Holistic quality check for a version set.
+```
+1) Read section README (planned evolution)
+2) Run uctest for each version (inheritance health)
+3) Validate demos:
+   - httpyac file.http -a
+   - Attacker uses own creds; one assert; narrative quality
+4) Cross-reference code diffs vs README; flag accidental fixes
+5) Check variety (attackers, impacts, targets)
+6) Report: versions reviewed, spec status, demo issues, recommendations
+```
+
+---
+
+## 7. Fix Vulnerability Chain
+**Goal**: Ensure vuln appears/disappears in correct versions.
+```
+1) Identify vuln lifecycle (introduced vs fixed)
+2) For each version:
+   a) Check source: vuln present/absent as intended?
+   b) Fix code if wrong
+   c) Check specs: vuln-*.http present where vuln exists; excluded where fixed
+3) Update spec.yml exclusions with rationale
+4) Run chain: uctest v301 v302 v303 ...
+5) Update demos if lifecycle changed
+```
+
+---
+
+## 8. Refresh Interactive Demos
+**Goal**: Improve student-facing exploit demonstrations.
+```
+1) Read section README + exercise code
+2) For each exploit/fix pair:
+   - Verify technically (httpyac -a)
+   - Check character logic (attacker owns creds)
+   - Check narrative (behavioral impact, no jargon)
+   - Ensure variety and one assert per request
+3) Rewrite as needed; re-run demos
+```
+Storytelling templates (keep handy):
+- Coworker grudge (Squidward → SpongeBob)
+```
 ### SpongeBob logs in to check his messages
 POST {{host}}/auth/login
 Content-Type: application/json
@@ -326,9 +152,8 @@ Authorization: {{squidward_auth}}
 
 # IMPACT: Squidward can see SpongeBob's private recipe notes!
 ```
-
-#### Template B: Business Rival (Plankton → Krabs/Patrick)
-```http
+- Business rival (Plankton → Krabs/Patrick)
+```
 ### Mr. Krabs reviews today's sales (normal use)
 GET {{host}}/restaurant/1/sales
 X-API-Key: {{krabs_api_key}}
@@ -343,9 +168,8 @@ X-API-Key: {{chum_bucket_api_key}}
 
 # IMPACT: Plankton just stole Krusty Krab's sales data!
 ```
-
-#### Template C: VIP Target (Any → Patrick)
-```http
+- VIP target (Plankton → Patrick)
+```
 ### Patrick checks his VIP credit balance
 GET {{host}}/account/credits
 Authorization: {{patrick_auth}}
@@ -362,21 +186,46 @@ Content-Type: application/json
 
 # IMPACT: Plankton stole $100 from Patrick's account!
 ```
+See `docs/ai/characters.md` for cast rules.
 
-### Variety Rotation Checklist
-By example 4-5, rotate at least 2 of these:
+---
 
-| Aspect | Options |
-|--------|---------|
-| Attacker | Squidward, Plankton, (Sandy for advanced) |
-| Victim | SpongeBob, Mr. Krabs, Patrick |
-| Impact | Read data, Modify data, Delete data, Transfer money |
-| Resource | Messages, Orders, Menu, Credits, Sales |
+## 9. Debug State Issues in Demos
+**Goal**: Resolve flakiness when demos pass alone but fail in sequence.
+```
+1) Reset explicitly:
+   {{ await seedBalance("v305", "plankton@chum-bucket.sea", 100); }}
+2) Verify cookie isolation (httpyac.config.js: cookieJarEnabled=false)
+3) Check request order for hidden dependencies
+4) Isolate by running specific request: httpyac demo.http -a --line <n>
+5) Add temporary diagnostics: console.log(JSON.stringify(response.parsedBody))
+```
+Remove diagnostics once stable.
+
+---
+
+## 10. Pre-Commit Verification
+**Goal**: Ensure changes are validated before committing.
+```
+Demos changed:
+  ucdemo <scope>  # affected demos
+  ucdemo <section> -k  # if common files changed
+Specs changed:
+  ucsync
+  uctest <version>/
+  uclint <version>
+Code changed:
+  ucup (if needed)
+  uctest <version>/ -k
+  ucdemo <section> -k
+  uclogs --tail=100
+Docs changed:
+  uv run docs verify -v
+```
 
 ---
 
 ## Quick Commands Reference
-
 ```bash
 # E2E Specs
 uctest vNNN/                    # Run all tests for version

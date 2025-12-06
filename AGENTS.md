@@ -52,6 +52,23 @@ Additional helpers:
 | r04     | Cardinality confusion    | v401-v405 |
 | r05     | Normalization issues     | v501-v509 |
 
+## AI Knowledgebase Index (docs/ai/)
+
+| File | Scope | Use When |
+|------|-------|----------|
+| `docs/ai/README.md` | Single map of all AI docs and scopes | First stop to orient | 
+| `docs/ai/unsafe-lab-playbook.md` | One-page orientation + starter checklists | Start of session | 
+| `docs/ai/invariants.md` | Non-negotiable rules (TDD, HTTP invariants, inheritance, characters, code subtlety) | Any decision that might violate rules | 
+| `docs/ai/http-syntax.md` | Complete `.http` syntax (demos + specs) | Before editing any `.http` | 
+| `docs/ai/http-demos.md` | Student-facing demo conventions | Working in `vulnerabilities/.../http/*.http` | 
+| `docs/ai/http-specs.md` | E2E spec conventions and helpers | Working in `spec/**/*.http` or `spec/spec.yml` | 
+| `docs/ai/spec-vs-demo.md` | Purpose/style/syntax differences | When context confusion arises | 
+| `docs/ai/tools.md` | CLI references (ucdemo/uctest/ucsync, docker, lint, docs) | Running tools or recalling flags | 
+| `docs/ai/curriculum.md` | Section/version map, directory layout, blueprint wiring, `@unsafe` requirements | Adding/understanding exercises | 
+| `docs/ai/characters.md` | Canonical character rules and narratives | Picking attackers/victims, writing impacts | 
+| `docs/ai/runbooks.md` | Ordered workflows (failing demo/spec, new exercise, pre-commit, etc.) | Executing a task step-by-step | 
+| `docs/ai/decision-trees.md` | Diagnostic trees (inheritance, refs, assertions, placement) | When choosing between code vs spec vs exclusion | 
+
 ## Core Philosophy
 
 ### Documentation ≠ Gospel
@@ -166,12 +183,16 @@ E2E specs model **SaaS evolution**. Real apps add features; they rarely break ba
 
 ## Doc Map
 
+- Knowledgebase index: `docs/ai/README.md`
+- Invariants & characters: `docs/ai/invariants.md`, `docs/ai/characters.md`
+- HTTP references: `docs/ai/http-syntax.md`, `docs/ai/http-demos.md`, `docs/ai/http-specs.md`, `docs/ai/spec-vs-demo.md`
+- Playbook: `docs/ai/unsafe-lab-playbook.md`
+- Tools: `docs/ai/tools.md`, `tools/dev/README.md`
+- Runbooks/decision trees: `docs/ai/runbooks.md`, `docs/ai/decision-trees.md`
 - Curriculum: `docs/confusion_curriculum/*.md`, `docs/confusion_curriculum/endpoint_index.md`
 - Section plans: `vulnerabilities/.../rXX_*/README.md`
-- Playbook: `docs/ai/unsafe-lab-playbook.md`
 - Specs & helpers: `spec/spec.yml`, `spec/utils.cjs`, `spec/**/*.http`
 - Demos: `vulnerabilities/.../http/**/*.http`, per-section `http/common/setup.http`
-- Runbooks/decision trees: `docs/ai/runbooks.md`, `docs/ai/decision-trees.md`, `docs/ai/spec-vs-demo.md`
 
 ## File Editing Guidelines
 
