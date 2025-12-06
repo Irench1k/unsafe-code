@@ -1,6 +1,5 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v306
-@mailpit = http://127.0.0.1:8025/api/v1
 
 # Sandy plans to make autoregister new managers by email domain. 
 # She sends an email to restaurant owners to check what users exist.
@@ -38,20 +37,8 @@ Content-Type: application/json
     "domain": "bikinibottom.sea"
 }
 
+@user_token = {{mailpit.lastEmail("admin@bikinibottom.sea").userToken()}}
 ?? body status == verification_email_sent
-
-# Upon creation the system sends an email to admin@{{domain}} with a link to finish the registration.
-
-### Extract the verification email, we use mailpit to get the email. These two requests are the simulation of the email client.
-GET {{mailpit}}/messages?limit=1
-
-@email_id = {{response.parsedBody.messages[0].ID}}
-?? js response.parsedBody.messages[0].To[0].Address == admin@bikinibottom.sea
-
-### Extract the USER verification token
-GET {{mailpit}}/message/{{email_id}}
-
-@user_token = {{response.parsedBody.Text.match(/token=([a-zA-Z0-9\-_.]+)/)[1]}}
 
 ### Finish the registration
 POST /restaurants

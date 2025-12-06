@@ -7,7 +7,7 @@ from .e04_body_override_orders import bp as v304
 from .e05_failed_update_leaks import bp as v305
 from .e06_domain_token_any_mailbox import bp as v306
 from .e07_token_swap_hijack import bp as v307
-
+from .e08_fixed_final_version import bp as v308
 
 bp = Blueprint("authorization_confusion", __name__)
 
@@ -24,3 +24,4 @@ bp.register_blueprint(v304, url_prefix="v304")
 bp.register_blueprint(v305, url_prefix="v305")
 bp.register_blueprint(v306, url_prefix="v306")
 bp.register_blueprint(v307, url_prefix="v307")
+bp.register_blueprint(v308, url_prefix="v308")

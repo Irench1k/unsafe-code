@@ -1,68 +1,76 @@
 # @import ../common/setup.http
-@host = {{base_host}}/v307
-@mailpit = http://127.0.0.1:8025/api/v1
+@host = {{base_host}}/v308
 
-# HYPOTHETICAL v308 FIX: Handler verifies API key matches path restaurant
-#
-# In a fixed version, the PATCH /restaurants/{id} handler would verify that
-# the authenticated restaurant (from API key) matches the path parameter
-# BEFORE accepting any token-based updates.
-#
-# NOTE: This fix is NOT implemented in v307 - the exploit still works.
-# This file documents the EXPECTED behavior after the fix is applied.
+# FIX for v307: ensure handler uses only verified restaurant
 
-### Step 1: Request domain verification for Chum Bucket
-POST /restaurants
+### Plankton tries to update Krusty Krabs restaurant, but he is not the owner, so he does not pass authorization
+# `@restaurant_owner`
+PATCH /restaurants/1
+Authorization: {{plankton_auth}}
 Content-Type: application/json
 
 {
-    "name": "Get Token",
+    "name": "Krusty Krabs",
+    "description": "Krusty Krabs is closing due to a salmonella outbreak!!!",
     "domain": "chum-bucket.sea"
 }
 
-?? status == 200
+?? status == 400
+?? body error == Unauthorized
 
-
-### Step 2: Get the verification token
-GET {{mailpit}}/messages?limit=1
-
-@email_id = {{response.parsedBody.messages[0].ID}}
-
-
-### Step 3: Extract the Chum Bucket token
-GET {{mailpit}}/message/{{email_id}}
-
-@chum_token = {{response.parsedBody.Text.match(/token=([a-zA-Z0-9\-_.]+)/)[1]}}
-
-
-### Step 4: Verify Krusty Krab ownership before attack
-GET /restaurants/1/
-
-# @assert response.parsedBody.owner_email.includes("krusty")
-
-
-### Step 5: BLOCKED - Plankton's token swap attack fails
-# In v308, the handler would check: g.restaurant_id (from API key) == restaurant_id (from path)
-# Plankton's Chum Bucket API key (restaurant 2) doesn't match path (/restaurants/1)
-PATCH /restaurants/1
-X-API-Key: {{chum_bucket_api_key}}
+### He can update his own restaurant, because he is the owner
+PATCH /restaurants/2
+Authorization: {{plankton_auth}}
 Content-Type: application/json
 
 {
-    "domain": "chum-bucket.sea",
-    "token": "{{chum_token}}"
+    "name": "Chum Bucket NEW",
+    "description": "We are so much better than Krusty Krab!",
+    "domain": "chum-bucket.sea"
 }
 
-# EXPECTED (when fix implemented): Authorization error - API key doesn't match path
-# CURRENT BEHAVIOR (v307): Exploit works - Krusty Krab gets hijacked
+@token = {{mailpit.lastEmail("admin@chum-bucket.sea").userToken()}}
 ?? status == 200
 
+### But he can't update Krusty Krabs restaurant anymore
+# `@restaurant_owner`
+PATCH /restaurants/2
+Authorization: {{plankton_auth}}
+Content-Type: application/json
 
-### Step 6: Krusty Krab is STILL hijacked (fix not yet implemented)
-# When v308 is implemented, this assertion should check that owner is UNCHANGED
-GET /restaurants/1/
+{
+    "name": "Krusty Krabs",
+    "description": "Krusty Krabs is closing due to a salmonella outbreak!!!",
+    "domain": "chum-bucket.sea",
+    "token": "{{token}}"
+}
 
-# Current: Hijacked to admin@chum-bucket.sea
-# After fix: Should still be mr.krabs@krusty-krab.sea
-?? js response.parsedBody.owner_email.includes("chum-bucket")
+?? status == 200
 
+### Check that we didn't break anything and we can still register new restaurants
+POST /restaurants
+Authorization: {{plankton_auth}}
+Content-Type: application/json
+
+{
+    "name": "Chum Bucket Pacific",
+    "description": "New Chum Bucket Branch in Pacific Ocean",
+    "domain": "chum-bucket.sea"
+}
+
+@user_token = {{mailpit.lastEmail("admin@chum-bucket.sea").userToken()}}
+
+###
+POST /restaurants
+Authorization: {{plankton_auth}}
+Content-Type: application/json
+
+{
+    "name": "Chum Bucket Pacific",
+    "description": "New Chum Bucket Branch in Pacific Ocean",
+    "domain": "chum-bucket.sea",
+    "token": "{{user_token}}"
+}
+
+### 
+GET /restaurants

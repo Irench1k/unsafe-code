@@ -123,26 +123,26 @@ def register_restaurant(verified_token: dict[str, Any] | None):
 
 @bp.patch("/<int:restaurant_id>")
 @require_auth(["customer"])
-@send_and_verify_domain_token
 @require_restaurant_owner
+@send_and_verify_domain_token
 def update_restaurant_profile(verified_token: dict[str, Any] | None, restaurant_id: int):
     """
     Update restaurant profile.
     """
     if verified_token:
         # Extract the claims from the secure token
-        restaurant = find_restaurant_by_id(verified_token["restaurant_id"])
         name = verified_token["name"]
         description = verified_token["description"]
         domain = verified_token["domain"]
     else:
         # No token -> update restaurant with insecure data; DO NOT UPDATE DOMAIN THIS WAY!
-        restaurant = find_restaurant_by_id(restaurant_id)
         name = get_param("name")
         description = get_param("description")
         # A domain with no token should be rejected by @domain_verification_required
         domain = None
 
+    restaurant = find_restaurant_by_id(restaurant_id)
+    require_condition(restaurant, f"Restaurant {restaurant_id} not found")
     require_condition(name or description or domain, "name or description or domain is required")
     update_restaurant(restaurant, name, description, domain)
 

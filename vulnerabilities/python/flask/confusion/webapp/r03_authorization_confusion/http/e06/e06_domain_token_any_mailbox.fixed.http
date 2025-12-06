@@ -1,6 +1,5 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v307
-@mailpit = http://127.0.0.1:8025/api/v1
 
 # v307 FIX: Domain verification now requires admin@domain token
 #
@@ -15,19 +14,8 @@ Content-Type: application/json
     "email": "plankton@bikinibottom.sea"
 }
 
+@user_token = {{mailpit.lastEmail("plankton@bikinibottom.sea").userToken()}}
 ?? status == 200
-
-
-### Get the verification email
-GET {{mailpit}}/messages?limit=1
-
-@email_id = {{response.parsedBody.messages[0].ID}}
-
-
-### Extract the USER verification token
-GET {{mailpit}}/message/{{email_id}}
-
-@user_token = {{response.parsedBody.Text.match(/token=([a-zA-Z0-9\-_.]+)/)[1]}}
 
 
 ### Plankton tries to claim the domain with his user token
