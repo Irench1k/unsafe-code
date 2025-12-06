@@ -110,8 +110,12 @@ from rich.tree import Tree
 # Configuration
 # =============================================================================
 
-WEBAPP_BASE = Path("vulnerabilities/python/flask/confusion/webapp")
-SPEC_BASE = Path("spec")
+# Compute project root from this file's location (tools/ucdiff.py -> project root)
+_SCRIPT_DIR = Path(__file__).resolve().parent
+_PROJECT_ROOT = _SCRIPT_DIR.parent
+
+WEBAPP_BASE = _PROJECT_ROOT / "vulnerabilities/python/flask/confusion/webapp"
+SPEC_BASE = _PROJECT_ROOT / "spec"
 
 # Files to always filter (noise)
 NOISE_FILES = {
