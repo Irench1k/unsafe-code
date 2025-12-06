@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal
 from functools import wraps
 
@@ -10,7 +11,6 @@ from ..database.repository import (
     find_coupon_by_code,
     find_menu_item_by_id,
     find_restaurant_by_id,
-    get_cart_coupons,
     get_cart_items,
 )
 from ..database.services import (
@@ -24,6 +24,7 @@ from ..database.services import (
     serialize_cart,
     serialize_order,
 )
+from ..errors import CheekyApiError
 from ..utils import (
     created_response,
     get_decimal_param,
@@ -36,6 +37,7 @@ from ..utils import (
 )
 
 bp = Blueprint("cart", __name__, url_prefix="/cart")
+logger = logging.getLogger(__name__)
 
 
 def resolve_trusted_cart():
@@ -47,7 +49,7 @@ def resolve_trusted_cart():
 
     This should apply to all /cart endpoints, apart from POST /cart (where we create a new cart).
     """
-    trusted_cart_id = session.get("cart_id") or g.cart_id
+    trusted_cart_id = session.get("cart_id") or g.get("cart_id")
     require_condition(trusted_cart_id, "Cart ID is required")
 
     trusted_cart = find_cart_by_id(trusted_cart_id)
@@ -119,7 +121,7 @@ def add_item_to_cart_endpoint():
             f"Menu item {item_id_int} does not belong to restaurant {cart.restaurant_id}",
         )
 
-        add_item_to_cart(cart.id, item_id_int)
+        add_item_to_cart(cart.id, menu_item.id, menu_item.name, menu_item.price)
 
     if coupon_code:
         coupon = find_coupon_by_code(coupon_code)
@@ -129,10 +131,14 @@ def add_item_to_cart_endpoint():
             f"Coupon {coupon_code} does not belong to restaurant {cart.restaurant_id}",
         )
 
-        # Only one coupon is allowed per cart
-        appllied_coupons = get_cart_coupons(cart.id)
-        if not appllied_coupons:
-            add_coupon_to_cart(cart.id, coupon.id)
+        # Only one coupon is allowed per cart, so we check that none of the items have a coupon yet
+        if all(cart_item.coupon_id is None for cart_item in get_cart_items(cart.id)):
+            add_coupon_to_cart(cart, coupon)
+        else:
+            # Don't raise an error, just log and skip applying the second coupon
+            logger.warning(
+                f"Coupon {coupon_code} not applied, because cart {cart.id} already has a coupon"
+            )
 
     return success_response(serialize_cart(cart))
 
@@ -158,16 +164,20 @@ def add_coupons_to_cart_endpoint():
         # New customer - add coupon to the cookie and redirect to registration page
         session["coupon_code"] = coupon_code
         return redirect("https://app.cheeky.sea/register")
-    else:
+
+    try:
         # Existing customer - add coupon to the cart and redirect to checkout page
         cart = resolve_trusted_cart()
-        if cart:
-            add_coupon_to_cart(cart.id, coupon.id)
-            return redirect(f"https://app.cheeky.sea/cart/{cart.id}/checkout")
-        else:
-            # No cart - add coupon to the cookie and redirect to menu page
+        add_coupon_to_cart(cart.id, coupon.id)
+        return redirect(f"https://app.cheeky.sea/cart/{cart.id}/checkout")
+    except CheekyApiError:
+        # No cart - add coupon to the cookie and redirect to menu page
+        if session.get("email"):
+            # Cookie-based session - browser user
             session["coupon_code"] = coupon_code
             return redirect("https://app.cheeky.sea/menu")
+        # Mobile app users - Basic Auth
+        return redirect(f"cheekysea://cart/apply-coupons?code={coupon_code}")
 
 
 def charge_customer_with_hold(checkout_handler):
@@ -184,9 +194,11 @@ def charge_customer_with_hold(checkout_handler):
         # Calculate the total amount of the cart
         subtotal, delivery_fee = calculate_cart_price(cart_items)
         require_condition(subtotal, f"Cart {cart.id} is empty")
+        require_condition(subtotal >= 0, "Subtotal is negative")
 
         # Ensure the customer has enough balance
         total_amount = subtotal + delivery_fee + tip
+        require_condition(total_amount >= 0, "Total amount is negative")
         require_condition(g.balance >= total_amount, "Insufficient balance")
 
         # Prevent cart reuse once checkout starts
@@ -201,7 +213,6 @@ def charge_customer_with_hold(checkout_handler):
         # where session cart is popped above but handler would re-resolve to path cart
         g.resolved_cart = cart
         g.resolved_cart_items = cart_items
-
         try:
             return checkout_handler(delivery_fee, tip, total_amount)
         finally:

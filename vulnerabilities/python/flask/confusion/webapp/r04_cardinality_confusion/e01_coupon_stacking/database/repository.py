@@ -23,7 +23,6 @@ from sqlalchemy import select
 from .models import (
     Base,
     Cart,
-    CartCoupon,
     CartItem,
     Coupon,
     MenuItem,
@@ -340,16 +339,6 @@ def get_cart_items(cart_id: int | str) -> list[CartItem]:
     return list(session.execute(stmt).scalars().all())
 
 
-def get_cart_coupons(cart_id: int | str) -> list[CartCoupon]:
-    """Gets all coupons for a specific cart."""
-    session = get_request_session()
-    cid = _coerce_int_id(cart_id, "cart_id")
-    if cid is None:
-        return []
-    stmt = select(CartCoupon).where(CartCoupon.cart_id == cid)
-    return list(session.execute(stmt).scalars().all())
-
-
 def save_cart(cart: Cart) -> None:
     """Saves a cart to the database."""
     session = get_request_session()
@@ -357,27 +346,22 @@ def save_cart(cart: Cart) -> None:
     session.flush()
 
 
-def add_cart_item(cart_id: int | str, item_id: int | str) -> None:
+def add_cart_item(cart_id: int | str, item_id: int | str, name: str, price: Decimal) -> None:
     """Adds an item to a cart."""
     session = get_request_session()
     cid = _coerce_int_id(cart_id, "cart_id")
     mid = _coerce_int_id(item_id, "menu_item_id")
     if cid is None or mid is None:
         return
-    cart_item = CartItem(cart_id=cid, item_id=mid)
+    cart_item = CartItem(cart_id=cid, item_id=mid, name=name, price=price)
     session.add(cart_item)
     session.flush()
 
 
-def add_cart_coupon(cart_id: int | str, coupon_id: int | str) -> None:
-    """Adds a coupon to a cart."""
+def save_cart_item(cart_item: CartItem) -> None:
+    """Saves a cart item to the database."""
     session = get_request_session()
-    cid = _coerce_int_id(cart_id, "cart_id")
-    normalized_coupon_id = _coerce_int_id(coupon_id, "coupon_id")
-    if cid is None or normalized_coupon_id is None:
-        return
-    cart_coupon = CartCoupon(cart_id=cid, coupon_id=normalized_coupon_id)
-    session.add(cart_coupon)
+    session.add(cart_item)
     session.flush()
 
 

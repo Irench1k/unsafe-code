@@ -18,6 +18,7 @@ from .models import (
     Cart,
     CartItem,
     Coupon,
+    CouponType,
     MenuItem,
     Order,
     OrderItem,
@@ -27,7 +28,6 @@ from .models import (
     User,
 )
 from .repository import (
-    add_cart_coupon,
     add_cart_item,
     find_cart_by_id,
     find_coupon_by_id,
@@ -37,11 +37,11 @@ from .repository import (
     find_orders_by_user,
     find_user_by_email,
     find_user_by_id,
-    get_cart_coupons,
     get_cart_items,
     get_refund_by_order_id,
     get_signup_bonus_remaining,
     save_cart,
+    save_cart_item,
     save_menu_item,
     save_order,
     save_order_items,
@@ -57,9 +57,7 @@ logger = logging.getLogger(__name__)
 # ============================================================
 # PRICING SERVICES
 # ============================================================
-def calculate_cart_price(
-    cart_items: list[CartItem],
-) -> tuple[Decimal, Decimal] | tuple[None, None]:
+def calculate_cart_price(cart_items: list[CartItem]) -> tuple[Decimal, Decimal] | tuple[None, None]:
     """
     Validate cart items and calculate totals for checkout.
 
@@ -71,12 +69,13 @@ def calculate_cart_price(
     """
     subtotal = Decimal("0.00")
 
-    for item in cart_items:
-        menu_item = find_menu_item_by_id(item.item_id)
-        if not menu_item or not menu_item.available:
-            return None, None
+    # Check that all items are still available
+    if any(not find_menu_item_by_id(item.item_id).available for item in cart_items):
+        # TODO: Should we raise an error here?
+        return None, None
 
-        subtotal += menu_item.price
+    # Calculate subtotal
+    subtotal = sum(item.price for item in cart_items)
 
     # Calculate delivery fee
     delivery_fee = (
@@ -268,14 +267,14 @@ def create_order_from_checkout(
     )
 
     # Create order items separately
-    menu_items = [find_menu_item_by_id(item.item_id) for item in cart_items]
     order_items = [
         OrderItem(
-            item_id=item.id,
+            item_id=item.item_id,
             name=item.name,
             price=item.price,
+            coupon_id=item.coupon_id,
         )
-        for item in menu_items
+        for item in cart_items
     ]
 
     return order, order_items
@@ -351,31 +350,57 @@ def create_cart(restaurant_id: int, user_id: int) -> Cart:
     return new_cart
 
 
-def add_item_to_cart(cart_id: int | str, item_id: int | str) -> None:
+def add_item_to_cart(cart_id: int | str, item_id: int | str, name: str, price: Decimal) -> None:
     """
     Adds an item to a cart.
 
     Assume authorization and validation already performed by controller.
     """
-    add_cart_item(cart_id, item_id)
+    add_cart_item(cart_id, item_id, name, price)
     logger.debug(f"Item {item_id} added to cart {cart_id}")
 
 
-def add_coupon_to_cart(cart_id: int | str, coupon_id: int | str) -> None:
+def _calculate_coupon_discount(coupon: Coupon, price: Decimal) -> Decimal:
+    """Calculates the discount for a coupon."""
+    if coupon.type == CouponType.fixed_amount:
+        return min(coupon.value, price)
+    elif coupon.type == CouponType.discount_percent:
+        return price * coupon.value / 100
+    elif coupon.type == CouponType.free_item_sku:
+        return price
+    else:
+        raise CheekyApiError(f"Invalid coupon type: {coupon.type}")
+
+
+def add_coupon_to_cart(cart: Cart, coupon: Coupon) -> None:
     """Adds a coupon to a cart."""
-    add_cart_coupon(cart_id, coupon_id)
-    logger.debug(f"Coupon {coupon_id} added to cart {cart_id}")
+    for item in get_cart_items(cart.id):
+        if item.item_id == coupon.item_id:
+            item.coupon_id = coupon.id
+            item.price = item.price - _calculate_coupon_discount(coupon, item.price)
+            save_cart_item(item)
+            return
+
+    logger.warning(
+        f"Coupon {coupon.id} not applied, because item {coupon.item_id} not found in cart {cart.id}"
+    )
 
 
 def serialize_cart(cart: Cart) -> dict:
     """Serializes a cart to a JSON-compatible dict."""
     cart_items = get_cart_items(cart.id)
-    coupons = get_cart_coupons(cart.id)
     return {
         "cart_id": cart.id,
         "restaurant_id": cart.restaurant_id,
-        "items": [item.item_id for item in cart_items],
-        "coupons": [coupon.coupon_id for coupon in coupons],
+        "items": [
+            {
+                "item_id": item.item_id,
+                "name": item.name,
+                "price": str(item.price),
+                "coupon_id": item.coupon_id,
+            }
+            for item in cart_items
+        ],
     }
 
 

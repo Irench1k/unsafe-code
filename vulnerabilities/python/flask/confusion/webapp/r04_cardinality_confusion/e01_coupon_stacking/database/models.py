@@ -143,6 +143,7 @@ class OrderItem(Base):
         CheckConstraint("price > 0", name="order_item_price_positive"),
         nullable=False,
     )
+    coupon_id: Mapped[int] = mapped_column(Integer, ForeignKey("coupons.id"), nullable=True)
 
 
 class Cart(Base):
@@ -166,16 +167,9 @@ class CartItem(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     cart_id: Mapped[int] = mapped_column(Integer, ForeignKey("carts.id"), nullable=False)
     item_id: Mapped[int] = mapped_column(Integer, ForeignKey("menu_items.id"), nullable=False)
-
-
-class CartCoupon(Base):
-    """Cart coupon model - represents a coupon in a shopping cart."""
-
-    __tablename__ = "cart_coupons"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    cart_id: Mapped[int] = mapped_column(Integer, ForeignKey("carts.id"), nullable=False)
-    coupon_id: Mapped[int] = mapped_column(Integer, ForeignKey("coupons.id"), nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    coupon_id: Mapped[int] = mapped_column(Integer, ForeignKey("coupons.id"), nullable=True)
 
 
 class CouponType(enum.Enum):

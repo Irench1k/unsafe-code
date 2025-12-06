@@ -538,6 +538,9 @@ def _create_cart_with_items(
         cart_item = CartItem(
             cart_id=cart.id,
             item_id=menu_item.id,
+            name=menu_item.name,
+            price=menu_item.price,
+            coupon_id=None,
         )
         session.add(cart_item)
 

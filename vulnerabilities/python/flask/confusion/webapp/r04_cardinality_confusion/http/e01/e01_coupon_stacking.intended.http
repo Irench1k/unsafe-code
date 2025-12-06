@@ -7,6 +7,7 @@ GET /menu
 @ultimate_krabby_feast = {{response.parsedBody.find(i => i.name.includes("Ultimate Krabby"))}}
 {{
   console.info(`Ultimate Krabby Feast: ${ultimate_krabby_feast.id} (${ultimate_krabby_feast.price})`);
+  await seedBalance("v401", "plankton@chum-bucket.sea", 100);
 }}
 
 ### Should return all Krusty Krab coupons
@@ -31,7 +32,7 @@ POST /cart/{{cart.cart_id}}/items
 Content-Type: application/json
 Authorization: {{plankton_auth}}
 
-{ "item_id": "{{ultimate_krabby_feast.id}}" }
+{ "item_id": 4 }
 
 ###
 POST /cart/{{cart.cart_id}}/items
@@ -39,7 +40,7 @@ Content-Type: application/json
 Authorization: {{plankton_auth}}
 
 {
-  "coupon_code": ""
+  "coupon_code": "BURGER-50"
 }
 
 ### Checkout the cart
@@ -59,3 +60,70 @@ Authorization: {{plankton_auth}}
 ### See Plankton's new balance
 GET /account/info
 Authorization: {{plankton_auth}}
+
+# ===== New Functionality Testing =====
+
+### New user navigates the link
+# @no-redirect
+GET /cart/apply-coupons?code=BURGER-50
+
+?? 
+?? header set-cookie exists
+
+### SpongeBob (existing user) navigates the link without an existing cart
+GET /account/info
+Authorization: {{spongebob_auth}}
+
+### Plankton (existing user) navigates the link with an existing cart using Basic Auth
+# @no-redirect
+GET /cart/apply-coupons?code=BURGER-50
+Authorization: {{plankton_auth}}
+
+### Plankton (existing user) navigates the link with an existing cart using Cookie Auth
+# @no-redirect
+POST /auth/login
+Content-Type: application/json
+
+{
+    "email": "plankton@chum-bucket.sea",
+    "password": "i_love_my_wife"
+}
+
+@session = {{refreshCookie(response)}}
+{{
+  console.info(`Plankton session: ${session}`);
+}}
+
+###
+# @no-redirect
+GET /cart/apply-coupons?code=BURGER-50
+Cookie: {{session}}
+
+@session_new = {{refreshCookie(response, session)}}
+{{
+  console.info(`Plankton session_new: ${session_new}`);
+}}
+
+?? session_new != session
+
+### Create new cart and add Krabby Patty to it
+# @name cart_with_cookie
+POST /cart?restaurant_id=1
+Authorization: {{plankton_auth}}
+
+###
+POST /cart/{{cart_with_cookie.cart_id}}/items
+Content-Type: application/json
+Authorization: {{plankton_auth}}
+
+{ "item_id": 4 }
+
+### Checkout the cart
+POST /cart/{{cart_with_cookie.cart_id}}/checkout
+Authorization: {{plankton_auth}}
+Content-Type: application/json
+
+{
+  "tip": "0",
+  "delivery_address": "Chum Bucket"
+}
