@@ -1,0 +1,51 @@
+# @import ../common/setup.http
+@host = {{base_host}}/v401
+
+### Should return all Krusty Krab coupons
+GET /restaurants/1/coupons
+X-API-Key: {{krabs_api_key}}
+
+###
+GET /restaurants/2/coupons
+X-API-Key: {{chum_bucket_api_key}}
+
+### Plankton balance
+GET /account/info
+Authorization: {{plankton_auth}}
+
+### Create new cart and add Krabby Patty to it
+# @name cart
+POST /cart?restaurant_id=1
+Authorization: {{plankton_auth}}
+
+###
+POST /cart/{{cart.cart_id}}/items
+Content-Type: application/json
+Authorization: {{plankton_auth}}
+
+{ "item_id": "{{krabby_patty.id}}" }
+
+### Add a coupon
+POST /cart/{{cart.cart_id}}/apply-coupon
+Authorization: {{plankton_auth}}
+Content-Type: application/json
+
+{ "code": "BURGER-50" }
+
+### Checkout the cart
+POST /cart/{{cart.cart_id}}/checkout
+Authorization: {{plankton_auth}}
+Content-Type: application/json
+
+{
+  "tip": "0",
+  "delivery_address": "Chum Bucket"
+}
+
+### See Plankton's order
+GET /orders
+Authorization: {{plankton_auth}}
+
+### See Plankton's new balance
+GET /account/info
+Authorization: {{plankton_auth}}
