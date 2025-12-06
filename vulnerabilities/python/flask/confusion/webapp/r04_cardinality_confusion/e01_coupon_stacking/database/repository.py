@@ -192,6 +192,13 @@ def find_coupons_by_restaurant(restaurant_id: int | str) -> list[Coupon]:
     return list(session.execute(stmt).scalars().all())
 
 
+def find_coupon_by_code(coupon_code: str) -> Coupon | None:
+    """Finds a coupon by its code."""
+    session = get_request_session()
+    stmt = select(Coupon).where(Coupon.name == f"CODE-{coupon_code.upper()}")
+    return session.execute(stmt).scalar_one_or_none()
+
+
 # ============================================================
 # USERS
 # ============================================================
@@ -330,6 +337,16 @@ def get_cart_items(cart_id: int | str) -> list[CartItem]:
     if cid is None:
         return []
     stmt = select(CartItem).where(CartItem.cart_id == cid)
+    return list(session.execute(stmt).scalars().all())
+
+
+def get_cart_coupons(cart_id: int | str) -> list[CartCoupon]:
+    """Gets all coupons for a specific cart."""
+    session = get_request_session()
+    cid = _coerce_int_id(cart_id, "cart_id")
+    if cid is None:
+        return []
+    stmt = select(CartCoupon).where(CartCoupon.cart_id == cid)
     return list(session.execute(stmt).scalars().all())
 
 

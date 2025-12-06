@@ -1,16 +1,20 @@
 from decimal import Decimal
 from functools import wraps
 
-from flask import Blueprint, g, session
+from flask import Blueprint, g, redirect, session
 
+from ..auth.authenticators import CustomerAuthenticator
 from ..auth.decorators import require_auth
 from ..database.repository import (
     find_cart_by_id,
+    find_coupon_by_code,
     find_menu_item_by_id,
     find_restaurant_by_id,
+    get_cart_coupons,
     get_cart_items,
 )
 from ..database.services import (
+    add_coupon_to_cart,
     add_item_to_cart,
     calculate_cart_price,
     charge_user,
@@ -23,10 +27,10 @@ from ..database.services import (
 from ..utils import (
     created_response,
     get_decimal_param,
+    get_int_param,
     get_param,
     get_restaurant_id,
     require_condition,
-    require_int_param,
     require_ownership,
     success_response,
 )
@@ -103,23 +107,67 @@ def add_item_to_cart_endpoint():
     to add different items.
     """
     cart = resolve_trusted_cart()
-    item_id_int = require_int_param("item_id")
+    item_id_int = get_int_param("item_id")
+    coupon_code = get_param("coupon_code")
 
-    # Fetch and validate menu item
-    menu_item = find_menu_item_by_id(item_id_int)
-    require_condition(menu_item, f"Menu item {item_id_int} not found")
+    if item_id_int:
+        menu_item = find_menu_item_by_id(item_id_int)
+        require_condition(menu_item, f"Menu item {item_id_int} not found")
+        require_condition(menu_item.available, f"Menu item {item_id_int} is not available")
+        require_condition(
+            menu_item.restaurant_id == cart.restaurant_id,
+            f"Menu item {item_id_int} does not belong to restaurant {cart.restaurant_id}",
+        )
 
-    # Integrity check: menu item must be available
-    require_condition(menu_item.available, f"Menu item {item_id_int} is not available")
+        add_item_to_cart(cart.id, item_id_int)
 
-    # Integrity check: menu item must belong to same restaurant as cart
-    require_condition(
-        menu_item.restaurant_id == cart.restaurant_id,
-        f"Menu item {item_id_int} does not belong to restaurant {cart.restaurant_id}",
-    )
+    if coupon_code:
+        coupon = find_coupon_by_code(coupon_code)
+        require_condition(coupon, f"Coupon {coupon_code} not found")
+        require_condition(
+            coupon.restaurant_id == cart.restaurant_id,
+            f"Coupon {coupon_code} does not belong to restaurant {cart.restaurant_id}",
+        )
 
-    add_item_to_cart(cart.id, item_id_int)
+        # Only one coupon is allowed per cart
+        appllied_coupons = get_cart_coupons(cart.id)
+        if not appllied_coupons:
+            add_coupon_to_cart(cart.id, coupon.id)
+
     return success_response(serialize_cart(cart))
+
+
+@bp.get("/apply-coupons")
+def add_coupons_to_cart_endpoint():
+    """
+    New endpoint for applying coupons to a cart via shareable / clickable links.
+
+    For new customers, we add coupon to the cookie and redirect them to registration page.
+    For exisiting customers with an active cart, we add the coupon to the cart and redirect them to the checkout page.
+    For exisiting customers without an active cart, we add coupon to the cookie and redirect them to the menu page.
+    """
+    coupon_code = get_param("code")
+    require_condition(coupon_code, "Coupon code is required")
+
+    coupon = find_coupon_by_code(coupon_code)
+    require_condition(coupon, f"Coupon {coupon_code} not found")
+
+    # Check if the user is logged in
+    authenticator = CustomerAuthenticator()
+    if not authenticator.authenticate():
+        # New customer - add coupon to the cookie and redirect to registration page
+        session["coupon_code"] = coupon_code
+        return redirect("https://app.cheeky.sea/register")
+    else:
+        # Existing customer - add coupon to the cart and redirect to checkout page
+        cart = resolve_trusted_cart()
+        if cart:
+            add_coupon_to_cart(cart.id, coupon.id)
+            return redirect(f"https://app.cheeky.sea/cart/{cart.id}/checkout")
+        else:
+            # No cart - add coupon to the cookie and redirect to menu page
+            session["coupon_code"] = coupon_code
+            return redirect("https://app.cheeky.sea/menu")
 
 
 def charge_customer_with_hold(checkout_handler):

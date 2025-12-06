@@ -58,6 +58,14 @@ def require_int_param(name: str) -> int:
     return parse_id(value, name)
 
 
+def get_int_param(name: str, default: int | None = None) -> int | None:
+    """Get an optional integer parameter from anywhere in the request."""
+    value = get_param(name)
+    if not value:
+        return default
+    return parse_id(value, name)
+
+
 def get_decimal_param(name: str, default: Decimal | None = None) -> Decimal | None:
     """Get an optional decimal parameter from anywhere in the request."""
     value = get_param(name)

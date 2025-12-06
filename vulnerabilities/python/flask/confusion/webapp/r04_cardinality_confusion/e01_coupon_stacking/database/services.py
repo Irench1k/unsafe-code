@@ -27,6 +27,7 @@ from .models import (
     User,
 )
 from .repository import (
+    add_cart_coupon,
     add_cart_item,
     find_cart_by_id,
     find_coupon_by_id,
@@ -36,6 +37,7 @@ from .repository import (
     find_orders_by_user,
     find_user_by_email,
     find_user_by_id,
+    get_cart_coupons,
     get_cart_items,
     get_refund_by_order_id,
     get_signup_bonus_remaining,
@@ -359,13 +361,21 @@ def add_item_to_cart(cart_id: int | str, item_id: int | str) -> None:
     logger.debug(f"Item {item_id} added to cart {cart_id}")
 
 
+def add_coupon_to_cart(cart_id: int | str, coupon_id: int | str) -> None:
+    """Adds a coupon to a cart."""
+    add_cart_coupon(cart_id, coupon_id)
+    logger.debug(f"Coupon {coupon_id} added to cart {cart_id}")
+
+
 def serialize_cart(cart: Cart) -> dict:
     """Serializes a cart to a JSON-compatible dict."""
     cart_items = get_cart_items(cart.id)
+    coupons = get_cart_coupons(cart.id)
     return {
         "cart_id": cart.id,
         "restaurant_id": cart.restaurant_id,
         "items": [item.item_id for item in cart_items],
+        "coupons": [coupon.coupon_id for coupon in coupons],
     }
 
 

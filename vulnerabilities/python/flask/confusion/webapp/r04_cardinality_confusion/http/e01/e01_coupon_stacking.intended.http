@@ -1,6 +1,14 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v401
 
+###
+GET /menu
+
+@ultimate_krabby_feast = {{response.parsedBody.find(i => i.name.includes("Ultimate Krabby"))}}
+{{
+  console.info(`Ultimate Krabby Feast: ${ultimate_krabby_feast.id} (${ultimate_krabby_feast.price})`);
+}}
+
 ### Should return all Krusty Krab coupons
 GET /restaurants/1/coupons
 X-API-Key: {{krabs_api_key}}
@@ -23,14 +31,16 @@ POST /cart/{{cart.cart_id}}/items
 Content-Type: application/json
 Authorization: {{plankton_auth}}
 
-{ "item_id": "{{krabby_patty.id}}" }
+{ "item_id": "{{ultimate_krabby_feast.id}}" }
 
-### Add a coupon
-POST /cart/{{cart.cart_id}}/apply-coupon
-Authorization: {{plankton_auth}}
+###
+POST /cart/{{cart.cart_id}}/items
 Content-Type: application/json
+Authorization: {{plankton_auth}}
 
-{ "code": "BURGER-50" }
+{
+  "coupon_code": ""
+}
 
 ### Checkout the cart
 POST /cart/{{cart.cart_id}}/checkout
