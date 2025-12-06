@@ -146,7 +146,7 @@ def _generate_user_verification_token(email: str) -> str:
     expires_at = datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(minutes=30)
     return jwt.encode(
         {
-            "sub": "app.cheeky.sea",
+            "iss": "app.cheeky.sea",
             "aud": "user_verification",
             "email": email,
             "exp": expires_at,
