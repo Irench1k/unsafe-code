@@ -24,6 +24,7 @@ docs = "tools.docs.cli:docs_main"
 focus = "tools.focus:main"
 ucsync = "tools.ucsync:main"
 uclint = "tools.uclint:main"
+ucdiff = "tools.ucdiff:main"
 
 
 [build-system]

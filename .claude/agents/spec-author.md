@@ -1,7 +1,7 @@
 ---
 name: spec-author
 description: Write and fix `.http` E2E spec files in `spec/` for the uctest suite. Single agent authorized for spec `.http` edits. Not a runner or debugger.
-skills: http-editing-policy, http-syntax, http-gotchas, spec-conventions
+skills: http-editing-policy, http-syntax, http-gotchas, spec-conventions, uclab-tools
 model: opus
 ---
 

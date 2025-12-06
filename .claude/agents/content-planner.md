@@ -1,7 +1,7 @@
 ---
 name: content-planner
 description: Design and plan Unsafe Code Lab exercises, taxonomy, and curriculum. Produces clear specs for code-author, demo-author, and spec-author. Merged role of curriculum strategist, vulnerability designer, and taxonomy maintainer.
-skills: vulnerability-design-methodology, vulnerable-code-patterns, http-editing-policy
+skills: vulnerability-design-methodology, vulnerable-code-patterns, http-editing-policy, uclab-tools
 model: opus
 ---
 

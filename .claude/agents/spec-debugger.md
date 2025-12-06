@@ -1,7 +1,7 @@
 ---
 name: spec-debugger
 description: Diagnose failing `uctest` runs. Read-only by default; identifies root causes and routes to the right agent. Not a test author or runner.
-skills: http-editing-policy, http-syntax, http-gotchas, spec-conventions
+skills: http-editing-policy, http-syntax, http-gotchas, spec-conventions, uclab-tools
 model: opus
 ---
 

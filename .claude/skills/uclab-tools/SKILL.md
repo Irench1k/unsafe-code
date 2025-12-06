@@ -1,6 +1,6 @@
 ---
 name: uclab-tools
-description: CLI tool quick reference for Unsafe Code Lab. Auto-invoke when running tests, debugging failures, managing inheritance, checking logs, troubleshooting "Connection refused" errors, diagnosing 500 errors, or needing uctest/ucdemo/ucsync/uclogs/docs command syntax. Covers all project CLI tools.
+description: CLI tool quick reference for Unsafe Code Lab. Auto-invoke when running tests, debugging failures, managing inheritance, checking logs, comparing exercises, troubleshooting "Connection refused" errors, diagnosing 500 errors, or needing uctest/ucdemo/ucsync/ucdiff/uclogs/docs command syntax. Covers all project CLI tools.
 ---
 
 # Unsafe Code Lab CLI Tools
@@ -14,6 +14,7 @@ Quick reference for project CLI tools.
 | `uctest` | E2E spec runner | `spec/vNNN/` files ONLY |
 | `ucdemo` | Demo runner | Interactive demos in `vulnerabilities/.../http/` |
 | `ucsync` | Inheritance manager | `spec.yml` sync |
+| `ucdiff` | Exercise diff tool | Compare versions, find drift, check spec gaps |
 | `uclogs` | Docker log viewer | Debugging server issues |
 | `uv run docs` | Doc generator | README generation |
 
@@ -135,6 +136,109 @@ vulnerabilities/python/flask/confusion/webapp/
         └── e02/
             └── ...
 ```
+
+## ucdiff - Exercise Diff Tool
+
+Compare exercise versions to identify changes, drift, and missing specs.
+**Use this BEFORE propagating fixes or reviewing exercise quality.**
+
+```bash
+# Overview: What changed? (default tree view)
+ucdiff v307                       # Auto-compare with v306
+ucdiff r03                        # All changes in section
+
+# Code: How did it change? (syntax-aware diff)
+ucdiff v307 -c                    # Inline syntax-aware diff
+ucdiff v307 -cS                   # Side-by-side view
+ucdiff v307 -cF                   # Focused (max noise reduction)
+
+# Outline: What functions changed?
+ucdiff v307 -o                    # Function-level changes
+ucdiff v307 -r                    # Route handlers only
+
+# Evolution (track changes across ALL section versions)
+ucdiff r03 -e                     # Full section evolution matrix
+ucdiff r03 -e routes/             # Evolution of routes/ only
+ucdiff r03 -e orders.py           # Evolution of specific file
+ucdiff r03 -oe                    # Function evolution for section
+ucdiff r03 -re                    # Route evolution for section
+
+# Scripting
+ucdiff v307 -l                    # Just filenames
+ucdiff v307 --json                # Machine-readable
+```
+
+### Primary Flags
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| (default) | | Tree view with +/- stats per file |
+| `--code` | `-c` | Syntax-aware diff (via difftastic) |
+| `--outline` | `-o` | Function-level changes (added/modified/deleted) |
+| `--routes` | `-r` | Route-level changes only (@bp.route decorators) |
+| `--list` | `-l` | Just filenames (for scripting) |
+| `--json` | | Machine-readable output |
+
+### Display Options
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--side` | `-S` | Side-by-side view for `--code` mode |
+| `--focused` | `-F` | Max noise reduction (--ignore-comments + context=1) |
+| `--tool {difft,delta,icdiff}` | | Diff tool for `--code` mode (default: difft) |
+
+**Tool differences:**
+- `difft` (default): Syntax-aware, understands code structure, supports `--ignore-comments`
+- `delta`: Word-level highlighting, shows exact characters changed
+- `icdiff`: Traditional side-by-side columns
+
+### Noise Reduction
+
+| Flag | Description |
+|------|-------------|
+| `--ignore-comments` | Skip comment-only changes (difftastic only) |
+| `--focused` | Max noise reduction (`--ignore-comments` + context=1) |
+| `-U N` | Context lines for diff (default: 3) |
+
+### Filters
+
+| Flag | Description |
+|------|-------------|
+| `-f`, `--file` | Only files matching pattern |
+| `-b`, `--boring` | Show boring files at full brightness |
+| `--added-only` | Only show added files |
+| `--modified-only` | Only show modified files |
+| `--deleted-only` | Only show deleted files |
+
+**Boring files** (dimmed by default): `__init__.py`, `config.py`, `fixtures/`, `models/`, `database/`
+
+### Evolution Mode
+
+| Flag | Description |
+|------|-------------|
+| `-e` | Full section evolution matrix (all files) |
+| `-e FILE` | Evolution filtered to matching files |
+| `-oe` / `-eo` | Evolution + function outline per transition |
+| `-re` / `-er` | Evolution + route changes per transition |
+
+**Patterns:** exact path (`routes/orders.py`), partial name (`orders.py`), directory (`routes/`), glob (`routes/*.py`)
+
+### When to Use
+
+- **Before propagating a fix**: `ucdiff v306 v307` to see exactly what changed
+- **Detecting drift**: `ucdiff r03 -e file.py` to track file evolution
+- **Review exercise quality**: `ucdiff r03` for section overview
+- **Find missing specs**: `ucdiff v307 --check-specs`
+- **Scripting/CI**: `ucdiff v306..v307 --json`
+
+### Integration Hints
+
+After showing diff, ucdiff suggests relevant follow-up commands:
+- Code changed → `uctest v307/`
+- Spec drift detected → `ucsync v307`
+- Demo files changed → `ucdemo r03/e07`
+
+Disable with `--no-hints`.
 
 ## ucsync - Inheritance Manager
 
@@ -269,6 +373,38 @@ uctest v302/
 uclogs --level error
 ```
 
+### Propagate Fix to Next Exercise
+
+```bash
+# 1. See what changed in current fix
+ucdiff v306 v307
+
+# 2. Identify which files need copying to v308
+ucdiff v306..v307 -m files
+
+# 3. After copying, verify spec coverage
+ucdiff v308 --check-specs
+
+# 4. Run tests
+uctest v308/
+```
+
+### Review Exercise Quality
+
+```bash
+# 1. Overview of section changes
+ucdiff r03
+
+# 2. Track specific file evolution
+ucdiff r03 -e routes/restaurants.py
+
+# 3. Check all specs pass
+uctest v301/ && uctest v302/ && uctest v303/
+
+# 4. Run all demos
+ucdemo r03 -k
+```
+
 ## Tool Selection Guide
 
 | Task | Tool |
@@ -279,6 +415,9 @@ uclogs --level error
 | Debug 500 errors | `uclogs` |
 | Update READMEs | `uv run docs` |
 | Check inheritance | `ucsync --check` |
+| Compare exercises | `ucdiff v307` |
+| Track file drift | `ucdiff r03 -e file.py` |
+| Find spec gaps | `ucdiff v307 --check-specs` |
 
 ## Common Errors
 

@@ -1,7 +1,7 @@
 ---
 name: docs-author
 description: Edit READMEs, narrative docs, and annotations for Unsafe Code Lab. Focus on clarity and consistency with the latest agents/skills naming.
-skills: documentation-style, http-editing-policy
+skills: documentation-style, http-editing-policy, uclab-tools
 model: opus
 ---
 

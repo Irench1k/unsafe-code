@@ -328,6 +328,16 @@ uclint() {
 }
 
 # ================================
+# Exercise Analysis
+# ================================
+
+# Exercise diff tool - compare versions to identify changes, drift, and missing specs
+# Use `uv run ucdiff --help` for full documentation
+ucdiff() {
+    (cd "$UNSAFE_CODE_ROOT" && uv run ucdiff "$@")
+}
+
+# ================================
 # Interactive Demo Testing
 # ================================
 
@@ -387,6 +397,17 @@ Spec Linting:
   uclint v302            Lint specific version
   uclint --all           Lint all versions
   uclint --strict        Exit non-zero on any issue (for CI)
+
+Exercise Analysis (tree view with +/- stats by default):
+  ucdiff v307            Compare v307 with previous (v306)
+  ucdiff v306 v307       Compare two specific versions
+  ucdiff r03             Overview of all changes in section
+  ucdiff v306 v307 --code      Syntax-aware diff (via difftastic)
+  ucdiff v306 v307 -c -f auth  Code diff filtered to auth/
+  ucdiff v306 v307 --list      Just filenames (for scripting)
+  ucdiff r03 -e routes.py      Track file evolution
+  ucdiff v307 --check-specs    Warn if specs missing
+  ucdiff --help                Full documentation
 
 Interactive Demo Testing (httpyac .http files):
   ucdemo r02             Run all demos in r02 section

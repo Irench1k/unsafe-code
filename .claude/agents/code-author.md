@@ -1,7 +1,7 @@
 ---
 name: code-author
 description: Implement realistic, intentionally vulnerable code for Unsafe Code Lab exercises. Turns designs into working app changes with proper annotations. Partners with content-planner and demo/spec agents.
-skills: vulnerable-code-patterns, http-editing-policy
+skills: vulnerable-code-patterns, http-editing-policy, uclab-tools
 model: opus
 ---
 

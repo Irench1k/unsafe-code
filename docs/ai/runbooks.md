@@ -86,13 +86,15 @@ Use decision trees for deeper branching.
 **Goal**: Holistic quality check for a version set.
 ```
 1) Read section README (planned evolution)
-2) Run uctest for each version (inheritance health)
-3) Validate demos:
-   - httpyac file.http -a
+2) ucdiff r03 (overview of all changes in section)
+3) Run uctest for each version (inheritance health)
+4) Validate demos:
+   - ucdemo r03 -k
    - Attacker uses own creds; one assert; narrative quality
-4) Cross-reference code diffs vs README; flag accidental fixes
-5) Check variety (attackers, impacts, targets)
-6) Report: versions reviewed, spec status, demo issues, recommendations
+5) ucdiff r03 -e routes.py (track file evolution for drift)
+6) Cross-reference code diffs vs README; flag accidental fixes
+7) Check variety (attackers, impacts, targets)
+8) Report: versions reviewed, spec status, demo issues, recommendations
 ```
 
 ---
@@ -101,13 +103,14 @@ Use decision trees for deeper branching.
 **Goal**: Ensure vuln appears/disappears in correct versions.
 ```
 1) Identify vuln lifecycle (introduced vs fixed)
-2) For each version:
+2) ucdiff r03 -e [vuln-file].py (see how file evolved)
+3) For each version:
    a) Check source: vuln present/absent as intended?
    b) Fix code if wrong
    c) Check specs: vuln-*.http present where vuln exists; excluded where fixed
-3) Update spec.yml exclusions with rationale
-4) Run chain: uctest v301 v302 v303 ...
-5) Update demos if lifecycle changed
+4) Update spec.yml exclusions with rationale
+5) Run chain: uctest v301 v302 v303 ...
+6) Update demos if lifecycle changed
 ```
 
 ---
@@ -240,7 +243,16 @@ ucsync -n                       # Preview changes (dry run)
 ucsync clean                    # Remove generated files
 
 # Interactive Demos
-httpyac file.http -a            # Run demo
+ucdemo r03                      # Run all demos in section
+ucdemo r03/e07                  # Run specific exercise demos
+
+# Exercise Diff
+ucdiff v307                     # Compare with previous (v306)
+ucdiff v306..v307               # Compare two versions
+ucdiff r03                      # Overview of section changes
+ucdiff r03 -e routes.py         # Track file evolution
+ucdiff v307 --check-specs       # Warn if specs missing
+ucdiff v306..v307 --json        # Machine-readable output
 
 # Debugging
 uclogs                          # Docker logs
