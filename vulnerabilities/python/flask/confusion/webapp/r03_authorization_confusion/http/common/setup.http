@@ -10,6 +10,7 @@
 @patrick_auth = Basic patrick@bikinibottom.sea:mayonnaise
 @plankton_auth = Basic plankton@chum-bucket.sea:i_love_my_wife
 @spongebob_auth = Basic spongebob@krusty-krab.sea:EmployeeOfTheMonth
+@krabs_auth = Basic mr.krabs@krusty-krab.sea:m$n$y
 @platform_api_key = key-sandy-42841a8d-0e65-41db-8cce-8588c23e53dc
 @krabs_api_key = key-krusty-krub-z1hu0u8o94
 @chum_bucket_api_key = key-chum-bucket-b5kg32z1je
@@ -61,5 +62,71 @@
     });
     if (!resp.ok) throw new Error(`resetDB failed: ${resp.status}`);
     return resp.json();
+  };
+
+  const MAILPIT_BASE = "http://127.0.0.1:8025/api/v1";
+  exports.mailpit = {
+    /**
+     * Clear all messages from mailpit
+     */
+    async clear() {
+      await fetch(`${MAILPIT_BASE}/messages`, { method: "DELETE" });
+    },
+
+    /**
+     * Get the last email sent to a specific address.
+     * Returns an object with methods to extract different token types.
+     *
+     * Example:
+     *   @token = {{ await mailpit.lastEmail(regEmail).userToken() }}
+     *
+     * @param {string} toAddress - Email address to search for
+     */
+    lastEmail(toAddress) {
+      const fetchEmailBody = async () => {
+        // Search for emails to this address
+        const searchResp = await fetch(
+          `${MAILPIT_BASE}/search?query=to:${encodeURIComponent(toAddress)}&limit=1`
+        );
+        if (!searchResp.ok) {
+          throw new Error(`mailpit.lastEmail("${toAddress}") search failed: ${searchResp.status}`);
+        }
+        const searchData = await searchResp.json();
+        if (!searchData.messages?.length) {
+          throw new Error(`No email found for ${toAddress}`);
+        }
+
+        // Fetch full message to get body
+        const msgResp = await fetch(`${MAILPIT_BASE}/message/${searchData.messages[0].ID}`);
+        if (!msgResp.ok) {
+          throw new Error(`mailpit.lastEmail("${toAddress}") message fetch failed: ${msgResp.status}`);
+        }
+        return msgResp.json();
+      };
+
+      return {
+        /**
+         * Extract user registration token from email body.
+         * Looks for pattern: token=<alphanumeric>
+         */
+        async userToken() {
+          const msg = await fetchEmailBody();
+          const match = msg.Text.match(/token=([A-Za-z0-9._-]+)/);
+          if (!match) {
+            throw new Error(`No user token found in email to ${toAddress}`);
+          }
+          console.info(`Found user token: ${match[1]}`);
+          return match[1];
+        },
+
+        /**
+         * Extract restaurant verification token from email body.
+         * To be implemented when restaurant verification feature is added.
+         */
+        async restaurantToken() {
+          throw new Error("restaurantToken() not yet implemented");
+        },
+      };
+    },
   };
 }}

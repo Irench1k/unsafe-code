@@ -118,7 +118,9 @@ def find_restaurant_users(restaurant_id: int | str) -> list[User]:
     return list(session.execute(stmt).scalars().all())
 
 
-def save_restaurant(restaurant: Restaurant) -> None:
+def save_restaurant(
+    restaurant: Restaurant,
+) -> None:
     """Saves a restaurant to the database."""
     session = get_request_session()
     session.add(restaurant)

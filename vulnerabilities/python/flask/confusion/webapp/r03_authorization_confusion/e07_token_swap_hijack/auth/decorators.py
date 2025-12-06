@@ -5,9 +5,17 @@ from flask import g, request
 
 from ..config import OrderConfig
 from ..database.repository import find_order_by_id as get_order
-from ..database.repository import find_resource_by_id
+from ..database.repository import find_resource_by_id, find_restaurant_by_id
 from ..errors import CheekyApiError
-from ..utils import get_decimal_param
+from ..utils import (
+    generate_domain_verification_token,
+    get_decimal_param,
+    get_param,
+    require_condition,
+    send_domain_verification_email,
+    success_response,
+    verify_and_decode_token,
+)
 from .authenticators import CustomerAuthenticator, PlatformAuthenticator, RestaurantAuthenticator
 
 logger = logging.getLogger(__name__)
@@ -131,3 +139,55 @@ def restaurant_owns(resource_class: type, resource_id_param: str):
         return decorated_function
 
     return decorator
+
+
+def send_and_verify_domain_token(func):
+    """Decorator that sends a domain verification email and verifies the token."""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        token = get_param("token")
+        name = get_param("name")
+        description = get_param("description")
+        domain = get_param("domain")
+        owner = g.email
+        restaurant_id = kwargs.get("restaurant_id")
+
+        if domain and not token:
+            token = generate_domain_verification_token(
+                name, description, domain, owner, restaurant_id
+            )
+
+            # Note that we send verification email to admin@domain, not the email of the restaurant owner!
+            verification_email = f"admin@{domain}"
+            send_domain_verification_email(domain, verification_email, token)
+            return success_response(
+                {
+                    "status": "verification_email_sent",
+                    "verification_email": verification_email,
+                }
+            )
+
+        if token:
+            claims = verify_and_decode_token(token, "domain_verification")
+            require_condition(claims, "Invalid or expired token")
+            kwargs["verified_token"] = claims
+        else:
+            kwargs["verified_token"] = None
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+# Decorator to ensure that user is the restaurant owner
+def require_restaurant_owner(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        restaurant_id = kwargs.get("restaurant_id")
+        restaurant = find_restaurant_by_id(restaurant_id)
+        require_condition(restaurant, "Restaurant not found")
+        require_condition(g.get("email"), "User is not logged in")
+        require_condition(restaurant.owner == g.email, "Unauthorized")
+        return func(*args, **kwargs)
+
+    return wrapper

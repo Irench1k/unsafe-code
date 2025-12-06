@@ -141,11 +141,13 @@ def bind_to_restaurant() -> int | None:
 # ============================================================
 # DOMAIN-SPECIFIC UTILITIES
 # ============================================================
-def _generate_verification_token(email: str) -> str:
-    """Generate a stateless verification token for the given email."""
+def _generate_user_verification_token(email: str) -> str:
+    """Generate a stateless verification token for the given user's email."""
     expires_at = datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(minutes=30)
     return jwt.encode(
         {
+            "sub": "app.cheeky.sea",
+            "aud": "user_verification",
             "email": email,
             "exp": expires_at,
         },
@@ -154,18 +156,42 @@ def _generate_verification_token(email: str) -> str:
     )
 
 
-def get_email_from_token(token: str) -> str | None:
-    """Extract the email from the token pre-verification."""
-    decoded_token = verify_and_decode_token(token)
-    if not decoded_token:
-        return None
-    return decoded_token.get("email")
+def generate_domain_verification_token(
+    name: str | None,
+    description: str | None,
+    domain: str | None,
+    owner: str | None,
+    restaurant_id: int | None,
+) -> str:
+    """Generate a stateless verification token for the given domain's admin email."""
+    expires_at = datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(minutes=30)
+    return jwt.encode(
+        {
+            "iss": "app.cheeky.sea",
+            "aud": "domain_verification",
+            "name": name,
+            "description": description,
+            "domain": domain,
+            "owner": owner,
+            "restaurant_id": restaurant_id,
+            "exp": expires_at,
+        },
+        JWT_SECRET,
+        algorithm="HS256",
+    )
 
 
-def verify_and_decode_token(token: str) -> dict | None:
+def verify_and_decode_token(token: str, audience: str) -> dict | None:
     """Verify the verification token and return the decoded token."""
     try:
-        return jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        return jwt.decode(
+            token,
+            JWT_SECRET,
+            algorithms=["HS256"],
+            audience=audience,
+            issuer="app.cheeky.sea",
+            options={"require": ["iss", "aud"]},
+        )
     except jwt.InvalidTokenError:
         return None
 
@@ -186,9 +212,9 @@ The Cheeky Sea Team
 """
 
 
-def send_verification_email(email: str):
+def send_user_verification_email(email: str):
     """Send a verification email to the user."""
-    token = _generate_verification_token(email)
+    token = _generate_user_verification_token(email)
 
     envelope = Envelope(
         from_addr="no-reply@app.cheeky.sea",
@@ -216,46 +242,16 @@ The Cheeky Sea Team
 """
 
 
-def send_domain_verification_email(email: str, domain: str):
+def send_domain_verification_email(domain: str, verification_email: str, token: str):
     """Send a domain verification email for restaurant registration."""
-    token = _generate_verification_token(email)
-
     envelope = Envelope(
         from_addr="no-reply@app.cheeky.sea",
-        to_addr=email,
+        to_addr=verification_email,
         subject=f"Verify your domain {domain} at Cheeky Sea!",
         text_body=DOMAIN_VERIFICATION_EMAIL_TEMPLATE.format(token=token),
     )
     smtp = SMTP(host="mailpit", port=1025)
     smtp.send(envelope)
-
-
-def verify_domain_token(token: str, claimed_domain: str) -> dict | None:
-    """
-    Verify a domain verification token.
-
-    v307 FIX: Now properly checks that token was issued to admin@domain,
-    not just any mailbox at the domain.
-    """
-    decoded = verify_and_decode_token(token)
-    if not decoded:
-        return None
-
-    email = decoded.get("email", "")
-    # Extract local part and domain from email
-    if "@" not in email:
-        return None
-
-    local_part, email_domain = email.split("@", 1)
-
-    # v307 FIX: Must be admin@ not just any mailbox at the domain
-    if local_part != "admin":
-        return None
-
-    if email_domain != claimed_domain:
-        return None
-
-    return decoded
 
 
 # ============================================================

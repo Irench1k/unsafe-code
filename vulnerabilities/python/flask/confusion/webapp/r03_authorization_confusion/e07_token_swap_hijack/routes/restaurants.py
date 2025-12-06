@@ -2,9 +2,17 @@
 Restaurant routes - endpoints for managing and viewing restaurants.
 """
 
+from functools import wraps
+from typing import Any
+
 from flask import Blueprint, g
 
-from ..auth.decorators import require_auth, restaurant_owns
+from ..auth.decorators import (
+    require_auth,
+    require_restaurant_owner,
+    restaurant_owns,
+    send_and_verify_domain_token,
+)
 from ..database.models import MenuItem
 from ..database.repository import (
     find_all_restaurants,
@@ -13,7 +21,6 @@ from ..database.repository import (
     find_restaurant_by_id,
     find_restaurant_users,
 )
-from ..database.repository import save_restaurant as update_restaurant
 from ..database.services import (
     create_restaurant,
     serialize_menu_item,
@@ -22,15 +29,17 @@ from ..database.services import (
     serialize_restaurant_creation,
     serialize_restaurant_users,
     serialize_restaurants,
+    update_restaurant,
 )
 from ..utils import (
     created_response,
+    generate_domain_verification_token,
     get_param,
     require_condition,
     require_ownership,
     send_domain_verification_email,
     success_response,
-    verify_domain_token,
+    verify_and_decode_token,
 )
 from .menu_management import (
     create_menu_item_from_request,
@@ -45,53 +54,6 @@ def list_restaurants():
     """Lists all restaurants in the system."""
     restaurants = find_all_restaurants()
     return success_response(serialize_restaurants(restaurants))
-
-
-@bp.post("")
-def register_restaurant():
-    """
-    Register a new restaurant with domain verification.
-
-    Step 1: Send name + domain -> receive verification email at admin@domain
-    Step 2: Send name + domain + token -> receive API key
-
-    @unsafe {
-        "vuln_id": "v306",
-        "severity": "medium",
-        "category": "authorization-confusion",
-        "description": "Token verification checks domain but not admin@ local part - accepts any mailbox token",
-        "cwe": "CWE-863"
-    }
-    """
-    name = get_param("name")
-    domain = get_param("domain")
-    token = get_param("token")
-
-    require_condition(name, "name is required")
-    require_condition(domain, "domain is required")
-
-    # TODO: Validate domain syntax
-    require_condition(not find_restaurant_by_domain(domain), "Domain already registered")
-
-
-    if not token:
-        # Step 1: Send verification email to admin@domain
-        admin_email = f"admin@{domain}"
-        send_domain_verification_email(admin_email, domain)
-        return success_response(
-            {
-                "status": "verification_email_sent",
-                "verification_email": admin_email,
-            }
-        )
-
-    # Step 2: Verify token and create restaurant
-    token_data = verify_domain_token(token, domain)
-    require_condition(token_data, "Invalid or expired token")
-
-    # Create the restaurant with a new API key
-    restaurant = create_restaurant(name, domain)
-    return created_response(serialize_restaurant_creation(restaurant))
 
 
 @bp.get("/<int:restaurant_id>/")
@@ -145,68 +107,48 @@ def create_menu_item(restaurant_id: int):
     return created_response(serialize_menu_item(menu_item))
 
 
-@bp.before_request
-def verify_domain_token_middleware():
+@bp.post("")
+@require_auth(["customer"])
+@send_and_verify_domain_token
+def register_restaurant(verified_token: dict[str, Any] | None):
     """
-    Middleware that verifies domain tokens early in request processing.
-
-    @unsafe {
-        "vuln_id": "v307",
-        "severity": "critical",
-        "category": "authorization-confusion",
-        "description": "Middleware updates g.restaurant_id from token before authorization runs",
-        "cwe": "CWE-863"
-    }
+    Register a new restaurant with domain verification.
     """
-    token = get_param("token")
-    domain = get_param("domain")
+    require_condition(verified_token, "Verified token is required")
 
-    if token and domain:
-        # Verify the token is valid for the claimed domain
-        token_data = verify_domain_token(token, domain)
-        if token_data:
-            # THE VULNERABILITY: We update g.restaurant_id based on the token's domain!
-            # This happens BEFORE the authorization check in the handler.
-            # So PATCH /restaurants/1 with a Chum Bucket token will:
-            # 1. Set g.verified_domain = "chum-bucket.sea"
-            # 2. Authorization will then use this instead of the path's restaurant_id
-            g.verified_domain = domain
-            g.token_verified = True
+    name = verified_token["name"]
+    description = verified_token["description"]
+    domain = verified_token["domain"]
+    owner = verified_token["owner"]
+
+    require_condition(name and description, "name and description are required")
+    restaurant = create_restaurant(name, description, domain, owner)
+    return created_response(serialize_restaurant_creation(restaurant))
 
 
 @bp.patch("/<int:restaurant_id>")
-@require_auth(["restaurant_api_key"])
-def update_restaurant_profile(restaurant_id: int):
+@require_auth(["customer"])
+@send_and_verify_domain_token
+@require_restaurant_owner
+def update_restaurant_profile(verified_token: dict[str, Any] | None, restaurant_id: int):
     """
-    Update restaurant profile with domain verification.
-
-    @unsafe {
-        "vuln_id": "v307",
-        "severity": "critical",
-        "category": "authorization-confusion",
-        "description": "Authorization uses g.verified_domain from middleware instead of path restaurant_id",
-        "cwe": "CWE-863"
-    }
+    Update restaurant profile.
     """
-    domain = get_param("domain")
+    if verified_token:
+        # Extract the claims from the secure token
+        restaurant = find_restaurant_by_id(verified_token["restaurant_id"])
+        name = verified_token["name"]
+        description = verified_token["description"]
+        domain = verified_token["domain"]
+    else:
+        # No token -> update restaurant with insecure data; DO NOT UPDATE DOMAIN THIS WAY!
+        restaurant = find_restaurant_by_id(restaurant_id)
+        name = get_param("name")
+        description = get_param("description")
+        # A domain with no token should be rejected by @domain_verification_required
+        domain = None
 
-    # Load the restaurant from the PATH
-    restaurant = find_restaurant_by_id(restaurant_id)
-    require_condition(restaurant, f"Restaurant {restaurant_id} not found")
-
-    # THE VULNERABILITY: Authorization checks g.verified_domain (from token)
-    # instead of verifying the authenticated restaurant matches the path!
-    if domain and g.get("token_verified"):
-        # Token was verified for some domain - trust it!
-        # We don't check that g.restaurant_id (from API key) == restaurant_id (from path)!
-        restaurant.owner = f"admin@{g.verified_domain}"
-        update_restaurant(restaurant)
-        return success_response(serialize_restaurant(restaurant))
-
-    # Without token, require proper authorization
-    require_condition(
-        g.get("restaurant_id") == restaurant_id,
-        "Unauthorized - must provide valid domain token",
-    )
+    require_condition(name or description or domain, "name or description or domain is required")
+    update_restaurant(restaurant, name, description, domain)
 
     return success_response(serialize_restaurant(restaurant))

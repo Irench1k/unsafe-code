@@ -392,19 +392,15 @@ _Aftermath: With guardrails “in place,” she turns to the next big blocker: l
 
 > With self-registration live, Sandy finally exposes management actions in the website/mobile app by auto-assigning manager roles to users whose email domain matches the restaurant. Managers can now update their restaurant profile via `PATCH /restaurants/{id}`.
 
-**The Vulnerability**
+**The vulnerability**  
+The new profile editor tries to protect changes with two different identifiers: the path parameter (`/restaurants/{id}`) and the `restaurant_id` that lives inside the domain-verification token created by `send_and_verify_domain_token()`. Unfortunately those sources are checked independently. The decorator that mails out tokens runs **before** the owner check, so anyone can request a token for any restaurant just by calling `PATCH /restaurants/{victim}` and supplying a new `domain`. Later, when `update_restaurant_profile()` receives a token, it trusts the `restaurant_id` embedded in the token claims instead of the path parameter that just passed the ownership check. By swapping in a victim token while targeting their own restaurant ID in the URL, an attacker updates the victim’s profile while appearing to edit their own.
 
-- Given that Sandy now has multiple token verification mechanisms, she decides to avoid v306 repeats by verifying them right in the middleware.
-- The domain token verification incorrectly updates `request.restaurant_id` with the value from the token.
-- The regular `/restaurants/{id}` authorization occurs later, and effectively uses the updated `request.restaurant_id` value.
-- The DB update writes the attacker-controlled domain and grants them manager rights.
+**Exploit**  
+1. Plankton calls `PATCH /restaurants/1` (Krusty Krab) with a new domain. Because no token is provided yet, `send_and_verify_domain_token()` emails a verification link to `admin@chum-bucket.sea` and returns immediately—never reaching the owner check.
+2. Plankton retrieves the emailed token that encodes `restaurant_id=1`.
+3. He now calls `PATCH /restaurants/2` (his restaurant) with the token in the body. The owner check passes because he truly owns restaurant 2.
+4. Inside the handler the verified token wins over the path param, so the code updates restaurant 1’s `domain`, `name`, and `description` with Plankton’s payload—completing the hijack.
 
-**Exploit**
-
-1. Plankton obtains a valid token for `chum-bucket.sea` (his domain).
-2. Sends `PATCH /restaurants/1` with `{ "domain": "chum-bucket.sea", "token": "<chum token>" }`.
-3. Handler swaps in the attacker domain, validates the token against the _new_ domain, and commits the change.
-
-**Impact:** Full takeover of an existing tenant using a token for a different domain. \
+**Impact:** Full takeover of an existing tenant using a token minted for a different restaurant. \
 **Severity:** 🔴 Critical \
 **Endpoints:** `PATCH /restaurants/{id}`

@@ -432,18 +432,32 @@ def refund_user(user_id: int, amount: Decimal) -> None:
 # ============================================================
 # RESTAURANT SERVICES
 # ============================================================
-def create_restaurant(name: str, domain: str) -> Restaurant:
+def create_restaurant(name: str, description: str, domain: str, owner: str) -> Restaurant:
     """Creates a new restaurant with auto-generated API key."""
     import uuid
 
     api_key = f"key-{domain.replace('.', '-')}-{uuid.uuid4()}"
     restaurant = Restaurant(
         name=name,
-        description=f"Welcome to {name}!",
-        owner=f"admin@{domain}",
-        api_key=api_key,
+        description=description or f"Welcome to {name}!",
         domain=domain,
+        owner=owner,
+        api_key=api_key,
     )
     save_restaurant(restaurant)
     logger.info(f"Restaurant created: {restaurant.id} - {name}")
+    return restaurant
+
+
+def update_restaurant(
+    restaurant: Restaurant,
+    name: str | None = None,
+    description: str | None = None,
+    domain: str | None = None,
+) -> Restaurant:
+    """Updates a restaurant."""
+    restaurant.name = name or restaurant.name
+    restaurant.description = description or restaurant.description
+    restaurant.domain = domain or restaurant.domain
+    save_restaurant(restaurant)
     return restaurant

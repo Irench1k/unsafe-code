@@ -4,16 +4,15 @@ import re
 from flask import Blueprint, g, request, session
 
 from ..auth.authenticators import CustomerAuthenticator
-from ..auth.helpers import verify_user_registration
 from ..database.repository import find_user_by_email
 from ..database.services import apply_signup_bonus, create_user
 from ..utils import (
     created_response,
     error_response,
-    get_email_from_token,
     require_condition,
-    send_verification_email,
+    send_user_verification_email,
     success_response,
+    verify_and_decode_token,
 )
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -21,20 +20,28 @@ logger = logging.getLogger(__name__)
 
 
 @bp.before_request
-def protect_registration_flow():
-    """Authenticate user via email verification flow during the registration process."""
-    token = request.is_json and request.json.get("token")
-    if token and verify_user_registration(token):
-        email_from_token = get_email_from_token(token)
-        if not find_user_by_email(email_from_token):
-            g.email = email_from_token
-            g.email_confirmed = True
-        else:
-            g.email = None
-            g.email_confirmed = False
-    else:
-        # The token is expired, or maybe this isn't even a registration request
-        g.email_confirmed = False
+def protect_user_verification_flow():
+    """
+    Verify user verification token during registration.
+    """
+    token = request.json.get("token") if request.is_json else None
+
+    g.email_confirmed = False
+    g.email = None
+
+    if not token:
+        # The rest of the checks only apply to requests with a token
+        return
+
+    claims = verify_and_decode_token(token, "user_verification")
+    require_condition(claims, "Invalid or expired token")
+
+    user = find_user_by_email(claims["email"])
+    require_condition(not user, "User already registered")
+
+    g.email = claims["email"]
+    g.email_confirmed = True
+
 
 
 @bp.post("/register")
@@ -59,7 +66,7 @@ def register_user():
 
         require_condition(unvalidated_email, "email is required")
         require_condition(not find_user_by_email(unvalidated_email), "email already taken")
-        send_verification_email(unvalidated_email)
+        send_user_verification_email(unvalidated_email)
 
         return success_response({"status": "verification_email_sent", "email": unvalidated_email})
     elif g.email_confirmed:

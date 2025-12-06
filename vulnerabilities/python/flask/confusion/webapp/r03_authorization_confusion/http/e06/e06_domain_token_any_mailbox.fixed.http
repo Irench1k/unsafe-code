@@ -33,6 +33,7 @@ GET {{mailpit}}/message/{{email_id}}
 ### Plankton tries to claim the domain with his user token
 # v307 verifies the token was sent to admin@domain
 POST /restaurants
+Authorization: {{plankton_auth}}
 Content-Type: application/json
 
 {
@@ -44,4 +45,3 @@ Content-Type: application/json
 # FIX WORKING: Token is rejected because it's for plankton@bikinibottom.sea, not admin@bikinibottom.sea
 ?? status == 400
 ?? body error == Invalid or expired token
-
