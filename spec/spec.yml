@@ -213,3 +213,16 @@ v307:
     - restaurants/post/vuln-domain-token-any-mailbox.http
   # New files in v307/:
   #   - restaurants/patch/vuln-token-swap-hijack.http (new vulnerability)
+
+v308:
+  inherits: v307
+  description: The fixed v307 version
+  tags: [r03, v308]
+  exclude:
+    - restaurants/patch/vuln-token-swap-hijack.http
+
+v401:
+  inherits: v308
+  description: Coupon Stacking
+  tags: [r04, v401]
+

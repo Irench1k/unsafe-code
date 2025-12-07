@@ -1,0 +1,3 @@
+# Shared imports for v303 specs (new structure)
+# Centralize relative paths to keep nested specs readable
+# @import ../common.http
