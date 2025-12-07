@@ -1,6 +1,11 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v307
 
+### Setup: Clear mailpit for reliable token extraction
+{{
+  await mailpit.clear();
+}}
+
 # v307 FIX: Domain verification now requires admin@domain token
 #
 # The verify_domain_token() function now checks that the token was issued

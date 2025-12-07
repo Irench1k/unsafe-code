@@ -1,6 +1,12 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v306
 
+### Setup: Reset state for idempotent demo
+{{
+  await resetDB("v306");
+  await mailpit.clear();
+}}
+
 # Sandy plans to make autoregister new managers by email domain. 
 # She sends an email to restaurant owners to check what users exist.
 
