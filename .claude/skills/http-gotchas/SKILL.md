@@ -11,7 +11,7 @@ These are the mistakes LLMs make repeatedly. Every single one causes real failur
 
 ---
 
-## 🚨 The Big Four - Memorize These
+## 🚨 The Big Five - Memorize These
 
 ### 1. NO Quotes on Right-Hand Side
 
@@ -95,6 +95,50 @@ API values are often strings. Use `parseFloat()` for math.
 
 ---
 
+### 5. File-Level `{{ }}` Runs Before EVERY Request!
+
+This is the **#1 cause of mysterious demo failures**.
+
+```http
+# ❌ CATASTROPHICALLY WRONG - mailpit cleared before EACH request!
+@host = {{base_host}}/v307
+
+{{
+  await mailpit.clear();  // Runs before request 1, 2, 3, 4...
+}}
+
+### Step 1: Request token → sent to mailpit
+PATCH /restaurants/1 ...
+
+### Step 2: Retrieve token from mailpit
+@token = {{(await mailpit.lastEmail("admin@...").userToken())}}
+# ⚠️ FAILS! mailpit.clear() ran AGAIN, deleting the email!
+```
+
+```http
+# ✅ CORRECT - use request-level block (after ###)
+@host = {{base_host}}/v307
+
+### Setup
+{{
+  await mailpit.clear();  // Runs ONCE
+}}
+
+### Step 1: Request token
+PATCH /restaurants/1 ...
+
+### Step 2: Retrieve token  # ← Email still in mailpit!
+@token = {{(await mailpit.lastEmail("admin@...").userToken())}}
+```
+
+**Why**: File-level `{{ }}` blocks (no `###` before them) are executed before EVERY request in the file. Request-level blocks (after `###`) run once for that request.
+
+**Symptom**: "No email found", "Token not found", state mysteriously reset mid-demo.
+
+**Rule**: State-modifying operations (`mailpit.clear()`, `resetDB()`, `seedBalance()`) MUST be in request-level blocks with `###` before them!
+
+---
+
 ## Execution Order Reference
 
 ```
@@ -129,6 +173,10 @@ API values are often strings. Use `parseFloat()` for math.
 → Typo in @name or @ref
 → Missing @name directive
 → Wrong file scope (refs don't cross files)
+
+### "No email found" / "Token not found" / State mysteriously reset
+→ **Setup code in file-level `{{ }}`!** Move it to `### Setup` request block
+→ File-level blocks run before EVERY request, destroying state mid-demo
 
 ---
 

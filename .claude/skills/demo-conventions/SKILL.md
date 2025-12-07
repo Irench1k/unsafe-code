@@ -187,20 +187,40 @@ Content-Type: application/json
 
 ### Making Demos Idempotent
 
-Use `seedBalance()` helper at demo start to reset state:
+**⛔⛔⛔ CRITICAL: Use Request-Level Blocks for Setup! ⛔⛔⛔**
+
+Setup code (`seedBalance()`, `mailpit.clear()`, `resetDB()`) MUST be in a **request-level** `{{ }}` block (after `###`), NOT file-level!
 
 ```http
 # @import ../common/setup.http
 @host = {{base_host}}/v203
 
+### Setup: Reset state
 {{
   await seedBalance("v203", "plankton@chum-bucket.sea", 100);
+  await mailpit.clear();
 }}
 
 ### First real request...
 ```
 
-**⚠️ `seedBalance()` must be in a multi-line `{{ }}` block** - httpyac interprets single-line `{{ await ... }}` as a URL!
+**⚠️ File-level blocks run before EVERY request in the file, not just once!**
+
+```http
+# ❌ WRONG - seeds/clears before EVERY request!
+@host = {{base_host}}/v203
+
+{{
+  await seedBalance("v203", "plankton@chum-bucket.sea", 100);
+  await mailpit.clear();  // Deletes emails before step 2!
+}}
+
+### Step 1: Get token (email sent)
+...
+
+### Step 2: Use token from mailpit
+# FAILS! mailpit.clear() ran again!
+```
 
 **⚠️ DO NOT use `POST /account/credits` for reset—it increments, not sets!**
 

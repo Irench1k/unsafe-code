@@ -51,15 +51,44 @@ Only refresh after requests that might SET cookies:
 - `POST/PUT/PATCH` that modify session → refresh: `@session = {{refreshCookie(response, session)}}`
 - `GET` → **NEVER** needs refreshCookie (GET doesn't modify cookies)
 
-### 5. Use `seedBalance()` NOT `/account/credits`
+### 5. Setup Code in REQUEST-LEVEL Blocks (after `###`)
 
-`/account/credits` increments. `seedBalance()` sets to exact value (idempotent).
+**⛔ THE #1 MISTAKE: Putting setup in file-level blocks!**
+
+File-level `{{ }}` blocks run before EVERY request, destroying state mid-demo.
 
 ```http
+# ❌ CATASTROPHICALLY WRONG - clears mailpit before EVERY request!
+@host = {{base_host}}/v307
+
 {{
-  await seedBalance("v301", "plankton@chum-bucket.sea", 100);
+  await mailpit.clear();  // Runs before request 1, 2, 3...
 }}
+
+### Step 1: Get token (sent to mailpit)
+...
+
+### Step 2: Use token
+# FAILS! mailpit.clear() ran again, deleting the token!
 ```
+
+```http
+# ✅ CORRECT - use request-level block
+@host = {{base_host}}/v307
+
+### Setup
+{{
+  await mailpit.clear();  // Runs ONCE
+}}
+
+### Step 1: Get token
+...
+
+### Step 2: Use token  # Token still in mailpit!
+...
+```
+
+**Rule:** `seedBalance()`, `mailpit.clear()`, `resetDB()` → ALWAYS in request-level block (after `###`)!
 
 ### 6. Fetch Menu Items, Don't Hardcode
 
@@ -146,6 +175,7 @@ These are **student-facing demos**, not tests:
 - [ ] No `@disabled` directives
 - [ ] `@name` only when needed (with descriptive name, not generic)
 - [ ] `refreshCookie()` only after login or mutating requests (NOT GETs)
+- [ ] **Setup code (`mailpit.clear()`, `seedBalance()`, `resetDB()`) in request-level `{{ }}` (after `###`), NOT file-level!**
 - [ ] Ran demo with `ucdemo` before AND after changes
 - [ ] File is NOT longer than before (or justified each added line)
 - [ ] Post-request ordering is correct (session → vars → asserts → logs)

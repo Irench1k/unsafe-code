@@ -103,17 +103,22 @@ POST /endpoint
 }}
 ```
 
-### ⚠️ File-Level vs Request-Level Blocks (CRITICAL)
+### ⛔⛔⛔ File-Level vs Request-Level Blocks (CRITICAL) ⛔⛔⛔
 
-httpyac has **TWO types** of `{{ }}` blocks with **different scoping**:
+httpyac has **TWO types** of `{{ }}` blocks with **COMPLETELY different execution behavior**:
+
+| Block Type | Location | Execution | Use Case |
+|------------|----------|-----------|----------|
+| **File-level** | Before any `###` | Runs **BEFORE EVERY REQUEST** in file | Export helpers via `@import` |
+| **Request-level** | After a `###` | Runs **ONCE** for that request | Setup, capture, logging |
 
 **File-level JS block** (NO `###` before it):
 ```http
 @host = http://localhost:8000/api
 
 {{
-  // Runs ONCE at file load time
-  // Exports are GLOBALLY available to @import-ing files
+  // ⚠️ RUNS BEFORE EVERY REQUEST IN THIS FILE!
+  // Use ONLY for: helper exports, pure function definitions
   exports.refreshCookie = (resp) => { ... };
 }}
 ```
@@ -122,14 +127,47 @@ httpyac has **TWO types** of `{{ }}` blocks with **different scoping**:
 ```http
 ### Some Request
 {{
-  // Runs for THIS request only
-  // Exports NOT available via @import!
+  // Runs ONCE, for THIS request only
+  // Use for: state capture, seeding, clearing, logging
   exports.someValue = ...;
 }}
 GET /path
 ```
 
-**Key insight:** To share helpers via `@import`, put the `{{ }}` block at FILE LEVEL (no `###` before it).
+**⛔ THE #1 MISTAKE: Putting setup code in file-level blocks!**
+
+```http
+# ❌ CATASTROPHICALLY WRONG - clears mailpit before EVERY request!
+@host = {{base_host}}/v307
+
+{{
+  await mailpit.clear();  // Runs before request 1, 2, 3, 4...
+}}
+
+### Step 1: Get token
+...
+
+### Step 2: Use token  # ← mailpit.clear() runs AGAIN here, deleting the token!
+...
+```
+
+```http
+# ✅ CORRECT - clears mailpit ONCE at the start
+@host = {{base_host}}/v307
+
+### Setup: Clear mailpit
+{{
+  await mailpit.clear();  // Runs only for this request
+}}
+
+### Step 1: Get token
+...
+
+### Step 2: Use token  # ← Token is still in mailpit!
+...
+```
+
+**Key insight:** To share helpers via `@import`, put the `{{ }}` block at FILE LEVEL (no `###` before it). But for **any state-modifying operations** (seeding, clearing, resetting), ALWAYS use a request-level block with `###` before it.
 
 ## Assertions `?? js` / `?? status` / `?? body`
 
