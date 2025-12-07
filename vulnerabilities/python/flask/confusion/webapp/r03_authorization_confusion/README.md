@@ -223,3 +223,5 @@ _Aftermath: With guardrails “in place,” she turns to the next big blocker: l
 **Impact:** Full takeover of an existing tenant. Attacker can change any restaurant's domain to their own, gaining manager access. \
 **Severity:** 🔴 Critical \
 **Endpoints:** `PATCH /restaurants/{id}`
+
+_Aftermath: Sandy realizes the token's `restaurant_id` should never override the URL. She reverses the decorator order so ownership is checked before tokens are processed, and ensures the handler always uses the URL's `restaurant_id`._
