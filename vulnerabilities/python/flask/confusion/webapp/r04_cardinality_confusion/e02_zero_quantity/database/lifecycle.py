@@ -28,7 +28,7 @@ def register_database_hooks(bp: Blueprint, config: Config) -> None:
         """Create a scoped session and start an explicit transaction per request."""
 
         try:
-            if request.endpoint and request.endpoint.endswith("platform_reset"):
+            if request.endpoint and request.endpoint.endswith("e2e_reset"):
                 return
             _init_db_once()
 
