@@ -4,6 +4,7 @@
 ### Setup
 # @name seed
 {{
+  await resetDB("v402");
   await seedBalance("v402", "plankton@chum-bucket.sea", 100);
 }}
 GET /menu
@@ -29,10 +30,10 @@ POST /cart/{{cart_id}}/items
 Authorization: {{plankton_auth}}
 Content-Type: application/json
 
-{ "item_id": {{krabby_patty.id}}, "quantity": 3, "promo_code": "2-FOR-1" }
+{ "item_id": {{krabby_patty.id}}, "quantity": 3, "coupon_code": "2-FOR-1" }
 
 
-### Checkout the cart - only paying for 2 Krabby Patties!
+### Checkout the cart - getting 3 but only paying for 2 Krabby Patties!
 # @name checkout_cart
 # @ref cart_with_patties
 POST /cart/{{cart_id}}/checkout
@@ -44,4 +45,5 @@ Content-Type: application/json
   "delivery_address": "Chum Bucket"
 }
 
+?? js response.parsedBody.items.length == 3
 ?? js response.parsedBody.total == {{3.99 * 2 + 5.00}}

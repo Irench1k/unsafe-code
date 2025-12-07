@@ -170,6 +170,12 @@ class CartItem(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     coupon_id: Mapped[int] = mapped_column(Integer, ForeignKey("coupons.id"), nullable=True)
+    quantity: Mapped[int] = mapped_column(
+        Integer,
+        CheckConstraint("quantity >= 0", name="cart_item_quantity_non_negative"),
+        nullable=False,
+        default=1,
+    )
 
 
 class CouponType(enum.Enum):
@@ -178,6 +184,7 @@ class CouponType(enum.Enum):
     discount_percent = "discount_percent"
     fixed_amount = "fixed_amount"
     free_item_sku = "free_item_sku"
+    buy_x_get_y_free = "buy_x_get_y_free"
 
 
 class Coupon(Base):

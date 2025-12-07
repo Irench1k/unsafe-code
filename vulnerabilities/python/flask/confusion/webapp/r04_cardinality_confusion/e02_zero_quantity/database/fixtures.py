@@ -334,6 +334,17 @@ def _create_coupons(
     session.add(coupon)
     coupons["FREE-CHUMBALAYA"] = coupon
 
+    # 2-FOR-1 coupon for the Krusty Krab
+    coupon = Coupon(
+        name="CODE-2-FOR-1",
+        type=CouponType.buy_x_get_y_free,
+        restaurant_id=krusty_krab.id,
+        item_id=krusty_menu["Krabby Patty"].id,
+        value=Decimal("2"),
+    )
+    session.add(coupon)
+    coupons["2-FOR-1"] = coupon
+
     session.flush()  # Get IDs assigned
 
     return coupons

@@ -38,10 +38,10 @@ def parse_id(value: str, name: str = "id") -> int:
     try:
         int_value = int(value)
     except (TypeError, ValueError):
-        raise CheekyApiError(f"{name} must be a positive integer") from None
+        raise CheekyApiError(f"{name} must be an integer") from None
 
-    if int_value <= 0:
-        raise ValueError(f"{name} must be a positive integer")
+    if int_value < 0:
+        raise ValueError(f"{name} can't be negative")
     return int_value
 
 
@@ -53,7 +53,7 @@ def require_int_param(name: str) -> int:
     Raises CheekyApiError if parameter is missing or not a valid positive integer.
     """
     value = get_param(name)
-    if not value:
+    if value is None:
         raise CheekyApiError(f"{name} is required")
     return parse_id(value, name)
 
@@ -61,7 +61,7 @@ def require_int_param(name: str) -> int:
 def get_int_param(name: str, default: int | None = None) -> int | None:
     """Get an optional integer parameter from anywhere in the request."""
     value = get_param(name)
-    if not value:
+    if value is None:
         return default
     return parse_id(value, name)
 
@@ -69,7 +69,7 @@ def get_int_param(name: str, default: int | None = None) -> int | None:
 def get_decimal_param(name: str, default: Decimal | None = None) -> Decimal | None:
     """Get an optional decimal parameter from anywhere in the request."""
     value = get_param(name)
-    if not value:
+    if value is None:
         return default
     try:
         return Decimal(value).quantize(Decimal("1.00"))

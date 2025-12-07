@@ -163,6 +163,17 @@ def save_menu_item(menu_item: MenuItem) -> None:
     session.flush()
 
 
+def reserve_if_available(item_id: int) -> bool:
+    """Reserves an item if it is available."""
+    menu_item = find_menu_item_by_id(item_id)
+    if not menu_item:
+        return False
+
+    # TODO: Integrate with restaurant's stock management system here
+    # For now we just return the static availability flag, until stock levels become known
+    return menu_item.available
+
+
 # ============================================================
 # COUPONS
 # ============================================================
@@ -346,14 +357,16 @@ def save_cart(cart: Cart) -> None:
     session.flush()
 
 
-def add_cart_item(cart_id: int | str, item_id: int | str, name: str, price: Decimal) -> None:
+def add_cart_item(
+    cart_id: int | str, item_id: int | str, name: str, price: Decimal, quantity: int = 1
+) -> None:
     """Adds an item to a cart."""
     session = get_request_session()
     cid = _coerce_int_id(cart_id, "cart_id")
     mid = _coerce_int_id(item_id, "menu_item_id")
     if cid is None or mid is None:
         return
-    cart_item = CartItem(cart_id=cid, item_id=mid, name=name, price=price)
+    cart_item = CartItem(cart_id=cid, item_id=mid, name=name, price=price, quantity=quantity)
     session.add(cart_item)
     session.flush()
 

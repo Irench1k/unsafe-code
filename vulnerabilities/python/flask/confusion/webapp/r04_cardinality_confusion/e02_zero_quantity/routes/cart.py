@@ -188,6 +188,7 @@ def add_item_to_cart_endpoint():
     """
     cart = resolve_trusted_cart()
     item_id_int = get_int_param("item_id")
+    quantity = get_int_param("quantity", 1)
     coupon_code = get_param("coupon_code")
 
     if item_id_int:
@@ -199,7 +200,7 @@ def add_item_to_cart_endpoint():
             f"Menu item {item_id_int} does not belong to restaurant {cart.restaurant_id}",
         )
 
-        add_item_to_cart(cart.id, menu_item.id, menu_item.name, menu_item.price)
+        add_item_to_cart(cart.id, menu_item.id, menu_item.name, menu_item.price, quantity)
 
     if coupon_code:
         coupon = find_coupon_by_code(coupon_code)
@@ -271,7 +272,6 @@ def charge_customer_with_hold(checkout_handler):
 
         # Calculate the total amount of the cart
         subtotal, delivery_fee = calculate_cart_price(cart_items)
-        require_condition(subtotal, f"Cart {cart.id} is empty")
         require_condition(subtotal >= 0, "Subtotal is negative")
 
         # Ensure the customer has enough balance

@@ -40,6 +40,7 @@ from .repository import (
     get_cart_items,
     get_refund_by_order_id,
     get_signup_bonus_remaining,
+    reserve_if_available,
     save_cart,
     save_cart_item,
     save_menu_item,
@@ -75,7 +76,19 @@ def calculate_cart_price(cart_items: list[CartItem]) -> tuple[Decimal, Decimal] 
         return None, None
 
     # Calculate subtotal
-    subtotal = sum(item.price for item in cart_items)
+    subtotal = sum(item.price * item.quantity for item in cart_items)
+
+    # Calculate discount adjustments from x-for-y coupons, if requirements are fulfilled
+    for item in cart_items:
+        if item.coupon_id:
+            coupon = find_coupon_by_id(item.coupon_id)
+            logger.error(
+                f"Coupon {coupon.name} applied to item {item.item_id} in cart {item.cart_id}"
+            )
+            if coupon.type == CouponType.buy_x_get_y_free and item.quantity >= coupon.value:
+                # Currently we only support X-FOR-1 coupons, so only one item ever gets free
+                logger.error(f"Item {item.item_id} gets free due to coupon {coupon.id}")
+                subtotal -= item.price
 
     # Calculate delivery fee
     delivery_fee = (
@@ -266,16 +279,25 @@ def create_order_from_checkout(
         tip=tip,
     )
 
-    # Create order items separately
-    order_items = [
-        OrderItem(
-            item_id=item.item_id,
-            name=item.name,
-            price=item.price,
-            coupon_id=item.coupon_id,
-        )
-        for item in cart_items
-    ]
+    # Create order items with availability checking
+    order_items = []
+    for item in cart_items:
+        while reserve_if_available(item.item_id):
+            order_items.append(
+                OrderItem(
+                    item_id=item.item_id,
+                    name=item.name,
+                    price=item.price,
+                    coupon_id=item.coupon_id,
+                )
+            )
+
+            if item.quantity <= 1:
+                # Added last repeated item, move on to the next cart element
+                break
+
+            # Some more items left, decrement and iterate until done
+            item.quantity -= 1
 
     return order, order_items
 
@@ -350,13 +372,15 @@ def create_cart(restaurant_id: int, user_id: int) -> Cart:
     return new_cart
 
 
-def add_item_to_cart(cart_id: int | str, item_id: int | str, name: str, price: Decimal) -> None:
+def add_item_to_cart(
+    cart_id: int | str, item_id: int | str, name: str, price: Decimal, quantity: int = 1
+) -> None:
     """
     Adds an item to a cart.
 
     Assume authorization and validation already performed by controller.
     """
-    add_cart_item(cart_id, item_id, name, price)
+    add_cart_item(cart_id, item_id, name, price, quantity)
     logger.debug(f"Item {item_id} added to cart {cart_id}")
 
 
@@ -372,6 +396,9 @@ def _calculate_coupon_discount(coupon: Coupon, price: Decimal) -> Decimal:
         return (price * coupon.value / 100).quantize(Decimal("1.00"))
     elif coupon.type == CouponType.free_item_sku:
         return price
+    elif coupon.type == CouponType.buy_x_get_y_free:
+        # This coupon type is handled separately in calculate_cart_price()
+        return Decimal("0.00")
     else:
         raise CheekyApiError(f"Invalid coupon type: {coupon.type}")
 
@@ -403,6 +430,7 @@ def serialize_cart(cart: Cart) -> dict:
                 "name": item.name,
                 "price": str(item.price),
                 "coupon_id": item.coupon_id,
+                "quantity": item.quantity,
             }
             for item in cart_items
         ],
