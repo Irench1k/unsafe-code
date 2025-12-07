@@ -1,0 +1,172 @@
+# @import ../_imports.http
+
+# Force v303 API version regardless of test execution order
+# (workaround for uctest VERSION caching bug)
+@host = http://localhost:8000/api/v303
+
+# =============================================================================
+# FIX VERIFICATION: R03 Cart Swap Checkout (session vs path confusion)
+# =============================================================================
+#
+# DESCRIPTION:
+#   In v302, resolve_trusted_cart() was called twice: once in the decorator
+#   (for charging) and once in the handler (for fulfillment). This allowed
+#   an attacker to pay for the session cart but receive items from the path cart.
+#
+# THE FIX (v303):
+#   The decorator now stores g.resolved_cart before clearing session.cart_id.
+#   The handler reuses g.resolved_cart instead of calling resolve_trusted_cart()
+#   again. Both charge AND fulfillment now use the SAME cart.
+#
+# ATTACK SCENARIO (same as v302):
+#   Karen (using her own account) attempts the exploit by:
+#   1. Creating an expensive cart WITHOUT session (Basic Auth only)
+#   2. Logging in to establish a session
+#   3. Creating a cheap cart (stored in session)
+#   4. Checking out the EXPENSIVE cart via path, but session has CHEAP cart
+#
+# EXPECTED RESULT (FIXED):
+#   The session cart takes precedence for BOTH charge AND fulfillment.
+#   Karen receives CHEAP items and pays CHEAP price. The expensive cart
+#   specified in the path is IGNORED.
+#
+# STATUS: FIXED in v303 (exploit fails - receives cheap items, not expensive)
+# =============================================================================
+
+# =============================================================================
+# SETUP: Get menu item prices
+# =============================================================================
+
+### Get menu items for price reference
+# @name seed
+{{
+  // Use karen (Plankton's wife) to avoid cookie pollution from other tests
+  await platform.seed({
+    karen: 200
+  });
+}}
+# @ucskip
+# @tag cart, r03, v303
+GET /menu
+
+@krabby_patty_id = {{$(response).find(i => i.name === "Krabby Patty").id}}
+@krabby_patty_price = {{$(response).find(i => i.name === "Krabby Patty").price}}
+@ultimate_feast_id = {{$(response).find(i => i.name === "Ultimate Krabby Feast").id}}
+@ultimate_feast_price = {{$(response).find(i => i.name === "Ultimate Krabby Feast").price}}
+
+# =============================================================================
+# STEP 1: Create EXPENSIVE cart (no session - Basic Auth only)
+# The key is to NOT have a session cookie when creating this cart!
+# =============================================================================
+
+### Create expensive cart without session (using Basic Auth only)
+# @name expensive_cart
+# @forceRef seed
+# @no-cookie-jar
+# @tag cart, r03, v303
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("karen")}}
+
+@expensive_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add expensive item to expensive cart
+# @name expensive_cart_with_item
+# @forceRef expensive_cart
+# @ucskip endpoint
+# @no-cookie-jar
+# @tag cart, r03, v303
+POST /cart/{{expensive_cart_id}}/items
+Authorization: {{auth.basic("karen")}}
+Content-Type: application/json
+
+{ "item_id": "{{ultimate_feast_id}}" }
+
+?? js $(response).isOk() == true
+
+# =============================================================================
+# STEP 2: Login and create CHEAP cart (WITH session)
+# =============================================================================
+
+### Login to establish session
+# @name login
+# @forceRef expensive_cart_with_item
+# @no-cookie-jar
+# @tag cart, r03, v303
+POST /auth/login
+Content-Type: application/json
+
+{ "email": "karen@chum-bucket.sea", "password": "01001011" }
+
+@session = {{extractCookie(response)}}
+?? js $(response).status() == 200
+
+### Create cheap cart (session stores cart_id)
+# @name cheap_cart
+# @forceRef login
+# @no-cookie-jar
+# @tag cart, r03, v303
+POST /cart?restaurant_id=1
+Cookie: {{session}}
+
+# Server updates session with cart_id - capture updated cookie if present
+@session = {{hasCookie(response) ? extractCookie(response) : session}}
+@cheap_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add cheap item to cheap cart
+# @name cheap_cart_with_item
+# @forceRef cheap_cart
+# @ucskip endpoint
+# @no-cookie-jar
+# @tag cart, r03, v303
+POST /cart/{{cheap_cart_id}}/items
+Cookie: {{session}}
+Content-Type: application/json
+
+{ "item_id": "{{krabby_patty_id}}" }
+
+?? js $(response).isOk() == true
+
+# =============================================================================
+# ATTEMPTED EXPLOIT: Checkout EXPENSIVE cart path with CHEAP session cart
+# =============================================================================
+
+### Path says expensive cart, session has cheap cart
+# In v302: charge for session (cheap), fulfill from path (expensive)
+# In v303: BOTH charge AND fulfill use session cart (cheap) - path is ignored
+# @name attempted_exploit_checkout
+# @forceRef cheap_cart_with_item
+# @no-cookie-jar
+# @tag cart, r03, v303
+POST /cart/{{expensive_cart_id}}/checkout
+Cookie: {{session}}
+Content-Type: application/json
+
+{ "tip": 0, "delivery_address": "Chum Bucket" }
+
+@order_id = {{$(response).field("order_id")}}
+@order_total = {{$(response).field("total")}}
+?? js $(response).status() == 201
+
+# =============================================================================
+# FIX VERIFICATION: Received CHEAP items, paid CHEAP price
+# The expensive cart in the path was IGNORED - session cart used for both
+# =============================================================================
+
+### Verify received CHEAP items (Krabby Patty), NOT expensive items
+# @forceRef attempted_exploit_checkout
+# @ucskip
+# @no-cookie-jar
+# @tag cart, r03, v303
+GET /orders
+Cookie: {{session}}
+
+?? js $(response).last().order_id == {{order_id}}
+?? js $(response).last().items.length == 1
+# FIX PROOF: Order contains CHEAP item (Krabby Patty), NOT expensive (Ultimate Krabby Feast)
+?? js $(response).last().items[0].item_id == {{krabby_patty_id}}
+?? js $(response).last().items[0].name == Krabby Patty
+# FIX PROOF: Order total is the CHEAP price (~8.99), consistent with items received
+# The session cart was used for BOTH charge AND fulfillment
+?? js parseFloat($(response).last().total) < 15.00

@@ -1,16 +1,18 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v303
 
-# v303 FIX: Checkout now uses path cart_id instead of session cart_id
+# v303 FIX: Checkout now reuses the resolved cart from the decorator
 #
-# In v302, the checkout decorator charged session cart but handler fulfilled
-# path cart. v303 fixes this by using the path cart_id consistently.
+# In v302, the checkout decorator charged session cart, then cleared session.
+# The handler called resolve_trusted_cart() again, falling back to path cart.
+# v303 fixes this by storing the resolved cart in g.resolved_cart and reusing
+# it in the handler, ensuring both charge and fulfillment use the same cart.
 
 ### Menu items
 GET /menu
 
 {{
-  await seedBalance("v302", "plankton@chum-bucket.sea", 100);
+  await seedBalance("v303", "plankton@chum-bucket.sea", 100);
 
   exports.ultimate_krabby_feast = response.parsedBody.find(i => i.name.includes("Ultimate Krabby"));
   exports.fries = response.parsedBody.find(i => i.name == "Fries");
@@ -65,7 +67,8 @@ Cookie: {{session}}
 
 ### --- Vulnerability Fixed ---
 # Plankton tries the same trick: path=expensive, session=cheap
-# In v303, path cart_id is now used consistently
+# In v303, the decorator stores the resolved cart before clearing session
+# Both charge AND fulfillment now use the same cart (session cart = cheap)
 # @name checkout
 POST /cart/{{expensive_cart.cart_id}}/checkout
 Content-Type: application/json
@@ -80,7 +83,7 @@ Cookie: {{session}}
 ?? body total == {{parseFloat(fries.price) + 5.00}}
 
 
-### The order contains the CHEAP item (path cart), charged correctly
+### The order contains the CHEAP item (session cart), charged correctly
 GET /orders
 Cookie: {{session}}
 
