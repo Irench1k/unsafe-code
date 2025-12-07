@@ -4,10 +4,11 @@
 # v304 fixes the cross-tenant menu edit vulnerability from v303
 
 
-### Plankton checks that the Krabby Patty is available
+### Plankton checks the Krusty Krab menu
 GET /menu
 
-@fries = {{response.parsedBody.find(i => i.name == "Fries")}}
+@fries = {{response.parsedBody.find(i => i.name.includes("Fries"))}}
+
 
 ### Plankton tries to sabotage Krusty Krab's menu - but the fix blocks him
 PATCH /menu/{{fries.id}}
@@ -25,4 +26,4 @@ Content-Type: application/json
 ### The Fries are safe - Plankton's attack was blocked
 GET /menu
 
-?? js response.parsedBody.find(i => i.id == fries.id).available == true
+?? js response.parsedBody.find(i => i.name.includes("SALMONELLA")) == undefined
