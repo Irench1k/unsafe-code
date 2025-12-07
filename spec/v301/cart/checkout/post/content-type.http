@@ -1,11 +1,12 @@
 # @import ../_imports.http
 # @import ../../items/post/~happy.http
 
-# POST /cart/{id}/checkout content type variations
+# POST /cart/{id}/checkout content type variations (v301+ multi-tenant)
 # Auth + content-type combinations for single and multi-item carts
+# This version creates carts with restaurant_id for multi-tenant support
 
 # =============================================================================
-# SINGLE ITEM CHECKOUT
+# SINGLE ITEM CHECKOUT (reuses imported fixtures from items/post/_fixtures.http)
 # =============================================================================
 
 ### Checkout - Basic Auth + Form
@@ -13,7 +14,7 @@
 {{
   await platform.seedCredits("patrick", 200);
 }}
-# @tag cart, r02, v205
+# @tag cart, r03, v301
 POST /cart/{{cart_id}}/checkout
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/x-www-form-urlencoded
@@ -28,7 +29,7 @@ tip=2&delivery_address=Under the Rock
 {{
   await platform.seedCredits("patrick", 200);
 }}
-# @tag cart, r02, v205
+# @tag cart, r03, v301
 POST /cart/{{cart_id}}/checkout
 Cookie: {{auth.login("patrick")}}
 Content-Type: application/x-www-form-urlencoded
@@ -39,13 +40,13 @@ tip=2&delivery_address=Under the Rock
 ?? js $(response).hasFields("order_id", "total", "items") == true
 
 # =============================================================================
-# MULTIPLE ITEMS CHECKOUT - Create fresh cart with multiple items
+# MULTIPLE ITEMS CHECKOUT - Create fresh cart with restaurant_id
 # =============================================================================
 
 ### Create new cart for multi-item content type tests
 # @name ct_cart
-# @tag cart, r02, v205
-POST /cart
+# @tag cart, r03, v301
+POST /cart?restaurant_id=1
 Authorization: {{auth.basic("patrick")}}
 
 @ct_cart_id = {{$(response).field("cart_id")}}
@@ -55,7 +56,7 @@ Authorization: {{auth.basic("patrick")}}
 ### Add first item to content-type test cart
 # @name ct_item1
 # @forceRef ct_cart
-# @tag cart, r02, v205
+# @tag cart, r03, v301
 POST /cart/{{ct_cart_id}}/items
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
@@ -68,7 +69,7 @@ Content-Type: application/json
 ### Add second item to content-type test cart
 # @name ct_item2
 # @forceRef ct_item1
-# @tag cart, r02, v205
+# @tag cart, r03, v301
 POST /cart/{{ct_cart_id}}/items
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
@@ -81,7 +82,7 @@ Content-Type: application/json
 ### Add third item to content-type test cart
 # @name cart_three_items
 # @forceRef ct_item2
-# @tag cart, r02, v205
+# @tag cart, r03, v301
 POST /cart/{{ct_cart_id}}/items
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
@@ -97,7 +98,7 @@ Content-Type: application/json
 {{
   await platform.seedCredits("patrick", 200);
 }}
-# @tag cart, r02, v205
+# @tag cart, r03, v301
 POST /cart/{{ct_cart_id}}/checkout
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/x-www-form-urlencoded
@@ -111,8 +112,8 @@ tip=2&delivery_address=Under the Rock
 
 ### Create another cart for Cookie Auth + JSON test
 # @name ct_cart2
-# @tag cart, r02, v205
-POST /cart
+# @tag cart, r03, v301
+POST /cart?restaurant_id=1
 Authorization: {{auth.basic("patrick")}}
 
 @ct_cart2_id = {{$(response).field("cart_id")}}
@@ -122,7 +123,7 @@ Authorization: {{auth.basic("patrick")}}
 ### Add items to second content-type test cart
 # @name ct2_item1
 # @forceRef ct_cart2
-# @tag cart, r02, v205
+# @tag cart, r03, v301
 POST /cart/{{ct_cart2_id}}/items
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
@@ -135,7 +136,7 @@ Content-Type: application/json
 ### Add second item to second cart
 # @name ct2_item2
 # @forceRef ct2_item1
-# @tag cart, r02, v205
+# @tag cart, r03, v301
 POST /cart/{{ct_cart2_id}}/items
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
@@ -151,7 +152,7 @@ Content-Type: application/json
 {{
   await platform.seedCredits("patrick", 200);
 }}
-# @tag cart, r02, v205
+# @tag cart, r03, v301
 POST /cart/{{ct_cart2_id}}/checkout
 Cookie: {{auth.login("patrick")}}
 Content-Type: application/json
@@ -165,8 +166,8 @@ Content-Type: application/json
 
 ### Create another cart for Cookie Auth + Form test
 # @name ct_cart3
-# @tag cart, r02, v205
-POST /cart
+# @tag cart, r03, v301
+POST /cart?restaurant_id=1
 Authorization: {{auth.basic("patrick")}}
 
 @ct_cart3_id = {{$(response).field("cart_id")}}
@@ -176,7 +177,7 @@ Authorization: {{auth.basic("patrick")}}
 ### Add items to third content-type test cart
 # @name ct3_item1
 # @forceRef ct_cart3
-# @tag cart, r02, v205
+# @tag cart, r03, v301
 POST /cart/{{ct_cart3_id}}/items
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
@@ -189,7 +190,7 @@ Content-Type: application/json
 ### Add second item to third cart
 # @name ct3_item2
 # @forceRef ct3_item1
-# @tag cart, r02, v205
+# @tag cart, r03, v301
 POST /cart/{{ct_cart3_id}}/items
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
@@ -205,7 +206,7 @@ Content-Type: application/json
 {{
   await platform.seedCredits("patrick", 200);
 }}
-# @tag cart, r02, v205
+# @tag cart, r03, v301
 POST /cart/{{ct_cart3_id}}/checkout
 Cookie: {{auth.login("patrick")}}
 Content-Type: application/x-www-form-urlencoded

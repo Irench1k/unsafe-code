@@ -1,5 +1,5 @@
 # @import ../_imports.http
-# @import ../../../cart/checkout/post/~happy.http
+# @import ../../../cart/checkout/post/happy.http
 
 # GET /orders restaurant-scoped listings (v301+)
 # Restaurant manager access via API key

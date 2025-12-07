@@ -21,7 +21,7 @@ Content-Type: application/json
 ?? js Number($(response).field("tip")) == 0
 
 ### Insufficient balance fails checkout
-# @ref cart_with_item
+# @forceRef cart_with_item
 {{
   // Set balance to less than item cost
   await platform.seedCredits("patrick", 0.50);

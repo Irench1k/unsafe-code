@@ -1,8 +1,9 @@
 # @import ../_imports.http
-# @import ../../items/post/happy.http
+# @import ../../items/post/~happy.http
 
-# POST /cart/{id}/checkout happy path
+# POST /cart/{id}/checkout happy path (v301+ multi-tenant)
 # Checkout flow with different auth methods
+# This version creates carts with restaurant_id for multi-tenant support
 #
 # Exports (for @forceRef by other tests):
 #   new_order - Completed order (canonical fixture for orders tests)
@@ -13,7 +14,7 @@
 {{
   await platform.seedCredits("patrick", 200);
 }}
-# @tag cart, happy, r02, v201
+# @tag cart, happy, r03, v301
 POST /cart/{{cart_id}}/checkout
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
@@ -27,8 +28,8 @@ Content-Type: application/json
 
 ### Create second cart for multi-item checkout test
 # @name multi_cart
-# @tag cart, happy, r02, v201
-POST /cart
+# @tag cart, happy, r03, v301
+POST /cart?restaurant_id=1
 Authorization: {{auth.basic("patrick")}}
 
 @multi_cart_id = {{$(response).field("cart_id")}}
@@ -38,7 +39,7 @@ Authorization: {{auth.basic("patrick")}}
 ### Add first item to multi-item cart
 # @name multi_cart_item1
 # @forceRef multi_cart
-# @tag cart, happy, r02, v201
+# @tag cart, happy, r03, v301
 POST /cart/{{multi_cart_id}}/items
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
@@ -51,7 +52,7 @@ Content-Type: application/json
 ### Add second item to multi-item cart
 # @name multi_cart_item2
 # @forceRef multi_cart_item1
-# @tag cart, happy, r02, v201
+# @tag cart, happy, r03, v301
 POST /cart/{{multi_cart_id}}/items
 Authorization: {{auth.basic("patrick")}}
 Content-Type: application/json
@@ -68,7 +69,7 @@ Content-Type: application/json
 {{
   await platform.seedCredits("patrick", 200);
 }}
-# @tag cart, happy, r02, v201
+# @tag cart, happy, r03, v301
 POST /cart/{{multi_cart_id}}/checkout
 Cookie: {{auth.login("patrick")}}
 Content-Type: application/json

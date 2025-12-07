@@ -1,8 +1,6 @@
 # @import ../_imports.http
 
-# Force v303 API version regardless of test execution order
-# (workaround for uctest VERSION caching bug)
-@host = http://localhost:8000/api/v303
+# Fix verification spec tests that the cart-swap exploit from v302 is fixed in v303+
 
 # =============================================================================
 # FIX VERIFICATION: R03 Cart Swap Checkout (session vs path confusion)
