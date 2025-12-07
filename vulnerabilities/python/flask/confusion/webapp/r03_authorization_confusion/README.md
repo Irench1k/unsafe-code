@@ -208,17 +208,18 @@ _Aftermath: With guardrails “in place,” she turns to the next big blocker: l
 
 **The Vulnerability**
 
-- Given that Sandy now has multiple token verification mechanisms, she decides to avoid v306 repeats by verifying them right in the middleware.
-- The domain token verification incorrectly updates `request.restaurant_id` with the value from the token.
-- The regular `/restaurants/{id}` authorization occurs later, and effectively uses the updated `request.restaurant_id` value.
-- The DB update writes the attacker-controlled domain and grants them manager rights.
+- Sandy adds domain token verification to the profile update endpoint to support changing restaurant domains securely.
+- The `@require_restaurant_owner` decorator checks ownership using the `restaurant_id` from the URL path.
+- However, when a verified token is present, the handler loads the restaurant from `verified_token["restaurant_id"]` instead of the URL.
+- The token's `restaurant_id` is set when the token is _requested_, not when it's _used_—so an attacker can request a token for restaurant A (which they own), then use it while calling the endpoint for restaurant B.
 
 **Exploit**
 
-1. Plankton obtains a valid token for `chum-bucket.sea` (his domain).
-2. Sends `PATCH /restaurants/1` with `{ "domain": "chum-bucket.sea", "token": "<chum token>" }`.
-3. Handler swaps in the attacker domain, validates the token against the _new_ domain, and commits the change.
+1. Plankton calls `PATCH /restaurants/1` (Krusty Krab) with `domain: "chum-bucket.sea"`. The decorator generates a token containing `restaurant_id: 1` and emails it to `admin@chum-bucket.sea` (which Plankton controls).
+2. Plankton calls `PATCH /restaurants/2` (his own Chum Bucket) with the token from step 1.
+3. The `@require_restaurant_owner` decorator checks: "Is Plankton owner of restaurant 2?" → Yes, he passes.
+4. The handler extracts `restaurant_id: 1` from the token and updates Krusty Krab's domain to `chum-bucket.sea`.
 
-**Impact:** Full takeover of an existing tenant using a token for a different domain. \
+**Impact:** Full takeover of an existing tenant. Attacker can change any restaurant's domain to their own, gaining manager access. \
 **Severity:** 🔴 Critical \
 **Endpoints:** `PATCH /restaurants/{id}`

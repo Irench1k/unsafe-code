@@ -1,76 +1,95 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v308
 
-# FIX for v307: ensure handler uses only verified restaurant
+# FIX for v307: The token's restaurant_id is now validated against the URL's restaurant_id.
+# Plankton can no longer swap tokens between restaurants!
 
-### Plankton tries to update Krusty Krabs restaurant, but he is not the owner, so he does not pass authorization
-# `@restaurant_owner`
+### Clear mailpit
+
+{{
+  await mailpit.clear();
+}}
+
+# --- Setup: Capture initial state ---
+
+### Check current Krusty Krab state
+GET /restaurants/1
+
+?? status == 200
+
+{{
+  exports.originalDomain = response.parsedBody.domain;
+  console.info("🦀 Krusty Krab domain before attack attempt:", response.parsedBody.domain);
+}}
+
+
+# --- Plankton attempts the same exploit ---
+
+### Step 1: Plankton requests a domain change for Krusty Krab (restaurant 1)
+# First he's blocked - he's not the owner of restaurant 1!
 PATCH /restaurants/1
 Authorization: {{plankton_auth}}
 Content-Type: application/json
 
 {
-    "name": "Krusty Krabs",
-    "description": "Krusty Krabs is closing due to a salmonella outbreak!!!",
-    "domain": "chum-bucket.sea"
+  "name": "HACKED by Plankton!",
+  "domain": "chum-bucket.sea"
 }
 
 ?? status == 400
 ?? body error == Unauthorized
 
-### He can update his own restaurant, because he is the owner
+{{
+  console.info("🛡️ FIX #1: Ownership check now runs BEFORE token generation");
+}}
+
+
+# --- Plankton tries a different approach ---
+
+### Step 2: Plankton legitimately requests a token for HIS restaurant
 PATCH /restaurants/2
 Authorization: {{plankton_auth}}
 Content-Type: application/json
 
 {
-    "name": "Chum Bucket NEW",
-    "description": "We are so much better than Krusty Krab!",
-    "domain": "chum-bucket.sea"
-}
-
-@token = {{mailpit.lastEmail("admin@chum-bucket.sea").userToken()}}
-?? status == 200
-
-### But he can't update Krusty Krabs restaurant anymore
-# `@restaurant_owner`
-PATCH /restaurants/2
-Authorization: {{plankton_auth}}
-Content-Type: application/json
-
-{
-    "name": "Krusty Krabs",
-    "description": "Krusty Krabs is closing due to a salmonella outbreak!!!",
-    "domain": "chum-bucket.sea",
-    "token": "{{token}}"
+  "name": "Chum Bucket Deluxe",
+  "domain": "chum-bucket.sea"
 }
 
 ?? status == 200
+?? body status == verification_email_sent
 
-### Check that we didn't break anything and we can still register new restaurants
-POST /restaurants
+@token = {{(await mailpit.lastEmail("admin@chum-bucket.sea").userToken())}}
+
+### Step 3: Plankton tries to use his Chum Bucket token on Krusty Krab
+# The token contains restaurant_id: 2, but the URL is /restaurants/1
+PATCH /restaurants/1
 Authorization: {{plankton_auth}}
 Content-Type: application/json
 
 {
-    "name": "Chum Bucket Pacific",
-    "description": "New Chum Bucket Branch in Pacific Ocean",
-    "domain": "chum-bucket.sea"
+  "domain": "chum-bucket.sea",
+  "token": "{{token}}"
 }
 
-@user_token = {{mailpit.lastEmail("admin@chum-bucket.sea").userToken()}}
+?? status == 400
+?? body error == Unauthorized
 
-###
-POST /restaurants
-Authorization: {{plankton_auth}}
-Content-Type: application/json
+{{
+  console.info("🛡️ FIX #2: Token's restaurant_id must match URL - swap blocked!");
+}}
 
-{
-    "name": "Chum Bucket Pacific",
-    "description": "New Chum Bucket Branch in Pacific Ocean",
-    "domain": "chum-bucket.sea",
-    "token": "{{user_token}}"
-}
 
-### 
-GET /restaurants
+# --- Verify Krusty Krab is safe ---
+
+### Krusty Krab remains unchanged
+GET /restaurants/1
+
+?? status == 200
+
+{{
+  const domainUnchanged = response.parsedBody.domain === originalDomain;
+  console.info("✅ Krusty Krab domain still:", response.parsedBody.domain);
+  console.info("   Domain unchanged:", domainUnchanged ? "YES - Mr. Krabs' restaurant is safe!" : "NO - SOMETHING WENT WRONG");
+  if (!domainUnchanged) throw new Error("Domain was changed - this shouldn't happen in the fixed version!");
+}}
