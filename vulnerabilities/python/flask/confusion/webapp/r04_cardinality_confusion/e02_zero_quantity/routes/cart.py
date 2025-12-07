@@ -129,6 +129,11 @@ def _apply_shareable_coupon():
     # There is a cookie with a coupon code, and a cart to apply it to!
     # Is there a matching item yet?
     cart_items = get_cart_items(cart.id)
+    if any(cart_item.coupon_id is not None for cart_item in cart_items):
+        # Cart already has a coupon, nothing to do here!
+        session.pop("coupon_code", None)
+        return
+
     matching_item = next(
         (cart_item for cart_item in cart_items if cart_item.item_id == coupon.item_id), None
     )

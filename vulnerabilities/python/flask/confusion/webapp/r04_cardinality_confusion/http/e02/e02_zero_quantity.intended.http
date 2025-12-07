@@ -1,0 +1,47 @@
+# @import ../common/setup.http
+@host = {{base_host}}/v402
+
+### Setup
+# @name seed
+{{
+  await seedBalance("v402", "plankton@chum-bucket.sea", 100);
+}}
+GET /menu
+
+@krabby_patty = {{response.parsedBody.find(i => i.name == "Krabby Patty")}}
+
+
+# ===== Buy 2 Get 1 Free =====
+
+### Plankton creates a new cart
+# @name new_cart
+# @ref seed
+POST /cart?restaurant_id=1
+Authorization: {{plankton_auth}}
+
+@cart_id = {{response.parsedBody.cart_id}}
+
+
+### Add 3 Krabby Patties to the cart and a 2-FOR-1 promo code
+# @name cart_with_patties
+# @ref new_cart
+POST /cart/{{cart_id}}/items
+Authorization: {{plankton_auth}}
+Content-Type: application/json
+
+{ "item_id": {{krabby_patty.id}}, "quantity": 3, "promo_code": "2-FOR-1" }
+
+
+### Checkout the cart - only paying for 2 Krabby Patties!
+# @name checkout_cart
+# @ref cart_with_patties
+POST /cart/{{cart_id}}/checkout
+Authorization: {{plankton_auth}}
+Content-Type: application/json
+
+{
+  "tip": "0",
+  "delivery_address": "Chum Bucket"
+}
+
+?? js response.parsedBody.total == {{3.99 * 2 + 5.00}}
