@@ -1,0 +1,45 @@
+# @import ../common/setup.http
+@host = {{base_host}}/v403
+
+### Setup
+# @name seed
+{{
+  await seedBalance("v403", "plankton@chum-bucket.sea", 100);
+}}
+GET /menu
+
+@krabby_patty = {{response.parsedBody.find(i => i.name == "Krabby Patty")}}
+@fries = {{response.parsedBody.find(i => i.name.includes("Fries"))}}
+
+# ===== Free Fries and Krabby Patty =====
+
+### Plankton creates a new cart
+# @name new_cart
+# @ref seed
+POST /cart?restaurant_id=1
+Authorization: {{plankton_auth}}
+
+@cart_id = {{response.parsedBody.cart_id}}
+
+
+### Adding 0 Krabby Patties to the cart is not possible
+# @name cart_with_zero_patties
+# @ref new_cart
+POST /cart/{{cart_id}}/items
+Authorization: {{plankton_auth}}
+Content-Type: application/json
+
+{ "item_id": {{krabby_patty.id}}, "quantity": 0 }
+
+?? status == 400
+
+### Add 0 Fries is impossible as well
+# @name cart_with_zero_fries
+# @ref cart_with_zero_patties
+POST /cart/{{cart_id}}/items
+Authorization: {{plankton_auth}}
+Content-Type: application/json
+
+{ "item_id": {{fries.id}}, "quantity": 0 }
+
+?? status == 400

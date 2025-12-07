@@ -1,0 +1,56 @@
+# @import ../common/setup.http
+@host = {{base_host}}/v403
+
+### Setup
+# @name seed
+{{
+  await seedBalance("v403", "plankton@chum-bucket.sea", 100);
+}}
+GET /menu
+
+@krabby_patty = {{response.parsedBody.find(i => i.name == "Krabby Patty")}}
+@fries = {{response.parsedBody.find(i => i.name.includes("Fries"))}}
+
+
+# ===== Free Fries and Krabby Patty =====
+
+### Plankton creates a new cart
+# @name new_cart
+# @ref seed
+POST /cart?restaurant_id=1
+Authorization: {{plankton_auth}}
+
+@cart_id = {{response.parsedBody.cart_id}}
+
+
+### Add Krabby Patty to the cart
+# @name cart_with_krabby_patty
+# @ref new_cart
+POST /cart/{{cart_id}}/items
+Authorization: {{plankton_auth}}
+Content-Type: application/json
+
+{ "item_id": {{krabby_patty.id}} }
+
+### Add Fries to the cart
+# @name cart_with_patty_and_fries
+# @ref cart_with_krabby_patty
+POST /cart/{{cart_id}}/items
+Authorization: {{plankton_auth}}
+Content-Type: application/json
+
+{ "item_id": {{fries.id}} }
+
+
+### Checkout the cart, with single-use coupons applied
+# @name checkout_cart
+# @ref cart_with_zero_fries
+POST /cart/{{cart_id}}/checkout
+Authorization: {{plankton_auth}}
+Content-Type: application/json
+
+{
+  "tip": "0",
+  "delivery_address": "Chum Bucket",
+  "single_use_coupons": [ "HOLIDAY10-E7B2A", "FREE-FRIES-BQ8IX" ]
+}

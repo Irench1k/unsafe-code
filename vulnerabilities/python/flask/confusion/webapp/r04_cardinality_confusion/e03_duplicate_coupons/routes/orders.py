@@ -1,0 +1,154 @@
+import logging
+
+from flask import Blueprint, g
+
+from ..auth.decorators import protect_refunds, require_auth, verify_order_access
+from ..config import OrderConfig
+from ..database.models import OrderStatus
+from ..database.repository import (
+    find_order_by_id,
+    find_orders_by_restaurant,
+    get_refund_by_order_id,
+    save_order,
+)
+from ..database.services import (
+    create_refund,
+    get_user_orders,
+    process_refund,
+    serialize_order,
+    serialize_orders,
+    serialize_refund,
+    update_order_refund_status,
+)
+from ..errors import CheekyApiError
+from ..utils import (
+    get_decimal_param,
+    get_param,
+    require_condition,
+    require_ownership,
+    success_response,
+)
+
+logger = logging.getLogger(__name__)
+bp = Blueprint("orders", __name__, url_prefix="/orders")
+
+
+@bp.get("")
+@require_auth(["customer", "restaurant_api_key"])
+def list_orders():
+    """
+    Customers can list their own orders, restaurant managers can list ALL of them.
+
+    v305 FIX: Use g.restaurant_id directly from authenticated API key context.
+    """
+    if g.get("manager_request") and g.get("restaurant_id"):
+        orders = find_orders_by_restaurant(g.restaurant_id)
+    elif g.get("customer_request") and g.get("user_id"):
+        orders = get_user_orders(g.user_id)
+    else:
+        raise CheekyApiError("Something went wrong")
+
+    return success_response(serialize_orders(orders))
+
+
+@bp.post("/<int:order_id>/refund")
+@require_auth(["customer"])
+@verify_order_access
+@protect_refunds
+def refund_order(order_id: int):
+    """Initiates a refund for a customer's order. Customer-only."""
+    # Parse inputs
+    reason = get_param("reason") or ""
+    refund_amount = get_decimal_param(
+        "amount", OrderConfig.DEFAULT_REFUND_PERCENTAGE * g.order.total
+    )
+
+    # Integrity check: order must be delivered, not refunded or cancelled
+    require_condition(g.order.status == OrderStatus.delivered, "Order must be delivered to be refunded")
+
+    # Integrity check: there should NOT be other refunds for this order
+    require_condition(not get_refund_by_order_id(order_id), "Refund already exists for this order")
+
+    # Create and save refund
+    refund = create_refund(
+        order_id=order_id,
+        amount=refund_amount,
+        reason=reason,
+        auto_approved=g.refund_is_auto_approved,
+    )
+
+    process_refund(refund, g.user_id)
+    return success_response(serialize_refund(refund))
+
+
+@bp.patch("/<int:order_id>/refund/status")
+@require_auth(["restaurant_api_key"])
+def update_refund_status(order_id: int):
+    """Approves or rejects a refund. Restaurant-only."""
+    # Parse inputs
+    status = get_param("status")
+    require_condition(status in ["approved", "rejected"], "Status is missing or invalid")
+
+    # Fetch order
+    order = find_order_by_id(order_id)
+    require_condition(order, f"Order {order_id} not found")
+
+    # Authorization check: order must belong to the restaurant
+    require_ownership(order.restaurant_id, g.restaurant_id, "order")
+
+    # Update refund status
+    refund = update_order_refund_status(order_id, status)
+    require_condition(refund, f"Refund {order_id} not found")
+    return success_response(serialize_refund(refund))
+
+
+@bp.get("/<int:order_id>/refund/status")
+@require_auth(["customer"])
+def get_refund_status(order_id: int):
+    """Gets the status of a refund. Customer-only."""
+    order = find_order_by_id(order_id)
+    require_condition(order, f"Order {order_id} not found")
+
+    # Authorization check: order must belong to the user
+    require_ownership(order.user_id, g.user_id, "order")
+
+    # Fetch refund
+    refund = get_refund_by_order_id(order_id)
+    require_condition(refund, f"Refund {order_id} not found")
+
+    return success_response(serialize_refund(refund))
+
+
+@bp.patch("/<int:order_id>/status")
+@require_auth(["restaurant_api_key", "customer"])
+def update_order_status(order_id: int):
+    """
+    Update order status. Available to both customers and restaurant managers.
+
+    v306 FIX: Authorization check now happens BEFORE any data could be leaked.
+    """
+    status = get_param("status")
+    require_condition(
+        status in ["delivered", "cancelled"], "Status is missing or invalid"
+    )
+
+    order = find_order_by_id(order_id)
+    require_condition(order, f"Order {order_id} not found")
+
+    # Authorization check FIRST
+    if g.get("user_id"):
+        require_ownership(order.user_id, g.user_id, "order")
+        require_condition(status == "cancelled", "Order can only be cancelled")
+    else:
+        require_ownership(order.restaurant_id, g.restaurant_id, "order")
+        require_condition(status in ("delivered", "cancelled"), "Order can only be delivered or cancelled")
+
+    # Integrity check: order status can be changed only from "created"
+    require_condition(
+        order.status == OrderStatus.created, "Order status can be changed only from 'created'"
+    )
+
+    # Update order status
+    order.status = OrderStatus(status)
+    save_order(order)
+    return success_response(serialize_order(order))
