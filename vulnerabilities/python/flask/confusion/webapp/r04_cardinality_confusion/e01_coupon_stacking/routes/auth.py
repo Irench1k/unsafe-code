@@ -43,7 +43,6 @@ def protect_user_verification_flow():
     g.email_confirmed = True
 
 
-
 @bp.post("/register")
 def register_user():
     """
@@ -76,6 +75,18 @@ def register_user():
         return created_response({"status": "user_created", "email": g.email})
 
     return error_response("Registration failed, don't try again!")
+
+
+@bp.before_request
+def log_request():
+    logger.error(f"INCOMING REQUEST: {session.items()}")
+
+
+@bp.after_request
+def log_response(response):
+    # print the session contents in set-cookie
+    logger.error(f"OUTGOING SESSION: {session.items()}")
+    return response
 
 
 @bp.post("/login")

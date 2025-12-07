@@ -17,6 +17,13 @@
 
 # Helper exports (file-level block - available via @import)
 {{
+  exports.printCookie = (cookie, msg = "") => {
+    // extract value and decoded as jwt
+    const cookieValue = cookie.replace("session=", "");
+    const encodedClaims = cookieValue.split(".")[0];
+    const decodedClaims = atob(encodedClaims);
+    console.error(`${msg} Decoded claims: ${decodedClaims}`);
+  };
   /**
    * Extract or refresh session cookie.
    * Returns new cookie if Set-Cookie present, otherwise returns existing.
@@ -25,9 +32,15 @@
    */
   exports.refreshCookie = (resp, existing = "") => {
     const raw = resp?.headers?.["set-cookie"];
-    if (!raw) return existing;
+    if (!raw) {
+      console.error("No Set-Cookie header found in response");
+      return existing;
+    }
     const cookieHeader = Array.isArray(raw) ? raw[0] : raw;
-    return cookieHeader.split(";")[0];
+    const cookie = cookieHeader.split(";")[0];
+
+    exports.printCookie(cookie);
+    return cookie;
   };
 
   /**

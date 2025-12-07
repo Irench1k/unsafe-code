@@ -56,7 +56,7 @@ def resolve_trusted_cart():
     require_condition(trusted_cart, f"Cart {trusted_cart_id} not found")
 
     # Authorization check: user must be the owner of the cart
-    require_ownership(trusted_cart.user_id, g.user_id, "cart")
+    require_ownership(trusted_cart.user_id, g.get("user_id"), "cart")
 
     # Integrity check: cart must be active
     require_condition(trusted_cart.active, f"Cart {trusted_cart_id} is not active")
@@ -99,8 +99,81 @@ def create_new_cart():
     return created_response(serialize_cart(new_cart))
 
 
+def _apply_shareable_coupon():
+    coupon_code = session.get("coupon_code")
+    if not g.get("email") or not coupon_code:
+        # Customer is not logged in or there are no shareable coupons, nothing else to do here!
+        logger.error("No email or coupon code, nothing to do here!")
+        return
+
+    try:
+        cart = resolve_trusted_cart()
+    except CheekyApiError:
+        # Customer doesn't have any active carts, there's nothing to apply coupon to - yet!
+        logger.error(
+            "Customer doesn't have any active carts, there's nothing to apply coupon to - yet!"
+        )
+        return
+
+    coupon = find_coupon_by_code(coupon_code)
+    if not coupon:
+        # Coupon is somehow invalid, delete it from the cookie to avoid locking out customer
+        logger.error(
+            "Coupon is somehow invalid, deleting it from the cookie to avoid locking out customer"
+        )
+        session.pop("coupon_code", None)
+        return
+
+    logger.error(f"Coupon {coupon.id} found for code {coupon_code}")
+
+    # There is a cookie with a coupon code, and a cart to apply it to!
+    # Is there a matching item yet?
+    cart_items = get_cart_items(cart.id)
+    matching_item = next(
+        (cart_item for cart_item in cart_items if cart_item.item_id == coupon.item_id), None
+    )
+    if not matching_item:
+        # No matching item yet, we can't apply the coupon yet!
+        return
+
+    # Add the coupon to the cart and remove it from the cookie - carts can only have one coupon!
+    add_coupon_to_cart(cart, coupon)
+    session.pop("coupon_code", None)
+
+
+# Decorator to handling shareable coupons
+def handle_shareable_coupons(f):
+    """
+    Special decorator for handling shareable coupons.
+
+    Special case for shareable coupons: user claims them by clicking a link, but
+    we can't apply them until they create a cart (and maybe register/login first...)
+    """
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        logger.error(f"(Decorator) Session contents: {session.items()}")
+        _apply_shareable_coupon()
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+@bp.before_request
+def log_request():
+    logger.error(f"INCOMING REQUEST: {session.items()}")
+
+
+@bp.after_request
+def log_response(response):
+    # print the session contents in set-cookie
+    logger.error(f"OUTGOING SESSION: {session.items()}")
+    return response
+
+
 @bp.post("/<int:cart_id>/items")
 @require_auth(["customer"])
+@handle_shareable_coupons
 def add_item_to_cart_endpoint():
     """
     Adds a single item to an existing cart.
@@ -226,6 +299,7 @@ def charge_customer_with_hold(checkout_handler):
 @bp.post("/<int:cart_id>/checkout")
 @require_auth(["customer"])
 @charge_customer_with_hold
+@handle_shareable_coupons
 def checkout_cart(delivery_fee: Decimal, tip: Decimal, total_amount: Decimal):
     """Checks out a cart and creates an order."""
     delivery_address = get_param("delivery_address") or ""

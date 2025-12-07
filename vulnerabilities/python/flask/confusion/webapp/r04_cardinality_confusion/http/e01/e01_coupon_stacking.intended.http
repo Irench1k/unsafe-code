@@ -2,13 +2,14 @@
 @host = {{base_host}}/v401
 
 ###
-GET /menu
-
-@ultimate_krabby_feast = {{response.parsedBody.find(i => i.name.includes("Ultimate Krabby"))}}
+# @name seed
 {{
-  console.info(`Ultimate Krabby Feast: ${ultimate_krabby_feast.id} (${ultimate_krabby_feast.price})`);
   await seedBalance("v401", "plankton@chum-bucket.sea", 100);
 }}
+GET /menu
+
+@krabby_patty = {{response.parsedBody.find(i => i.name == "Krabby Patty")}}
+@fries = {{response.parsedBody.find(i => i.name == "Fries")}}
 
 ### Should return all Krusty Krab coupons
 GET /restaurants/1/coupons
@@ -18,50 +19,7 @@ X-API-Key: {{krabs_api_key}}
 GET /restaurants/2/coupons
 X-API-Key: {{chum_bucket_api_key}}
 
-### Plankton balance
-GET /account/info
-Authorization: {{plankton_auth}}
-
-### Create new cart and add Krabby Patty to it
-# @name cart
-POST /cart?restaurant_id=1
-Authorization: {{plankton_auth}}
-
-###
-POST /cart/{{cart.cart_id}}/items
-Content-Type: application/json
-Authorization: {{plankton_auth}}
-
-{ "item_id": 4 }
-
-###
-POST /cart/{{cart.cart_id}}/items
-Content-Type: application/json
-Authorization: {{plankton_auth}}
-
-{
-  "coupon_code": "BURGER-50"
-}
-
-### Checkout the cart
-POST /cart/{{cart.cart_id}}/checkout
-Authorization: {{plankton_auth}}
-Content-Type: application/json
-
-{
-  "tip": "0",
-  "delivery_address": "Chum Bucket"
-}
-
-### See Plankton's order
-GET /orders
-Authorization: {{plankton_auth}}
-
-### See Plankton's new balance
-GET /account/info
-Authorization: {{plankton_auth}}
-
-# ===== New Functionality Testing =====
+# ===== New Functionality Testing: using new shareable link =====
 
 ### New user navigates the link
 # @no-redirect
@@ -79,8 +37,12 @@ Authorization: {{spongebob_auth}}
 GET /cart/apply-coupons?code=BURGER-50
 Authorization: {{plankton_auth}}
 
+# ===== Cookie Based Testing =====
+
 ### Plankton (existing user) navigates the link with an existing cart using Cookie Auth
 # @no-redirect
+# @forceRef seed
+# @name fresh_session
 POST /auth/login
 Content-Type: application/json
 
@@ -96,34 +58,73 @@ Content-Type: application/json
 
 ###
 # @no-redirect
+# @forceRef fresh_session
+# @name promo_link_clicked
 GET /cart/apply-coupons?code=BURGER-50
 Cookie: {{session}}
 
 @session_new = {{refreshCookie(response, session)}}
-{{
-  console.info(`Plankton session_new: ${session_new}`);
-}}
-
 ?? session_new != session
 
+
 ### Create new cart and add Krabby Patty to it
-# @name cart_with_cookie
+# @forceRef promo_link_clicked
+# @name new_cart
 POST /cart?restaurant_id=1
-Authorization: {{plankton_auth}}
+Cookie: {{session_new}}
 
-###
-POST /cart/{{cart_with_cookie.cart_id}}/items
+{{
+  console.info(`OLD SESSION 2: ${session_new}`);
+}}
+@session_new2 = {{refreshCookie(response, session_new)}}
+@cart_id = {{response.parsedBody.cart_id}}
+{{
+  console.info(`NEW SESSION 2: ${session_new2}`);
+}}
+
+### Add Krabby Patty to the cart, and it has a coupon BURGER-50 that gives 50% off
+# @forceRef new_cart
+# @name cart_with_krabby_patty
+POST /cart/{{cart_id}}/items
 Content-Type: application/json
-Authorization: {{plankton_auth}}
+Cookie: {{session_new2}}
 
-{ "item_id": 4 }
+{ "item_id": {{krabby_patty.id}} }
+
+@session_new3 = {{refreshCookie(response, session_new2)}}
+{{
+  console.info(`NEW SESSION 4: ${session_new3}`);
+}}
+### Add Krabby Patty again, and you can see that the coupon is not applied because it is already used once.
+# @name cart_with_two_krabby_patties
+POST /cart/{{cart_id}}/items
+Content-Type: application/json
+Cookie: {{session_new3}}
+
+{ "item_id": {{krabby_patty.id}} }
+
+@session_new4 = {{refreshCookie(response, session_new3)}}
+
+### Let's add more items to the cart, but they don't have a coupon assigned to them.
+# @forceRef cart_with_two_krabby_patties
+# @name cart_with_patties_and_fries
+POST /cart/{{cart_id}}/items
+Content-Type: application/json
+Cookie: {{session_new}}
+
+{ "item_id": {{fries.id}} }
+
+@session_new = {{refreshCookie(response, session_new)}}
 
 ### Checkout the cart
-POST /cart/{{cart_with_cookie.cart_id}}/checkout
-Authorization: {{plankton_auth}}
+# @forceRef cart_with_patties_and_fries
+POST /cart/{{cart_id}}/checkout
+Cookie: {{session_new}}
 Content-Type: application/json
 
 {
   "tip": "0",
   "delivery_address": "Chum Bucket"
 }
+
+@session_new = {{refreshCookie(response, session_new)}}

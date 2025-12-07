@@ -72,7 +72,7 @@ def get_decimal_param(name: str, default: Decimal | None = None) -> Decimal | No
     if not value:
         return default
     try:
-        return Decimal(value)
+        return Decimal(value).quantize(Decimal("1.00"))
     except Exception:
         return default
 

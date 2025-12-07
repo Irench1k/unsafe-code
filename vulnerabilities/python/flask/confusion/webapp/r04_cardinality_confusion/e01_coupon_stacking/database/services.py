@@ -365,7 +365,11 @@ def _calculate_coupon_discount(coupon: Coupon, price: Decimal) -> Decimal:
     if coupon.type == CouponType.fixed_amount:
         return min(coupon.value, price)
     elif coupon.type == CouponType.discount_percent:
-        return price * coupon.value / 100
+        logger.error(f"Calculating discount for coupon {coupon.id} with value {coupon.value}")
+        logger.error(f"The price: {price}")
+        logger.error(f"Types of price and coupon.value: {type(price)}, {type(coupon.value)}")
+        logger.error(f"The result: {(price * coupon.value / 100).quantize(Decimal('1.00'))}")
+        return (price * coupon.value / 100).quantize(Decimal("1.00"))
     elif coupon.type == CouponType.free_item_sku:
         return price
     else:
@@ -378,10 +382,11 @@ def add_coupon_to_cart(cart: Cart, coupon: Coupon) -> None:
         if item.item_id == coupon.item_id:
             item.coupon_id = coupon.id
             item.price = item.price - _calculate_coupon_discount(coupon, item.price)
+            logger.error(f"Coupon {coupon.id} applied to item {item.item_id} in cart {cart.id}")
             save_cart_item(item)
             return
 
-    logger.warning(
+    logger.error(
         f"Coupon {coupon.id} not applied, because item {coupon.item_id} not found in cart {cart.id}"
     )
 
