@@ -5,7 +5,7 @@ description: Authoritative .http file syntax for specs and demos. Auto-invoke wh
 
 # HTTP File Syntax Reference
 
-Authoritative syntax for `.http` files used by both **uctest** (E2E specs) and **httpyac** (demos).
+Authoritative syntax for `.http` files used by both **uctest** (E2E specs) and **ucdemo** (demos). Our internal tools are wrappers on top of `httpyac` therefore .http syntax features are based on what `httpyac` supports - but `httpyac` should NEVER be used for run .http files within our repos! Only use `uctest` for running e2e specs and `ucdemo` for running interactive demos!
 
 ## Request Structure
 
@@ -39,7 +39,7 @@ Content-Type: application/json
 @plankton_email = plankton@chum-bucket.sea
 ```
 
-### @host Auto-Prefix (httpyac)
+### @host Auto-Prefix
 
 When `@host` is defined, httpyac **automatically** prefixes all request URLs:
 
@@ -211,7 +211,7 @@ Run **after** request completes.
 
 | Context | Status | Body Field | Example |
 |---------|--------|------------|---------|
-| **Demo** (httpyac) | `response.status` | `response.parsedBody.field` | `?? js response.parsedBody.email == x` |
+| **Demo** (ucdemo) | `response.status` | `response.parsedBody.field` | `?? js response.parsedBody.email == x` |
 | **Spec** (uctest) | `$(response).status()` | `$(response).field("x")` | `?? js $(response).field("email") == x` |
 
 ❌ Using `$(response)` in demos → undefined

@@ -48,7 +48,7 @@ description: "⛔ MANDATORY policy for .http files. Auto-load for ANY agent near
 
 ## Why This Restriction Exists
 
-httpyac/uctest `.http` syntax has rules that LLMs **consistently hallucinate wrong**:
+ucdemo/uctest/httpyac `.http` syntax has rules that LLMs **consistently hallucinate wrong**:
 
 | Common Mistake | What Happens | Correct Syntax |
 |----------------|--------------|----------------|
@@ -97,7 +97,7 @@ DO: Spawn demo-author with the requirements
 | Characteristic | E2E Spec | Interactive Demo |
 |----------------|----------|------------------|
 | Path | `spec/**/*.http` | `vulnerabilities/**/*.http` |
-| Runner | uctest | httpyac |
+| Runner | uctest | ucdemo |
 | Response access | `$(response).field()` | `response.parsedBody.field` |
 | Auth helpers | `{{auth.basic()}}` | Raw `Authorization:` header |
 | Cookie handling | `extractCookie()` / `auth.login()` | `refreshCookie()` |

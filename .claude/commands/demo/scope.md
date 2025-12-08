@@ -75,7 +75,7 @@ Before any research, ask the user:
    - Specific issues (cookies, assertions, narrative)?
 
 3. **What's the expected outcome?**
-   - All demos pass `httpyac -a`?
+   - All demos pass (`ucdemo`)?
    - Better educational impact?
    - Specific changes?
 

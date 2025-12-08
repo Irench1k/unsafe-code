@@ -5,7 +5,7 @@ Compact, authoritative workflow checklists for common Unsafe Code Lab tasks. Use
 ---
 
 ## 1. Review & Fix Failing Demo
-**Goal**: Make a student-facing httpyac demo pass for the right reasons.
+**Goal**: Make a student-facing demo pass for the right reasons.
 ```
 1) Run with detail: ucdemo <target> --bail -v
 2) Classify failure:
@@ -120,7 +120,7 @@ Use decision trees for deeper branching.
 ```
 1) Read section README + exercise code
 2) For each exploit/fix pair:
-   - Verify technically (httpyac -a)
+   - Verify technically (`ucdemo`)
    - Check character logic (attacker owns creds)
    - Check narrative (behavioral impact, no jargon)
    - Ensure variety and one assert per request
@@ -200,7 +200,7 @@ See `docs/ai/characters.md` for cast rules.
    {{ await seedBalance("v305", "plankton@chum-bucket.sea", 100); }}
 2) Verify cookie isolation (httpyac.config.js: cookieJarEnabled=false)
 3) Check request order for hidden dependencies
-4) Isolate by running specific request: httpyac demo.http -a --line <n>
+4) Isolate by running single file: `ucdemo path/to/demo.http -v`
 5) Add temporary diagnostics: console.log(JSON.stringify(response.parsedBody))
 ```
 Remove diagnostics once stable.

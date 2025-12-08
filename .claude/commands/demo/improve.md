@@ -84,7 +84,7 @@ Find demo files in target section/path:
 ### Step 2: Delegate Analysis (MANDATORY FIRST STEP)
 
 **ALWAYS** spawn **demo-debugger** BEFORE any fixes:
-- Run demos with `httpyac -a --bail`
+- Run demos with `ucdemo --bail`
 - Identify syntax errors, assertion failures, quality issues
 - Assess existing demo quality (good voice/narrative to preserve?)
 - Report console.info count per file
@@ -157,7 +157,7 @@ If demos are broken due to:
 
 - ❌ Read `.http` files and interpret their syntax
 - ❌ Propose specific assertion changes
-- ❌ Make assumptions about httpyac syntax
+- ❌ Make assumptions about .http syntax
 - ❌ Edit `.http` files directly
 - ❌ Analyze why demos are failing (delegate to demo-debugger)
 - ❌ Skip the demo-debugger step and go straight to demo-author
@@ -171,7 +171,7 @@ These are handled **ONLY** by demo-author through demo-debugger's analysis.
 When spawning demo-debugger:
 ```
 Analyze demos in: [path]
-Run with: httpyac -a --bail
+Run with: ucdemo --bail
 Report:
   - Each failure with classification
   - Existing console.info count per file
@@ -209,7 +209,7 @@ See `.claude/references/demo-style-philosophy.md` for full principles.
 ## Validation Step (REQUIRED)
 
 After demo-author makes changes, **spawn demo-debugger again** to verify:
-- [ ] All demos pass `httpyac -a --bail`
+- [ ] All demos pass (`ucdemo --bail`)
 - [ ] File line count did NOT increase significantly
 - [ ] console.info count ≤ 3 per file
 - [ ] Post-request ordering is correct (session → vars → asserts → logs)
@@ -222,7 +222,7 @@ After demo-author makes changes, **spawn demo-debugger again** to verify:
 ## Success Criteria
 
 After improvements:
-- [ ] All demos pass `httpyac -a --bail`
+- [ ] All demos pass (`ucdemo --bail`)
 - [ ] State transitions have console.info()
 - [ ] Magic numbers replaced with named variables
 - [ ] Demos are idempotent (state reset at start)

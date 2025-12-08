@@ -1,11 +1,11 @@
 ---
 name: demo-conventions
-description: Interactive demo conventions for httpyac. Covers response.parsedBody, manual cookie handling, state reset, and student-facing narrative. Auto-invoke when working with vulnerabilities/**/*.http files.
+description: Interactive demo conventions for demos (run via `ucdemo`). Covers response.parsedBody, manual cookie handling, state reset, and student-facing narrative. Auto-invoke when working with vulnerabilities/**/*.http files.
 ---
 
-# Interactive Demo Conventions (httpyac)
+# Interactive Demo Conventions
 
-Patterns for `.http` files in `vulnerabilities/.../http/` directories, run with **httpyac** (NOT uctest).
+Patterns for `.http` files in `vulnerabilities/.../http/` directories, run with **`ucdemo`** (NOT uctest).
 
 ## ⛔⛔⛔ CRITICAL: Read These FIRST ⛔⛔⛔
 
@@ -33,7 +33,7 @@ Patterns for `.http` files in `vulnerabilities/.../http/` directories, run with 
 
 | Aspect | Demo (this skill) | E2E Spec |
 |--------|-------------------|----------|
-| Runner | `httpyac` | `uctest` |
+| Runner | `ucdemo` | `uctest` |
 | Response | `response.parsedBody.field` | `$(response).field("x")` |
 | Auth | Raw `Authorization:` header | `{{auth.basic()}}` helpers |
 | Cookies | Manual `refreshCookie()` | Auto or `auth.login()` |
@@ -386,16 +386,29 @@ Place marker as standalone `#` comment ABOVE the `###` title.
 
 ## Running Demos
 
+**ALWAYS use `ucdemo` to run demos.** It handles path resolution, provides clear error output, and shows docker logs automatically.
+
 ```bash
-# Run all requests in file
-httpyac path/to/demo.http -a
+# Run all demos in a section
+ucdemo r02
 
-# Stop at first failure
-httpyac path/to/demo.http -a --bail
+# Run specific exercise demos
+ucdemo r02/e03
 
-# Run specific directory
-httpyac path/to/e01/ -a --bail
+# Run single file
+ucdemo path/to/demo.http
+
+# Stop on first failure (for debugging)
+ucdemo r02 --bail
+
+# Keep going to see ALL failures (for analysis)
+ucdemo r02 -k
+
+# Verbose output (show all request/response exchanges)
+ucdemo r02 -v
 ```
+
+**⛔ DO NOT run `httpyac` directly.** If `ucdemo` doesn't work for your use case, stop and ask the user.
 
 ## See Also
 

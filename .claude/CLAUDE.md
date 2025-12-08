@@ -59,7 +59,7 @@ Plan Mode's system prompt overrides custom command instructions. It forces use o
 
 | Domain | Agent | Purpose |
 |--------|-------|---------|
-| Demo analysis | `demo-debugger` | Run httpyac, analyze failures |
+| Demo analysis | `demo-debugger` | Run ucdemo, analyze failures |
 | Demo editing | `demo-author` | Edit .http demo files |
 | Spec analysis | `spec-debugger` | Diagnose uctest failures |
 | Spec editing | `spec-author` | Edit .http spec files |
@@ -285,7 +285,7 @@ uclogs --since 30m | grep -c error  # Any recent errors?
 
 | Aspect   | Spec (`spec/**/*.http`) | Demo (`http/**/*.http`)     |
 | -------- | ----------------------- | --------------------------- |
-| Runner   | uctest                  | httpyac                     |
+| Runner   | uctest                  | ucdemo                      |
 | Response | `$(response).field()`   | `response.parsedBody.field` |
 | Auth     | `auth.basic()` helpers  | Raw `Authorization:` header |
 | Purpose  | Automated testing       | Student learning            |

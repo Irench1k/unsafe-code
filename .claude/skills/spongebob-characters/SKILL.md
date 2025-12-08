@@ -164,7 +164,7 @@ Cookie: {{auth.login("plankton")}}
 X-API-Key: {{auth.restaurant("krusty_krab")}}
 ```
 
-### Interactive Demos (httpyac)
+### Interactive Demos (ucdemo)
 ```http
 Authorization: Basic {{btoa("squidward@krusty-krab.sea:clarinet123")}}
 ```

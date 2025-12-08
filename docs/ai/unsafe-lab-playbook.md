@@ -28,7 +28,7 @@ Single-page orientation for new AI sessions working in this repo. Read this firs
 
 | Context | Status | Body access | Assertion form |
 |---------|--------|-------------|----------------|
-| **Demo** (`ucdemo`/httpyac) | `?? status == 200` | `response.parsedBody.field` | `?? js response.parsedBody.email == plankton@chum-bucket.sea` |
+| **Demo** (`ucdemo`) | `?? status == 200` | `response.parsedBody.field` | `?? js response.parsedBody.email == plankton@chum-bucket.sea` |
 | **Spec** (`uctest`) | `?? js $(response).status() == 200` | `$(response).field("email")` | `?? js $(response).hasOnlyUserData("plankton") == true` |
 
 - No quotes on RHS: `?? js $(response).field("status") == pending` (NOT `"pending"`).

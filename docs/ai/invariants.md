@@ -63,7 +63,7 @@ Never silence tests, mock assertions, or make tests pass artificially when funct
 ### HTTP-3: Demo vs Spec Response Syntax
 | Context | Status | Field | Example |
 |---------|--------|-------|---------|
-| Demo (httpyac) | `response.status` | `response.parsedBody.field` | `?? js response.parsedBody.email == x` |
+| Demo (ucdemo) | `response.status` | `response.parsedBody.field` | `?? js response.parsedBody.email == x` |
 | Spec (uctest)  | `$(response).status()` | `$(response).field("x")` | `?? js $(response).field("email") == x` |
 Using `$(response)` in demos is undefined. Using `response.parsedBody` in specs is non-standard.
 

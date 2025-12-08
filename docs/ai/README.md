@@ -7,7 +7,7 @@ Authoritative map for AI agents working in Unsafe Code Lab. Use this as the entr
 | `unsafe-lab-playbook.md` | One-page orientation + starter checklists | Start of every session; remind yourself of invariants and tool belt |
 | `invariants.md` | Non-negotiable rules (TDD, HTTP syntax invariants, characters, inheritance, code subtlety) | Any decision that could break rules or semantics |
 | `http-syntax.md` | Complete `.http` syntax for both demos and specs | Before editing any `.http` file |
-| `http-demos.md` | Conventions for student-facing demos (httpyac) | Writing or debugging `vulnerabilities/.../http/*.http` |
+| `http-demos.md` | Conventions for student-facing demos (ucdemo) | Writing or debugging `vulnerabilities/.../http/*.http` |
 | `http-specs.md` | Conventions for E2E specs (uctest) and helpers | Writing or debugging `spec/**/*.http` or `spec/spec.yml` |
 | `spec-vs-demo.md` | Side-by-side differences in purpose, syntax, and style | Choosing patterns or troubleshooting context mixups |
 | `tools.md` | CLI references for ucdemo/uctest/ucsync, docker helpers, linting, docs generation | Running tools or recalling flags/paths |

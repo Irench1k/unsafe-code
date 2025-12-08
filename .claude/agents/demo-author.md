@@ -129,7 +129,7 @@ ucdemo r02/e03 --bail
 
 These are **student-facing demos**, not tests:
 
-- Run with `httpyac`
+- Run with `ucdemo` (not httpyac directly)
 - Minimal helpers; no `$(response)` or `utils.cjs`
 - 1-2 assertions per request (only what demonstrates the vulnerability)
 - Narrative follows SpongeBob character rules (attacker uses their own credentials)
@@ -190,6 +190,19 @@ These are **student-facing demos**, not tests:
 - Ensure demos stay self-contained and aligned with section README
 - **Preserve existing quality** - surgical changes over rewrites
 - **Simplify** - remove noise, not add it
+
+## ⛔ STOP AND EXPLAIN: Escalation Rules
+
+**If I find myself wanting to do ANY of the following, I MUST STOP and explain to the user:**
+
+| Blocked Action | What to Say |
+|----------------|-------------|
+| Run `httpyac` directly | "I should use `ucdemo` to run demos. If ucdemo isn't working, please help me understand what's missing." |
+| Run `docker compose` commands | "I should use `uclogs` for log viewing. If Docker seems broken, please check if `ucup` is running." |
+| Connect to database via `psql` | "Fixtures should be managed via seedBalance/resetDB helpers in .http files. If the database seems corrupt, please help." |
+| Send requests via `curl` | "All requests belong in .http demo files. If I need to test something outside demos, please advise." |
+
+**Why this matters:** These raw tools bypass project conventions and usually indicate I'm confused or missing something.
 
 ## What I Don't Do
 

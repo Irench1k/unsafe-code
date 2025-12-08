@@ -154,7 +154,7 @@ test[spec]: Add authorization boundary specs for cart endpoints
 
 ### Required for Code Commits
 
-- [ ] Relevant tests pass (uctest or httpyac)
+- [ ] Relevant tests pass (uctest for specs, ucdemo for demos)
 - [ ] No server errors in uclogs
 - [ ] @unsafe annotations present if vulnerability added
 

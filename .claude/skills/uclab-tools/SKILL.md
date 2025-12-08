@@ -471,11 +471,15 @@ ucsync v302          # Regenerate
 ```
 
 ### "Connection refused"
-```bash
-# Server not running
-docker compose up -d
-uclogs -f  # Watch startup
+
+Server not running. **Do NOT try to start it yourself!**
+
+Say to the user:
 ```
+Docker doesn't seem to be responding. Could you check if `ucup` is running?
+```
+
+Then wait for the user to resolve the infrastructure issue.
 
 ### "Assertion syntax error"
 Check for missing operator in `?? js` line. See `http-gotchas` + `http-syntax` skills.

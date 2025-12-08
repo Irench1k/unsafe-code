@@ -86,8 +86,8 @@ POST {{base}}/cart/checkout
 
 **Interactive Demos** (minimal setup):
 ```http
-# Note: Run this demo with a fresh database
-# Or reset balances: curl -X POST localhost:8000/api/admin/reset
+# Note: Reset state before running
+{{ await seedBalance("v301", "plankton@chum-bucket.sea", 100); }}
 ```
 
 ---
@@ -199,6 +199,6 @@ uctest -v v301/  # Verbose for debugging
 
 ### Interactive Demos
 ```bash
-httpyac e01_dual_auth_refund.exploit.http -a
-httpyac e01_dual_auth_refund.fixed.http -a
+ucdemo r03/e01  # Run all demos for exercise e01
+ucdemo path/to/e01_dual_auth_refund.exploit.http  # Single file
 ```

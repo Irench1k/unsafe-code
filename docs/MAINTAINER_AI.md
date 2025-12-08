@@ -90,7 +90,7 @@ Skills load automatically based on context:
 | Inheritance/ucsync | `spec-conventions`, `uclab-tools` | `~` files, version bumps |
 | Spec debugging | `uclab-tools`, `spec-conventions` | `uctest` failure triage |
 | Demo narratives | `spongebob-characters` | SpongeBob, Squidward, Plankton |
-| CLI tools | `uclab-tools` | uctest, httpyac, uclogs |
+| CLI tools | `uclab-tools` | uctest, ucdemo, uclogs |
 | Vulnerability design | `vulnerability-design-methodology`, `vulnerable-code-patterns` | ONE concept rule, Flask patterns |
 | README/docs editing | `documentation-style` | Behavioral language, jargon |
 | Committing | `commit-workflow` | Quality gates, message format |
@@ -101,7 +101,7 @@ Skills load automatically based on context:
 
 | Aspect | E2E Specs (`spec/`) | Interactive Demos (`http/`) |
 |--------|---------------------|----------------------------|
-| **Runner** | `uctest` | `httpyac` |
+| **Runner** | `uctest` | `ucdemo` |
 | **Response** | `$(response).field()` | `response.parsedBody` |
 | **Auth** | `{{auth.basic()}}` | Manual `Authorization:` |
 | **Imports** | Heavy use | Only `setup.http` |
@@ -126,7 +126,7 @@ Inherited test fails
 | Tool | Purpose | Example |
 |------|---------|---------|
 | `uctest` | Run E2E specs | `uctest v301/cart/` |
-| `httpyac` | Run demos | `httpyac file.http -a` |
+| `ucdemo` | Run demos | `ucdemo r02/e01` |
 | `ucsync` | Manage inheritance | `ucsync v302` |
 | `uclogs` | View logs | `uclogs --since 10m` |
 | `uv run docs` | Generate READMEs | `uv run docs generate` |
@@ -169,7 +169,7 @@ POST /refund
 Before committing:
 
 - [ ] E2E specs pass (`uctest vNNN/`)
-- [ ] Interactive demos run (`httpyac ... -a`)
+- [ ] Interactive demos run (`ucdemo`)
 - [ ] Character logic correct (attacker uses own creds)
 - [ ] ONE new concept per example
 - [ ] No technical jargon in demo annotations

@@ -76,7 +76,7 @@ TDD workflow for exercise implementation. Tests fail first, then code fixes them
 - [ ] `.exploit.http` demonstrates vuln
 - [ ] `.fixed.http` shows previous fix works
 - [ ] Assertions catch regressions
-- [ ] `httpyac file.http -a --all` passes
+- [ ] `ucdemo` passes for all demos
 
 **Specs** (`spec/vXXX/`):
 
@@ -97,11 +97,10 @@ Read section README. Identify:
 ### 2. Write Failing Tests
 
 ```bash
-# Demo tests
-httpyac http/e01/e01_*.exploit.http -a --all  # expect FAIL
-httpyac http/e01/e01_*.fixed.http -a --all    # expect FAIL
+# Demo tests (use ucdemo)
+ucdemo r03/e01  # expect FAIL initially
 
-# E2E specs
+# E2E specs (use uctest)
 uctest v301/endpoint/vuln-*.http              # expect FAIL
 uctest v302/endpoint/v302.http                # expect FAIL
 ```
@@ -133,8 +132,8 @@ uctest vXXX+1/  # inherited ~vXXX.http should pass
 ### 6. Final Validation
 
 ```bash
-httpyac http/eXX/*.http -a --all
-uctest vXXX/
+ucdemo r03/eXX              # Run all demos for exercise
+uctest vXXX/                # Run all specs for version
 uclogs --since 30m | grep -i error
 ```
 

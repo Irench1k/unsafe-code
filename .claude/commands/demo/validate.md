@@ -81,7 +81,7 @@ Review these references first:
 - [ ] Fixed version actually blocks the exploit
 - [ ] Assertions verify expected behavior
 - [ ] No hardcoded values that break on reseed
-- [ ] Works with `httpyac {file}.http -a`
+- [ ] Works with `ucdemo {file}`
 
 ### Character Logic
 
@@ -105,7 +105,7 @@ Review these references first:
 - [ ] Variables defined for reusable values
 - [ ] Console.info at key moments (sparingly)
 - [ ] No complex .http syntax
-- [ ] Plain httpyac patterns (no utils.cjs helpers)
+- [ ] Plain demo patterns (no utils.cjs helpers)
 
 ## Red Flags
 
@@ -119,10 +119,13 @@ Review these references first:
 
 ```bash
 # Run single demo
-httpyac vulnerabilities/.../http/e01/e01_demo.exploit.http -a
+ucdemo path/to/e01_demo.exploit.http
+
+# Run all demos in exercise
+ucdemo r02/e01
 
 # If balance issues occur
-# Reset DB via docker compose or platform.seed() in separate spec
+# Use seedBalance() helper in the demo setup
 ```
 
 ## Demo vs E2E Spec Comparison
@@ -132,5 +135,5 @@ httpyac vulnerabilities/.../http/e01/e01_demo.exploit.http -a
 | Response access | `response.parsedBody.field` | `$(response).field()` |
 | Auth            | Raw `Authorization:` header | `{{auth.basic()}}`    |
 | Asserts         | 1 per test                  | Multiple OK           |
-| Helpers         | None (plain httpyac)        | Full utils.cjs        |
+| Helpers         | None (plain patterns)       | Full utils.cjs        |
 | Purpose         | Student learning            | Automated testing     |

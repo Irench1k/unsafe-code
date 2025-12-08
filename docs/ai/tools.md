@@ -5,7 +5,7 @@ Single-source reference for project tooling. All commands run from any directory
 ---
 
 ## ucdemo — Interactive Demo Runner
-Purpose: run `.http` demo files with httpyac.
+Purpose: run `.http` demo files (wraps httpyac with sensible defaults).
 ```bash
 ucdemo [target] [options]
 ```
@@ -23,7 +23,7 @@ ucdemo [target] [options]
 |--------|-------------|
 | `--bail` | Stop at first failure |
 | `-k`, `--keep-going` | Run all files even on failure |
-| `-v`, `--verbose` | Full httpyac output |
+| `-v`, `--verbose` | Full output (show all exchanges) |
 | `--no-logs` | Skip docker logs on failure |
 
 ### Exit Codes

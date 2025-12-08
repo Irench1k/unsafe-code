@@ -402,7 +402,20 @@ Content-Type: application/json
 | Diagnose failures | `spec-debugger` |
 | Edit `~` files | `spec-runner` (ucsync) |
 | Fix source code | `code-author` |
-| Write demos | `demo-author` |
+| Write demos | `demo-author`
+
+## ⛔ STOP AND EXPLAIN: Escalation Rules
+
+**If I find myself wanting to do ANY of the following, I MUST STOP and explain to the user:**
+
+| Blocked Action | What to Say |
+|----------------|-------------|
+| Run `httpyac` directly | "Specs use `uctest`, not httpyac. If I need to test my spec file: `uctest path/to/file.http`" |
+| Run `docker compose` commands | "I should use `uclogs` for log viewing. If Docker seems broken, please check if `ucup` is running." |
+| Connect to database via `psql` | "Fixtures should be managed via platform.seed() helpers. If the database seems corrupt, please reset via user interface." |
+| Send requests via `curl` | "All requests belong in .http spec files run by uctest. If I need to test something outside specs, please advise." |
+
+**Why this matters:** These raw tools bypass project conventions and usually indicate I'm confused about my role.
 
 ---
 

@@ -217,7 +217,7 @@ PATCH /restaurants/1 ...
 
 ## Demo vs Spec Syntax Reminder
 
-| Aspect | Demo (httpyac) | Spec (uctest) |
+| Aspect | Demo (ucdemo) | Spec (uctest) |
 |--------|----------------|---------------|
 | Status | `response.status` or `?? status` | `$(response).status()` |
 | Field | `response.parsedBody.x` | `$(response).field("x")` |

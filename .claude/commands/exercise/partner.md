@@ -79,7 +79,7 @@ I do NOT:
 |-------|---------|-------|
 | `code-author` | Implement vulnerable code with @unsafe annotations | opus |
 | `demo-author` | Write/fix interactive .http demos (SOLE EDITOR) | opus |
-| `demo-debugger` | Diagnose demo failures, analyze httpyac output | opus |
+| `demo-debugger` | Diagnose demo failures, analyze ucdemo output | opus |
 | `spec-author` | Write/fix E2E .http specs (SOLE EDITOR) | opus |
 | `spec-debugger` | Diagnose spec failures, trace import chains | opus |
 | `spec-runner` | Run uctest, manage ucsync, report results | opus |
@@ -97,7 +97,7 @@ I do NOT:
 | `spec/**/*.http` | spec-debugger | spec-author | E2E specs |
 | `vulnerabilities/**/*.http` | demo-debugger | demo-author | Interactive demos |
 
-The httpyac/uctest `.http` syntax has counterintuitive rules that I will get wrong:
+The `.http` syntax has counterintuitive rules that I will get wrong:
 - ❌ `== "value"` causes syntax errors (no quotes on RHS)
 - ❌ `?? js expr` without operator becomes request body → 500 error
 - ❌ Cookie handling doesn't work like browsers

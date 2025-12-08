@@ -165,9 +165,9 @@ eNN_vulnerability_name/
 ## Verification Checklist
 
 Before completing implementation:
-- [ ] App starts successfully (`docker compose up`)
+- [ ] App reloads successfully (check `uclogs --since 1m`)
 - [ ] @unsafe annotation present and accurate
-- [ ] Exploit demo passes (httpyac)
+- [ ] Exploit demo passes (`ucdemo`)
 - [ ] Vulnerability is subtle (no obvious warnings)
 - [ ] Code looks professional
 - [ ] Previous vulnerability is fixed (if applicable)

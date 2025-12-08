@@ -1,6 +1,6 @@
-# Interactive Demo Conventions (httpyac)
+# Interactive Demo Conventions
 
-Single-source rules for `.http` demos under `vulnerabilities/.../http/`, executed with **httpyac**. These are student-facing narratives that demonstrate vulnerabilities and fixes.
+Single-source rules for `.http` demos under `vulnerabilities/.../http/`, executed with **`ucdemo`**. These are student-facing narratives that demonstrate vulnerabilities and fixes.
 
 ---
 
@@ -135,7 +135,7 @@ Authorization: {{plankton_auth}}
 ## Anti-Patterns
 | Pattern | Problem | Do Instead |
 |---------|---------|------------|
-| `GET {{host}}/orders` | Redundant host | `GET /orders` (httpyac prefixes) |
+| `GET {{host}}/orders` | Redundant host | `GET /orders` (auto-prefixes from @host) |
 | `@disabled` | Hides problems | Fix the root cause |
 | `@name cart` → `cart.cart_id` | Indirect and brittle capture | `@cart_id = {{response.parsedBody.cart_id}}` |
 | `refreshCookie` after GET | No effect | Only after login/mutating POST |
@@ -146,13 +146,15 @@ Authorization: {{plankton_auth}}
 ---
 
 ## Running Demos
-```bash
-# Wrapper (recommended)
-ucdemo r02           # All demos in section 02
-ucdemo r02/e03 --bail
-ucdemo . -k          # Current directory, keep going
 
-# Direct httpyac
-httpyac path/to/demo.http -a
-httpyac path/to/demo.http -a --bail
+**ALWAYS use `ucdemo` to run demos.** It handles path resolution, provides clear error output, and shows docker logs automatically.
+
+```bash
+ucdemo r02           # All demos in section 02
+ucdemo r02/e03       # Specific exercise
+ucdemo r02 --bail    # Stop on first failure
+ucdemo r02 -k        # Keep going to see all failures
+ucdemo r02 -v        # Verbose output
 ```
+
+**⛔ DO NOT run `httpyac` directly.** If `ucdemo` doesn't work for your use case, stop and ask the user.
