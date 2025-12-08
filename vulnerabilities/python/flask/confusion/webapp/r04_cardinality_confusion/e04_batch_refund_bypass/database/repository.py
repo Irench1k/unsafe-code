@@ -405,6 +405,33 @@ def get_refund_by_order_id(order_id: int | str) -> Refund | None:
     return session.execute(stmt).scalar_one_or_none()
 
 
+# @unsafe {
+#     "vuln_id": "v404",
+#     "severity": "critical",
+#     "category": "cardinality-confusion",
+#     "description": "Authorization uses LIMIT 1 (any match) while handler processes all IDs, allowing cross-tenant refunds",
+#     "cwe": "CWE-863"
+# }
+def any_order_belongs_to_restaurant(order_ids: list[int], restaurant_id: int) -> bool:
+    """
+    Check if ANY order in the list belongs to the restaurant.
+
+    Used by batch operations to verify the caller has some legitimate
+    association with the order set before processing.
+    """
+    if not order_ids:
+        return False
+
+    session = get_request_session()
+    # Uses LIMIT 1 - passes if ANY order matches, not ALL orders
+    stmt = select(Order.id).where(
+        Order.id.in_(order_ids),
+        Order.restaurant_id == restaurant_id
+    ).limit(1)
+    result = session.execute(stmt).scalar_one_or_none()
+    return result is not None
+
+
 # ============================================================
 # CONFIGURATION
 # ============================================================

@@ -124,6 +124,45 @@ def set_user_context():
         g.current_user_id = session.get('user_id')
 ```
 
+### Copy-Paste Progression (Authorization + Processing Split)
+
+The most realistic pattern: show the SAME pattern working correctly in some endpoints, then failing in the vulnerable one.
+
+```python
+# CORRECT: get_order uses filtered result
+@bp.get("/orders/<int:order_id>")
+def get_order(restaurant_id: int, order_id: int):
+    orders = find_orders_by_restaurant(restaurant_id, [order_id])
+    require_condition(orders, "Order not found")
+    return serialize_order(orders[0])  # ✓ Uses filtered result
+
+# CORRECT: get_refund uses same pattern (works because single ID)
+@bp.get("/orders/<int:order_id>/refund")
+def get_refund(restaurant_id: int, order_id: int):
+    orders = find_orders_by_restaurant(restaurant_id, [order_id])
+    require_condition(orders, "Order not found")
+    refund = get_refund_by_order_id(order_id)  # Technically uses original, but single ID = safe
+    return serialize_refund(refund)
+
+# @unsafe: batch_refund uses original IDs, not filtered result!
+@bp.post("/refunds")
+def batch_refund(restaurant_id: int):
+    order_ids, reason = validate_request()
+    orders = find_orders_by_restaurant(restaurant_id, order_ids)
+    require_condition(orders, "No orders found")
+    # BUG: Uses order_ids (original) not [o.id for o in orders] (filtered)!
+    results = [issue_refund(oid, reason) for oid in order_ids]
+    return serialize_results(results)
+```
+
+**Why this is powerful:**
+1. Developer sees `get_order` and `get_refund` working
+2. Developer copies pattern for `batch_refund`
+3. Bug emerges from "works for 1, breaks for N"
+4. Each piece looks individually correct
+
+**Infrastructure justification:** `issue_refund(order_id, ...)` takes `order_id` because that's how the existing refund API works. The choice to pass `order_ids` is REASONABLE.
+
 ## Directory Structure
 
 ```

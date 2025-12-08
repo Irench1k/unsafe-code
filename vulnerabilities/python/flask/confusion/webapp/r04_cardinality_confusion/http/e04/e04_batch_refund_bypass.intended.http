@@ -3,59 +3,96 @@
 
 # Intended usage: Restaurant manager batch-refunds their OWN orders only.
 
-### Setup: Reset DB and place an order at Chum Bucket
+### Setup: Reset DB and seed SpongeBob's balance
 {{
   await resetDB("v404");
-  await seedBalance("v404", "patrick@rock.sea", 50);
+  await seedBalance("v404", "spongebob@krusty-krab.sea", 50);
+  await seedBalance("v404", "patrick@bikinibottom.sea", 50);
 }}
+
+### Get menu items
 GET /menu
 
-@chum_burger = {{response.parsedBody.find(i => i.name == "Chum Burger")}}
+{{
+  exports.chum_burger = response.parsedBody.find(i => i.name == "Chum Burger");
+}}
 
 
-# --- Patrick places an order at Chum Bucket ---
+# --- SpongeBob places an order at Chum Bucket ---
 
-### Patrick logs in
-POST /auth/login
+### SpongeBob creates cart at Chum Bucket
+POST /cart?restaurant_id=2
+Authorization: {{spongebob_auth}}
+
+@spongebob_cart_id = {{response.parsedBody.cart_id}}
+
+
+### SpongeBob adds item to cart
+POST /cart/{{spongebob_cart_id}}/items
+Authorization: {{spongebob_auth}}
+Content-Type: application/json
+
+{ "item_id": {{chum_burger.id}} }
+
+
+### SpongeBob checks out
+POST /cart/{{spongebob_cart_id}}/checkout
+Authorization: {{spongebob_auth}}
 Content-Type: application/json
 
 {
-  "email": "patrick@rock.sea",
-  "password": "mayonnaise"
+  "tip": 1,
+  "delivery_address": "Pineapple House"
 }
 
-@patrick_session = {{refreshCookie(response)}}
+@spongebob_order_id = {{response.parsedBody.order_id}}
 
+
+# --- Patrick places another order at Chum Bucket ---
 
 ### Patrick creates cart at Chum Bucket
 POST /cart?restaurant_id=2
-Cookie: {{patrick_session}}
+Authorization: {{patrick_auth}}
 
-@cart_id = {{response.parsedBody.cart_id}}
-
+@patrick_cart_id = {{response.parsedBody.cart_id}}
 
 ### Patrick adds item to cart
-POST /cart/{{cart_id}}/items
-Cookie: {{patrick_session}}
+POST /cart/{{patrick_cart_id}}/items
+Authorization: {{patrick_auth}}
 Content-Type: application/json
 
 { "item_id": {{chum_burger.id}} }
 
 
 ### Patrick checks out
-POST /cart/{{cart_id}}/checkout
-Cookie: {{patrick_session}}
+POST /cart/{{patrick_cart_id}}/checkout
+Authorization: {{patrick_auth}}
 Content-Type: application/json
 
 {
   "tip": 1,
-  "delivery_address": "Under a Rock"
+  "delivery_address": "Pineapple House"
 }
 
-@order_id = {{response.parsedBody.order_id}}
+@patrick_order_id = {{response.parsedBody.order_id}}
 
 
-# --- Plankton uses batch refund legitimately ---
+# --- Chum Bucket delivers the orders and then refunds ---
+
+### Chum Bucket marks order as delivered
+PATCH /orders/{{spongebob_order_id}}/status
+X-API-Key: {{chum_bucket_api_key}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+### Chum Bucket another order as delivered
+PATCH /orders/{{patrick_order_id}}/status
+X-API-Key: {{chum_bucket_api_key}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
 
 ### Plankton batch-refunds his OWN restaurant's order
 # This is the intended use case: proactively refunding customers
@@ -65,13 +102,25 @@ X-API-Key: {{chum_bucket_api_key}}
 Content-Type: application/json
 
 {
-  "order_ids": ["{{order_id}}"],
+  "order_ids": [{{spongebob_order_id}}, {{patrick_order_id}}],
   "reason": "Kitchen accident - meal not up to standards"
 }
 
 ?? status == 200
-?? js response.parsedBody.processed_ids.length == 1
+?? js response.parsedBody.processed_ids.length == 2
 
 {{
-  console.info("Legitimate batch refund: Plankton refunded order #" + order_id);
+  console.info("Legitimate batch refund: Plankton refunded orders: " + response.parsedBody.processed_ids.join(", "));
 }}
+
+
+### Check the user balances
+GET /account/credits
+Authorization: {{spongebob_auth}}
+
+?? body balance == 50.00
+
+GET /account/credits
+Authorization: {{patrick_auth}}
+
+?? body balance == 50.00

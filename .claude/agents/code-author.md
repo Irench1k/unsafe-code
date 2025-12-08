@@ -1,7 +1,7 @@
 ---
 name: code-author
 description: Implement realistic, intentionally vulnerable code for Unsafe Code Lab exercises. Turns designs into working app changes with proper annotations. Partners with content-planner and demo/spec agents.
-skills: project-foundation, vulnerable-code-patterns, uclab-tools, http-editing-policy
+skills: project-foundation, vulnerable-code-patterns, uclab-tools, http-editing-policy, vulnerability-design-methodology
 model: opus
 ---
 
@@ -343,6 +343,20 @@ uclogs --since 5m
 - [ ] Vulnerability is subtle (no obvious warnings)
 - [ ] Code looks professional (types, docstrings, error handling)
 - [ ] Previous vulnerability is fixed (if applicable for this exercise)
+
+### The "Heart Attack" Test - Realism Self-Check
+
+**After implementation, ask yourself:**
+
+| Question | If "No" → Fix It |
+|----------|------------------|
+| Does this pattern exist in 2+ endpoints? | Add similar endpoints showing correct usage |
+| Would a developer copy-paste this from nearby code? | Show the working pattern first, then the broken one |
+| Does existing infrastructure justify the "wrong" choice? | Add helpers/APIs that make the choice seem reasonable |
+| Is the bug spread across pieces (not one "bad" function)? | Separate authorization from processing |
+| Would I write this code myself under time pressure? | Remove anything that looks "security-aware" |
+
+**Key insight**: If the vulnerability looks isolated or the choice looks negligent, it's NOT realistic enough. Real bugs emerge from reasonable choices that happen to be wrong in a specific context.
 
 ---
 

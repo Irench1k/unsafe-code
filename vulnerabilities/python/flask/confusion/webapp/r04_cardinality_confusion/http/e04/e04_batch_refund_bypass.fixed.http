@@ -1,19 +1,24 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v405
 
-# NOTE: In v405, the batch refund vulnerability is fixed.
-# The handler now validates that EVERY order_id belongs to the restaurant
-# before processing ANY refunds.
+# NOTE: This demo requires v405 (e05) to be implemented.
+# In v405, the batch refund vulnerability is fixed.
+# The handler validates that EVERY order_id belongs to the restaurant
+# BEFORE processing any refunds.
 
-### Setup: Reset DB and create orders at both restaurants
+### Setup: Reset DB and seed SpongeBob's balance
 {{
   await resetDB("v405");
   await seedBalance("v405", "spongebob@krusty-krab.sea", 100);
 }}
+
+### Get menu items
 GET /menu
 
-@krabby_patty = {{response.parsedBody.find(i => i.name == "Krabby Patty")}}
-@chum_burger = {{response.parsedBody.find(i => i.name == "Chum Burger")}}
+{{
+  exports.krabby_patty = response.parsedBody.find(i => i.name == "Krabby Patty");
+  exports.chum_burger = response.parsedBody.find(i => i.name == "Chum Burger");
+}}
 
 
 # --- SpongeBob places legitimate orders at BOTH restaurants ---
@@ -34,6 +39,7 @@ Content-Type: application/json
 POST /cart?restaurant_id=1
 Cookie: {{spongebob_session}}
 
+@spongebob_session = {{refreshCookie(response, spongebob_session)}}
 @krusty_krab_cart_id = {{response.parsedBody.cart_id}}
 
 
@@ -55,6 +61,7 @@ Content-Type: application/json
   "delivery_address": "Pineapple House"
 }
 
+@spongebob_session = {{refreshCookie(response, spongebob_session)}}
 @krusty_krab_order_id = {{response.parsedBody.order_id}}
 
 
@@ -62,6 +69,7 @@ Content-Type: application/json
 POST /cart?restaurant_id=2
 Cookie: {{spongebob_session}}
 
+@spongebob_session = {{refreshCookie(response, spongebob_session)}}
 @chum_bucket_cart_id = {{response.parsedBody.cart_id}}
 
 
@@ -96,7 +104,7 @@ X-API-Key: {{chum_bucket_api_key}}
 Content-Type: application/json
 
 {
-  "order_ids": ["{{chum_bucket_order_id}}", "{{krusty_krab_order_id}}"],
+  "order_ids": [{{chum_bucket_order_id}}, {{krusty_krab_order_id}}],
   "reason": "Quality issue"
 }
 

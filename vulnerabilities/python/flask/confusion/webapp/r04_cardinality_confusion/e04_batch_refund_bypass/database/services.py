@@ -18,11 +18,9 @@ from .models import (
     Cart,
     Coupon,
     CouponType,
-    MenuItem,
     Order,
     Refund,
     RefundStatus,
-    Restaurant,
     User,
 )
 from .repository import (
@@ -37,107 +35,12 @@ from .repository import (
     get_signup_bonus_remaining,
     save_cart,
     save_cart_item,
-    save_menu_item,
     save_refund,
-    save_restaurant,
     save_user,
     set_signup_bonus_remaining,
 )
 
 logger = logging.getLogger(__name__)
-
-
-# ============================================================
-# RESTAURANT SERVICES
-# ============================================================
-def serialize_restaurant(restaurant: Restaurant) -> dict:
-    """Serializes a restaurant to a JSON-compatible dict."""
-    return {
-        "id": restaurant.id,
-        "name": restaurant.name,
-        "description": restaurant.description,
-        "domain": restaurant.domain,
-    }
-
-
-def serialize_restaurant_creation(restaurant: Restaurant) -> dict:
-    """Serializes a restaurant creation to a JSON-compatible dict."""
-    return {
-        "id": restaurant.id,
-        "name": restaurant.name,
-        "description": restaurant.description,
-        "owner": restaurant.owner,
-        "api_key": restaurant.api_key,
-        "domain": restaurant.domain,
-        "status": "created",
-    }
-
-
-def serialize_restaurants(restaurants: list[Restaurant]) -> list[dict]:
-    """Serializes a list of restaurants."""
-    return [serialize_restaurant(restaurant) for restaurant in restaurants]
-
-
-def serialize_restaurant_users(users: list[User]) -> list[dict]:
-    """Serializes a list of restaurant users to JSON-compatible dicts."""
-    return [{"email": user.email, "name": user.name} for user in users]
-
-
-# ============================================================
-# MENU SERVICES
-# ============================================================
-def serialize_menu_item(menu_item: MenuItem) -> dict:
-    """Serializes a single menu item."""
-    return {
-        "id": menu_item.id,
-        "restaurant_id": menu_item.restaurant_id,
-        "name": menu_item.name,
-        "price": str(menu_item.price),
-        "available": menu_item.available,
-    }
-
-
-def serialize_menu_items(menu_items: list) -> list[dict]:
-    """Serializes a list of menu items to JSON-compatible dicts."""
-    return [serialize_menu_item(item) for item in menu_items]
-
-
-def apply_menu_item_changes(menu_item: MenuItem, fields: dict) -> MenuItem:
-    """Apply validated field updates and persist the menu item."""
-    allowed = {"name", "price", "available"}
-    for field in allowed:
-        if field in fields:
-            setattr(menu_item, field, fields[field])
-    save_menu_item(menu_item)
-    return menu_item
-
-
-def create_menu_item_for_restaurant(restaurant_id: int, fields: dict) -> MenuItem:
-    """Create and persist a menu item for a restaurant."""
-    allowed = {"name", "price", "available"}
-    payload = {key: fields[key] for key in allowed if key in fields}
-    payload.setdefault("available", True)
-    menu_item = MenuItem(restaurant_id=restaurant_id, **payload)
-    save_menu_item(menu_item)
-    return menu_item
-
-
-# ============================================================
-# COUPON SERVICES
-# ============================================================
-def serialize_coupon(coupon: Coupon) -> dict:
-    """Serializes a coupon to a JSON-compatible dict."""
-    return {
-        "id": coupon.id,
-        "restaurant_id": coupon.restaurant_id,
-        "code": coupon.code,
-        "value": str(coupon.value),
-    }
-
-
-def serialize_coupons(coupons: list[Coupon]) -> list[dict]:
-    """Serializes a list of coupons to JSON-compatible dicts."""
-    return [serialize_coupon(coupon) for coupon in coupons]
 
 
 # ============================================================
@@ -388,37 +291,3 @@ def refund_user(user_id: int, amount: Decimal) -> None:
     user.balance += amount
     save_user(user)
     logger.info(f"User refunded: {user_id} + {amount}")
-
-
-# ============================================================
-# RESTAURANT SERVICES
-# ============================================================
-def create_restaurant(name: str, description: str, domain: str, owner: str) -> Restaurant:
-    """Creates a new restaurant with auto-generated API key."""
-    import uuid
-
-    api_key = f"key-{domain.replace('.', '-')}-{uuid.uuid4()}"
-    restaurant = Restaurant(
-        name=name,
-        description=description or f"Welcome to {name}!",
-        domain=domain,
-        owner=owner,
-        api_key=api_key,
-    )
-    save_restaurant(restaurant)
-    logger.info(f"Restaurant created: {restaurant.id} - {name}")
-    return restaurant
-
-
-def update_restaurant(
-    restaurant: Restaurant,
-    name: str | None = None,
-    description: str | None = None,
-    domain: str | None = None,
-) -> Restaurant:
-    """Updates a restaurant."""
-    restaurant.name = name or restaurant.name
-    restaurant.description = description or restaurant.description
-    restaurant.domain = domain or restaurant.domain
-    save_restaurant(restaurant)
-    return restaurant

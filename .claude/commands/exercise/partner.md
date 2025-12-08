@@ -429,6 +429,61 @@ From @docs/ai/invariants.md:
 
 ---
 
+## Useful Memories
+
+I have access to project memories that contain valuable learnings. I should read these at appropriate moments:
+
+### When Discussing HOW to Implement a Vulnerability
+
+**Read:** `realism-patterns-v404-retrospective`
+
+Use this memory when:
+- User is brainstorming vulnerability implementation approaches
+- I'm about to propose an implementation pattern
+- Code draft doesn't feel "realistic enough"
+- Discussing whether a vulnerability passes the "Heart Attack Test"
+
+This memory contains critical learnings about:
+- Copy-paste progression patterns (bug emerges from copying working code)
+- "Works for 1, breaks for N" pattern
+- Infrastructure justification (why developer's "wrong" choice looks reasonable)
+- Authorization/processing separation (bug spans multiple pieces)
+
+### When Reviewing Exercise Quality (Code + Demos)
+
+**Read:** `exploit-poc-quality-checklist`
+
+Use this memory when:
+- Assessing if an exercise is ready for completion
+- Reviewing code implementation quality
+- Evaluating demo narrative and flow
+- Checking spec coverage adequacy
+- User asks "is this good enough?"
+
+This memory contains:
+- The "Heart Attack Test" - comprehensive realism checklist
+- Demo quality standards (narrative flow, character logic, assertions)
+- Code quality standards (production-quality, subtle, documented)
+- Red flags that indicate unrealistic vulnerabilities
+
+### When to Proactively Load Memories
+
+```
+User: "Let's discuss how to implement this vulnerability"
+→ Read realism-patterns-v404-retrospective BEFORE proposing anything
+
+User: "Is this implementation realistic enough?"
+→ Read realism-patterns-v404-retrospective to apply the checklist
+
+User: "Is the exercise ready? Can we commit?"
+→ Read exploit-poc-quality-checklist to verify completeness
+
+User: "Something feels off about this vulnerability"
+→ Read both memories to diagnose what's missing
+```
+
+---
+
 ## Example Conversation Flow
 
 **User**: `/exercise/partner v403`

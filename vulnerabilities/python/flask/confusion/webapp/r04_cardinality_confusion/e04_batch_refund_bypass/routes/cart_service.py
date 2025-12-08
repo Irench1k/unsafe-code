@@ -170,26 +170,29 @@ def apply_coupons_to_order_items(
     coupon_codes: list[str],
     valid_single_use_coupons: set[str],
 ) -> Decimal:
-    """Apply single-use coupons to eligible cart items and return total discount."""
+    """Apply single-use coupons to eligible cart items and return total discount.
+
+    FIX for v403: Now tracks both used coupon codes AND items to prevent:
+    1. Same coupon code being applied to multiple items (duplicate code attack)
+    2. Same item receiving multiple coupon discounts
+    """
     total_discount = Decimal("0.00")
     items_with_coupon_applied: set[int] = set()
+    coupon_codes_used: set[str] = set()  # FIX: Track which codes have been applied
 
-    # @unsafe {
-    #     "vuln_id": "v403",
-    #     "severity": "medium",
-    #     "category": "cardinality-confusion",
-    #     "description": "Iterates original coupon_codes list while checking against deduplicated set, allowing duplicates to apply discount multiple times",
-    #     "cwe": "CWE-345"
-    # }
     # Process coupons in the order they appear in the request
     for coupon_code in coupon_codes:
+        # FIX: Skip duplicate coupon codes (prevents v403 vulnerability)
+        if coupon_code in coupon_codes_used:
+            logger.debug(f"Skipping duplicate coupon code: {coupon_code}")
+            continue
+
         # Look up the coupon by the user-provided code
         coupon = find_coupon_by_code(coupon_code)
         if not coupon:
             continue
 
         # Only process if this is a validated single-use coupon
-        # NOTE: We check against the deduplicated set, but iterate the original list
         if coupon.code not in valid_single_use_coupons:
             continue
 
@@ -200,6 +203,7 @@ def apply_coupons_to_order_items(
                 discount = _calculate_coupon_discount(coupon, item.price)
                 total_discount += discount
                 items_with_coupon_applied.add(item.id)
+                coupon_codes_used.add(coupon_code)  # FIX: Mark code as used
                 logger.info(
                     f"Applied single-use coupon {coupon.code} to item {item.item_id}, "
                     f"discount: ${discount}"
