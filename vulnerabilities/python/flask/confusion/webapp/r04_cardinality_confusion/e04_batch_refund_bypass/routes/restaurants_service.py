@@ -1,5 +1,6 @@
 """Restaurant Service - business logic for restaurant operations."""
 
+import logging
 import uuid
 
 from ..database.models import MenuItem, Restaurant
@@ -7,6 +8,8 @@ from ..database.repository import (
     save_menu_item,
     save_restaurant,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================
