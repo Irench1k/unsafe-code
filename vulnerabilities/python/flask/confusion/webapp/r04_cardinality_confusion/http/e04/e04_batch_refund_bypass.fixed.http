@@ -1,0 +1,107 @@
+# @import ../common/setup.http
+@host = {{base_host}}/v405
+
+# NOTE: In v405, the batch refund vulnerability is fixed.
+# The handler now validates that EVERY order_id belongs to the restaurant
+# before processing ANY refunds.
+
+### Setup: Reset DB and create orders at both restaurants
+{{
+  await resetDB("v405");
+  await seedBalance("v405", "spongebob@krusty-krab.sea", 100);
+}}
+GET /menu
+
+@krabby_patty = {{response.parsedBody.find(i => i.name == "Krabby Patty")}}
+@chum_burger = {{response.parsedBody.find(i => i.name == "Chum Burger")}}
+
+
+# --- SpongeBob places legitimate orders at BOTH restaurants ---
+
+### SpongeBob logs in
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "spongebob@krusty-krab.sea",
+  "password": "EmployeeOfTheMonth"
+}
+
+@spongebob_session = {{refreshCookie(response)}}
+
+
+### SpongeBob creates cart at Krusty Krab
+POST /cart?restaurant_id=1
+Cookie: {{spongebob_session}}
+
+@krusty_krab_cart_id = {{response.parsedBody.cart_id}}
+
+
+### SpongeBob adds item to Krusty Krab cart
+POST /cart/{{krusty_krab_cart_id}}/items
+Cookie: {{spongebob_session}}
+Content-Type: application/json
+
+{ "item_id": {{krabby_patty.id}} }
+
+
+### Checkout at Krusty Krab
+POST /cart/{{krusty_krab_cart_id}}/checkout
+Cookie: {{spongebob_session}}
+Content-Type: application/json
+
+{
+  "tip": 0,
+  "delivery_address": "Pineapple House"
+}
+
+@krusty_krab_order_id = {{response.parsedBody.order_id}}
+
+
+### SpongeBob creates cart at Chum Bucket
+POST /cart?restaurant_id=2
+Cookie: {{spongebob_session}}
+
+@chum_bucket_cart_id = {{response.parsedBody.cart_id}}
+
+
+### Add item to Chum Bucket cart (must use Chum Bucket menu item!)
+POST /cart/{{chum_bucket_cart_id}}/items
+Cookie: {{spongebob_session}}
+Content-Type: application/json
+
+{ "item_id": {{chum_burger.id}} }
+
+
+### Checkout at Chum Bucket
+POST /cart/{{chum_bucket_cart_id}}/checkout
+Cookie: {{spongebob_session}}
+Content-Type: application/json
+
+{
+  "tip": 0,
+  "delivery_address": "Pineapple House"
+}
+
+@chum_bucket_order_id = {{response.parsedBody.order_id}}
+
+
+# --- Plankton attempts the same exploit, but it's been FIXED ---
+
+### FIXED: Plankton's batch refund attempt is rejected
+# In v405, the handler validates ALL order_ids belong to the restaurant
+# BEFORE processing any refunds. The request is rejected outright.
+POST /restaurants/2/refunds
+X-API-Key: {{chum_bucket_api_key}}
+Content-Type: application/json
+
+{
+  "order_ids": ["{{chum_bucket_order_id}}", "{{krusty_krab_order_id}}"],
+  "reason": "Quality issue"
+}
+
+?? status == 403
+
+{{
+  console.info("FIXED: Batch refund rejected - not all orders belong to Chum Bucket");
+}}

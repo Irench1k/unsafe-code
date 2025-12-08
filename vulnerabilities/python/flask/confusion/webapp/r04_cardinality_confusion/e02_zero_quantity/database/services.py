@@ -83,7 +83,7 @@ def calculate_cart_price(cart_items: list[CartItem]) -> tuple[Decimal, Decimal] 
         if item.coupon_id:
             coupon = find_coupon_by_id(item.coupon_id)
             logger.error(
-                f"Coupon {coupon.name} applied to item {item.item_id} in cart {item.cart_id}"
+                f"Coupon {coupon.code} applied to item {item.item_id} in cart {item.cart_id}"
             )
             if coupon.type == CouponType.buy_x_get_y_free and item.quantity >= coupon.value:
                 # Currently we only support X-FOR-1 coupons, so only one item ever gets free
@@ -180,7 +180,7 @@ def serialize_coupon(coupon: Coupon) -> dict:
     return {
         "id": coupon.id,
         "restaurant_id": coupon.restaurant_id,
-        "name": coupon.name,
+        "code": coupon.code,
         "value": str(coupon.value),
     }
 

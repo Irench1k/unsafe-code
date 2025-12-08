@@ -315,7 +315,7 @@ def _create_coupons(
 
     # Create a coupon for the Krusty Krab
     coupon = Coupon(
-        name="CODE-BURGER-50",
+        code="CODE-BURGER-50",
         type=CouponType.discount_percent,
         restaurant_id=krusty_krab.id,
         item_id=krusty_menu["Krabby Patty"].id,
@@ -326,7 +326,7 @@ def _create_coupons(
 
     # Create a coupon for the Chum Bucket
     coupon = Coupon(
-        name="CODE-FREE-CHUMBALAYA",
+        code="CODE-FREE-CHUMBALAYA",
         type=CouponType.free_item_sku,
         restaurant_id=chum_bucket.id,
         item_id=chum_menu["ChumBalaya"].id,

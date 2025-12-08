@@ -167,7 +167,7 @@ def serialize_coupon(coupon: Coupon) -> dict:
     return {
         "id": coupon.id,
         "restaurant_id": coupon.restaurant_id,
-        "name": coupon.name,
+        "code": coupon.code,
         "value": str(coupon.value),
     }
 

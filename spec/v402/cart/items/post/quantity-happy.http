@@ -1,0 +1,61 @@
+# @import ../_imports.http
+
+# POST /cart/{id}/items - Quantity Happy Path (v402)
+# Tests normal quantity behavior where items are correctly charged
+#
+# Scenario:
+# 1. Create a cart for Krusty Krab
+# 2. Add Krabby Patty with quantity: 2
+# 3. Verify cart shows 1 item with quantity 2
+# 4. Checkout and verify total is correct:
+#    - Krabby Patty: $3.99 x 2 = $7.98 subtotal
+#    - Delivery fee: $5.00 (subtotal < $10)
+#    - Total: $12.98
+
+### Setup - seed balance and create cart
+# @name setup_qty_happy
+{{
+  await platform.seed({ plankton: 200 });
+}}
+# @tag cart, r04, v402
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("plankton")}}
+
+@cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add item with quantity 2
+# @name add_qty_two
+# @forceRef setup_qty_happy
+# @tag cart, r04, v402
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{"item_id": "{{menu.item("Krabby Patty").id}}", "quantity": 2}
+
+# Item added with correct quantity
+?? js $(response).isOk() == true
+?? js $(response).field("items").length == 1
+?? js $(response).field("items")[0].name == Krabby Patty
+?? js $(response).field("items")[0].quantity == 2
+
+### Checkout - verify total includes quantity pricing
+# @name checkout_qty_happy
+# @forceRef add_qty_two
+# @tag cart, r04, v402
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{"delivery_address": "Chum Bucket", "tip": 0}
+
+# Order completes with correct total:
+# Subtotal: $3.99 x 2 = $7.98
+# Delivery: $5.00 (subtotal < $10)
+# Total: $12.98
+# Note: Order items are denormalized (one per unit), so length == 2
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+?? js $(response).field("items").length == 2
+?? js $(response).total() == 12.98

@@ -193,7 +193,7 @@ class Coupon(Base):
     __tablename__ = "coupons"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String, nullable=False)
+    code: Mapped[str] = mapped_column(String, nullable=False)
     type: Mapped[CouponType] = mapped_column(Enum(CouponType), nullable=False)
     value: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=True)
     restaurant_id: Mapped[int] = mapped_column(

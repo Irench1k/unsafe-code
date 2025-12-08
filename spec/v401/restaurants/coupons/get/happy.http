@@ -34,8 +34,8 @@ X-API-Key: {{auth.restaurant("krusty_krab")}}
 
 ?? js $(response).isOk() == true
 ?? js $(response).count() >= 1
-?? js $(response).body().every(c => c.id && c.name && c.restaurant_id !== undefined) == true
-?? js $(response).body().some(c => c.name === "CODE-BURGER-50") == true
+?? js $(response).body().every(c => c.id && c.code && c.restaurant_id !== undefined) == true
+?? js $(response).body().some(c => c.code === "CODE-BURGER-50") == true
 
 # =============================================================================
 # TEST: Chum Bucket can list its coupons
@@ -51,5 +51,5 @@ X-API-Key: {{auth.restaurant("chum_bucket")}}
 
 ?? js $(response).isOk() == true
 ?? js $(response).count() >= 1
-?? js $(response).body().every(c => c.id && c.name && c.restaurant_id !== undefined) == true
-?? js $(response).body().some(c => c.name === "CODE-FREE-CHUMBALAYA") == true
+?? js $(response).body().every(c => c.id && c.code && c.restaurant_id !== undefined) == true
+?? js $(response).body().some(c => c.code === "CODE-FREE-CHUMBALAYA") == true

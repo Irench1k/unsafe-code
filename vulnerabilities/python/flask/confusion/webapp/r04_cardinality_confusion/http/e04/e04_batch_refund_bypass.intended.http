@@ -1,0 +1,77 @@
+# @import ../common/setup.http
+@host = {{base_host}}/v404
+
+# Intended usage: Restaurant manager batch-refunds their OWN orders only.
+
+### Setup: Reset DB and place an order at Chum Bucket
+{{
+  await resetDB("v404");
+  await seedBalance("v404", "patrick@rock.sea", 50);
+}}
+GET /menu
+
+@chum_burger = {{response.parsedBody.find(i => i.name == "Chum Burger")}}
+
+
+# --- Patrick places an order at Chum Bucket ---
+
+### Patrick logs in
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "patrick@rock.sea",
+  "password": "mayonnaise"
+}
+
+@patrick_session = {{refreshCookie(response)}}
+
+
+### Patrick creates cart at Chum Bucket
+POST /cart?restaurant_id=2
+Cookie: {{patrick_session}}
+
+@cart_id = {{response.parsedBody.cart_id}}
+
+
+### Patrick adds item to cart
+POST /cart/{{cart_id}}/items
+Cookie: {{patrick_session}}
+Content-Type: application/json
+
+{ "item_id": {{chum_burger.id}} }
+
+
+### Patrick checks out
+POST /cart/{{cart_id}}/checkout
+Cookie: {{patrick_session}}
+Content-Type: application/json
+
+{
+  "tip": 1,
+  "delivery_address": "Under a Rock"
+}
+
+@order_id = {{response.parsedBody.order_id}}
+
+
+# --- Plankton uses batch refund legitimately ---
+
+### Plankton batch-refunds his OWN restaurant's order
+# This is the intended use case: proactively refunding customers
+# before they complain about quality issues.
+POST /restaurants/2/refunds
+X-API-Key: {{chum_bucket_api_key}}
+Content-Type: application/json
+
+{
+  "order_ids": ["{{order_id}}"],
+  "reason": "Kitchen accident - meal not up to standards"
+}
+
+?? status == 200
+?? js response.parsedBody.processed_ids.length == 1
+
+{{
+  console.info("Legitimate batch refund: Plankton refunded order #" + order_id);
+}}

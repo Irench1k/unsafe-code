@@ -226,3 +226,23 @@ v401:
   description: Coupon Stacking
   tags: [r04, v401]
 
+v402:
+  inherits: v401
+  description: Zero Quantity Free Items
+  tags: [r04, v402]
+  exclude:
+    # v402 fixes the coupon stacking vulnerability from v401
+    # The fix adds a check: if any cart_item.coupon_id is not None, skip applying
+    - cart/apply-coupons/get/vuln-stacking.http
+
+v403:
+  inherits: v402
+  description: Duplicate Coupon Replay
+  tags: [r04, v403]
+  # v403 vulnerabilities are in checkout coupon handling - no v402 exclusions needed
+
+v404:
+  inherits: v403
+  description: Batch Refund Bypass
+  tags: [r04, v404]
+  # v404 introduces batch refund endpoint with authz flaw - no v403 exclusions needed yet

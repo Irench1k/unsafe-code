@@ -205,7 +205,7 @@ def find_coupons_by_restaurant(restaurant_id: int | str) -> list[Coupon]:
 def find_coupon_by_code(coupon_code: str) -> Coupon | None:
     """Finds a coupon by its code."""
     session = get_request_session()
-    stmt = select(Coupon).where(Coupon.name == f"CODE-{coupon_code.upper()}")
+    stmt = select(Coupon).where(Coupon.code == f"CODE-{coupon_code.upper()}")
     return session.execute(stmt).scalar_one_or_none()
 
 
