@@ -65,7 +65,7 @@ def initialize_all_fixtures(session: Session) -> None:
 
         # 5. Add coupons to the restaurants
         logger.debug("Creating coupons...")
-        coupons = _create_coupons(session, krusty_krab, chum_bucket, krusty_menu, chum_menu)
+        _create_coupons(session, krusty_krab, chum_bucket, krusty_menu, chum_menu)
 
         # 6. Orders with Order Items (complex entities - created together!)
         logger.debug("Creating orders and order items...")

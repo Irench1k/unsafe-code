@@ -1,25 +1,19 @@
-"""
-Cart Validators - Input Validation, Authorization, and Response Serialization
-
-This module handles:
-- Cart resolution and authorization
-- Input validation for cart operations
-- Response serialization for cart and order responses
-"""
+"""Cart Validators - input validation, authorization, and response serialization."""
 
 import logging
 from decimal import Decimal, InvalidOperation
 
 from flask import g, request, session
 
-from ..database.models import Cart, Order
+from ..database.models import Cart, CartItem, Coupon, MenuItem
 from ..database.repository import (
     find_cart_by_id,
     find_coupon_by_code,
-    find_order_items,
+    find_menu_item_by_id,
     get_cart_items,
 )
 from ..errors import CheekyApiError
+from ..utils import require_condition, require_ownership
 
 logger = logging.getLogger(__name__)
 
@@ -28,31 +22,14 @@ logger = logging.getLogger(__name__)
 # CART RESOLUTION & AUTHORIZATION
 # ============================================================
 def get_trusted_cart() -> Cart:
-    """
-    Resolve and authorize the cart for the current request.
-
-    Prefers the signed cart ID from session, falls back to path for legacy mobile.
-    Validates ownership and that cart is active.
-
-    Returns:
-        The authorized Cart object
-
-    Raises:
-        CheekyApiError: If cart not found, not owned, or not active
-    """
+    """Resolve and authorize cart from session or path, validating ownership."""
     cart_id = session.get("cart_id") or g.get("cart_id")
-    if not cart_id:
-        raise CheekyApiError("Cart ID is required")
+    require_condition(cart_id, "Cart ID is required")
 
     cart = find_cart_by_id(cart_id)
-    if not cart:
-        raise CheekyApiError(f"Cart {cart_id} not found")
-
-    if cart.user_id != g.get("user_id"):
-        raise CheekyApiError("Cart does not belong to user")
-
-    if not cart.active:
-        raise CheekyApiError(f"Cart {cart_id} is not active")
+    require_condition(cart, f"Cart {cart_id} not found")
+    require_ownership(cart.user_id, g.get("user_id"), "cart")
+    require_condition(cart.active, f"Cart {cart_id} is not active")
 
     return cart
 
@@ -61,19 +38,7 @@ def get_trusted_cart() -> Cart:
 # INPUT VALIDATION
 # ============================================================
 def extract_single_use_coupons(coupon_codes: list[str]) -> set[str]:
-    """
-    Validate and deduplicate single-use coupon codes.
-
-    Returns only valid single-use coupons that haven't been used yet.
-    The returned set is deduplicated, preventing duplicate application
-    at the validation layer.
-
-    Args:
-        coupon_codes: Raw list of coupon codes from request (may have duplicates)
-
-    Returns:
-        Set of valid, unused, single-use coupon codes (deduplicated)
-    """
+    """Return deduplicated set of valid, unused single-use coupon codes."""
     single_use_coupons = set()
     for coupon_code in coupon_codes:
         coupon = find_coupon_by_code(coupon_code)
@@ -83,20 +48,7 @@ def extract_single_use_coupons(coupon_codes: list[str]) -> set[str]:
 
 
 def validate_checkout_request() -> dict:
-    """
-    Parse and validate checkout request body.
-
-    Expects JSON with:
-    - tip: Optional decimal amount
-    - delivery_address: String address
-    - coupon_codes: Optional list of coupon codes
-
-    Returns:
-        Dictionary with validated checkout parameters
-
-    Raises:
-        CheekyApiError: If request body is invalid
-    """
+    """Parse and validate checkout JSON body (tip, delivery_address, coupon_codes)."""
     if not request.is_json:
         raise CheekyApiError("Request body must be JSON")
 
@@ -151,26 +103,46 @@ def serialize_cart(cart: Cart) -> dict:
     }
 
 
-def serialize_order(order: Order) -> dict:
-    """Serialize order to JSON-compatible dict with items."""
-    order_items = find_order_items(order.id)
-    return {
-        "order_id": order.id,
-        "restaurant_id": order.restaurant_id,
-        "user_id": order.user_id,
-        "total": str(order.total),
-        "delivery_fee": str(order.delivery_fee),
-        "delivery_address": order.delivery_address,
-        "tip": str(order.tip),
-        "discount": str(order.discount),
-        "created_at": order.created_at.isoformat(),
-        "items": [
-            {
-                "item_id": item.item_id,
-                "name": item.name,
-                "price": str(item.price),
-            }
-            for item in order_items
-        ],
-        "status": order.status.value,
-    }
+# ============================================================
+# ITEM AND COUPON VALIDATION
+# ============================================================
+def validate_menu_item_for_cart(cart: Cart, item_id: int, quantity: int) -> MenuItem:
+    """Validate item exists, is available, belongs to cart's restaurant, and quantity > 0."""
+    menu_item = find_menu_item_by_id(item_id)
+    require_condition(menu_item, f"Menu item {item_id} not found")
+    require_condition(menu_item.available, f"Menu item {item_id} is not available")
+    require_condition(
+        menu_item.restaurant_id == cart.restaurant_id,
+        f"Menu item {item_id} does not belong to restaurant {cart.restaurant_id}",
+    )
+    require_condition(quantity > 0, "Quantity must be positive")
+    return menu_item
+
+
+def validate_coupon_for_cart(cart: Cart, coupon_code: str) -> Coupon:
+    """Validate coupon for add-item flow. Single-use coupons rejected (checkout only)."""
+    coupon = find_coupon_by_code(coupon_code)
+    require_condition(coupon, f"Coupon {coupon_code} not found")
+    require_condition(
+        coupon.restaurant_id == cart.restaurant_id,
+        f"Coupon {coupon_code} does not belong to restaurant {cart.restaurant_id}",
+    )
+    require_condition(not coupon.single_use, "Single-use coupons must be applied at checkout")
+    return coupon
+
+
+def validate_shareable_coupon(coupon_code: str) -> Coupon:
+    """Validate coupon for shareable links. Single-use coupons rejected."""
+    coupon = find_coupon_by_code(coupon_code)
+    require_condition(coupon, f"Coupon {coupon_code} not found")
+    require_condition(not coupon.single_use, "Coupon invalid")
+    return coupon
+
+
+def validate_cart_for_checkout(cart: Cart) -> list[CartItem]:
+    """Validate cart has items and return them."""
+    cart_items = get_cart_items(cart.id)
+    require_condition(cart_items, f"Cart {cart.id} is empty")
+    return cart_items
+
+

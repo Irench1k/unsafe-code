@@ -177,6 +177,7 @@ class CustomerAuthenticator(BaseAuthenticator):
         """
         g.email = email
         g.user_id = user.id
+        g.user = user
         g.name = user.name
         g.balance = user.balance
 

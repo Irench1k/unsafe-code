@@ -1,10 +1,4 @@
-"""
-Cart Controller - HTTP Request Handling
-
-This module provides HTTP endpoints for cart operations.
-Business logic is delegated to cart_service.py.
-Input validation and serialization are handled by cart_validators.py.
-"""
+"""Cart Controller - delegates to cart_validators.py and cart_service.py."""
 
 import logging
 
@@ -12,7 +6,7 @@ from flask import Blueprint, g, redirect, session
 
 from ..auth.decorators import require_auth
 from ..database.repository import find_cart_by_id, find_restaurant_by_id
-from ..database.services import create_cart
+from ..database.services import add_item_to_cart, create_cart, serialize_order
 from ..utils import (
     created_response,
     get_int_param,
@@ -26,8 +20,11 @@ from .cart_validators import (
     extract_single_use_coupons,
     get_trusted_cart,
     serialize_cart,
-    serialize_order,
+    validate_cart_for_checkout,
     validate_checkout_request,
+    validate_coupon_for_cart,
+    validate_menu_item_for_cart,
+    validate_shareable_coupon,
 )
 
 bp = Blueprint("cart", __name__, url_prefix="/cart")
@@ -73,22 +70,25 @@ def add_item_to_cart_endpoint():
     quantity = get_int_param("quantity", 1)
     coupon_code = get_param("coupon_code")
 
-    cart_service.add_item_to_cart(cart, item_id, quantity, coupon_code)
+    if item_id:
+        menu_item = validate_menu_item_for_cart(cart, item_id, quantity)
+        add_item_to_cart(cart.id, menu_item.id, menu_item.name, menu_item.price, quantity)
+
+    if coupon_code:
+        coupon = validate_coupon_for_cart(cart, coupon_code)
+        cart_service.apply_coupon_to_cart_if_allowed(cart, coupon)
+
     return success_response(serialize_cart(cart))
 
 
 @bp.get("/apply-coupons")
 def add_coupons_to_cart_endpoint():
-    """
-    Apply coupons via shareable links.
-
-    Handles new customers, existing customers with/without cart,
-    and mobile app users differently.
-    """
+    """Apply coupons via shareable links."""
     coupon_code = get_param("code")
     require_condition(coupon_code, "Coupon code is required")
 
-    redirect_url = cart_service.process_shareable_coupon(coupon_code)
+    coupon = validate_shareable_coupon(coupon_code)
+    redirect_url = cart_service.process_shareable_coupon(coupon)
     return redirect(redirect_url)
 
 
@@ -97,9 +97,8 @@ def add_coupons_to_cart_endpoint():
 def checkout_cart():
     """Checkout cart and create order."""
     cart = get_trusted_cart()
-
-    # Parse and validate request
     checkout_data = validate_checkout_request()
+    cart_items = validate_cart_for_checkout(cart)
 
     # Extract validated single-use coupons (deduplicated)
     coupon_codes = checkout_data.get("coupon_codes", [])
@@ -108,11 +107,11 @@ def checkout_cart():
     # Clear cart from session before checkout
     session.pop("cart_id", None)
 
-    # Process checkout
+    # Process checkout (service handles balance check after calculating real total)
     order = cart_service.process_checkout(
         cart=cart,
-        user_id=g.user_id,
-        balance=g.balance,
+        user=g.user,
+        cart_items=cart_items,
         tip=checkout_data["tip"],
         delivery_address=checkout_data["delivery_address"],
         coupon_codes=coupon_codes,
