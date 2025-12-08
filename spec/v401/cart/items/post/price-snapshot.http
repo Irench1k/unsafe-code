@@ -1,0 +1,68 @@
+# @import ../_imports.http
+
+# POST /cart/{id}/items price snapshot behavior (v401)
+#
+# v401 snapshots item name and price at time of add (not just item_id).
+# This ensures the cart shows what the customer ordered at the price they saw.
+
+### Setup - create cart
+# @name setup_snapshot
+{{
+  await platform.seed({ patrick: 200 });
+}}
+# @tag cart, r04, v401
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("patrick")}}
+
+@cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add item - verify snapshot fields captured
+# @name add_item_snapshot
+# @forceRef setup_snapshot
+# @tag cart, r04, v401
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{"item_id": "{{menu.item("Krabby Patty").id}}"}
+
+# Cart item response includes snapshotted name and price
+?? js $(response).isOk() == true
+?? js $(response).hasFields("cart_id", "restaurant_id", "items") == true
+
+# Verify snapshot fields on cart item
+?? js $(response).field("items")[0].name == Krabby Patty
+?? js $(response).field("items")[0].price == 3.99
+?? js $(response).field("items")[0].item_id == 4
+
+### Add different item - verify both items have snapshot fields
+# @forceRef add_item_snapshot
+# @tag cart, r04, v401
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{"item_id": "{{menu.item("Fries").id}}"}
+
+?? js $(response).isOk() == true
+?? js $(response).field("items").length == 2
+
+# Verify both items have name and price snapshotted
+?? js $(response).field("items").every(i => i.name && i.price) == true
+?? js $(response).field("items").find(i => i.name == "Fries").price == 2.49
+?? js $(response).field("items").find(i => i.name == "Krabby Patty").price == 3.99
+
+### Add Kelp Shake - verify coupon_id field exists (null when no coupon)
+# @forceRef add_item_snapshot
+# @tag cart, r04, v401
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{"item_id": "{{menu.item("Kelp Shake").id}}"}
+
+?? js $(response).isOk() == true
+
+# Without coupon, coupon_id should be null on all items
+?? js $(response).field("items").every(i => i.coupon_id == null) == true

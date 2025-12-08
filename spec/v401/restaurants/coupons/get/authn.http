@@ -1,0 +1,79 @@
+# @import ../_imports.http
+
+# =============================================================================
+# Authentication Tests: GET /restaurants/<id>/coupons requires restaurant API key
+# =============================================================================
+#
+# ENDPOINT: GET /restaurants/<id>/coupons
+# EXPECTED AUTH: Restaurant API key (X-API-Key header) + restaurant_manager role
+#
+# This tests that the endpoint properly requires authentication.
+# Customer auth (cookie/basic auth) should NOT be sufficient.
+# =============================================================================
+
+### Seed the database
+# @name seed
+{{
+  await platform.seed();
+}}
+# @ucskip
+# @tag authn, r04, restaurants, v401
+GET /restaurants
+
+# =============================================================================
+# TEST: No authentication -> rejected
+# =============================================================================
+
+### Anonymous request should be rejected
+# @name no_auth
+# @forceRef seed
+# @ucskip
+# @tag authn, r04, restaurants, v401
+GET /restaurants/1/coupons
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# TEST: Customer auth (cookie) -> rejected
+# =============================================================================
+
+### Customer cookie auth is insufficient for coupon management
+# @name customer_cookie
+# @forceRef seed
+{{
+  exports.cookie = await auth.login("spongebob");
+}}
+# @ucskip
+# @tag authn, r04, restaurants, v401
+GET /restaurants/1/coupons
+Cookie: {{cookie}}
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# TEST: Customer auth (basic) -> rejected
+# =============================================================================
+
+### Customer basic auth is insufficient for coupon management
+# @name customer_basic
+# @forceRef seed
+# @ucskip
+# @tag authn, r04, restaurants, v401
+GET /restaurants/1/coupons
+Authorization: {{auth.basic("spongebob")}}
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# TEST: Restaurant API key -> allowed (happy path)
+# =============================================================================
+
+### Restaurant API key authentication is required and sufficient
+# @name restaurant_api_key
+# @forceRef seed
+# @ucskip
+# @tag authn, r04, restaurants, v401
+GET /restaurants/1/coupons
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+
+?? js $(response).isOk() == true

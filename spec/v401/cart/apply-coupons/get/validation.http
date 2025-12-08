@@ -1,0 +1,55 @@
+# @import ../_imports.http
+
+# GET /cart/apply-coupons validation (v401)
+#
+# Tests error handling for invalid or missing coupon codes
+
+### Setup
+# @name setup
+{{
+  await platform.seed({ plankton: 200 });
+}}
+# @ucskip
+# @tag cart, r04, v401
+GET /menu
+
+# =============================================================================
+# TEST: Missing coupon code
+# =============================================================================
+
+### Missing code parameter returns error
+# @name missing_code
+# @forceRef setup
+# @no-redirect
+# @tag cart, r04, v401
+GET /cart/apply-coupons
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Coupon code is required
+
+# =============================================================================
+# TEST: Invalid coupon code
+# =============================================================================
+
+### Invalid coupon code returns error
+# @name invalid_code
+# @forceRef setup
+# @no-redirect
+# @tag cart, r04, v401
+GET /cart/apply-coupons?code=INVALID-COUPON-999
+
+?? js $(response).isError() == true
+
+# =============================================================================
+# TEST: Empty code parameter
+# =============================================================================
+
+### Empty code parameter returns error
+# @name empty_code
+# @forceRef setup
+# @no-redirect
+# @tag cart, r04, v401
+GET /cart/apply-coupons?code=
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Coupon code is required

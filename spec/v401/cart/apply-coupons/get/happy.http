@@ -1,0 +1,96 @@
+# @import ../_imports.http
+
+# GET /cart/apply-coupons happy path (v401)
+#
+# The "shareable coupon link" flow:
+# 1. User clicks shareable link like /cart/apply-coupons?code=BURGER-50
+# 2. Server stores coupon in session cookie
+# 3. When user creates cart and adds matching item, coupon is applied
+#
+# This tests the complete intended flow: click link -> create cart -> add items -> coupon applied
+
+### Setup - seed balances
+# @name setup
+{{
+  await platform.seed({ plankton: 200 });
+}}
+# @ucskip
+# @tag cart, happy, r04, v401
+GET /menu
+
+# =============================================================================
+# TEST: Complete shareable coupon flow
+# =============================================================================
+
+### Step 1: Login
+# @name login
+# @forceRef setup
+# @ucskip
+# @tag cart, happy, r04, v401
+POST /auth/login
+Content-Type: application/json
+
+{"email": "{{user("plankton").email}}", "password": "{{user("plankton").password}}"}
+
+@session = {{extractCookie(response)}}
+?? js $(response).isOk() == true
+
+### Step 2: Click shareable coupon link - coupon stored in cookie
+# @name click_link
+# @forceRef login
+# @no-redirect
+# @tag cart, happy, r04, v401
+GET /cart/apply-coupons?code=BURGER-50
+Cookie: {{session}}
+
+# Response is a redirect with Set-Cookie containing coupon_code
+# CRITICAL: This cookie now contains the coupon_code, we use it for all subsequent requests
+@session_with_coupon = {{extractCookie(response)}}
+?? js $(response).status() == 302
+?? js hasCookie(response) == true
+
+### Step 3: Create new cart
+# @name create_cart
+# @forceRef click_link
+# @ucskip
+# @tag cart, happy, r04, v401
+POST /cart?restaurant_id=1
+Cookie: {{session_with_coupon}}
+
+@cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+?? js $(response).hasFields("cart_id", "restaurant_id") == true
+
+### Step 4: Add Krabby Patty - coupon not applied yet (first item)
+# @name add_patty
+# @forceRef create_cart
+# @ucskip
+# @tag cart, happy, r04, v401
+POST /cart/{{cart_id}}/items
+Cookie: {{session_with_coupon}}
+Content-Type: application/json
+
+{"item_id": "{{menu.item("Krabby Patty").id}}"}
+
+# First item at full price - $3.99
+?? js $(response).isOk() == true
+?? js $(response).field("items")[0].price == 3.99
+
+### Step 5: Add Fries - triggers coupon application!
+# @name add_fries
+# @forceRef add_patty
+# @ucskip
+# @tag cart, happy, r04, v401
+POST /cart/{{cart_id}}/items
+Cookie: {{session_with_coupon}}
+Content-Type: application/json
+
+{"item_id": "{{menu.item("Fries").id}}"}
+
+# Coupon applied! Krabby Patty now $1.99 (50% off $3.99)
+# Fries remain at full price $2.49
+?? js $(response).isOk() == true
+
+# Verify discounted price on Krabby Patty (price returned as string)
+?? js $(response).field("items").find(i => i.name == "Krabby Patty").price == 1.99
+?? js $(response).field("items").find(i => i.name == "Fries").price == 2.49

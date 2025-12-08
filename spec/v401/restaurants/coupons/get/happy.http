@@ -1,0 +1,55 @@
+# @import ../_imports.http
+
+# =============================================================================
+# Happy Path Tests: GET /restaurants/<id>/coupons
+# =============================================================================
+#
+# ENDPOINT: GET /restaurants/<id>/coupons
+# PURPOSE: List coupons available for a specific restaurant
+#
+# Tests that restaurant managers can list their coupons and the response
+# contains expected coupon data.
+# =============================================================================
+
+### Seed the database
+# @name seed
+{{
+  await platform.seed();
+}}
+# @ucskip
+# @tag happy, r04, restaurants, v401
+GET /restaurants
+
+# =============================================================================
+# TEST: Krusty Krab can list its coupons
+# =============================================================================
+
+### Krusty Krab manager can list coupons
+# @name krusty_krab_coupons
+# @forceRef seed
+# @ucskip
+# @tag happy, r04, restaurants, v401
+GET /restaurants/1/coupons
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+
+?? js $(response).isOk() == true
+?? js $(response).count() >= 1
+?? js $(response).body().every(c => c.id && c.name && c.restaurant_id !== undefined) == true
+?? js $(response).body().some(c => c.name === "CODE-BURGER-50") == true
+
+# =============================================================================
+# TEST: Chum Bucket can list its coupons
+# =============================================================================
+
+### Chum Bucket manager can list coupons
+# @name chum_bucket_coupons
+# @forceRef seed
+# @ucskip
+# @tag happy, r04, restaurants, v401
+GET /restaurants/2/coupons
+X-API-Key: {{auth.restaurant("chum_bucket")}}
+
+?? js $(response).isOk() == true
+?? js $(response).count() >= 1
+?? js $(response).body().every(c => c.id && c.name && c.restaurant_id !== undefined) == true
+?? js $(response).body().some(c => c.name === "CODE-FREE-CHUMBALAYA") == true
