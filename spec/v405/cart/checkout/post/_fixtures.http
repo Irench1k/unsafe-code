@@ -1,0 +1,19 @@
+# @import ../_imports.http
+# @import ../../items/post/_fixtures.http
+
+# Checkout fixtures for downstream tests (orders/)
+
+### Plankton checkout (fixture for orders tests)
+# @name order_checkout_plankton
+# @forceRef cart_with_one_item_plankton
+# @tag cart, happy, r03, v301
+POST /cart/{{plankton_cart_id}}/checkout
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 1 }
+
+@order_id = {{$(response).field("order_id")}}
+@order_total = {{$(response).total()}}
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true

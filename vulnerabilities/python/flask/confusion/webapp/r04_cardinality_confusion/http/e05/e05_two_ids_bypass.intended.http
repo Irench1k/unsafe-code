@@ -1,0 +1,62 @@
+# @import ../common/setup.http
+@host = {{base_host}}/v405
+
+# INTENDED: Mr. Krabs legitimately updates his own menu item.
+# The endpoint requires restaurant_id twice (validation + service layer).
+
+### Setup: Reset DB
+{{
+  await resetDB("v405");
+}}
+
+### Get menu items
+GET /menu
+
+{{
+  exports.krabby_patty = response.parsedBody.find(i => i.name == "Krabby Patty");
+  console.info("Krabby Patty: id=" + exports.krabby_patty.id + ", price=$" + exports.krabby_patty.price);
+}}
+
+
+# --- Mr. Krabs updates his own menu item ---
+
+### Mr. Krabs updates Krabby Patty price (legitimate)
+PATCH /menu/{{krabby_patty.id}}
+X-API-Key: {{krabs_api_key}}
+Content-Type: application/json
+
+{
+  "price": 4.99
+}
+
+?? status == 200
+
+
+### Verify: Price was updated
+GET /menu/{{krabby_patty.id}}
+
+?? body price == 4.99
+?? body restaurant_id == 1
+
+{{
+  console.info("Mr. Krabs raised the price to $" + response.parsedBody.price + " - more money!");
+}}
+
+
+# --- Plankton cannot edit Krusty Krab's menu (with single ID) ---
+
+### Plankton tries to edit Krusty Krab item (denied - ID mismatch)
+# Plankton's API key is for restaurant_id=2, but he sends restaurant_id=1
+PATCH /menu/{{krabby_patty.id}}
+X-API-Key: {{chum_bucket_api_key}}
+Content-Type: application/json
+
+{
+  "price": 0.01
+}
+
+?? status == 400
+
+{{
+  console.info("Plankton denied - restaurant ID doesn't match his API key");
+}}

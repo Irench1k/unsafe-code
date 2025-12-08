@@ -262,3 +262,12 @@ v404:
     # v404 fixes the duplicate coupon vulnerability from v403:
     # Now tracks coupon_codes_used set to prevent same code being applied multiple times
     - cart/checkout/post/vuln-duplicate-coupon.http
+
+v405:
+  inherits: v404
+  description: Two IDs Bypass Menu Checks
+  tags: [r04, v405]
+  exclude:
+    # v405 fixes the batch refund bypass vulnerability from v404:
+    # Now validates ALL order_ids belong to the restaurant, not just LIMIT 1
+    - restaurants/refunds/post/vuln-batch-refund-bypass.http
