@@ -18,6 +18,7 @@ Suppression directive:
 Usage:
   uclint                 # Lint spec/v301 (default)
   uclint v302            # Lint specific version
+  uclint r03/e02         # Same as v302 (section 03, exercise 02)
   uclint --all           # Lint all versions
   uclint --strict        # Exit non-zero on any issue
 """
@@ -35,6 +36,37 @@ from rich.table import Table
 # =============================================================================
 # Constants
 # =============================================================================
+
+# Version format patterns
+VERSION_RE = re.compile(r"^v(\d{3})$")
+EXERCISE_RE = re.compile(r"^r(\d{2})/e(\d{2})$")
+
+
+def normalize_version(version_str: str) -> str:
+    """
+    Normalize a version string to vNNN format.
+
+    Accepts:
+    - v301 -> v301 (passthrough)
+    - r03/e01 -> v301 (converted)
+
+    Raises ValueError for invalid formats.
+    """
+    # Already in vNNN format
+    if VERSION_RE.match(version_str):
+        return version_str
+
+    # Try r03/e01 format
+    match = EXERCISE_RE.match(version_str)
+    if match:
+        section = int(match.group(1))
+        exercise = int(match.group(2))
+        return f"v{section}{exercise:02d}"
+
+    raise ValueError(
+        f"Invalid version format: {version_str}. Use v301 or r03/e01."
+    )
+
 
 # HTTP method pattern for detecting requests
 HTTP_METHOD_PATTERN = re.compile(
@@ -563,6 +595,7 @@ def main() -> int:
 Examples:
   uclint                 Lint spec/v301 (default)
   uclint v302            Lint specific version
+  uclint r03/e02         Same as v302 (section 03, exercise 02)
   uclint --all           Lint all versions
   uclint --strict        Exit non-zero on any issue
 
@@ -627,7 +660,14 @@ Checks:
             ]
         )
     elif args.versions:
-        versions = args.versions
+        # Normalize version formats (r03/e01 -> v301)
+        versions = []
+        for v in args.versions:
+            try:
+                versions.append(normalize_version(v))
+            except ValueError as e:
+                console.print(f"[bold red]Error:[/bold red] {e}")
+                return 1
     else:
         versions = ["v301"]  # Default
 

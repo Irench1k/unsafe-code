@@ -51,6 +51,61 @@ _uc_resolve_target_path() {
         return 0
     fi
 
+    local webapp_base="$UNSAFE_CODE_ROOT/vulnerabilities/python/flask/confusion/webapp"
+
+    # Check for vNNN format (e.g., v307 -> r03/e07)
+    # Use string manipulation for bash/zsh compatibility instead of regex capture groups
+    if [[ "$target" =~ ^v[0-9][0-9][0-9](/.*)?$ ]]; then
+        # Extract components from vNNN (e.g., v307 -> section=3, exercise=07)
+        local version_part="${target%%/*}"  # v307
+        local subpath=""
+        if [[ "$target" == */* ]]; then
+            subpath="/${target#*/}"  # /http if target is v307/http
+        fi
+
+        local section="${version_part:1:1}"    # 3 from v307
+        local exercise="${version_part:2:2}"   # 07 from v307
+
+        # Find section directory
+        local section_dir=""
+        if [[ -d "$webapp_base/r0${section}" ]]; then
+            section_dir="$webapp_base/r0${section}"
+        else
+            section_dir=$(command find "$webapp_base" -maxdepth 1 -mindepth 1 -type d -name "r0${section}_*" | head -1)
+        fi
+
+        if [[ -z "$section_dir" ]]; then
+            UC_LAST_MATCH_ERROR="❌ Could not find section: r0${section} (from $target)"
+            return 1
+        fi
+
+        # Find exercise directory
+        local exercise_dir=""
+        if [[ -d "$section_dir/e${exercise}" ]]; then
+            exercise_dir="$section_dir/e${exercise}"
+        else
+            exercise_dir=$(command find "$section_dir" -maxdepth 1 -mindepth 1 -type d -name "e${exercise}_*" | head -1)
+        fi
+
+        if [[ -z "$exercise_dir" ]]; then
+            UC_LAST_MATCH_ERROR="❌ Could not find exercise: e${exercise} in $(basename "$section_dir") (from $target)"
+            return 1
+        fi
+
+        # If there's a subpath (e.g., v307/http), append it
+        if [[ -n "$subpath" ]]; then
+            local final_path="$exercise_dir$subpath"
+            if [[ ! -d "$final_path" ]]; then
+                UC_LAST_MATCH_ERROR="❌ Subpath '${subpath#/}' not found in $(basename "$exercise_dir")"
+                return 1
+            fi
+            UC_MATCHED_PATH="$final_path"
+        else
+            UC_MATCHED_PATH="$exercise_dir"
+        fi
+        return 0
+    fi
+
     # Parse target: could be "r03", "r03/http", "r03/e01", "r03/e01/http"
     local round_token="${target%%/*}"
     local rest=""
@@ -61,11 +116,10 @@ _uc_resolve_target_path() {
 
     # Validate round token format
     if [[ ! "$round_token" =~ ^r[0-9]+$ ]]; then
-        UC_LAST_MATCH_ERROR="❌ Invalid section format '$round_token'. Use: $usage_hint r02 or $usage_hint r02/e03"
+        UC_LAST_MATCH_ERROR="❌ Invalid format '$round_token'. Use: $usage_hint r02/e03 or $usage_hint v203"
         return 1
     fi
 
-    local webapp_base="$UNSAFE_CODE_ROOT/vulnerabilities/python/flask/confusion/webapp"
     local round_dir=""
     if [[ -d "$webapp_base/$round_token" ]]; then
         round_dir="$webapp_base/$round_token"
@@ -449,8 +503,9 @@ Navigation:
   ucspecs                Jump to e2e spec directory
   ucgo r03               Jump to section r03
   ucgo r02/e03           Jump to specific round/example
+  ucgo v203              Jump to v203 (same as r02/e03)
   ucgo r03/http          Jump to section r03's http/ directory
-  ucgo r02/e03/http      Jump to exercise's http/ directory
+  ucgo v307/http         Jump to v307's http/ directory
   uclist                 List examples in current round
 
 Spec Suite Management:

@@ -19,6 +19,7 @@ File naming:
 Usage:
   ucsync                    # Generate inherited files + sync tags (all versions)
   ucsync v302               # Generate for specific version
+  ucsync r03/e02            # Same as v302 (section 03, exercise 02)
   ucsync --dry-run          # Preview changes
   ucsync clean              # Remove all inherited files
 """
@@ -34,6 +35,36 @@ import yaml
 
 # Inherited file prefix - files starting with this are generated
 INHERITED_PREFIX = "~"
+
+# Version format patterns
+VERSION_RE = re.compile(r"^v(\d{3})$")
+EXERCISE_RE = re.compile(r"^r(\d{2})/e(\d{2})$")
+
+
+def normalize_version(version_str: str) -> str:
+    """
+    Normalize a version string to vNNN format.
+
+    Accepts:
+    - v301 -> v301 (passthrough)
+    - r03/e01 -> v301 (converted)
+
+    Raises ValueError for invalid formats.
+    """
+    # Already in vNNN format
+    if VERSION_RE.match(version_str):
+        return version_str
+
+    # Try r03/e01 format
+    match = EXERCISE_RE.match(version_str)
+    if match:
+        section = int(match.group(1))
+        exercise = int(match.group(2))
+        return f"v{section}{exercise:02d}"
+
+    raise ValueError(
+        f"Invalid version format: {version_str}. Use v301 or r03/e01."
+    )
 
 # Files/directories to skip during inheritance
 SKIP_PATTERNS = {".env", "__pycache__", ".DS_Store", ".git"}
@@ -912,11 +943,13 @@ def main():
 Examples:
   ucsync                    Generate inherited files + sync tags (all versions)
   ucsync v302               Generate for specific version only
+  ucsync r03/e02            Same as v302 (section 03, exercise 02)
   ucsync v302 v303          Generate for multiple versions
   ucsync --dry-run          Preview changes without modifying files
   ucsync -n -v              Dry-run with verbose output
   ucsync clean              Remove all inherited files
   ucsync clean v302         Clean specific version only
+  ucsync clean r03/e02      Same as clean v302
 
 File naming:
   - New specs: path/to/file.http (git-tracked)
@@ -969,7 +1002,12 @@ Pattern syntax (fnmatch-style):
         if arg == "clean" and command is None:
             command = "clean"
         else:
-            versions.append(arg)
+            # Normalize version format (r03/e01 -> v301)
+            try:
+                versions.append(normalize_version(arg))
+            except ValueError as e:
+                print(f"Error: {e}")
+                return 1
 
     # Find spec directory
     spec_dir = find_spec_dir(args.spec_dir) if args.spec_dir else find_spec_dir()

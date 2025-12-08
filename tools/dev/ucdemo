@@ -12,6 +12,7 @@
 # TARGET (optional, defaults to current directory):
 #   r02              Run all demos in round 02 (authentication confusion)
 #   r02/e03          Run demos in round 02, exercise 03
+#   v203             Run demos for v203 (same as r02/e03)
 #   path/to/dir      Run all .http files in directory
 #   path/to/file.http  Run single file
 #   .                Run demos in current directory
@@ -32,6 +33,7 @@
 # EXAMPLES:
 #   ucdemo r02                    # Run all r02 demos
 #   ucdemo r02/e03 --bail         # Debug e03, stop on first failure
+#   ucdemo v203 --bail            # Same as above (v203 = r02/e03)
 #   ucdemo . -k                   # Run all in current dir, don't stop on failure
 #   ucdemo e01_session_hijack.exploit.http  # Run single file
 #
@@ -121,6 +123,45 @@ resolve_target() {
         return 0
     fi
 
+    # Check for vNNN format (e.g., v307 -> r03/e07)
+    # Use string manipulation for bash/zsh compatibility
+    if [[ "$target" =~ ^v[0-9][0-9][0-9]$ ]]; then
+        local section="${target:1:1}"    # 3 from v307
+        local exercise="${target:2:2}"   # 07 from v307
+
+        # Find section directory
+        local section_dir=""
+        if [[ -d "$WEBAPP_BASE/r0${section}" ]]; then
+            section_dir="$WEBAPP_BASE/r0${section}"
+        else
+            section_dir=$(find "$WEBAPP_BASE" -maxdepth 1 -mindepth 1 -type d -name "r0${section}_*" 2>/dev/null | head -1)
+        fi
+
+        if [[ -z "$section_dir" ]]; then
+            echo "ERROR: Section not found: r0${section} (from $target)" >&2
+            return 1
+        fi
+
+        # Find exercise directory within http/
+        local http_dir="$section_dir/http"
+        local example_dir=""
+
+        if [[ -d "$http_dir/e${exercise}" ]]; then
+            example_dir="$http_dir/e${exercise}"
+        else
+            example_dir=$(find "$http_dir" -maxdepth 1 -mindepth 1 -type d -name "e${exercise}*" 2>/dev/null | head -1)
+        fi
+
+        if [[ -z "$example_dir" ]]; then
+            echo "ERROR: Exercise not found: e${exercise} in $(basename "$section_dir")/http (from $target)" >&2
+            echo "       Available: $(ls -d "$http_dir"/e* 2>/dev/null | xargs -n1 basename | tr '\n' ' ')" >&2
+            return 1
+        fi
+
+        echo "$example_dir"
+        return 0
+    fi
+
     # Try rNN/eNN pattern (e.g., r02/e03)
     local round_token="${target%%/*}"
     local example_token=""
@@ -131,7 +172,7 @@ resolve_target() {
     # Validate round format
     if [[ ! "$round_token" =~ ^r[0-9]+$ ]]; then
         echo "ERROR: Invalid target format: $target" >&2
-        echo "       Use: r02, r02/e03, or path/to/file.http" >&2
+        echo "       Use: r02, r02/e03, v203, or path/to/file.http" >&2
         return 1
     fi
 
