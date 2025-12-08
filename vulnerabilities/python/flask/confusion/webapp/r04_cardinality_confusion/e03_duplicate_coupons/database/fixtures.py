@@ -65,7 +65,7 @@ def initialize_all_fixtures(session: Session) -> None:
 
         # 5. Add coupons to the restaurants
         logger.debug("Creating coupons...")
-        coupons = _create_coupons(session, krusty_krab, chum_bucket, krusty_menu, chum_menu)
+        _create_coupons(session, krusty_krab, chum_bucket, krusty_menu, chum_menu)
 
         # 6. Orders with Order Items (complex entities - created together!)
         logger.debug("Creating orders and order items...")
@@ -310,40 +310,87 @@ def _create_coupons(
 ) -> list[Coupon]:
     """
     Create coupons for the restaurants.
+
+    Includes both shareable coupons (can be used multiple times) and
+    single-use promotional coupons (high-value, one-time use per customer).
     """
     coupons = {}
 
-    # Create a coupon for the Krusty Krab
+    # Shareable coupon with modest discount (10% off Krabby Patty)
     coupon = Coupon(
-        name="CODE-BURGER-50",
+        code="CODE-BURGER-10",
         type=CouponType.discount_percent,
         restaurant_id=krusty_krab.id,
         item_id=krusty_menu["Krabby Patty"].id,
-        value=Decimal("50"),
+        value=Decimal("10"),
+        single_use=False,
     )
     session.add(coupon)
-    coupons["BURGER-50"] = coupon
+    coupons["BURGER-10"] = coupon
 
     # Create a coupon for the Chum Bucket
     coupon = Coupon(
-        name="CODE-FREE-CHUMBALAYA",
+        code="CODE-FREE-CHUMBALAYA",
         type=CouponType.free_item_sku,
         restaurant_id=chum_bucket.id,
         item_id=chum_menu["ChumBalaya"].id,
+        single_use=False,
     )
     session.add(coupon)
     coupons["FREE-CHUMBALAYA"] = coupon
 
     # 2-FOR-1 coupon for the Krusty Krab
     coupon = Coupon(
-        name="CODE-2-FOR-1",
+        code="CODE-2-FOR-1",
         type=CouponType.buy_x_get_y_free,
         restaurant_id=krusty_krab.id,
         item_id=krusty_menu["Krabby Patty"].id,
         value=Decimal("2"),
+        single_use=False,
     )
     session.add(coupon)
     coupons["2-FOR-1"] = coupon
+
+    # Single-use promotional coupons - 90% off Krabby Patty
+    # These are high-value coupons that should only be used once
+    promo_codes = ["KRABBY90-PROMO1", "KRABBY90-PROMO2", "KRABBY90-PROMO3"]
+    for promo_code in promo_codes:
+        coupon = Coupon(
+            code=f"CODE-{promo_code}",
+            type=CouponType.discount_percent,
+            restaurant_id=krusty_krab.id,
+            item_id=krusty_menu["Krabby Patty"].id,
+            value=Decimal("90"),
+            single_use=True,
+            used=False,
+        )
+        session.add(coupon)
+        coupons[promo_code] = coupon
+
+    # Single-use coupon for Kelp Shake - 50% off (for multi-coupon demo)
+    coupon = Coupon(
+        code="CODE-SHAKE50-PROMO1",
+        type=CouponType.discount_percent,
+        restaurant_id=krusty_krab.id,
+        item_id=krusty_menu["Kelp Shake"].id,
+        value=Decimal("50"),
+        single_use=True,
+        used=False,
+    )
+    session.add(coupon)
+    coupons["SHAKE50-PROMO1"] = coupon
+
+    # Single-use coupon for Fries - free item (for multi-coupon demo)
+    coupon = Coupon(
+        code="CODE-FREEFRIES-PROMO1",
+        type=CouponType.free_item_sku,
+        restaurant_id=krusty_krab.id,
+        item_id=krusty_menu["Fries"].id,
+        single_use=True,
+        used=False,
+    )
+    session.add(coupon)
+    coupons["FREEFRIES-PROMO1"] = coupon
 
     session.flush()  # Get IDs assigned
 

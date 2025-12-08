@@ -1,95 +1,60 @@
+"""
+Cart Controller - HTTP Request Handling
+
+This module provides HTTP endpoints for cart operations.
+Business logic is delegated to cart_service.py.
+Input validation and serialization are handled by cart_validators.py.
+"""
+
 import logging
-from decimal import Decimal
-from functools import wraps
 
 from flask import Blueprint, g, redirect, session
 
-from ..auth.authenticators import CustomerAuthenticator
 from ..auth.decorators import require_auth
-from ..database.repository import (
-    find_cart_by_id,
-    find_coupon_by_code,
-    find_menu_item_by_id,
-    find_restaurant_by_id,
-    get_cart_items,
-)
-from ..database.services import (
-    add_coupon_to_cart,
-    add_item_to_cart,
-    calculate_cart_price,
-    charge_user,
-    create_cart,
-    create_order_from_checkout,
-    save_order_securely,
-    serialize_cart,
-    serialize_order,
-)
-from ..errors import CheekyApiError
+from ..database.repository import find_cart_by_id, find_restaurant_by_id
+from ..database.services import create_cart
 from ..utils import (
     created_response,
-    get_decimal_param,
     get_int_param,
     get_param,
     get_restaurant_id,
     require_condition,
-    require_ownership,
     success_response,
+)
+from . import cart_service
+from .cart_validators import (
+    extract_single_use_coupons,
+    get_trusted_cart,
+    serialize_cart,
+    serialize_order,
+    validate_checkout_request,
 )
 
 bp = Blueprint("cart", __name__, url_prefix="/cart")
 logger = logging.getLogger(__name__)
 
 
-def resolve_trusted_cart():
-    """
-    Identify the most trusted cart ID, authorize and validate it.
-
-    We prefer the signed cart ID from the session, but need to fall back to the cart ID
-    from the path for legacy mobile app users (app is still using Basic Auth).
-
-    This should apply to all /cart endpoints, apart from POST /cart (where we create a new cart).
-    """
-    trusted_cart_id = session.get("cart_id") or g.get("cart_id")
-    require_condition(trusted_cart_id, "Cart ID is required")
-
-    trusted_cart = find_cart_by_id(trusted_cart_id)
-    require_condition(trusted_cart, f"Cart {trusted_cart_id} not found")
-
-    # Authorization check: user must be the owner of the cart
-    require_ownership(trusted_cart.user_id, g.get("user_id"), "cart")
-
-    # Integrity check: cart must be active
-    require_condition(trusted_cart.active, f"Cart {trusted_cart_id} is not active")
-
-    return trusted_cart
-
-
 @bp.url_value_preprocessor
 def preprocess_cart_id(endpoint, values):
-    """Early middleware to replace untrusted cart ID from the path with authorized cart object."""
+    """Store cart_id from path for later resolution."""
     if "cart_id" in values:
         g.cart_id = values.pop("cart_id")
-        # TODO: I'd like to systemically replace cart ID with authorized cart object, but user_id
-        # is only set at decorator level right now, so not in @bp.url_value_preprocessor...
-        # values["cart"] = resolve_trusted_cart()
 
 
+# ============================================================
+# CART ENDPOINTS
+# ============================================================
 @bp.post("")
 @require_auth(["customer"])
 def create_new_cart():
-    """
-    Creates a new empty cart.
-
-    This is step 1 of the new checkout flow. The cart gets an ID that
-    the client will use in subsequent requests to add items.
-    """
+    """Create a new empty cart or return existing one."""
+    # Return existing cart if active
     if "cart_id" in session:
-        # Prevent cart spam
         existing_cart = find_cart_by_id(session["cart_id"])
-        require_condition(existing_cart, f"Cart {session['cart_id']} not found")
-        require_ownership(existing_cart.user_id, g.user_id, "cart")
-        return success_response(serialize_cart(existing_cart))
+        if existing_cart and existing_cart.user_id == g.user_id:
+            return success_response(serialize_cart(existing_cart))
 
+    # Create new cart
     restaurant_id = get_restaurant_id()
     restaurant = find_restaurant_by_id(restaurant_id)
     require_condition(restaurant, f"Restaurant {restaurant_id} not found")
@@ -99,230 +64,59 @@ def create_new_cart():
     return created_response(serialize_cart(new_cart))
 
 
-def _apply_shareable_coupon():
-    coupon_code = session.get("coupon_code")
-    if not g.get("email") or not coupon_code:
-        # Customer is not logged in or there are no shareable coupons, nothing else to do here!
-        logger.error("No email or coupon code, nothing to do here!")
-        return
-
-    try:
-        cart = resolve_trusted_cart()
-    except CheekyApiError:
-        # Customer doesn't have any active carts, there's nothing to apply coupon to - yet!
-        logger.error(
-            "Customer doesn't have any active carts, there's nothing to apply coupon to - yet!"
-        )
-        return
-
-    coupon = find_coupon_by_code(coupon_code)
-    if not coupon:
-        # Coupon is somehow invalid, delete it from the cookie to avoid locking out customer
-        logger.error(
-            "Coupon is somehow invalid, deleting it from the cookie to avoid locking out customer"
-        )
-        session.pop("coupon_code", None)
-        return
-
-    logger.error(f"Coupon {coupon.id} found for code {coupon_code}")
-
-    # There is a cookie with a coupon code, and a cart to apply it to!
-    # Is there a matching item yet?
-    cart_items = get_cart_items(cart.id)
-    if any(cart_item.coupon_id is not None for cart_item in cart_items):
-        # Cart already has a coupon, nothing to do here!
-        session.pop("coupon_code", None)
-        return
-
-    matching_item = next(
-        (cart_item for cart_item in cart_items if cart_item.item_id == coupon.item_id), None
-    )
-    if not matching_item:
-        # No matching item yet, we can't apply the coupon yet!
-        return
-
-    # Add the coupon to the cart and remove it from the cookie - carts can only have one coupon!
-    add_coupon_to_cart(cart, coupon)
-    session.pop("coupon_code", None)
-
-
-# Decorator to handling shareable coupons
-def handle_shareable_coupons(f):
-    """
-    Special decorator for handling shareable coupons.
-
-    Special case for shareable coupons: user claims them by clicking a link, but
-    we can't apply them until they create a cart (and maybe register/login first...)
-    """
-
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        logger.error(f"(Decorator) Session contents: {session.items()}")
-        _apply_shareable_coupon()
-        return f(*args, **kwargs)
-
-    return decorated_function
-
-
-@bp.before_request
-def log_request():
-    logger.error(f"INCOMING REQUEST: {session.items()}")
-
-
-@bp.after_request
-def log_response(response):
-    # print the session contents in set-cookie
-    logger.error(f"OUTGOING SESSION: {session.items()}")
-    return response
-
-
 @bp.post("/<int:cart_id>/items")
 @require_auth(["customer"])
-@handle_shareable_coupons
 def add_item_to_cart_endpoint():
-    """
-    Adds a single item to an existing cart.
-
-    This is step 2 of the new checkout flow. Can be called multiple times
-    to add different items.
-    """
-    cart = resolve_trusted_cart()
-    item_id_int = get_int_param("item_id")
+    """Add item to cart."""
+    cart = get_trusted_cart()
+    item_id = get_int_param("item_id")
     quantity = get_int_param("quantity", 1)
     coupon_code = get_param("coupon_code")
 
-    if item_id_int:
-        menu_item = find_menu_item_by_id(item_id_int)
-        require_condition(menu_item, f"Menu item {item_id_int} not found")
-        require_condition(menu_item.available, f"Menu item {item_id_int} is not available")
-        require_condition(
-            menu_item.restaurant_id == cart.restaurant_id,
-            f"Menu item {item_id_int} does not belong to restaurant {cart.restaurant_id}",
-        )
-
-        add_item_to_cart(cart.id, menu_item.id, menu_item.name, menu_item.price, quantity)
-
-    if coupon_code:
-        coupon = find_coupon_by_code(coupon_code)
-        require_condition(coupon, f"Coupon {coupon_code} not found")
-        require_condition(
-            coupon.restaurant_id == cart.restaurant_id,
-            f"Coupon {coupon_code} does not belong to restaurant {cart.restaurant_id}",
-        )
-
-        # Only one coupon is allowed per cart, so we check that none of the items have a coupon yet
-        if all(cart_item.coupon_id is None for cart_item in get_cart_items(cart.id)):
-            add_coupon_to_cart(cart, coupon)
-        else:
-            # Don't raise an error, just log and skip applying the second coupon
-            logger.warning(
-                f"Coupon {coupon_code} not applied, because cart {cart.id} already has a coupon"
-            )
-
+    cart_service.add_item_to_cart(cart, item_id, quantity, coupon_code)
     return success_response(serialize_cart(cart))
 
 
 @bp.get("/apply-coupons")
 def add_coupons_to_cart_endpoint():
     """
-    New endpoint for applying coupons to a cart via shareable / clickable links.
+    Apply coupons via shareable links.
 
-    For new customers, we add coupon to the cookie and redirect them to registration page.
-    For exisiting customers with an active cart, we add the coupon to the cart and redirect them to the checkout page.
-    For exisiting customers without an active cart, we add coupon to the cookie and redirect them to the menu page.
+    Handles new customers, existing customers with/without cart,
+    and mobile app users differently.
     """
     coupon_code = get_param("code")
     require_condition(coupon_code, "Coupon code is required")
 
-    coupon = find_coupon_by_code(coupon_code)
-    require_condition(coupon, f"Coupon {coupon_code} not found")
-
-    # Check if the user is logged in
-    authenticator = CustomerAuthenticator()
-    if not authenticator.authenticate():
-        # New customer - add coupon to the cookie and redirect to registration page
-        session["coupon_code"] = coupon_code
-        return redirect("https://app.cheeky.sea/register")
-
-    try:
-        # Existing customer - add coupon to the cart and redirect to checkout page
-        cart = resolve_trusted_cart()
-        add_coupon_to_cart(cart.id, coupon.id)
-        return redirect(f"https://app.cheeky.sea/cart/{cart.id}/checkout")
-    except CheekyApiError:
-        # No cart - add coupon to the cookie and redirect to menu page
-        if session.get("email"):
-            # Cookie-based session - browser user
-            session["coupon_code"] = coupon_code
-            return redirect("https://app.cheeky.sea/menu")
-        # Mobile app users - Basic Auth
-        return redirect(f"cheekysea://cart/apply-coupons?code={coupon_code}")
-
-
-def charge_customer_with_hold(checkout_handler):
-    @wraps(checkout_handler)
-    def decorated_function():
-        """Authorize funds up-front and expose checkout context to the handler."""
-        cart = resolve_trusted_cart()
-        tip = abs(get_decimal_param("tip", Decimal("0.00")))
-
-        # Cart must exist and have items
-        cart_items = get_cart_items(cart.id)
-        require_condition(cart_items, f"Cart {cart.id} is empty")
-
-        # Calculate the total amount of the cart
-        subtotal, delivery_fee = calculate_cart_price(cart_items)
-        require_condition(subtotal >= 0, "Subtotal is negative")
-
-        # Ensure the customer has enough balance
-        total_amount = subtotal + delivery_fee + tip
-        require_condition(total_amount >= 0, "Total amount is negative")
-        require_condition(g.balance >= total_amount, "Insufficient balance")
-
-        # Prevent cart reuse once checkout starts
-        session.pop("cart_id", None)
-
-        # Funds are deducted inside the open request transaction. If anything
-        # raises afterwards, the teardown handler will roll back and release
-        # the hold automatically.
-        charge_user(g.user_id, total_amount)
-
-        # Store resolved cart for handler to reuse - prevents session/path confusion
-        # where session cart is popped above but handler would re-resolve to path cart
-        g.resolved_cart = cart
-        g.resolved_cart_items = cart_items
-        try:
-            return checkout_handler(delivery_fee, tip, total_amount)
-        finally:
-            g.pop("checkout_context", None)
-            g.pop("resolved_cart", None)
-            g.pop("resolved_cart_items", None)
-
-    return decorated_function
+    redirect_url = cart_service.process_shareable_coupon(coupon_code)
+    return redirect(redirect_url)
 
 
 @bp.post("/<int:cart_id>/checkout")
 @require_auth(["customer"])
-@charge_customer_with_hold
-@handle_shareable_coupons
-def checkout_cart(delivery_fee: Decimal, tip: Decimal, total_amount: Decimal):
-    """Checks out a cart and creates an order."""
-    delivery_address = get_param("delivery_address") or ""
-    # Use the cart that was resolved and charged by the decorator - fixes session/path confusion
-    cart = g.resolved_cart
-    cart_items = g.resolved_cart_items
-    require_condition(cart_items, f"Cart {cart.id} is empty")
+def checkout_cart():
+    """Checkout cart and create order."""
+    cart = get_trusted_cart()
 
-    # Create the order and its order items
-    order, order_items = create_order_from_checkout(
+    # Parse and validate request
+    checkout_data = validate_checkout_request()
+
+    # Extract validated single-use coupons (deduplicated)
+    coupon_codes = checkout_data.get("coupon_codes", [])
+    valid_single_use_coupons = extract_single_use_coupons(coupon_codes)
+
+    # Clear cart from session before checkout
+    session.pop("cart_id", None)
+
+    # Process checkout
+    order = cart_service.process_checkout(
+        cart=cart,
         user_id=g.user_id,
-        restaurant_id=cart.restaurant_id,
-        total=total_amount,
-        cart_items=cart_items,
-        delivery_fee=delivery_fee,
-        delivery_address=delivery_address,
-        tip=tip,
+        balance=g.balance,
+        tip=checkout_data["tip"],
+        delivery_address=checkout_data["delivery_address"],
+        coupon_codes=coupon_codes,
+        valid_single_use_coupons=valid_single_use_coupons,
     )
-    save_order_securely(order, order_items)
 
     return created_response(serialize_order(order))

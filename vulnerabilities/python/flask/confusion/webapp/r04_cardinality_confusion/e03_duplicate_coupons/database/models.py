@@ -120,6 +120,12 @@ class Order(Base):
         nullable=False,
         default=Decimal("0.00"),
     )
+    discount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2),
+        CheckConstraint("discount >= 0", name="order_discount_non_negative"),
+        nullable=False,
+        default=Decimal("0.00"),
+    )
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.datetime.utcnow
     )
@@ -193,13 +199,15 @@ class Coupon(Base):
     __tablename__ = "coupons"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String, nullable=False)
+    code: Mapped[str] = mapped_column(String, nullable=False)
     type: Mapped[CouponType] = mapped_column(Enum(CouponType), nullable=False)
     value: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=True)
     restaurant_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("restaurants.id"), nullable=False
     )
     item_id: Mapped[int] = mapped_column(Integer, ForeignKey("menu_items.id"), nullable=False)
+    single_use: Mapped[bool] = mapped_column(nullable=False, default=False)
+    used: Mapped[bool] = mapped_column(nullable=False, default=False)
 
 
 class Refund(Base):

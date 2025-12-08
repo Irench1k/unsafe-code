@@ -1,17 +1,21 @@
 # @import ../common/setup.http
-@host = {{base_host}}/v403
+@host = {{base_host}}/v404
+
+# NOTE: This demo requires v404 (e04_*) which fixes the duplicate coupon vulnerability.
+# When v404 is implemented, duplicates will be properly deduplicated before iteration,
+# so the same coupon code repeated 3x will only apply ONCE.
 
 ### Setup: Reset DB to get fresh single-use coupons
 {{
-  await resetDB("v403");
-  await seedBalance("v403", "plankton@chum-bucket.sea", 100);
+  await resetDB("v404");
+  await seedBalance("v404", "plankton@chum-bucket.sea", 100);
 }}
 GET /menu
 
 @krabby_patty = {{response.parsedBody.find(i => i.name == "Krabby Patty")}}
 
 
-# --- Plankton discovers a coupon replay trick ---
+# --- Plankton tries the same exploit, but it's been FIXED ---
 
 ### Create a new cart at Krusty Krab
 POST /cart?restaurant_id=1
@@ -20,7 +24,7 @@ Authorization: {{plankton_auth}}
 @cart_id = {{response.parsedBody.cart_id}}
 
 
-### Add first Krabby Patty (creates separate cart item)
+### Add three Krabby Patties
 POST /cart/{{cart_id}}/items
 Authorization: {{plankton_auth}}
 Content-Type: application/json
@@ -28,7 +32,7 @@ Content-Type: application/json
 { "item_id": {{krabby_patty.id}} }
 
 
-### Add second Krabby Patty (creates another cart item)
+### Add second Krabby Patty
 POST /cart/{{cart_id}}/items
 Authorization: {{plankton_auth}}
 Content-Type: application/json
@@ -36,7 +40,7 @@ Content-Type: application/json
 { "item_id": {{krabby_patty.id}} }
 
 
-### Add third Krabby Patty (creates third cart item)
+### Add third Krabby Patty
 POST /cart/{{cart_id}}/items
 Authorization: {{plankton_auth}}
 Content-Type: application/json
@@ -44,10 +48,10 @@ Content-Type: application/json
 { "item_id": {{krabby_patty.id}} }
 
 
-### EXPLOIT: Checkout with the SAME coupon code repeated 3 times!
-# The server validates unique coupons with a SET, but iterates the ORIGINAL array.
-# Each duplicate applies another 90% discount to a different patty!
-# Expected: $11.97 - $10.77 (3x 90% off) = $1.20 + $5 delivery = $6.20
+### Attempt exploit: same coupon code repeated 3 times
+# In v404, duplicates are deduplicated BEFORE iteration,
+# so only ONE discount is applied (not three)
+# 3 patties = $11.97, minus ONE 90% discount ($3.59) = $8.38 + $5 delivery = $13.38
 POST /cart/{{cart_id}}/checkout
 Authorization: {{plankton_auth}}
 Content-Type: application/json
@@ -59,8 +63,8 @@ Content-Type: application/json
 }
 
 ?? status == 201
-?? js parseFloat(response.parsedBody.total) < 7.00
+?? js parseFloat(response.parsedBody.total) > 12.00
 
 {{
-  console.info("EXPLOIT: 3 Krabby Patties for only $" + response.parsedBody.total + "!");
+  console.info("FIXED: Duplicate coupons ignored. Plankton pays full price: $" + response.parsedBody.total);
 }}

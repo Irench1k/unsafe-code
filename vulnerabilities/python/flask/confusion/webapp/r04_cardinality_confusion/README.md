@@ -48,8 +48,8 @@ This section focuses on how **list-handling mismatches** create vulnerabilities 
 | v103+     | PATCH  | /orders/{id}/status        | Restaurant          | Update order status     | v305             |
 | v103+     | POST   | /cart                      | Customer            | Create cart             | v201             |
 | v103+     | POST   | /cart/{id}/items           | Customer            | Add item to cart        | v402             |
-| v103+     | POST   | /cart/{id}/checkout        | Customer            | Checkout cart           | v103, v104, v302 |
-| v401+     | POST   | /cart/{id}/apply-coupon    | Customer            | Attach coupons to cart  | v401, v403       |
+| v103+     | POST   | /cart/{id}/checkout        | Customer            | Checkout cart           | v103, v104, v302, v403 |
+| v401+     | POST   | /cart/{id}/apply-coupon    | Customer            | Attach coupons to cart  | v401             |
 | v201+     | GET    | /cart/{id}                 | Customer/Restaurant | Get single cart         |                  |
 | v404+     | POST   | /restaurants/{id}/refunds  | Restaurant          | Batch refund initiation | v404             |
 | v303+     | PATCH  | /menu/items/{id}           | Restaurant          | Update menu item        | v303, v405       |
@@ -60,8 +60,8 @@ This section focuses on how **list-handling mismatches** create vulnerabilities 
 
 | Model              | v401                         | v402        | v403                              | v404                         | v405 |
 | ------------------ | ---------------------------- | ----------- | --------------------------------- | ---------------------------- | ---- |
-| Coupon             | Single `code` field          | -           | `codes[]`, `+single_use`, `+used` | -                            | -    |
-| ApplyCouponRequest | `code` field                 | -           | `codes[]` array                   | -                            | -    |
+| Coupon             | Single `code` field          | -           | `+single_use`, `+used` flags      | -                            | -    |
+| CheckoutRequest    | -                            | -           | `+coupon_codes[]` array           | -                            | -    |
 | CartItem           | `sku` only                   | `+quantity` | -                                 | -                            | -    |
 | BatchRefundRequest | -                            | -           | -                                 | ✅ (`order_ids[]`, `reason`) | -    |
 | RestaurantBinding  | `bind_to_restaurant()` added | -           | -                                 | -                            | -    |
@@ -72,8 +72,8 @@ This section focuses on how **list-handling mismatches** create vulnerabilities 
 | ------- | -------------------- | ------------------------------------------------------------------------------------------ |
 | v401    | ApplyCouponRequest   | Validation checks `request.form.get('code')`; application reads `request.args.get('code')` |
 | v402    | CartItem Reservation | Reservation loop adds items one at a time; always adds at least one even if quantity is 0  |
-| v403    | ApplyCouponRequest   | Validation deduplicates and uppercases `codes[]`; application iterates original array      |
-| v403    | Coupon Usage         | `used` flag set only once after all iterations complete                                    |
+| v403    | CheckoutRequest      | Validation deduplicates `coupon_codes[]` into a set; application iterates original array   |
+| v403    | Coupon Usage         | Set membership check doesn't consume; `used` flag set only after all iterations complete   |
 | v404    | BatchRefundRequest   | Authorization uses `SELECT ... LIMIT 1` (any match); handler refunds all IDs in array      |
 | v405    | get_restaurant_id()  | First `pop()` validates and stores in context; second `pop()` drives ORM binding           |
 
@@ -125,9 +125,11 @@ type ApplyCouponRequest_v401 = {
   query_code?: string; // Applied to cart regardless of validation source
 };
 
-// POST /cart/{id}/apply-coupon (v403)
-type ApplyCouponRequest_v403 = {
-  codes: string[]; // Validation dedupes uppercase set, application loops original array
+// POST /cart/{id}/checkout (v403) - coupons applied at checkout
+type CheckoutRequest_v403 = {
+  coupon_codes: string[]; // Validation dedupes to set, application loops original array
+  delivery_address: string;
+  tip: number;
 };
 
 type ApplyCouponResponse = CartWithCoupons;
@@ -201,33 +203,39 @@ type PatchMenuItemRequest_v405 = {
 
 #### [v403] Duplicate Coupon Replay
 
-> A marketing startup offers to mail coupon bundles, but insists on enabling multiple coupons per order: "Four smaller discounts feel more generous than one big one." Sandy dreads adding coupon stacking and has been avoiding it, but the business case is undeniable.
+> A marketing startup offers to mail coupon bundles, but insists on enabling multiple coupons per order: "Four smaller discounts feel more generous than one big one." Sandy dreads adding coupon stacking and has been avoiding it, but the business case is undeniable. She also takes the opportunity to refactor `routes/cart.py` into a proper Controller/Validator/Service pattern as the codebase grows.
 
 **The Vulnerability**
 
+- Single-use coupons (`KRABBY90-PROMO*` codes offering 90% off) are now validated at checkout time
 - Three coupon types: `discount_percent`, `fixed_amount` and `free_item_sku`
 - Sandy adds `single_use` and `used` flags to prevent cross-request reuse
-- Validation deduplicates the `codes[]` array (incl. force uppercase) and stores approved codes in a set
-- Application logic iterates the _original_ array with duplicates, checking each against the set
-- The code is marked `used = true` only once, after all iterations complete
+- Validation (`extract_single_use_coupons`) deduplicates the `coupon_codes` array into a SET
+- Application (`apply_coupons_to_order_items`) iterates the ORIGINAL array with duplicates
+- Each duplicate passes the `if coupon.code in valid_set` check (set membership doesn't consume!)
+- Coupon is marked `used=True` only AFTER all iterations complete
 
 **Exploit**
 
-1. Add items to cart, send `POST /cart/{id}/apply-coupon`:
+1. Add items to cart (e.g., 3 Krabby Patties at $2.79 each = ~$8.37 subtotal)
+2. Submit checkout with duplicate single-use coupon codes:
 
 ```json
+POST /cart/{id}/checkout
 {
-  "codes": ["HOLIDAY10-E7B2A", "FREE-FRIES-BQ8IX", "HOLIDAY10-E7B2A"]
+  "coupon_codes": ["KRABBY90-PROMO1", "KRABBY90-PROMO1", "KRABBY90-PROMO1"],
+  "delivery_address": "Chum Bucket",
+  "tip": 0
 }
 ```
 
-2. Validation: deduplicates → `{"HOLIDAY10-E7B2A", "SAVE5-E6V22-BQ8IX"}`, both valid
-3. Application: loops original array, applying "SAVE5" three times
-4. The total discount is 2x10$ + Free Fries
+3. Validation: deduplicates to `{"KRABBY90-PROMO1"}`, checks it's valid and unused
+4. Application: loops original 3-element array, applying 90% discount three times
+5. Each duplicate applies 90% discount to a different item in the cart
 
-**Impact:** Multiplication of single-use discounts within one request \
+**Impact:** 3 Krabby Patties for ~$1.20 instead of ~$8.37. Multiplication of single-use discounts within one request. \
 **Severity:** 🟡 Medium \
-**Endpoints:** `POST /cart/{id}/apply-coupon`
+**Endpoints:** `POST /cart/{id}/checkout`
 
 _Despite the exploit, the campaign succeeds wildly and there is a major boom in sales. However, new customers face unavailable items and missed deliveries. Even beta testers complain about degraded service. Sandy needs better tools for restaurants to handle the chaos._
 

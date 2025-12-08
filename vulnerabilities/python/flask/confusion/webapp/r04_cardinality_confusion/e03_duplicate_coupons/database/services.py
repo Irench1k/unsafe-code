@@ -16,12 +16,10 @@ from ..config import OrderConfig
 from ..errors import CheekyApiError
 from .models import (
     Cart,
-    CartItem,
     Coupon,
     CouponType,
     MenuItem,
     Order,
-    OrderItem,
     Refund,
     RefundStatus,
     Restaurant,
@@ -29,9 +27,6 @@ from .models import (
 )
 from .repository import (
     add_cart_item,
-    find_cart_by_id,
-    find_coupon_by_id,
-    find_menu_item_by_id,
     find_order_by_id,
     find_order_items,
     find_orders_by_user,
@@ -40,12 +35,9 @@ from .repository import (
     get_cart_items,
     get_refund_by_order_id,
     get_signup_bonus_remaining,
-    reserve_if_available,
     save_cart,
     save_cart_item,
     save_menu_item,
-    save_order,
-    save_order_items,
     save_refund,
     save_restaurant,
     save_user,
@@ -53,48 +45,6 @@ from .repository import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-# ============================================================
-# PRICING SERVICES
-# ============================================================
-def calculate_cart_price(cart_items: list[CartItem]) -> tuple[Decimal, Decimal] | tuple[None, None]:
-    """
-    Validate cart items and calculate totals for checkout.
-
-    Returns:
-      (subtotal, delivery_fee) on success
-      (None, None) if any item is unavailable or not found
-
-    This combines validation and price calculation in a single pass.
-    """
-    subtotal = Decimal("0.00")
-
-    # Check that all items are still available
-    if any(not find_menu_item_by_id(item.item_id).available for item in cart_items):
-        # TODO: Should we raise an error here?
-        return None, None
-
-    # Calculate subtotal
-    subtotal = sum(item.price * item.quantity for item in cart_items)
-
-    # Calculate discount adjustments from x-for-y coupons, if requirements are fulfilled
-    for item in cart_items:
-        if item.coupon_id:
-            coupon = find_coupon_by_id(item.coupon_id)
-            logger.error(
-                f"Coupon {coupon.name} applied to item {item.item_id} in cart {item.cart_id}"
-            )
-            if coupon.type == CouponType.buy_x_get_y_free and item.quantity >= coupon.value:
-                # Currently we only support X-FOR-1 coupons, so only one item ever gets free
-                logger.error(f"Item {item.item_id} gets free due to coupon {coupon.id}")
-                subtotal -= item.price
-
-    # Calculate delivery fee
-    delivery_fee = (
-        Decimal("0.00") if subtotal > OrderConfig.FREE_DELIVERY_ABOVE else OrderConfig.DELIVERY_FEE
-    )
-    return subtotal, delivery_fee
 
 
 # ============================================================
@@ -180,7 +130,7 @@ def serialize_coupon(coupon: Coupon) -> dict:
     return {
         "id": coupon.id,
         "restaurant_id": coupon.restaurant_id,
-        "name": coupon.name,
+        "code": coupon.code,
         "value": str(coupon.value),
     }
 
@@ -188,20 +138,6 @@ def serialize_coupon(coupon: Coupon) -> dict:
 def serialize_coupons(coupons: list[Coupon]) -> list[dict]:
     """Serializes a list of coupons to JSON-compatible dicts."""
     return [serialize_coupon(coupon) for coupon in coupons]
-
-
-def apply_coupon_to_cart(cart_id: int | str, coupon_id: int | str) -> None:
-    """Applies a coupon to a cart."""
-    cart = find_cart_by_id(cart_id)
-    if not cart:
-        raise CheekyApiError(f"Cart {cart_id} not found")
-
-    coupon = find_coupon_by_id(coupon_id)
-    if not coupon:
-        raise CheekyApiError(f"Coupon {coupon_id} not found")
-
-    # cart.coupons.append(coupon)
-    save_cart(cart)
 
 
 # ============================================================
@@ -260,62 +196,6 @@ def get_current_user(email: str | None = None) -> User | None:
 # ============================================================
 # ORDER SERVICES
 # ============================================================
-def create_order_from_checkout(
-    user_id: int,
-    restaurant_id: int,
-    total: Decimal,
-    cart_items: list[CartItem],
-    delivery_fee: Decimal,
-    delivery_address: str,
-    tip: Decimal = Decimal("0.00"),
-) -> Order:
-    """Creates a new order and its order item snapshots."""
-    order = Order(
-        restaurant_id=restaurant_id,
-        user_id=user_id,
-        total=total,
-        delivery_fee=delivery_fee,
-        delivery_address=delivery_address,
-        tip=tip,
-    )
-
-    # Create order items with availability checking
-    order_items = []
-    for item in cart_items:
-        while reserve_if_available(item.item_id):
-            order_items.append(
-                OrderItem(
-                    item_id=item.item_id,
-                    name=item.name,
-                    price=item.price,
-                    coupon_id=item.coupon_id,
-                )
-            )
-
-            if item.quantity <= 1:
-                # Added last repeated item, move on to the next cart element
-                break
-
-            # Some more items left, decrement and iterate until done
-            item.quantity -= 1
-
-    return order, order_items
-
-
-def save_order_securely(order: Order, order_items: list[OrderItem]) -> None:
-    """Persist the order and snapshots within the current transaction.
-
-    Payment authorization happens earlier (handled by checkout decorators), so
-    this function only needs to flush the ORM objects. If anything fails the
-    request-scoped transaction rolls everything back automatically.
-    """
-    save_order(order)
-    for item in order_items:
-        item.order_id = order.id
-    save_order_items(order_items)
-    logger.info(f"Order saved: {order.id} for user {order.user_id}")
-
-
 def get_user_orders(user_id: int) -> list[Order]:
     """Gets all orders for a given user."""
     return find_orders_by_user(user_id)
@@ -334,6 +214,7 @@ def serialize_order(order: Order) -> dict:
         "delivery_fee": str(order.delivery_fee),
         "delivery_address": order.delivery_address,
         "tip": str(order.tip),
+        "discount": str(order.discount),
         "created_at": order.created_at.isoformat(),
         "items": [
             {
@@ -389,10 +270,6 @@ def _calculate_coupon_discount(coupon: Coupon, price: Decimal) -> Decimal:
     if coupon.type == CouponType.fixed_amount:
         return min(coupon.value, price)
     elif coupon.type == CouponType.discount_percent:
-        logger.error(f"Calculating discount for coupon {coupon.id} with value {coupon.value}")
-        logger.error(f"The price: {price}")
-        logger.error(f"Types of price and coupon.value: {type(price)}, {type(coupon.value)}")
-        logger.error(f"The result: {(price * coupon.value / 100).quantize(Decimal('1.00'))}")
         return (price * coupon.value / 100).quantize(Decimal("1.00"))
     elif coupon.type == CouponType.free_item_sku:
         return price
@@ -400,7 +277,7 @@ def _calculate_coupon_discount(coupon: Coupon, price: Decimal) -> Decimal:
         # This coupon type is handled separately in calculate_cart_price()
         return Decimal("0.00")
     else:
-        raise CheekyApiError(f"Invalid coupon type: {coupon.type}")
+        raise CheekyApiError(f"Invalid coupon type: {coupon.type.value}")
 
 
 def add_coupon_to_cart(cart: Cart, coupon: Coupon) -> None:
@@ -409,32 +286,13 @@ def add_coupon_to_cart(cart: Cart, coupon: Coupon) -> None:
         if item.item_id == coupon.item_id:
             item.coupon_id = coupon.id
             item.price = item.price - _calculate_coupon_discount(coupon, item.price)
-            logger.error(f"Coupon {coupon.id} applied to item {item.item_id} in cart {cart.id}")
+            logger.info(f"Coupon {coupon.id} applied to item {item.item_id} in cart {cart.id}")
             save_cart_item(item)
             return
 
-    logger.error(
+    logger.warning(
         f"Coupon {coupon.id} not applied, because item {coupon.item_id} not found in cart {cart.id}"
     )
-
-
-def serialize_cart(cart: Cart) -> dict:
-    """Serializes a cart to a JSON-compatible dict."""
-    cart_items = get_cart_items(cart.id)
-    return {
-        "cart_id": cart.id,
-        "restaurant_id": cart.restaurant_id,
-        "items": [
-            {
-                "item_id": item.item_id,
-                "name": item.name,
-                "price": str(item.price),
-                "coupon_id": item.coupon_id,
-                "quantity": item.quantity,
-            }
-            for item in cart_items
-        ],
-    }
 
 
 # ============================================================

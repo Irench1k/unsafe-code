@@ -33,7 +33,7 @@ def get_param(name: str) -> str | None:
     return None
 
 
-def get_list_param(name: str) -> list[str] | None:
+def get_list_param(name: str) -> list[str]:
     """Get a list of strings from anywhere in the request."""
     # If json, expect a list of strings
     if request.is_json:

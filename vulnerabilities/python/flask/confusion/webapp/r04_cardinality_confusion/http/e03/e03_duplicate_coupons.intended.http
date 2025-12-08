@@ -1,56 +1,63 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v403
 
-### Setup
-# @name seed
+# Squidward credentials
+@squidward_auth = Basic squidward@krusty-krab.sea:clarinet4life
+
+### Setup: Reset DB to get fresh single-use coupons
 {{
-  await seedBalance("v403", "plankton@chum-bucket.sea", 100);
+  await resetDB("v403");
+  await seedBalance("v403", "squidward@krusty-krab.sea", 50);
 }}
 GET /menu
 
-@krabby_patty = {{response.parsedBody.find(i => i.name == "Krabby Patty")}}
-@fries = {{response.parsedBody.find(i => i.name.includes("Fries"))}}
+@shake = {{response.parsedBody.find(i => i.name == "Kelp Shake")}}
+@fries = {{response.parsedBody.find(i => i.name == "Fries")}}
 
 
-# ===== Free Fries and Krabby Patty =====
+# --- Squidward finds TWO promotional coupon codes in his email! ---
 
-### Plankton creates a new cart
-# @name new_cart
-# @ref seed
+### Create a new cart at Krusty Krab
 POST /cart?restaurant_id=1
-Authorization: {{plankton_auth}}
+Authorization: {{squidward_auth}}
 
 @cart_id = {{response.parsedBody.cart_id}}
 
 
-### Add Krabby Patty to the cart
-# @name cart_with_krabby_patty
-# @ref new_cart
+### Add first Kelp Shake to his order
 POST /cart/{{cart_id}}/items
-Authorization: {{plankton_auth}}
+Authorization: {{squidward_auth}}
 Content-Type: application/json
 
-{ "item_id": {{krabby_patty.id}} }
+{ "item_id": {{shake.id}} }
 
-### Add Fries to the cart
-# @name cart_with_patty_and_fries
-# @ref cart_with_krabby_patty
+
+### Add Fries to his order
 POST /cart/{{cart_id}}/items
-Authorization: {{plankton_auth}}
+Authorization: {{squidward_auth}}
 Content-Type: application/json
 
 { "item_id": {{fries.id}} }
 
 
-### Checkout the cart, with single-use coupons applied
-# @name checkout_cart
-# @ref cart_with_zero_fries
+### Checkout with TWO DIFFERENT promotional coupons
+# Squidward applies SHAKE50-PROMO1 AND FREEFRIES-PROMO1 (two different coupon codes!)
+# 1 shake + 1 fries = $5.98, minus 50% off shake ($3.49x0.5) and free fries = $2.49
+# $1.75 < $25, so add $5 delivery + $2 tip = $8.75 total
 POST /cart/{{cart_id}}/checkout
-Authorization: {{plankton_auth}}
+Authorization: {{squidward_auth}}
 Content-Type: application/json
 
 {
-  "tip": "0",
-  "delivery_address": "Chum Bucket",
-  "single_use_coupons": [ "HOLIDAY10-E7B2A", "FREE-FRIES-BQ8IX" ]
+  "tip": 2,
+  "delivery_address": "Easter Island Head",
+  "coupon_codes": ["SHAKE50-PROMO1", "FREEFRIES-PROMO1"]
 }
+
+?? status == 201
+?? js parseFloat(response.parsedBody.total) == 8.75
+
+{{
+  const fullPrice = parseFloat(shake.price) + parseFloat(fries.price) + 2 + 5;
+  console.info("Squidward saved $" + (fullPrice - parseFloat(response.parsedBody.total)) + " with his coupons!");
+}}
