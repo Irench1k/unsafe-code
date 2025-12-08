@@ -88,7 +88,7 @@ def add_coupons_to_cart_endpoint():
     require_condition(coupon_code, "Coupon code is required")
 
     coupon = validate_shareable_coupon(coupon_code)
-    redirect_url = cart_service.process_shareable_coupon(coupon)
+    redirect_url = cart_service.process_shareable_coupon(coupon, coupon_code)
     return redirect(redirect_url)
 
 
@@ -100,8 +100,13 @@ def checkout_cart():
     checkout_data = validate_checkout_request()
     cart_items = validate_cart_for_checkout(cart)
 
+    # Merge session coupon (from shareable link) with body coupon_codes
+    coupon_codes = list(checkout_data.get("coupon_codes", []))
+    session_coupon = session.pop("coupon_code", None)
+    if session_coupon:
+        coupon_codes.append(session_coupon)
+
     # Extract validated single-use coupons (deduplicated)
-    coupon_codes = checkout_data.get("coupon_codes", [])
     valid_single_use_coupons = extract_single_use_coupons(coupon_codes)
 
     # Clear cart from session before checkout

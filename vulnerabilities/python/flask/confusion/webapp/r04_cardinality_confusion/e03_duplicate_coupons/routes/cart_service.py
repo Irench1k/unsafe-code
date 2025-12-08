@@ -40,12 +40,17 @@ def apply_coupon_to_cart_if_allowed(cart: Cart, coupon: Coupon) -> bool:
 # ============================================================
 # SHAREABLE COUPON HANDLING
 # ============================================================
-def process_shareable_coupon(coupon: Coupon) -> str:
-    """Process shareable coupon link and return appropriate redirect URL."""
+def process_shareable_coupon(coupon: Coupon, user_code: str) -> str:
+    """Process shareable coupon link and return appropriate redirect URL.
+
+    Args:
+        coupon: The validated coupon object
+        user_code: The original user-provided code (without CODE- prefix)
+    """
     # Check if user is logged in
     authenticator = CustomerAuthenticator()
     if not authenticator.authenticate():
-        session["coupon_code"] = coupon.code
+        session["coupon_code"] = user_code  # Store user format for find_coupon_by_code
         return "https://app.cheeky.sea/register"
 
     # Try to apply to existing cart
@@ -62,11 +67,11 @@ def process_shareable_coupon(coupon: Coupon) -> str:
 
     # Cookie-based session but no cart
     if session.get("email"):
-        session["coupon_code"] = coupon.code
+        session["coupon_code"] = user_code  # Store user format for find_coupon_by_code
         return "https://app.cheeky.sea/menu"
 
     # Mobile app users
-    return f"cheekysea://cart/apply-coupons?code={coupon.code}"
+    return f"cheekysea://cart/apply-coupons?code={user_code}"
 
 
 # ============================================================
@@ -170,9 +175,8 @@ def apply_coupons_to_order_items(
     coupon_codes: list[str],
     valid_single_use_coupons: set[str],
 ) -> Decimal:
-    """Apply single-use coupons to eligible cart items and return total discount."""
+    """Apply checkout coupons (single-use and non-single-use) to eligible cart items."""
     total_discount = Decimal("0.00")
-    items_with_coupon_applied: set[int] = set()
 
     # @unsafe {
     #     "vuln_id": "v403",
@@ -188,21 +192,22 @@ def apply_coupons_to_order_items(
         if not coupon:
             continue
 
-        # Only process if this is a validated single-use coupon
-        # NOTE: We check against the deduplicated set, but iterate the original list
-        if coupon.code not in valid_single_use_coupons:
+        # For single-use coupons: check against deduplicated set (vuln: iterate original list)
+        # For non-single-use coupons: apply once per coupon code
+        if coupon.single_use and coupon.code not in valid_single_use_coupons:
+            # Only process if this is a validated single-use coupon
             continue
 
         # Find a matching cart item that hasn't had a coupon applied yet
         for item in cart_items:
-            if item.item_id == coupon.item_id and item.id not in items_with_coupon_applied:
+            if item.item_id == coupon.item_id and not item.coupon_id:
                 # Apply the discount
                 discount = _calculate_coupon_discount(coupon, item.price)
                 total_discount += discount
-                items_with_coupon_applied.add(item.id)
+                item.coupon_id = coupon.id
                 logger.info(
-                    f"Applied single-use coupon {coupon.code} to item {item.item_id}, "
-                    f"discount: ${discount}"
+                    f"Applied {'single-use' if coupon.single_use else 'reusable'} coupon "
+                    f"{coupon.code} to item {item.item_id}, discount: ${discount}"
                 )
                 break
 

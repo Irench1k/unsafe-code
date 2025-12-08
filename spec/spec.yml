@@ -239,7 +239,20 @@ v403:
   inherits: v402
   description: Duplicate Coupon Replay
   tags: [r04, v403]
-  # v403 vulnerabilities are in checkout coupon handling - no v402 exclusions needed
+  exclude:
+    # v403 requires JSON checkout body - form-urlencoded tests don't apply
+    - cart/checkout/post/content-type.http
+    - cart/checkout/post/authn.http
+    - cart/checkout/post/authz.http
+    - cart/checkout/post/multi-tenant.http
+    # v403 applies coupons at checkout, not during add-item (decorator removed)
+    - cart/apply-coupons/get/happy.http
+    - cart/items/post/coupon-application.http
+    # v403 validates quantity > 0, fixing the zero-quantity vuln from v402
+    - cart/items/post/vuln-zero-quantity.http
+    # v403 tracks discounts in separate 'discount' field, not in item prices
+    # checkout-flow.http asserts item price shows discount - doesn't apply in v403
+    - cart/apply-coupons/get/checkout-flow.http
 
 v404:
   inherits: v403
