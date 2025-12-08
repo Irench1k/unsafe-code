@@ -19,7 +19,7 @@ from sqlalchemy import (
     Numeric,
     String,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -47,6 +47,17 @@ class Restaurant(Base):
     owner: Mapped[str] = mapped_column(String, nullable=False)
     api_key: Mapped[str] = mapped_column(String, nullable=False)
     domain: Mapped[str] = mapped_column(String, nullable=False)
+
+    # Relationships for idiomatic ORM navigation
+    menu_items: Mapped[list["MenuItem"]] = relationship(
+        "MenuItem", back_populates="restaurant", lazy="dynamic"
+    )
+    orders: Mapped[list["Order"]] = relationship(
+        "Order", back_populates="restaurant", lazy="dynamic"
+    )
+    coupons: Mapped[list["Coupon"]] = relationship(
+        "Coupon", back_populates="restaurant", lazy="dynamic"
+    )
 
 
 class User(Base):
@@ -82,6 +93,8 @@ class MenuItem(Base):
         nullable=False,
     )
     available: Mapped[bool] = mapped_column(nullable=False, default=True)
+
+    restaurant: Mapped["Restaurant"] = relationship(back_populates="menu_items")
 
 
 class OrderStatus(enum.Enum):
@@ -133,6 +146,8 @@ class Order(Base):
     status: Mapped[OrderStatus] = mapped_column(
         Enum(OrderStatus), nullable=False, default=OrderStatus.created
     )
+
+    restaurant: Mapped["Restaurant"] = relationship(back_populates="orders")
 
 
 class OrderItem(Base):
@@ -208,6 +223,8 @@ class Coupon(Base):
     item_id: Mapped[int] = mapped_column(Integer, ForeignKey("menu_items.id"), nullable=False)
     single_use: Mapped[bool] = mapped_column(nullable=False, default=False)
     used: Mapped[bool] = mapped_column(nullable=False, default=False)
+
+    restaurant: Mapped["Restaurant"] = relationship(back_populates="coupons")
 
 
 class Refund(Base):

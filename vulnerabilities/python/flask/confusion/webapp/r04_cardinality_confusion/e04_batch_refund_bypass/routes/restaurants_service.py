@@ -1,20 +1,12 @@
 """Restaurant Service - business logic for restaurant operations."""
 
-import logging
 import uuid
 
-from ..database.models import MenuItem, OrderStatus, Restaurant
+from ..database.models import MenuItem, Restaurant
 from ..database.repository import (
-    any_order_belongs_to_restaurant,
-    find_order_by_id,
-    get_refund_by_order_id,
     save_menu_item,
     save_restaurant,
 )
-from ..database.services import create_refund, find_order_owner, process_refund
-from ..errors import CheekyApiError
-
-logger = logging.getLogger(__name__)
 
 
 # ============================================================
@@ -70,68 +62,3 @@ def apply_menu_item_changes(menu_item: MenuItem, fields: dict) -> MenuItem:
             setattr(menu_item, field, fields[field])
     save_menu_item(menu_item)
     return menu_item
-
-
-# ============================================================
-# BATCH REFUND OPERATIONS
-# ============================================================
-def process_batch_refund(
-    restaurant_id: int, order_ids: list[int], reason: str
-) -> tuple[list[int], list[dict]]:
-    """
-    Process batch refund request for multiple orders.
-
-    Restaurant managers can proactively refund orders before customers complain,
-    useful for handling quality issues, delivery problems, or promotional goodwill.
-
-    Returns: (processed_ids, skipped_ids)
-    """
-    # Verify the restaurant has at least one legitimate order in the batch
-    if not any_order_belongs_to_restaurant(order_ids, restaurant_id):
-        raise CheekyApiError("No orders found for this restaurant in the batch")
-
-    processed_ids: list[int] = []
-    skipped_ids: list[dict] = []
-
-    # Process each order in the batch
-    for order_id in order_ids:
-        order = find_order_by_id(order_id)
-
-        # Skip if order not found
-        if not order:
-            skipped_ids.append({"order_id": order_id, "reason": "Order not found"})
-            continue
-
-        # Skip if order already has a refund
-        existing_refund = get_refund_by_order_id(order_id)
-        if existing_refund:
-            skipped_ids.append({"order_id": order_id, "reason": "Already refunded"})
-            continue
-
-        # Skip if order is not in delivered status
-        if order.status != OrderStatus.delivered:
-            skipped_ids.append({
-                "order_id": order_id,
-                "reason": f"Order status is {order.status.value}, must be delivered"
-            })
-            continue
-
-        # Create and process the refund (auto-approved for restaurant-initiated refunds)
-        refund = create_refund(
-            order_id=order_id,
-            amount=order.total,
-            reason=reason,
-            auto_approved=True,
-        )
-
-        # Credit the customer
-        order_owner = find_order_owner(order_id)
-        if order_owner:
-            process_refund(refund, order_owner)
-            order.status = OrderStatus.refunded
-            processed_ids.append(order_id)
-            logger.info(f"Batch refund processed: order {order_id} for restaurant {restaurant_id}")
-        else:
-            skipped_ids.append({"order_id": order_id, "reason": "Order owner not found"})
-
-    return processed_ids, skipped_ids

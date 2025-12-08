@@ -106,17 +106,13 @@ def find_restaurant_by_api_key(api_key: str) -> Restaurant | None:
     return session.execute(stmt).scalar_one_or_none()
 
 
-def find_restaurant_users(restaurant_id: int | str) -> list[User]:
-    """Finds all users for a specific restaurant."""
+def find_users_by_restaurant(restaurant_id: int) -> list[User]:
+    """Users associated with a restaurant (via email domain match)."""
     session = get_request_session()
-    rest_id = _coerce_int_id(restaurant_id, "restaurant_id")
-    if rest_id is None:
+    restaurant = session.get(Restaurant, restaurant_id)
+    if not restaurant:
         return []
-    restaurant = find_restaurant_by_id(restaurant_id)
-    if restaurant is None:
-        return []
-    stmt = select(User).where(User.email.endswith("@" + restaurant.domain))
-    return list(session.execute(stmt).scalars().all())
+    return list(session.scalars(select(User).where(User.email.endswith(f"@{restaurant.domain}"))))
 
 
 def save_restaurant(
@@ -146,14 +142,22 @@ def find_all_menu_items() -> list[MenuItem]:
     return list(session.execute(select(MenuItem)).scalars().all())
 
 
-def find_menu_items_by_restaurant(restaurant_id: int | str) -> list[MenuItem]:
-    """Gets all menu items for a specific restaurant."""
+def find_menu_items_by_restaurant(restaurant_id: int) -> list[MenuItem]:
+    """All menu items for a restaurant (via relationship)."""
     session = get_request_session()
-    rest_id = _coerce_int_id(restaurant_id, "restaurant_id")
-    if rest_id is None:
+    restaurant = session.get(Restaurant, restaurant_id)
+    if not restaurant:
         return []
-    stmt = select(MenuItem).where(MenuItem.restaurant_id == rest_id)
-    return list(session.execute(stmt).scalars().all())
+    return list(restaurant.menu_items)
+
+
+def find_menu_item_by_restaurant(restaurant_id: int, item_id: int) -> MenuItem | None:
+    """Single menu item verified to belong to the restaurant."""
+    session = get_request_session()
+    restaurant = session.get(Restaurant, restaurant_id)
+    if not restaurant:
+        return None
+    return restaurant.menu_items.filter(MenuItem.id == item_id).first()
 
 
 def save_menu_item(menu_item: MenuItem) -> None:
@@ -192,14 +196,13 @@ def find_all_coupons() -> list[Coupon]:
     return list(session.execute(select(Coupon)).scalars().all())
 
 
-def find_coupons_by_restaurant(restaurant_id: int | str) -> list[Coupon]:
-    """Finds all coupons for a specific restaurant."""
+def find_coupons_by_restaurant(restaurant_id: int) -> list[Coupon]:
+    """All coupons for a restaurant (via relationship)."""
     session = get_request_session()
-    rest_id = _coerce_int_id(restaurant_id, "restaurant_id")
-    if rest_id is None:
+    restaurant = session.get(Restaurant, restaurant_id)
+    if not restaurant:
         return []
-    stmt = select(Coupon).where(Coupon.restaurant_id == rest_id)
-    return list(session.execute(stmt).scalars().all())
+    return list(restaurant.coupons)
 
 
 def find_coupon_by_code(coupon_code: str) -> Coupon | None:
@@ -283,14 +286,20 @@ def find_orders_by_user(user_id: int | str) -> list[Order]:
     return list(session.execute(stmt).scalars().all())
 
 
-def find_orders_by_restaurant(restaurant_id: int | str) -> list[Order]:
-    """Gets all orders for a specific restaurant."""
+def find_orders_by_restaurant(
+    restaurant_id: int, order_ids: list[int] | None = None
+) -> list[Order]:
+    """Orders for a restaurant, optionally filtered by IDs."""
     session = get_request_session()
-    rest_id = _coerce_int_id(restaurant_id, "restaurant_id")
-    if rest_id is None:
+    restaurant = session.get(Restaurant, restaurant_id)
+    if not restaurant:
         return []
-    stmt = select(Order).where(Order.restaurant_id == rest_id)
-    return list(session.execute(stmt).scalars().all())
+
+    if order_ids:
+        # Filter to specific IDs within this restaurant's orders
+        return list(restaurant.orders.filter(Order.id.in_(order_ids)))
+
+    return list(restaurant.orders)
 
 
 def save_order(order: Order) -> None:
@@ -405,31 +414,16 @@ def get_refund_by_order_id(order_id: int | str) -> Refund | None:
     return session.execute(stmt).scalar_one_or_none()
 
 
-# @unsafe {
-#     "vuln_id": "v404",
-#     "severity": "critical",
-#     "category": "cardinality-confusion",
-#     "description": "Authorization uses LIMIT 1 (any match) while handler processes all IDs, allowing cross-tenant refunds",
-#     "cwe": "CWE-863"
-# }
-def any_order_belongs_to_restaurant(order_ids: list[int], restaurant_id: int) -> bool:
-    """
-    Check if ANY order in the list belongs to the restaurant.
-
-    Used by batch operations to verify the caller has some legitimate
-    association with the order set before processing.
-    """
-    if not order_ids:
-        return False
-
+def find_refunds_by_restaurant(restaurant_id: int) -> list[Refund]:
+    """All refunds for a restaurant's orders (via join on Order)."""
     session = get_request_session()
-    # Uses LIMIT 1 - passes if ANY order matches, not ALL orders
-    stmt = select(Order.id).where(
-        Order.id.in_(order_ids),
-        Order.restaurant_id == restaurant_id
-    ).limit(1)
-    result = session.execute(stmt).scalar_one_or_none()
-    return result is not None
+    return list(
+        session.scalars(
+            select(Refund)
+            .join(Order, Refund.order_id == Order.id)
+            .where(Order.restaurant_id == restaurant_id)
+        )
+    )
 
 
 # ============================================================

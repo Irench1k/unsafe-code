@@ -258,4 +258,7 @@ v404:
   inherits: v403
   description: Batch Refund Bypass
   tags: [r04, v404]
-  # v404 introduces batch refund endpoint with authz flaw - no v403 exclusions needed yet
+  exclude:
+    # v404 fixes the duplicate coupon vulnerability from v403:
+    # Now tracks coupon_codes_used set to prevent same code being applied multiple times
+    - cart/checkout/post/vuln-duplicate-coupon.http

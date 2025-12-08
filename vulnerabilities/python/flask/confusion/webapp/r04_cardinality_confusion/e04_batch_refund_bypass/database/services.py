@@ -19,6 +19,7 @@ from .models import (
     Coupon,
     CouponType,
     Order,
+    OrderStatus,
     Refund,
     RefundStatus,
     User,
@@ -261,6 +262,30 @@ def update_order_refund_status(
         return None
     logger.warning(f"Refund not found for order {order_id}")
     return None
+
+
+def issue_order_refund(order_id: int, reason: str, auto_approved: bool = False) -> dict:
+    """Issue a full refund for a single order.
+
+    Shared by customer refund endpoint and restaurant batch refund.
+    Returns: {"order_id": ..., "status": "processed"|"skipped", "reason": ...}
+    """
+    order = find_order_by_id(order_id)
+    if not order:
+        return {"order_id": order_id, "status": "skipped", "reason": "Order not found"}
+    if get_refund_by_order_id(order_id):
+        return {"order_id": order_id, "status": "skipped", "reason": "Already refunded"}
+    if order.status != OrderStatus.delivered:
+        return {"order_id": order_id, "status": "skipped", "reason": "Not delivered"}
+
+    refund = create_refund(order_id=order_id, amount=order.total, reason=reason, auto_approved=auto_approved)
+    user_id = find_order_owner(order_id)
+    if user_id:
+        process_refund(refund, user_id)
+        order.status = OrderStatus.refunded
+        return {"order_id": order_id, "status": "processed"}
+
+    return {"order_id": order_id, "status": "skipped", "reason": "No owner"}
 
 
 # ============================================================

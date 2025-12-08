@@ -5,7 +5,7 @@ from flask import g, request
 
 from ..config import OrderConfig
 from ..database.repository import find_order_by_id as get_order
-from ..database.repository import find_resource_by_id, find_restaurant_by_id
+from ..database.repository import find_restaurant_by_id
 from ..errors import CheekyApiError
 from ..utils import (
     generate_domain_verification_token,
@@ -100,41 +100,6 @@ def require_auth(auth_methods: list[str]):
 
             # All methods failed
             raise CheekyApiError("Authentication required")
-
-        return decorated_function
-
-    return decorator
-
-
-def restaurant_owns(resource_class: type, resource_id_param: str):
-    """
-    Require that the authenticated restaurant owns the resource referenced in the route.
-
-    Args:
-        resource_class: SQLAlchemy model class that must expose a `restaurant_id` column.
-        resource_id_param: Name of the route parameter identifying the resource (e.g., "item_id").
-    """
-
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            values = request.view_args or {}
-            resource_id = values.get(resource_id_param)
-
-            resource = find_resource_by_id(resource_class, resource_id, resource_id_param)
-            if resource is None:
-                raise CheekyApiError(f"{resource_class.__name__} {resource_id} not found")
-
-            requested_restaurant = values.get("restaurant_id")
-            if requested_restaurant and requested_restaurant != resource.restaurant_id:
-                raise CheekyApiError(
-                    f"{resource_class.__name__} {resource_id} does not belong to this restaurant"
-                )
-
-            if requested_restaurant and requested_restaurant != g.restaurant_id:
-                raise CheekyApiError("Unauthorized")
-
-            return f(*args, **kwargs)
 
         return decorated_function
 
