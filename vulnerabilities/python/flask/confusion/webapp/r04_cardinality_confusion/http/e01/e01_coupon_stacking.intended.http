@@ -1,7 +1,12 @@
 # @import ../common/setup.http
 @host = {{base_host}}/v401
 
-###
+### Intended Behavior: Shareable Coupon Links
+# This demo shows how the new shareable coupon link feature works correctly.
+# Customers click a link, the coupon is stored in their session, and applied
+# when they add the matching item to their cart. Only ONE coupon per cart.
+
+### Setup - seed balance and get menu items
 # @name seed
 {{
   await seedBalance("v401", "plankton@chum-bucket.sea", 100);
@@ -11,38 +16,30 @@ GET /menu
 @krabby_patty = {{response.parsedBody.find(i => i.name == "Krabby Patty")}}
 @fries = {{response.parsedBody.find(i => i.name == "Fries")}}
 
-### Should return all Krusty Krab coupons
+
+### Restaurant manager can view their available coupons
+# @name list_coupons
+# @ref seed
 GET /restaurants/1/coupons
 X-API-Key: {{krabs_api_key}}
 
-###
-GET /restaurants/2/coupons
-X-API-Key: {{chum_bucket_api_key}}
+?? status == 200
+?? js response.parsedBody.length > 0
 
-# ===== New Functionality Testing: using new shareable link =====
 
-### New user navigates the link
+### Anonymous user clicks shareable link - redirected to register
+# @name anonymous_click
+# @ref list_coupons
 # @no-redirect
 GET /cart/apply-coupons?code=BURGER-50
 
-?? 
+?? status == 302
 ?? header set-cookie exists
 
-### SpongeBob (existing user) navigates the link without an existing cart
-GET /account/info
-Authorization: {{spongebob_auth}}
 
-### Plankton (existing user) navigates the link with an existing cart using Basic Auth
-# @no-redirect
-GET /cart/apply-coupons?code=BURGER-50
-Authorization: {{plankton_auth}}
-
-# ===== Cookie Based Testing =====
-
-### Plankton (existing user) navigates the link with an existing cart using Cookie Auth
-# @no-redirect
-# @forceRef seed
-# @name fresh_session
+### Plankton logs in
+# @name login
+# @ref anonymous_click
 POST /auth/login
 Content-Type: application/json
 
@@ -52,74 +49,90 @@ Content-Type: application/json
 }
 
 @session = {{refreshCookie(response)}}
-{{
-  console.info(`Plankton session: ${session}`);
-}}
 
-###
+?? status == 200
+
+
+### Plankton clicks the shareable coupon link
+# @name click_coupon_link
+# @ref login
 # @no-redirect
-# @forceRef fresh_session
-# @name promo_link_clicked
 GET /cart/apply-coupons?code=BURGER-50
 Cookie: {{session}}
 
-@session_new = {{refreshCookie(response, session)}}
-?? session_new != session
+@session = {{refreshCookie(response, session)}}
+
+# Coupon code stored in session cookie, redirecting to menu
+?? status == 302
 
 
-### Create new cart and add Krabby Patty to it
-# @forceRef promo_link_clicked
-# @name new_cart
+### Create a new cart
+# @name create_cart
+# @ref click_coupon_link
 POST /cart?restaurant_id=1
-Cookie: {{session_new}}
+Cookie: {{session}}
 
-{{
-  console.info(`OLD SESSION 2: ${session_new}`);
-}}
-@session_new2 = {{refreshCookie(response, session_new)}}
+@session = {{refreshCookie(response, session)}}
 @cart_id = {{response.parsedBody.cart_id}}
-{{
-  console.info(`NEW SESSION 2: ${session_new2}`);
-}}
 
-### Add Krabby Patty to the cart, and it has a coupon BURGER-50 that gives 50% off
-# @forceRef new_cart
-# @name cart_with_krabby_patty
+?? status == 201
+?? js response.parsedBody.cart_id > 0
+
+
+### Add Krabby Patty - coupon NOT applied yet (no matching item in cart)
+# @name add_first_patty
+# @ref create_cart
 POST /cart/{{cart_id}}/items
 Content-Type: application/json
-Cookie: {{session_new2}}
+Cookie: {{session}}
 
 { "item_id": {{krabby_patty.id}} }
 
-@session_new3 = {{refreshCookie(response, session_new2)}}
-{{
-  console.info(`NEW SESSION 4: ${session_new3}`);
-}}
-### Add Krabby Patty again, and you can see that the coupon is not applied because it is already used once.
-# @name cart_with_two_krabby_patties
+@session = {{refreshCookie(response, session)}}
+
+# First patty added at full price - coupon activates on next request
+?? status == 200
+?? js response.parsedBody.items[0].price == 3.99
+
+
+### Add Fries - triggers coupon application to matching item!
+# @name add_fries_triggers_coupon
+# @ref add_first_patty
 POST /cart/{{cart_id}}/items
 Content-Type: application/json
-Cookie: {{session_new3}}
-
-{ "item_id": {{krabby_patty.id}} }
-
-@session_new4 = {{refreshCookie(response, session_new3)}}
-
-### Let's add more items to the cart, but they don't have a coupon assigned to them.
-# @forceRef cart_with_two_krabby_patties
-# @name cart_with_patties_and_fries
-POST /cart/{{cart_id}}/items
-Content-Type: application/json
-Cookie: {{session_new}}
+Cookie: {{session}}
 
 { "item_id": {{fries.id}} }
 
-@session_new = {{refreshCookie(response, session_new)}}
+@session = {{refreshCookie(response, session)}}
 
-### Checkout the cart
-# @forceRef cart_with_patties_and_fries
+# Coupon applied! Krabby Patty now 50% off ($1.99), Fries at full price ($2.49)
+?? status == 200
+?? js response.parsedBody.items.find(i => i.item_id == krabby_patty.id).price == 1.99
+?? js response.parsedBody.items.find(i => i.item_id == fries.id).price == 2.49
+
+
+### Add another Krabby Patty - only ONE coupon per cart
+# @name add_second_patty
+# @ref add_fries_triggers_coupon
+POST /cart/{{cart_id}}/items
+Content-Type: application/json
+Cookie: {{session}}
+
+{ "item_id": {{krabby_patty.id}} }
+
+@session = {{refreshCookie(response, session)}}
+
+# Second patty at full price - cart already has a coupon
+?? status == 200
+?? js response.parsedBody.items.filter(i => i.item_id == krabby_patty.id && i.price == 3.99).length == 1
+
+
+### Checkout successfully
+# @name checkout
+# @ref add_second_patty
 POST /cart/{{cart_id}}/checkout
-Cookie: {{session_new}}
+Cookie: {{session}}
 Content-Type: application/json
 
 {
@@ -127,4 +140,8 @@ Content-Type: application/json
   "delivery_address": "Chum Bucket"
 }
 
-@session_new = {{refreshCookie(response, session_new)}}
+@session = {{refreshCookie(response, session)}}
+
+# Order created with one discounted patty, one full-price patty, and fries
+?? status == 201
+?? js response.parsedBody.items.find(i => i.item_id == krabby_patty.id && i.price == 1.99) != null

@@ -49,7 +49,8 @@ This section focuses on how **list-handling mismatches** create vulnerabilities 
 | v103+     | POST   | /cart                      | Customer            | Create cart             | v201             |
 | v103+     | POST   | /cart/{id}/items           | Customer            | Add item to cart        | v402             |
 | v103+     | POST   | /cart/{id}/checkout        | Customer            | Checkout cart           | v103, v104, v302, v403 |
-| v401+     | POST   | /cart/{id}/apply-coupon    | Customer            | Attach coupons to cart  | v401             |
+| v401+     | GET    | /cart/apply-coupons        | Public/Customer     | Shareable coupon links  | v401             |
+| v401+     | GET    | /restaurants/{id}/coupons  | Restaurant          | List restaurant coupons |                  |
 | v201+     | GET    | /cart/{id}                 | Customer/Restaurant | Get single cart         |                  |
 | v404+     | POST   | /restaurants/{id}/refunds  | Restaurant          | Batch refund initiation | v404             |
 | v303+     | PATCH  | /menu/items/{id}           | Restaurant          | Update menu item        | v303, v405       |
@@ -70,7 +71,7 @@ This section focuses on how **list-handling mismatches** create vulnerabilities 
 
 | Version | Component            | Behavioral Change                                                                          |
 | ------- | -------------------- | ------------------------------------------------------------------------------------------ |
-| v401    | ApplyCouponRequest   | Validation checks `request.form.get('code')`; application reads `request.args.get('code')` |
+| v401    | ShareableCouponLink  | Coupon stored in session; decorator applies on every cart request; no "already applied" check |
 | v402    | CartItem Reservation | Reservation loop adds items one at a time; always adds at least one even if quantity is 0  |
 | v403    | CheckoutRequest      | Validation deduplicates `coupon_codes[]` into a set; application iterates original array   |
 | v403    | Coupon Usage         | Set membership check doesn't consume; `used` flag set only after all iterations complete   |
@@ -119,10 +120,16 @@ interface BatchRefundResult {
 #### Request and Response Schemas
 
 ```ts
-// POST /cart/{id}/apply-coupon (v401)
-type ApplyCouponRequest_v401 = {
-  form_code?: string; // Checked by validation
-  query_code?: string; // Applied to cart regardless of validation source
+// GET /cart/apply-coupons (v401) - Shareable coupon links
+type ShareableCouponRequest_v401 = {
+  code: string; // Query param - coupon code to claim
+};
+
+// Session cookie after clicking shareable link
+type SessionWithCoupon = {
+  coupon_code?: string; // Stored until applied to cart or cleared
+  cart_id?: number; // Active cart ID
+  email?: string; // Logged-in user's email
 };
 
 // POST /cart/{id}/checkout (v403) - coupons applied at checkout
@@ -154,26 +161,33 @@ type PatchMenuItemRequest_v405 = {
 
 ### Vulnerabilities to Implement (Work in Progress)
 
-#### [v401] Coupon Stacking for Free Orders
+#### [v401] Coupon Stacking via Session Replay
 
-> Sandy implements a frequently requested feature: passing coupons via query params, to make it easier for influencers to embed them in their content.
+> Sandy implements a frequently requested feature: shareable coupon links that influencers can embed in their content. The link stores the coupon in a session cookie, and a decorator automatically applies it when the customer adds a matching item to their cart.
 
-(adds query coupons for shareable links while the legacy form body stays in place for kiosk compatibility, and validation still only inspects the body)
+(adds `GET /cart/apply-coupons?code=X` for shareable links; the `@handle_shareable_coupons` decorator on cart endpoints applies the coupon from the session when conditions are met)
 
 **The Vulnerability**
 
-- Validation checks `request.form.get('code')` to ensure only one coupon is set per cart (if the cart already has a coupon, the handler returns 200 if it matches the one in the form to ensure idempotency, and 400 otherwise).
-- Application logic reads `request.args.get('code')`, with every request invocation adding another coupon to the cart.
+The system assumes each shareable link results in **one** coupon application, but the `@handle_shareable_coupons` decorator runs on **every** cart request:
+
+- `_apply_shareable_coupon()` reads `session.get("coupon_code")` and applies it if a matching item exists
+- After successful application, the server updates the session to remove `coupon_code` via `Set-Cookie`
+- **Bug:** No check for whether the cart already has a coupon before applying another one
+- If the client ignores the `Set-Cookie` response and replays the original cookie, the decorator applies the coupon again on the next request
 
 **Exploit**
 
-1. Begin checkout with no coupon.
-2. Repeatedly send `POST /cart/{id}/apply-coupon?code=BURGER20`.
-3. Validation never fires (form is empty) while the query adds another coupon to the cart, driving the total toward zero.
+1. Log in as Plankton and click `GET /cart/apply-coupons?code=BURGER-50` — coupon stored in session cookie
+2. Create a cart and add a Krabby Patty (price: $3.99)
+3. Server applies 50% coupon → price drops to $1.99, server sends `Set-Cookie` removing `coupon_code`
+4. **Ignore the Set-Cookie** and replay the original cookie on subsequent requests
+5. Each request re-applies the 50% discount: $1.99 → $0.99 → $0.49 → ...
+6. Checkout paying pennies for items that should cost dollars
 
-**Impact:** Unlimited stacking of “single use” coupons. \
+**Impact:** Unlimited stacking of "single use" coupons by replaying stale session state. \
 **Severity:** 🟡 Medium \
-**Endpoints:** `POST /cart/{id}/apply-coupon`
+**Endpoints:** `GET /cart/apply-coupons`, `POST /cart/{id}/items`, `POST /cart/{id}/checkout`
 
 ---
 
