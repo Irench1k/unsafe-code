@@ -7,6 +7,49 @@ description: CLI tool quick reference for Unsafe Code Lab. Auto-invoke when runn
 
 Quick reference for project CLI tools.
 
+---
+
+## ⛔ CRITICAL: Docker Infrastructure Rule
+
+**`ucup` is ALWAYS running in the background with auto-reload enabled.**
+
+### What This Means
+
+- The Flask app runs inside Docker, NOT on your host
+- When Python files change, the app auto-reloads
+- You verify changes via `uclogs`, NOT by running Python
+
+### NEVER Do These
+
+| ❌ Forbidden | Why |
+|--------------|-----|
+| `docker compose up` | User manages via `ucup` |
+| `python app.py` | App runs in Docker |
+| `pip install` / `uv sync` on host | Dependencies in Docker |
+| `source .venv/bin/activate` | No local venv needed |
+
+### If Docker Seems Down
+
+**DO NOT try to start it yourself!**
+
+Say to the user:
+```
+Docker compose doesn't seem to be responding.
+Could you check if `ucup` is running?
+```
+
+### Verify Changes Work
+
+```bash
+# After editing Python files, check if app reloaded cleanly
+uclogs --since 1m
+
+# If you see errors, fix them and check again
+uclogs --since 2m | grep -i error
+```
+
+---
+
 ## Tool Overview
 
 | Tool | Purpose | Used For |

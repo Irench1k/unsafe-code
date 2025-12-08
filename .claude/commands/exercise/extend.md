@@ -62,14 +62,6 @@ Add the next exercise version to the specified section.
 !`(cd vulnerabilities/python/flask/confusion/ && docker compose ps 2>/dev/null | head -5 || echo "Docker status unknown")`
 !`(cd vulnerabilities/python/flask/confusion/ && uclogs --since 30m 2>/dev/null | grep -c -i error || echo "0 recent errors")`
 
-## Required Context
-
-Load these files before proceeding:
-
-- [AGENTS.md](AGENTS.md) - Single source of truth for invariants
-- [docs/ai/runbooks.md](docs/ai/runbooks.md) - Workflow #2 (Add New Vulnerability Exercise)
-- Section README based on $ARGUMENTS to understand planned evolution
-
 ## Workflow
 
 Use `uc-maintainer` to orchestrate, or follow this sequence:
@@ -103,7 +95,7 @@ Delegate to **demo-author**:
 
 - Create .exploit.http (demonstrates vuln)
 - Create .fixed.http (shows fix works)
-- Follow character rules from AGENTS.md
+- Follow character rules (see spongebob-characters skill)
 - ONE assert per test
 
 ### Step 5: Docs

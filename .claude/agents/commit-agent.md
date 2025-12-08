@@ -1,7 +1,7 @@
 ---
 name: commit-agent
 description: Use this agent to commit changes to git with proper verification. It runs docs verify/tests/linters, distinguishes between doc tool changes vs content changes, and creates appropriate commit messages. This agent ensures quality gates pass before committing.
-skills: uclab-tools, commit-workflow, http-editing-policy
+skills: uclab-tools, commit-workflow, http-editing-policy, project-foundation
 model: haiku
 ---
 

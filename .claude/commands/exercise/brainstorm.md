@@ -54,12 +54,6 @@ Think deeply and step by step about this vulnerability design. Consider natural 
 
 Design a new vulnerability demonstration following pedagogical principles.
 
-## Required Context
-
-Load these references before proceeding:
-
-- [AGENTS.md](AGENTS.md) - ONE concept rule, character logic
-
 ## Design Framework
 
 ### Step 1: Identify Gap

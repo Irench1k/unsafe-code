@@ -64,12 +64,6 @@ v202            ← Only version-specific overrides
 v203            ← Only version-specific overrides
 ```
 
-## Before Starting
-
-1. Load `AGENTS.md` for invariants
-2. Load `spec/INHERITANCE.md` for patterns
-3. Review `spec/spec.yml` for current inheritance structure
-
 ## Workflow
 
 ### Step 1: Identify Candidates

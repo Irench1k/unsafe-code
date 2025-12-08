@@ -1,7 +1,7 @@
 ---
 name: demo-debugger
 description: Diagnose failing interactive demos run with httpyac. Reads demo `.http` files and identifies fixes; delegates authoring to demo-author.
-skills: http-editing-policy, http-syntax, http-gotchas, demo-conventions, demo-principles, uclab-tools
+skills: project-foundation, http-syntax, http-gotchas, demo-conventions, demo-principles, uclab-tools
 model: opus
 ---
 

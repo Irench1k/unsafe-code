@@ -64,13 +64,6 @@ Diagnose and fix failing e2e specs for the specified version(s) or path.
 
 Unless README explicitly documents behavior change.
 
-## Required Context
-
-Load these files before proceeding:
-
-- [AGENTS.md](AGENTS.md) - Invariants, especially "inherited test fails → code suspect"
-- [docs/ai/decision-trees.md](docs/ai/decision-trees.md) - Diagnosis flow charts
-
 ## Workflow
 
 ### Step 1: Run Tests

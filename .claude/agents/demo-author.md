@@ -1,7 +1,7 @@
 ---
 name: demo-author
 description: Write and fix interactive `.http` demos (`*.exploit.http`, `*.fixed.http`) under `vulnerabilities/.../http/`. Student-facing narrative. Sole editor for demo `.http` files.
-skills: http-editing-policy, http-syntax, http-gotchas, demo-conventions, demo-principles, spongebob-characters, uclab-tools
+skills: project-foundation, http-syntax, http-gotchas, demo-conventions, demo-principles, spongebob-characters, uclab-tools, vulnerable-code-patterns
 model: opus
 ---
 
