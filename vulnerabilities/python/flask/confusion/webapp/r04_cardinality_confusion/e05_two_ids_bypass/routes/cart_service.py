@@ -9,9 +9,9 @@ from ..auth.authenticators import CustomerAuthenticator
 from ..config import OrderConfig
 from ..database.models import Cart, CartItem, Coupon, CouponType, Order, OrderItem, User
 from ..database.repository import (
+    find_cart_items,
     find_coupon_by_code,
     find_menu_item_by_id,
-    get_cart_items,
     reserve_if_available,
     save_coupon,
     save_order,
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 # ============================================================
 def apply_coupon_to_cart_if_allowed(cart: Cart, coupon: Coupon) -> bool:
     """Apply coupon to cart if no coupon already applied. Returns success."""
-    cart_items = get_cart_items(cart.id)
+    cart_items = find_cart_items(cart.id)
     if all(item.coupon_id is None for item in cart_items):
         add_coupon_to_cart(cart, coupon)
         return True
@@ -53,7 +53,7 @@ def process_shareable_coupon(coupon: Coupon) -> str:
         from .cart_validators import get_trusted_cart
 
         cart = get_trusted_cart()
-        cart_items = get_cart_items(cart.id)
+        cart_items = find_cart_items(cart.id)
         if all(item.coupon_id is None for item in cart_items):
             add_coupon_to_cart(cart, coupon)
             return f"https://app.cheeky.sea/cart/{cart.id}/checkout"

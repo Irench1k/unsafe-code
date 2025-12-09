@@ -43,10 +43,9 @@ GET /menu/{{krabby_patty.id}}
 }}
 
 
-# --- Plankton cannot edit Krusty Krab's menu (with single ID) ---
+# --- Plankton cannot edit Krusty Krab's menu ---
 
-### Plankton tries to edit Krusty Krab item (denied - ID mismatch)
-# Plankton's API key is for restaurant_id=2, but he sends restaurant_id=1
+### Plankton tries to edit Krusty Krab item
 PATCH /menu/{{krabby_patty.id}}
 X-API-Key: {{chum_bucket_api_key}}
 Content-Type: application/json
@@ -55,8 +54,27 @@ Content-Type: application/json
   "price": 0.01
 }
 
-?? status == 400
+?? status == 404
 
-{{
-  console.info("Plankton denied - restaurant ID doesn't match his API key");
-}}
+### Plankton tries to edit Krusty Krab item
+PATCH /menu/{{krabby_patty.id}}?restaurant_id=1
+X-API-Key: {{chum_bucket_api_key}}
+Content-Type: application/json
+
+{
+  "price": 0.01
+}
+
+?? status == 404
+
+### Plankton tries to edit Krusty Krab item
+PATCH /menu/{{krabby_patty.id}}
+X-API-Key: {{chum_bucket_api_key}}
+Content-Type: application/json
+
+{
+  "restaurant_id": 1,
+  "price": 0.01
+}
+
+?? status == 400

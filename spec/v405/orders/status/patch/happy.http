@@ -1,0 +1,114 @@
+# @import ../_imports.http
+
+# PATCH /orders/{id}/status happy path
+# Valid state transitions for restaurants and customers
+#
+# Restaurants: can change order status to delivered or cancelled
+# Customers: can cancel their own orders (not deliver)
+#
+# Exports (for @forceRef by other tests):
+#   plankton_order - Plankton's completed order
+#   delivered_order - Order after delivery status change
+#
+# v405 OVERRIDE: Uses JSON body format for cart creation instead of query param
+
+### Create plankton's cart
+# @name plankton_cart
+# @tag happy, orders, r04, v405
+POST /cart
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{"restaurant_id": 1}
+
+@plankton_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Add item to plankton's cart
+# @name plankton_cart_with_item
+# @forceRef plankton_cart
+# @tag happy, orders, r04, v405
+POST /cart/{{plankton_cart_id}}/items
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.firstAvailable(1).id}}" }
+
+?? js $(response).isOk() == true
+
+### Checkout plankton's cart
+# @name plankton_order
+# @forceRef plankton_cart_with_item
+{{
+  await platform.seedCredits("plankton", 200);
+}}
+# @tag happy, orders, r04, v405
+POST /cart/{{plankton_cart_id}}/checkout
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "delivery_address": "Chum Bucket", "tip": 1 }
+
+@order_id = {{$(response).field("order_id")}}
+@order_total = {{$(response).field("total")}}
+?? js $(response).status() == 201
+
+# =============================================================================
+# RESTAURANT STATUS TRANSITIONS
+# =============================================================================
+
+### Restaurant delivers pending order
+# @name delivered_order
+# @forceRef plankton_order
+# @tag happy, orders, r04, v405
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=delivered
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == delivered
+
+### Restaurant cancels pending order
+# @name cancelled_order_restaurant
+# @forceRef plankton_order
+# @tag happy, orders, r04, v405
+PATCH /orders/{{order_id}}/status
+X-API-Key: {{auth.restaurant("krusty_krab")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == cancelled
+
+# =============================================================================
+# CUSTOMER STATUS TRANSITIONS
+# =============================================================================
+
+### Customer cancels their own order with Basic Auth
+# @name cancelled_order_customer_basic
+# @forceRef plankton_order
+# @tag happy, orders, r04, v405
+PATCH /orders/{{order_id}}/status
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == cancelled
+
+### Customer cancels their own order with Cookie Auth
+# @name cancelled_order_customer_cookie
+# @forceRef plankton_order
+# @tag happy, orders, r04, v405
+PATCH /orders/{{order_id}}/status
+Cookie: {{auth.login("plankton")}}
+Content-Type: application/x-www-form-urlencoded
+
+status=cancelled
+
+?? js $(response).isOk() == true
+?? js $(response).field("status") == cancelled

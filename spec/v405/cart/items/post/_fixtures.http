@@ -9,18 +9,24 @@
   exports.unavailable_item_id = menu.firstUnavailable(1).id;
 }}
 # @name patrick_cart
-# @tag authn, cart, r03, v301
-POST /cart?restaurant_id=1
+# @tag authn, cart, r04, v405
+POST /cart
 Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{"restaurant_id": 1}
 
 @cart_id = {{$(response).field("cart_id")}}
 ?? js $(response).status() == 201
 
 ### Plankton's cart (for pollution tests)
 # @name plankton_cart
-# @tag authn, cart, r03, v302
-POST /cart?restaurant_id=1
+# @tag authn, cart, r04, v405
+POST /cart
 Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{"restaurant_id": 1}
 
 @plankton_cart_id = {{$(response).field("cart_id")}}
 ?? js $(response).isOk() == true
@@ -39,9 +45,12 @@ Content-Type: application/json
 
 ### Chum Bucket cart (for cross-restaurant tests)
 # @name chum_bucket_cart
-# @tag authn, cart, r03, v301
-POST /cart?restaurant_id=2
+# @tag authn, cart, r04, v405
+POST /cart
 Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{"restaurant_id": 2}
 
 @chum_bucket_cart_id = {{$(response).field("cart_id")}}
 ?? js $(response).status() == 201

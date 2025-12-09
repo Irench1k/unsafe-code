@@ -271,3 +271,21 @@ v405:
     # v405 fixes the batch refund bypass vulnerability from v404:
     # Now validates ALL order_ids belong to the restaurant, not just LIMIT 1
     - restaurants/refunds/post/vuln-batch-refund-bypass.http
+    # v405 breaking change: POST /cart now requires restaurant_id in JSON body (not query param)
+    # These inherited specs use ?restaurant_id=N which no longer works
+    - cart/create/post/happy.http
+    - cart/create/post/authn.http
+    - cart/create/post/multi-tenant.http
+    - cart/create/post/v302.http
+    # v405 breaking change: GET /menu now returns ALL menu items regardless of restaurant_id
+    # The multi-tenant spec expects filtering by restaurant_id which no longer applies
+    - menu/list/get/multi-tenant.http
+    # v405 cart/items specs use JSON body for restaurant_id (local overrides)
+    - cart/items/post/pollution.http
+    - cart/items/post/price-snapshot.http
+    - cart/items/post/quantity-happy.http
+    - cart/items/post/quantity-validation.http
+    # v405 cart/checkout specs use JSON body for restaurant_id (local overrides)
+    - cart/checkout/post/happy.http
+    - cart/checkout/post/pollution.http
+    - cart/checkout/post/fix-cart-swap-checkout.http

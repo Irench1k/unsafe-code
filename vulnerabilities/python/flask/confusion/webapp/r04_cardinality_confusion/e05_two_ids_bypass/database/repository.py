@@ -4,24 +4,31 @@ Repository Layer - Database Access Only
 This is the ONLY file (besides db.py) that should directly interact with
 the database. All database operations should go through these repository functions.
 
-The repository uses SQLAlchemy ORM and expects a session to be available
-in Flask's g object (set up by middleware). Transactions are opened per
-request in routes/__init__.py, so repository calls deliberately avoid
-`session.commit()` or `session.rollback()`. When a new primary key or DB-side
-default must be materialized, call `session.flush()`—the surrounding request
-handler will ultimately commit on success and roll back on errors, keeping
-multi-step flows atomic and easier to reason about.
+v405 Conventions:
+-----------------
+- Query patterns:
+  - By PK: session.get(Model, pk)
+  - Single by field: session.execute(select(...)).scalar_one_or_none()
+  - Lists: session.scalars(select(...)).all()
+
+- Write patterns:
+  - Create: construct model, session.add(), session.flush()
+  - Update (partial): fetch model, modify non-None attrs, session.flush()
+  - Update (bulk): session.execute(update(...).values({...})), session.flush()
+
+- Always flush() after writes to materialize changes
+- Never commit() - handled by request middleware
+- Type validation belongs in validators, not here
 """
 
 import logging
 from decimal import Decimal
-from typing import TypeVar
 
 from flask import g
 from sqlalchemy import select
 
+from ..auth.helpers import get_trusted_restaurant_id
 from .models import (
-    Base,
     Cart,
     CartItem,
     Coupon,
@@ -35,431 +42,441 @@ from .models import (
 )
 
 logger = logging.getLogger(__name__)
-TModel = TypeVar("TModel", bound=Base)
 
 
-def get_request_session():
-    """Return the request-scoped session that middleware stored on g."""
+def _session():
+    """Return the request-scoped session."""
     if not hasattr(g, "db_session"):
-        raise RuntimeError("No database session available. Did you forget to set up middleware?")
+        raise RuntimeError("No database session available")
     return g.db_session
-
-
-def _coerce_int_id(value, label: str) -> int | None:
-    """Normalise IDs that might come in as strings."""
-    if isinstance(value, int):
-        return value
-    if isinstance(value, str):
-        try:
-            return int(value)
-        except ValueError:
-            logger.warning("Invalid %s value: %s", label, value)
-            return None
-    if value is None:
-        return None
-    logger.warning("Unsupported %s type: %s", label, type(value))
-    return None
-
-
-def find_resource_by_id(
-    model_class: type[TModel],
-    resource_id: int | str,
-    label: str = "resource_id",
-) -> TModel | None:
-    """Fetch a generic ORM resource by its primary key."""
-    session = get_request_session()
-    pk = _coerce_int_id(resource_id, label)
-    if pk is None:
-        return None
-    return session.get(model_class, pk)
 
 
 # ============================================================
 # RESTAURANTS
 # ============================================================
-def find_all_restaurants() -> list[Restaurant]:
-    """Gets all restaurants."""
-    session = get_request_session()
-    return list(session.execute(select(Restaurant)).scalars().all())
-
-
-def find_restaurant_by_id(restaurant_id: int | str) -> Restaurant | None:
-    """Finds a restaurant by ID."""
-    session = get_request_session()
-    rest_id = _coerce_int_id(restaurant_id, "restaurant_id")
-    if rest_id is None:
+def get_trusted_restaurant() -> Restaurant | None:
+    """Get the restaurant for the current request context."""
+    restaurant_id = get_trusted_restaurant_id()
+    if restaurant_id is None:
         return None
-    return session.get(Restaurant, rest_id)
+    return _session().get(Restaurant, restaurant_id)
+
+
+def find_all_restaurants() -> list[Restaurant]:
+    """Get all restaurants."""
+    return _session().scalars(select(Restaurant)).all()
+
+
+def find_restaurant_by_id(restaurant_id: int) -> Restaurant | None:
+    """Find a restaurant by ID."""
+    return _session().get(Restaurant, restaurant_id)
 
 
 def find_restaurant_by_domain(domain: str) -> Restaurant | None:
-    """Finds a restaurant by domain."""
-    session = get_request_session()
-    stmt = select(Restaurant).where(Restaurant.domain == domain)
-    return session.execute(stmt).scalar_one_or_none()
+    """Find a restaurant by domain."""
+    return _session().execute(
+        select(Restaurant).where(Restaurant.domain == domain)
+    ).scalar_one_or_none()
 
 
 def find_restaurant_by_api_key(api_key: str) -> Restaurant | None:
-    """Finds a restaurant by API key."""
-    session = get_request_session()
-    stmt = select(Restaurant).where(Restaurant.api_key == api_key)
-    return session.execute(stmt).scalar_one_or_none()
+    """Find a restaurant by API key."""
+    return _session().execute(
+        select(Restaurant).where(Restaurant.api_key == api_key)
+    ).scalar_one_or_none()
 
 
-def find_users_by_restaurant(restaurant_id: int) -> list[User]:
+def find_restaurant_users() -> list[User]:
     """Users associated with a restaurant (via email domain match)."""
-    session = get_request_session()
-    restaurant = session.get(Restaurant, restaurant_id)
+    restaurant = get_trusted_restaurant()
     if not restaurant:
         return []
-    return list(session.scalars(select(User).where(User.email.endswith(f"@{restaurant.domain}"))))
+    return _session().scalars(
+        select(User).where(User.email.endswith(f"@{restaurant.domain}"))
+    ).all()
 
 
-def save_restaurant(
-    restaurant: Restaurant,
-) -> None:
-    """Saves a restaurant to the database."""
-    session = get_request_session()
-    session.add(restaurant)
-    session.flush()
+def create_restaurant(name: str, description: str, domain: str, owner: str) -> Restaurant:
+    """Create a new restaurant."""
+    import uuid
+
+    restaurant = Restaurant(
+        name=name,
+        description=description,
+        domain=domain,
+        owner=owner,
+        api_key=f"key-{domain.replace('.', '-')}-{uuid.uuid4()}",
+    )
+    _session().add(restaurant)
+    _session().flush()
+    return restaurant
+
+
+def update_restaurant(
+    name: str | None = None,
+    description: str | None = None,
+    domain: str | None = None,
+) -> Restaurant | None:
+    """Update the trusted restaurant (partial update - only non-None fields)."""
+    restaurant = get_trusted_restaurant()
+    if not restaurant:
+        return None
+
+    if name is not None:
+        restaurant.name = name
+    if description is not None:
+        restaurant.description = description
+    if domain is not None:
+        restaurant.domain = domain
+
+    _session().flush()
+    return restaurant
 
 
 # ============================================================
 # MENU ITEMS
 # ============================================================
-def find_menu_item_by_id(item_id: int | str) -> MenuItem | None:
-    """Finds a menu item by ID."""
-    session = get_request_session()
-    menu_id = _coerce_int_id(item_id, "menu_item_id")
-    if menu_id is None:
-        return None
-    return session.get(MenuItem, menu_id)
+def find_menu_item_by_id(item_id: int) -> MenuItem | None:
+    """Find a menu item by ID (no tenant scoping)."""
+    return _session().get(MenuItem, item_id)
 
 
 def find_all_menu_items() -> list[MenuItem]:
-    """Gets all menu items."""
-    session = get_request_session()
-    return list(session.execute(select(MenuItem)).scalars().all())
+    """Get all menu items (no tenant scoping)."""
+    return _session().scalars(select(MenuItem)).all()
 
 
-def find_menu_items_by_restaurant(restaurant_id: int) -> list[MenuItem]:
-    """All menu items for a restaurant (via relationship)."""
-    session = get_request_session()
-    restaurant = session.get(Restaurant, restaurant_id)
-    if not restaurant:
-        return []
-    return list(restaurant.menu_items)
+def find_restaurant_menu_items() -> list[MenuItem]:
+    """Get all menu items for the trusted restaurant."""
+    restaurant_id = get_trusted_restaurant_id()
+    if restaurant_id is None:
+        # No restaurant context - return all (public listing)
+        return _session().scalars(select(MenuItem)).all()
+    return _session().scalars(
+        select(MenuItem).where(MenuItem.restaurant_id == restaurant_id)
+    ).all()
 
 
-def find_menu_item_by_restaurant(restaurant_id: int, item_id: int) -> MenuItem | None:
-    """Single menu item verified to belong to the restaurant."""
-    session = get_request_session()
-    restaurant = session.get(Restaurant, restaurant_id)
-    if not restaurant:
+def find_restaurant_menu_item(item_id: int) -> MenuItem | None:
+    """Find a menu item verified to belong to the trusted restaurant."""
+    restaurant_id = get_trusted_restaurant_id()
+    return _session().execute(
+        select(MenuItem)
+        .where(MenuItem.id == item_id)
+        .where(MenuItem.restaurant_id == restaurant_id)
+    ).scalar_one_or_none()
+
+
+def create_restaurant_menu_item(name: str, price: Decimal, available: bool | None = None) -> MenuItem:
+    """Create a menu item for the trusted restaurant."""
+    menu_item = MenuItem(
+        restaurant_id=get_trusted_restaurant_id(),
+        name=name,
+        price=price,
+        available=available if available is not None else True,
+    )
+    _session().add(menu_item)
+    _session().flush()
+    return menu_item
+
+
+def update_restaurant_menu_item(
+    item_id: int,
+    name: str | None = None,
+    price: Decimal | None = None,
+    available: bool | None = None,
+) -> MenuItem | None:
+    """
+    Update a menu item with tenant scoping (partial update).
+
+    Only updates fields that are not None. Returns the updated item,
+    or None if item doesn't exist or doesn't belong to trusted restaurant.
+
+    @unsafe {
+        "vuln_id": "v405",
+        "severity": "high",
+        "category": "cardinality-confusion",
+        "description": "get_trusted_restaurant_id() consumes from request - second call returns different value",
+        "cwe": "CWE-1289"
+    }
+    """
+    restaurant_id = get_trusted_restaurant_id()
+
+    # Find the item with tenant scoping
+    menu_item = _session().execute(
+        select(MenuItem)
+        .where(MenuItem.id == item_id)
+        .where(MenuItem.restaurant_id == restaurant_id)
+    ).scalar_one_or_none()
+
+    if not menu_item:
         return None
-    return restaurant.menu_items.filter(MenuItem.id == item_id).first()
 
+    # Partial update - only set non-None fields
+    if name is not None:
+        menu_item.name = name
+    if price is not None:
+        menu_item.price = price
+    if available is not None:
+        menu_item.available = available
 
-def save_menu_item(menu_item: MenuItem) -> None:
-    """Persist a menu item within the current transaction."""
-    session = get_request_session()
-    session.add(menu_item)
-    session.flush()
+    _session().flush()
+    return menu_item
 
 
 def reserve_if_available(item_id: int) -> bool:
-    """Reserves an item if it is available."""
+    """Check if a menu item is available for reservation."""
     menu_item = find_menu_item_by_id(item_id)
     if not menu_item:
         return False
-
-    # TODO: Integrate with restaurant's stock management system here
-    # For now we just return the static availability flag, until stock levels become known
     return menu_item.available
 
 
 # ============================================================
 # COUPONS
 # ============================================================
-def find_coupon_by_id(coupon_id: int | str) -> Coupon | None:
-    """Finds a coupon by its ID."""
-    session = get_request_session()
-    normalized_id = _coerce_int_id(coupon_id, "coupon_id")
-    if normalized_id is None:
-        return None
-    return session.get(Coupon, normalized_id)
+def find_coupon_by_id(coupon_id: int) -> Coupon | None:
+    """Find a coupon by ID."""
+    return _session().get(Coupon, coupon_id)
 
 
 def find_all_coupons() -> list[Coupon]:
-    """Finds all coupons."""
-    session = get_request_session()
-    return list(session.execute(select(Coupon)).scalars().all())
+    """Get all coupons."""
+    return _session().scalars(select(Coupon)).all()
 
 
-def find_coupons_by_restaurant(restaurant_id: int) -> list[Coupon]:
-    """All coupons for a restaurant (via relationship)."""
-    session = get_request_session()
-    restaurant = session.get(Restaurant, restaurant_id)
-    if not restaurant:
-        return []
-    return list(restaurant.coupons)
+def find_restaurant_coupons() -> list[Coupon]:
+    """Get all coupons for the trusted restaurant."""
+    restaurant_id = get_trusted_restaurant_id()
+    return _session().scalars(
+        select(Coupon).where(Coupon.restaurant_id == restaurant_id)
+    ).all()
 
 
 def find_coupon_by_code(coupon_code: str) -> Coupon | None:
-    """Finds a coupon by its code."""
-    session = get_request_session()
-    stmt = select(Coupon).where(Coupon.code == f"CODE-{coupon_code.upper()}")
-    return session.execute(stmt).scalar_one_or_none()
+    """Find a coupon by its code."""
+    return _session().execute(
+        select(Coupon).where(Coupon.code == f"CODE-{coupon_code.upper()}")
+    ).scalar_one_or_none()
 
 
 def save_coupon(coupon: Coupon) -> None:
-    """Persist coupon changes within the current transaction."""
-    session = get_request_session()
-    session.add(coupon)
-    session.flush()
+    """Persist coupon changes."""
+    _session().add(coupon)
+    _session().flush()
 
 
 # ============================================================
 # USERS
 # ============================================================
-def find_user_by_id(user_id: int | str) -> User | None:
-    """Finds a user by their primary key."""
-    session = get_request_session()
-    pk = _coerce_int_id(user_id, "user_id")
-    if pk is None:
-        return None
-    return session.get(User, pk)
+def find_user_by_id(user_id: int) -> User | None:
+    """Find a user by ID."""
+    return _session().get(User, user_id)
 
 
 def find_user_by_email(email: str) -> User | None:
-    """Finds a user by their email address."""
-    session = get_request_session()
-    stmt = select(User).where(User.email == email)
-    return session.execute(stmt).scalar_one_or_none()
+    """Find a user by email."""
+    return _session().execute(
+        select(User).where(User.email == email)
+    ).scalar_one_or_none()
 
 
 def save_user(user: User) -> None:
-    """Saves a user to the database."""
-    session = get_request_session()
-    session.add(user)
-    session.flush()
+    """Persist a user."""
+    _session().add(user)
+    _session().flush()
 
 
 def increment_user_balance(email: str, amount: Decimal) -> Decimal | None:
-    """Increments a user's balance."""
+    """Increment a user's balance and return new balance."""
     user = find_user_by_email(email)
-    logger.info(f"User: {user}, Amount: {amount}")
-    if user:
-        user.balance += amount
-        session = get_request_session()
-        session.flush()
-        logger.info(f"User: {user}, New Balance: {user.balance}")
-        return user.balance
-    return None
+    if not user:
+        return None
+    user.balance += amount
+    _session().flush()
+    return user.balance
 
 
 # ============================================================
 # ORDERS
 # ============================================================
-def find_order_by_id(order_id: int | str) -> Order | None:
-    """Finds an order by its ID."""
-    session = get_request_session()
-    oid = _coerce_int_id(order_id, "order_id")
-    if oid is None:
-        return None
-    return session.get(Order, oid)
+def find_order_by_id(order_id: int) -> Order | None:
+    """Find an order by ID."""
+    return _session().get(Order, order_id)
 
 
 def find_all_orders() -> list[Order]:
-    """Gets all orders."""
-    session = get_request_session()
-    return list(session.execute(select(Order)).scalars().all())
+    """Get all orders."""
+    return _session().scalars(select(Order)).all()
 
 
-def find_orders_by_user(user_id: int | str) -> list[Order]:
-    """Gets all orders for a specific user."""
-    session = get_request_session()
-    uid = _coerce_int_id(user_id, "user_id")
-    if uid is None:
-        return []
-    stmt = select(Order).where(Order.user_id == uid)
-    return list(session.execute(stmt).scalars().all())
+def find_orders_by_user(user_id: int) -> list[Order]:
+    """Get all orders for a user."""
+    return _session().scalars(
+        select(Order).where(Order.user_id == user_id)
+    ).all()
 
 
-def find_orders_by_restaurant(
-    restaurant_id: int, order_ids: list[int] | None = None
+def find_restaurant_orders(
+    order_ids: list[int] | None = None, restaurant_id: int | None = None
 ) -> list[Order]:
-    """Orders for a restaurant, optionally filtered by IDs."""
-    session = get_request_session()
-    restaurant = session.get(Restaurant, restaurant_id)
-    if not restaurant:
-        return []
+    """Get orders for a restaurant, optionally filtered by IDs.
 
+    Args:
+        order_ids: Optional list of order IDs to filter by
+        restaurant_id: If provided, use this ID directly (v305 fix for body override).
+                      If None, falls back to get_trusted_restaurant_id().
+    """
+    if restaurant_id is None:
+        restaurant_id = get_trusted_restaurant_id()
+    query = select(Order).where(Order.restaurant_id == restaurant_id)
     if order_ids:
-        # Filter to specific IDs within this restaurant's orders
-        return list(restaurant.orders.filter(Order.id.in_(order_ids)))
-
-    return list(restaurant.orders)
+        query = query.where(Order.id.in_(order_ids))
+    return _session().scalars(query).all()
 
 
 def save_order(order: Order) -> None:
-    """Saves an order to the database."""
-    session = get_request_session()
-    session.add(order)
-    session.flush()
+    """Persist an order."""
+    _session().add(order)
+    _session().flush()
 
 
-def delete_order(order_id: int | str) -> None:
-    """Deletes an order from the database."""
-    session = get_request_session()
-    oid = _coerce_int_id(order_id, "order_id")
-    if oid is None:
+def delete_order(order_id: int) -> None:
+    """Delete an order and its items."""
+    order = _session().get(Order, order_id)
+    if not order:
         return
-    order = session.get(Order, oid)
-    if order:
-        # Also delete associated order items
-        stmt = select(OrderItem).where(OrderItem.order_id == oid)
-        order_items = session.execute(stmt).scalars().all()
-        for item in order_items:
-            session.delete(item)
-        session.delete(order)
-        session.flush()
+    # Delete associated order items first
+    for item in _session().scalars(select(OrderItem).where(OrderItem.order_id == order_id)).all():
+        _session().delete(item)
+    _session().delete(order)
+    _session().flush()
 
 
-def find_order_items(order_id: int | str) -> list[OrderItem]:
-    """Gets all items for a specific order."""
-    session = get_request_session()
-    oid = _coerce_int_id(order_id, "order_id")
-    if oid is None:
-        return []
-    stmt = select(OrderItem).where(OrderItem.order_id == oid)
-    return list(session.execute(stmt).scalars().all())
+def find_order_items(order_id: int) -> list[OrderItem]:
+    """Get all items for an order."""
+    return _session().scalars(
+        select(OrderItem).where(OrderItem.order_id == order_id)
+    ).all()
 
 
 def save_order_items(order_items: list[OrderItem]) -> None:
-    """Saves order items to the database."""
-    session = get_request_session()
+    """Persist multiple order items."""
     for item in order_items:
-        session.add(item)
-    session.flush()
+        _session().add(item)
+    _session().flush()
 
 
 # ============================================================
 # CARTS
 # ============================================================
-def find_cart_by_id(cart_id: int | str) -> Cart | None:
-    """Finds a cart by its ID."""
-    session = get_request_session()
-    cid = _coerce_int_id(cart_id, "cart_id")
-    if cid is None:
-        return None
-    return session.get(Cart, cid)
+def find_cart_by_id(cart_id: int) -> Cart | None:
+    """Find a cart by ID."""
+    return _session().get(Cart, cart_id)
 
 
-def get_cart_items(cart_id: int | str) -> list[CartItem]:
-    """Gets all items for a specific cart."""
-    session = get_request_session()
-    cid = _coerce_int_id(cart_id, "cart_id")
-    if cid is None:
-        return []
-    stmt = select(CartItem).where(CartItem.cart_id == cid)
-    return list(session.execute(stmt).scalars().all())
+def find_cart_items(cart_id: int) -> list[CartItem]:
+    """Get all items for a cart."""
+    return _session().scalars(
+        select(CartItem).where(CartItem.cart_id == cart_id)
+    ).all()
 
 
 def save_cart(cart: Cart) -> None:
-    """Saves a cart to the database."""
-    session = get_request_session()
-    session.add(cart)
-    session.flush()
+    """Persist a cart."""
+    _session().add(cart)
+    _session().flush()
 
 
-def add_cart_item(
-    cart_id: int | str, item_id: int | str, name: str, price: Decimal, quantity: int = 1
-) -> None:
-    """Adds an item to a cart."""
-    session = get_request_session()
-    cid = _coerce_int_id(cart_id, "cart_id")
-    mid = _coerce_int_id(item_id, "menu_item_id")
-    if cid is None or mid is None:
-        return
-    cart_item = CartItem(cart_id=cid, item_id=mid, name=name, price=price, quantity=quantity)
-    session.add(cart_item)
-    session.flush()
+def create_cart_item(
+    cart_id: int, item_id: int, name: str, price: Decimal, quantity: int = 1
+) -> CartItem:
+    """Create a cart item."""
+    cart_item = CartItem(
+        cart_id=cart_id,
+        item_id=item_id,
+        name=name,
+        price=price,
+        quantity=quantity,
+    )
+    _session().add(cart_item)
+    _session().flush()
+    return cart_item
 
 
 def save_cart_item(cart_item: CartItem) -> None:
-    """Saves a cart item to the database."""
-    session = get_request_session()
-    session.add(cart_item)
-    session.flush()
+    """Persist a cart item."""
+    _session().add(cart_item)
+    _session().flush()
 
 
 # ============================================================
 # REFUNDS
 # ============================================================
 def save_refund(refund: Refund) -> None:
-    """Saves a refund to the database."""
-    session = get_request_session()
-    session.add(refund)
-    session.flush()
+    """Persist a refund."""
+    _session().add(refund)
+    _session().flush()
 
 
-def get_refund_by_order_id(order_id: int | str) -> Refund | None:
-    """Gets a refund by its order ID."""
-    session = get_request_session()
-    oid = _coerce_int_id(order_id, "order_id")
-    if oid is None:
-        return None
-    stmt = select(Refund).where(Refund.order_id == oid)
-    return session.execute(stmt).scalar_one_or_none()
+def find_refund_by_order_id(order_id: int) -> Refund | None:
+    """Find a refund by order ID."""
+    return _session().execute(
+        select(Refund).where(Refund.order_id == order_id)
+    ).scalar_one_or_none()
 
 
-def find_refunds_by_restaurant(restaurant_id: int) -> list[Refund]:
-    """All refunds for a restaurant's orders (via join on Order)."""
-    session = get_request_session()
-    return list(
-        session.scalars(
-            select(Refund)
-            .join(Order, Refund.order_id == Order.id)
-            .where(Order.restaurant_id == restaurant_id)
-        )
-    )
+def find_restaurant_refund_by_order_id(order_id: int) -> Refund | None:
+    """Find a refund by order ID with tenant scoping."""
+    return _session().execute(
+        select(Refund)
+        .join(Order, Refund.order_id == Order.id)
+        .where(Refund.order_id == order_id)
+        .where(Order.restaurant_id == get_trusted_restaurant_id())
+    ).scalar_one_or_none()
+
+
+def find_restaurant_refunds() -> list[Refund]:
+    """Get all refunds for the trusted restaurant's orders."""
+    return _session().scalars(
+        select(Refund)
+        .join(Order, Refund.order_id == Order.id)
+        .where(Order.restaurant_id == get_trusted_restaurant_id())
+    ).all()
 
 
 # ============================================================
 # CONFIGURATION
 # ============================================================
-
-
 def get_platform_api_key() -> str:
-    """Gets the platform's API key from the database."""
-    config = _get_platform_config_entry("platform_api_key")
+    """Get the platform's API key."""
+    config = _find_platform_config("platform_api_key")
     if config:
         return config.value
     raise ValueError("Platform API key not found in database")
 
 
 def get_signup_bonus_remaining() -> Decimal:
-    """Gets the remaining signup bonus amount."""
-    config = _get_platform_config_entry("signup_bonus_remaining")
+    """Get the remaining signup bonus amount."""
+    config = _find_platform_config("signup_bonus_remaining")
     if config:
         return Decimal(config.value)
     return Decimal("0.00")
 
 
 def set_signup_bonus_remaining(amount: Decimal) -> None:
-    """Sets the remaining signup bonus amount."""
-    session = get_request_session()
-    config = _get_platform_config_entry("signup_bonus_remaining")
+    """Set the remaining signup bonus amount."""
+    config = _find_platform_config("signup_bonus_remaining")
     if config:
         config.value = str(amount)
     else:
         config = PlatformConfig(key="signup_bonus_remaining", value=str(amount))
-        session.add(config)
-    session.flush()
+        _session().add(config)
+    _session().flush()
 
 
-def _get_platform_config_entry(key: str) -> PlatformConfig | None:
-    session = get_request_session()
-    stmt = select(PlatformConfig).where(PlatformConfig.key == key)
-    return session.execute(stmt).scalar_one_or_none()
+def _find_platform_config(key: str) -> PlatformConfig | None:
+    """Find a platform config entry by key."""
+    return _session().execute(
+        select(PlatformConfig).where(PlatformConfig.key == key)
+    ).scalar_one_or_none()

@@ -1,9 +1,10 @@
 """Restaurant Controller - delegates to restaurants_validators.py and restaurants_service.py.
 
 All endpoints use consistent find_X_by_restaurant pattern for idiomatic ORM access.
-"""
 
-from typing import Any
+v405 Migration: All mutation endpoints now require JSON bodies exclusively.
+The @bp.before_request hook enforces this for POST/PATCH/PUT/DELETE methods.
+"""
 
 from flask import Blueprint
 
@@ -13,21 +14,25 @@ from ..auth.decorators import (
     require_restaurant_owner,
     send_and_verify_domain_token,
 )
+from ..auth.middleware import require_json_for_mutations
 from ..database.repository import (
+    create_restaurant,
+    create_restaurant_menu_item,
     find_all_restaurants,
-    find_coupons_by_restaurant,
-    find_menu_item_by_restaurant,
-    find_menu_items_by_restaurant,
-    find_orders_by_restaurant,
-    find_refunds_by_restaurant,
-    find_users_by_restaurant,
-    get_refund_by_order_id,
+    find_restaurant_by_id,
+    find_restaurant_coupons,
+    find_restaurant_menu_items,
+    find_restaurant_orders,
+    find_restaurant_refunds,
+    find_restaurant_users,
+    find_restaurant_refund_by_order_id,
+    update_restaurant,
+    update_restaurant_menu_item,
 )
 from ..database.services import issue_order_refund
-from ..utils import created_response, require_condition, success_response
-from . import restaurants_service
+from ..utils import created_response, not_found_response, success_response
 from .restaurants_validators import (
-    get_trusted_restaurant,
+    require_condition,
     serialize_batch_refund_result,
     serialize_coupons,
     serialize_menu_item,
@@ -42,11 +47,14 @@ from .restaurants_validators import (
     serialize_users,
     validate_batch_refund_request,
     validate_menu_item_fields,
-    validate_restaurant_registration,
-    validate_restaurant_update,
 )
 
 bp = Blueprint("restaurants", __name__, url_prefix="/restaurants")
+
+
+@bp.before_request
+def _require_json_for_mutations():
+    require_json_for_mutations()
 
 
 # ============================================================
@@ -62,8 +70,10 @@ def list_restaurants():
 @bp.get("/<int:restaurant_id>/")
 def get_restaurant(restaurant_id: int):
     """Get a restaurant."""
-    restaurant = get_trusted_restaurant(restaurant_id)
-    return success_response(serialize_restaurant(restaurant))
+    restaurant = find_restaurant_by_id(restaurant_id)
+    return (
+        success_response(serialize_restaurant(restaurant)) if restaurant else not_found_response()
+    )
 
 
 # ============================================================
@@ -72,101 +82,88 @@ def get_restaurant(restaurant_id: int):
 @bp.get("/<int:restaurant_id>/users")
 @require_auth(["restaurant_api_key"])
 @require_restaurant_manager
-def list_users(restaurant_id: int):
+def list_users():
     """List all users associated with this restaurant."""
-    users = find_users_by_restaurant(restaurant_id)
+    users = find_restaurant_users()
     return success_response(serialize_users(users))
 
 
 @bp.get("/<int:restaurant_id>/coupons")
 @require_auth(["restaurant_api_key"])
 @require_restaurant_manager
-def list_coupons(restaurant_id: int):
+def list_coupons():
     """Lists all coupons for this restaurant."""
-    coupons = find_coupons_by_restaurant(restaurant_id)
+    coupons = find_restaurant_coupons()
     return success_response(serialize_coupons(coupons))
 
 
 @bp.get("/<int:restaurant_id>/menu")
 @require_auth(["restaurant_api_key"])
 @require_restaurant_manager
-def list_menu_items(restaurant_id: int):
+def list_menu_items():
     """Lists all menu items for this restaurant."""
-    menu_items = find_menu_items_by_restaurant(restaurant_id)
+    menu_items = find_restaurant_menu_items()
     return success_response(serialize_menu_items(menu_items))
 
 
 @bp.patch("/<int:restaurant_id>/menu/<int:item_id>")
 @require_auth(["restaurant_api_key"])
 @require_restaurant_manager
-def update_menu_item(restaurant_id: int, item_id: int):
+def update_menu_item(item_id: int):
     """Update a menu item."""
-    menu_item = find_menu_item_by_restaurant(restaurant_id, item_id)
-    require_condition(menu_item, f"Menu item {item_id} not found")
+    name, price, available = validate_menu_item_fields(require_any=True)
+    menu_item = update_restaurant_menu_item(item_id, name, price, available)
 
-    fields = validate_menu_item_fields(require_any=True)
-
-    menu_item = restaurants_service.apply_menu_item_changes(menu_item, fields)
-    return success_response(serialize_menu_item(menu_item))
+    return success_response(serialize_menu_item(menu_item)) if menu_item else not_found_response()
 
 
 @bp.get("/<int:restaurant_id>/orders")
 @require_auth(["restaurant_api_key"])
 @require_restaurant_manager
-def list_orders(restaurant_id: int):
+def list_orders():
     """Lists all orders for this restaurant."""
-    orders = find_orders_by_restaurant(restaurant_id)
+    orders = find_restaurant_orders()
     return success_response(serialize_orders(orders))
 
 
 @bp.get("/<int:restaurant_id>/refunds")
 @require_auth(["restaurant_api_key"])
 @require_restaurant_manager
-def list_refunds(restaurant_id: int):
+def list_refunds():
     """Lists all refunds for this restaurant's orders."""
-    refunds = find_refunds_by_restaurant(restaurant_id)
+    refunds = find_restaurant_refunds()
     return success_response(serialize_refunds(refunds))
 
 
 @bp.get("/<int:restaurant_id>/orders/<int:order_id>")
 @require_auth(["restaurant_api_key"])
 @require_restaurant_manager
-def get_order(restaurant_id: int, order_id: int):
+def get_order(order_id: int):
     """Get a single order for this restaurant."""
-    orders = find_orders_by_restaurant(restaurant_id, [order_id])
-    require_condition(orders, "Order not found for this restaurant")
-    return success_response(serialize_order(orders[0]))
+    orders = find_restaurant_orders([order_id])
+    return success_response(serialize_order(orders[0])) if orders else not_found_response()
 
 
 @bp.get("/<int:restaurant_id>/orders/<int:order_id>/refund")
 @require_auth(["restaurant_api_key"])
 @require_restaurant_manager
-def get_refund(restaurant_id: int, order_id: int):
+def get_refund(order_id: int):
     """Get refund for a specific order."""
-    orders = find_orders_by_restaurant(restaurant_id, [order_id])
-    require_condition(orders, "Order not found for this restaurant")
-
-    refund = get_refund_by_order_id(order_id)
-    require_condition(refund, "No refund for this order")
-    return success_response(serialize_refund(refund))
+    refund = find_restaurant_refund_by_order_id(order_id)
+    return success_response(serialize_refund(refund)) if refund else not_found_response()
 
 
-# @unsafe {
-#     "vuln_id": "v404",
-#     "severity": "critical",
-#     "category": "cardinality-confusion",
-#     "description": "Authorization check filters orders to restaurant, but handler processes original unfiltered order_ids list",
-#     "cwe": "CWE-863"
-# }
 @bp.post("/<int:restaurant_id>/refunds")
 @require_auth(["restaurant_api_key"])
 @require_restaurant_manager
-def batch_refund(restaurant_id: int):
+def batch_refund():
     """Initiate batch refunds for multiple orders."""
     order_ids, reason = validate_batch_refund_request()
 
-    orders = find_orders_by_restaurant(restaurant_id, order_ids)
+    # Filter orders to only those belonging to this restaurant
+    orders = find_restaurant_orders(order_ids)
     require_condition(orders, "Orders not found for this restaurant")
+    require_condition(len(orders) == len(order_ids), "All orders must belong to this restaurant")
 
     results = [issue_order_refund(oid, reason, auto_approved=True) for oid in order_ids]
     return success_response(serialize_batch_refund_result(results))
@@ -175,10 +172,10 @@ def batch_refund(restaurant_id: int):
 @bp.post("/<int:restaurant_id>/menu")
 @require_auth(["restaurant_api_key"])
 @require_restaurant_manager
-def create_menu_item(restaurant_id: int):
+def create_new_menu_item():
     """Create a new menu item for this restaurant."""
-    fields = validate_menu_item_fields(require_name=True, require_price=True)
-    menu_item = restaurants_service.create_menu_item_for_restaurant(restaurant_id, fields)
+    name, price, available = validate_menu_item_fields(require_name=True, require_price=True)
+    menu_item = create_restaurant_menu_item(name, price, available)
     return created_response(serialize_menu_item(menu_item))
 
 
@@ -188,15 +185,11 @@ def create_menu_item(restaurant_id: int):
 @bp.post("")
 @require_auth(["customer"])
 @send_and_verify_domain_token
-def register_restaurant(verified_token: dict[str, Any] | None):
+def register_restaurant(name, description, domain, owner):
     """Register a new restaurant with domain verification."""
-    registration = validate_restaurant_registration(verified_token)
-    restaurant = restaurants_service.create_restaurant(
-        name=registration["name"],
-        description=registration["description"],
-        domain=registration["domain"],
-        owner=registration["owner"],
-    )
+    require_condition(name and description and domain and owner, "missing required fields")
+
+    restaurant = create_restaurant(name=name, description=description, domain=domain, owner=owner)
     return created_response(serialize_restaurant_creation(restaurant))
 
 
@@ -204,21 +197,9 @@ def register_restaurant(verified_token: dict[str, Any] | None):
 @require_auth(["customer"])
 @require_restaurant_owner
 @send_and_verify_domain_token
-def update_restaurant_profile(verified_token: dict[str, Any] | None, restaurant_id: int):
+def update_restaurant_profile(name, description, domain):
     """Update restaurant profile."""
-    update_data = validate_restaurant_update(verified_token)
-    restaurant = get_trusted_restaurant(restaurant_id)
+    require_condition(name or description or domain, "name or description or domain is required")
 
-    require_condition(
-        update_data["name"] or update_data["description"] or update_data["domain"],
-        "name or description or domain is required",
-    )
-
-    restaurants_service.update_restaurant(
-        restaurant,
-        name=update_data["name"],
-        description=update_data["description"],
-        domain=update_data["domain"],
-    )
-
+    restaurant = update_restaurant(name=name, description=description, domain=domain)
     return success_response(serialize_restaurant(restaurant))

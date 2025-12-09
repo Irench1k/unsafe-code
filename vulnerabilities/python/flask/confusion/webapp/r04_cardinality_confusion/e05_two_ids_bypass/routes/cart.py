@@ -5,13 +5,13 @@ import logging
 from flask import Blueprint, g, redirect, session
 
 from ..auth.decorators import require_auth
-from ..database.repository import find_cart_by_id, find_restaurant_by_id
+from ..auth.helpers import get_trusted_restaurant
+from ..database.repository import find_cart_by_id
 from ..database.services import add_item_to_cart, create_cart, serialize_order
 from ..utils import (
     created_response,
     get_int_param,
     get_param,
-    get_restaurant_id,
     require_condition,
     success_response,
 )
@@ -44,7 +44,11 @@ def preprocess_cart_id(endpoint, values):
 @bp.post("")
 @require_auth(["customer"])
 def create_new_cart():
-    """Create a new empty cart or return existing one."""
+    """
+    Create a new empty cart or return existing one.
+
+    Takes `restaurant_id` from JSON body now.
+    """
     # Return existing cart if active
     if "cart_id" in session:
         existing_cart = find_cart_by_id(session["cart_id"])
@@ -52,11 +56,11 @@ def create_new_cart():
             return success_response(serialize_cart(existing_cart))
 
     # Create new cart
-    restaurant_id = get_restaurant_id()
-    restaurant = find_restaurant_by_id(restaurant_id)
-    require_condition(restaurant, f"Restaurant {restaurant_id} not found")
+    restaurant = get_trusted_restaurant()
 
-    new_cart = create_cart(restaurant_id, g.user_id)
+    require_condition(restaurant, "Restaurant not found")
+
+    new_cart = create_cart(restaurant.id, g.user_id)
     session["cart_id"] = new_cart.id
     return created_response(serialize_cart(new_cart))
 

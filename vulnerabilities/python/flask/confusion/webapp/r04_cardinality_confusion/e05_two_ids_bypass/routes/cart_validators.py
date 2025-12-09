@@ -8,9 +8,9 @@ from flask import g, request, session
 from ..database.models import Cart, CartItem, Coupon, MenuItem
 from ..database.repository import (
     find_cart_by_id,
+    find_cart_items,
     find_coupon_by_code,
     find_menu_item_by_id,
-    get_cart_items,
 )
 from ..errors import CheekyApiError
 from ..utils import require_condition, require_ownership
@@ -86,7 +86,7 @@ def validate_checkout_request() -> dict:
 # ============================================================
 def serialize_cart(cart: Cart) -> dict:
     """Serialize cart to JSON-compatible dict with items."""
-    cart_items = get_cart_items(cart.id)
+    cart_items = find_cart_items(cart.id)
     return {
         "cart_id": cart.id,
         "restaurant_id": cart.restaurant_id,
@@ -141,7 +141,7 @@ def validate_shareable_coupon(coupon_code: str) -> Coupon:
 
 def validate_cart_for_checkout(cart: Cart) -> list[CartItem]:
     """Validate cart has items and return them."""
-    cart_items = get_cart_items(cart.id)
+    cart_items = find_cart_items(cart.id)
     require_condition(cart_items, f"Cart {cart.id} is empty")
     return cart_items
 

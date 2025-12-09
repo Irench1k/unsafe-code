@@ -255,7 +255,8 @@ class RestaurantAuthenticator(APIKeyAuthenticator):
         if restaurant is None:
             return False
 
-        g.restaurant_id = restaurant.id
+        g.restaurant_manager = restaurant.id
+        g.restaurant_id = restaurant.id  # Also set for routes that check g.restaurant_id
         return True
 
 

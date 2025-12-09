@@ -25,14 +25,14 @@ from .models import (
     User,
 )
 from .repository import (
-    add_cart_item,
+    create_cart_item,
+    find_cart_items,
     find_order_by_id,
     find_order_items,
     find_orders_by_user,
+    find_refund_by_order_id,
     find_user_by_email,
     find_user_by_id,
-    get_cart_items,
-    get_refund_by_order_id,
     get_signup_bonus_remaining,
     save_cart,
     save_cart_item,
@@ -137,8 +137,8 @@ def serialize_orders(orders: list[Order]) -> list[dict]:
     return [serialize_order(order) for order in orders]
 
 
-def find_order_owner(order_id: int | str) -> int | None:
-    """Finds the owner of an order."""
+def find_order_owner(order_id: int) -> int | None:
+    """Find the owner of an order."""
     order = find_order_by_id(order_id)
     if not order:
         logger.warning(f"Order not found: {order_id}")
@@ -158,14 +158,10 @@ def create_cart(restaurant_id: int, user_id: int) -> Cart:
 
 
 def add_item_to_cart(
-    cart_id: int | str, item_id: int | str, name: str, price: Decimal, quantity: int = 1
+    cart_id: int, item_id: int, name: str, price: Decimal, quantity: int = 1
 ) -> None:
-    """
-    Adds an item to a cart.
-
-    Assume authorization and validation already performed by controller.
-    """
-    add_cart_item(cart_id, item_id, name, price, quantity)
+    """Add an item to a cart. Assumes validation already performed."""
+    create_cart_item(cart_id, item_id, name, price, quantity)
     logger.debug(f"Item {item_id} added to cart {cart_id}")
 
 
@@ -186,7 +182,7 @@ def _calculate_coupon_discount(coupon: Coupon, price: Decimal) -> Decimal:
 
 def add_coupon_to_cart(cart: Cart, coupon: Coupon) -> None:
     """Adds a coupon to a cart."""
-    for item in get_cart_items(cart.id):
+    for item in find_cart_items(cart.id):
         if item.item_id == coupon.item_id:
             item.coupon_id = coupon.id
             item.price = item.price - _calculate_coupon_discount(coupon, item.price)
@@ -244,10 +240,10 @@ def serialize_refund(refund: Refund) -> dict:
 
 
 def update_order_refund_status(
-    order_id: int | str, status: Literal["approved", "rejected"]
+    order_id: int, status: Literal["approved", "rejected"]
 ) -> Refund | None:
     """Updates the status of a refund in the database."""
-    refund = get_refund_by_order_id(order_id)
+    refund = find_refund_by_order_id(order_id)
     if refund:
         # Integrity check: refunds are adjustable ONLY while in `pending` state
         if refund.status != RefundStatus.pending:
@@ -273,7 +269,7 @@ def issue_order_refund(order_id: int, reason: str, auto_approved: bool = False) 
     order = find_order_by_id(order_id)
     if not order:
         return {"order_id": order_id, "status": "skipped", "reason": "Order not found"}
-    if get_refund_by_order_id(order_id):
+    if find_refund_by_order_id(order_id):
         return {"order_id": order_id, "status": "skipped", "reason": "Already refunded"}
     if order.status != OrderStatus.delivered:
         return {"order_id": order_id, "status": "skipped", "reason": "Not delivered"}

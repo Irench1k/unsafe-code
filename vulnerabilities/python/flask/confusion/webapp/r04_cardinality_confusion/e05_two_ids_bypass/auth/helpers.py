@@ -3,28 +3,51 @@ import logging
 from flask import g
 
 from ..database.models import Restaurant
-from ..database.repository import find_order_by_id, find_restaurant_by_id
-from ..database.services import get_current_user
-from ..errors import CheekyApiError
+from ..utils import resolve_restaurant_id
 
 logger = logging.getLogger(__name__)
 
 
-def get_authenticated_restaurant() -> Restaurant | None:
-    restaurant_id = g.get("restaurant_id")
-    return find_restaurant_by_id(restaurant_id) if restaurant_id else None
+def get_trusted_restaurant() -> Restaurant | None:
+    """
+    Get the restaurant for the current request context.
+
+    Resolution order:
+    1. Authorized restaurant (set by @require_restaurant_owner decorator)
+    2. Restaurant ID from request (query param, JSON body, path)
+    3. Restaurant manager's own restaurant (from API key auth)
+    """
+    from ..database.repository import find_restaurant_by_id
+
+    # Return the authorized restaurant if it exists (set by decorator)
+    if g.get("authorized_restaurant"):
+        return g.authorized_restaurant
+
+    # Get the restaurant from the request context
+    restaurant_id = resolve_restaurant_id()
+    if restaurant_id:
+        return find_restaurant_by_id(restaurant_id)
+
+    # Fall back to restaurant manager's restaurant (from API key auth)
+    if g.get("restaurant_manager"):
+        from ..database.repository import find_restaurant_by_id
+
+        return find_restaurant_by_id(g.restaurant_manager)
+
+    return None
 
 
-def has_access_to_order(order_id: int) -> bool:
-    """Checks if the user or restaurant has access to the order."""
-    order = find_order_by_id(order_id)
-    if not order:
-        raise CheekyApiError("Order not found")
+def get_trusted_restaurant_id() -> int | None:
+    """Get the restaurant ID for the current request context."""
+    if g.get("authorized_restaurant"):
+        return g.authorized_restaurant.id
 
-    user = get_current_user()
-    restaurant = get_authenticated_restaurant()
+    restaurant_id = resolve_restaurant_id()
+    if restaurant_id:
+        return restaurant_id
 
-    if not user and not restaurant:
-        raise CheekyApiError("Customer credentials or restaurant API key is required")
+    # Fall back to API key's restaurant
+    if g.get("restaurant_manager"):
+        return g.restaurant_manager
 
-    return order.user_id == user.id if user else order.restaurant_id == restaurant.id
+    return None

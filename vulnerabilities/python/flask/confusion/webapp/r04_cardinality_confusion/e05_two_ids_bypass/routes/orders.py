@@ -7,8 +7,8 @@ from ..config import OrderConfig
 from ..database.models import OrderStatus
 from ..database.repository import (
     find_order_by_id,
-    find_orders_by_restaurant,
-    get_refund_by_order_id,
+    find_refund_by_order_id,
+    find_restaurant_orders,
     save_order,
 )
 from ..database.services import (
@@ -40,9 +40,12 @@ def list_orders():
     Customers can list their own orders, restaurant managers can list ALL of them.
 
     v305 FIX: Use g.restaurant_id directly from authenticated API key context.
+    This ensures body/query params cannot override the API key's restaurant scope.
     """
     if g.get("manager_request") and g.get("restaurant_id"):
-        orders = find_orders_by_restaurant(g.restaurant_id)
+        # Use g.restaurant_id directly (set by RestaurantAuthenticator)
+        # NOT get_trusted_restaurant_id() which reads from request body
+        orders = find_restaurant_orders(restaurant_id=g.restaurant_id)
     elif g.get("customer_request") and g.get("user_id"):
         orders = get_user_orders(g.user_id)
     else:
@@ -64,10 +67,12 @@ def refund_order(order_id: int):
     )
 
     # Integrity check: order must be delivered, not refunded or cancelled
-    require_condition(g.order.status == OrderStatus.delivered, "Order must be delivered to be refunded")
+    require_condition(
+        g.order.status == OrderStatus.delivered, "Order must be delivered to be refunded"
+    )
 
     # Integrity check: there should NOT be other refunds for this order
-    require_condition(not get_refund_by_order_id(order_id), "Refund already exists for this order")
+    require_condition(not find_refund_by_order_id(order_id), "Refund already exists for this order")
 
     # Create and save refund
     refund = create_refund(
@@ -113,7 +118,7 @@ def get_refund_status(order_id: int):
     require_ownership(order.user_id, g.user_id, "order")
 
     # Fetch refund
-    refund = get_refund_by_order_id(order_id)
+    refund = find_refund_by_order_id(order_id)
     require_condition(refund, f"Refund {order_id} not found")
 
     return success_response(serialize_refund(refund))
@@ -128,9 +133,7 @@ def update_order_status(order_id: int):
     v306 FIX: Authorization check now happens BEFORE any data could be leaked.
     """
     status = get_param("status")
-    require_condition(
-        status in ["delivered", "cancelled"], "Status is missing or invalid"
-    )
+    require_condition(status in ["delivered", "cancelled"], "Status is missing or invalid")
 
     order = find_order_by_id(order_id)
     require_condition(order, f"Order {order_id} not found")
@@ -141,7 +144,9 @@ def update_order_status(order_id: int):
         require_condition(status == "cancelled", "Order can only be cancelled")
     else:
         require_ownership(order.restaurant_id, g.restaurant_id, "order")
-        require_condition(status in ("delivered", "cancelled"), "Order can only be delivered or cancelled")
+        require_condition(
+            status in ("delivered", "cancelled"), "Order can only be delivered or cancelled"
+        )
 
     # Integrity check: order status can be changed only from "created"
     require_condition(

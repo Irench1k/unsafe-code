@@ -36,8 +36,11 @@ Content-Type: application/json
 
 
 ### SpongeBob creates cart at Krusty Krab
-POST /cart?restaurant_id=1
+POST /cart
 Cookie: {{spongebob_session}}
+Content-Type: application/json
+
+{ "restaurant_id": 1 }
 
 @spongebob_session = {{refreshCookie(response, spongebob_session)}}
 @krusty_krab_cart_id = {{response.parsedBody.cart_id}}
@@ -66,8 +69,11 @@ Content-Type: application/json
 
 
 ### SpongeBob creates cart at Chum Bucket
-POST /cart?restaurant_id=2
+POST /cart
 Cookie: {{spongebob_session}}
+Content-Type: application/json
+
+{ "restaurant_id": 2 }
 
 @spongebob_session = {{refreshCookie(response, spongebob_session)}}
 @chum_bucket_cart_id = {{response.parsedBody.cart_id}}
@@ -108,7 +114,7 @@ Content-Type: application/json
   "reason": "Quality issue"
 }
 
-?? status == 403
+?? status == 400
 
 {{
   console.info("FIXED: Batch refund rejected - not all orders belong to Chum Bucket");

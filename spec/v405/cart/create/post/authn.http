@@ -1,0 +1,25 @@
+# @import ../_imports.http
+
+# POST /cart authentication guardrails (v405+)
+# Authentication requirements with JSON body
+
+### Create cart requires authentication
+# @tag authn, cart, r04, v405
+POST /cart
+Content-Type: application/json
+
+{"restaurant_id": 1}
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required
+
+### Create cart requires valid credentials
+# @tag authn, cart, r04, v405
+POST /cart
+Authorization: {{auth.basic("plankton", "wrongpassword")}}
+Content-Type: application/json
+
+{"restaurant_id": 1}
+
+?? js $(response).isError() == true
+?? js $(response).field("error") == Authentication required

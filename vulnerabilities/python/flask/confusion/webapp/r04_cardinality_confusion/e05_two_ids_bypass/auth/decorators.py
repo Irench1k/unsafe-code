@@ -5,18 +5,18 @@ from flask import g, request
 
 from ..config import OrderConfig
 from ..database.repository import find_order_by_id as get_order
-from ..database.repository import find_restaurant_by_id
 from ..errors import CheekyApiError
+from ..routes.restaurants_validators import validate_restaurant_update
 from ..utils import (
     generate_domain_verification_token,
     get_decimal_param,
-    get_param,
     require_condition,
     send_domain_verification_email,
     success_response,
     verify_and_decode_token,
 )
 from .authenticators import CustomerAuthenticator, PlatformAuthenticator, RestaurantAuthenticator
+from .helpers import get_trusted_restaurant
 
 logger = logging.getLogger(__name__)
 
@@ -111,16 +111,15 @@ def send_and_verify_domain_token(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        token = get_param("token")
-        name = get_param("name")
-        description = get_param("description")
-        domain = get_param("domain")
-        owner = g.email
-        restaurant_id = kwargs.get("restaurant_id")
+        token, name, description, domain, owner = validate_restaurant_update()
+
+        # Only add restaurant ID in the token if the user is authorized to do so
+        _authorized_restaurant = g.get("authorized_restaurant")
+        restaurant_id = _authorized_restaurant.id if _authorized_restaurant else None
 
         if domain and not token:
             token = generate_domain_verification_token(
-                name, description, domain, owner, restaurant_id
+                name, description, domain, g.owner, restaurant_id
             )
 
             # Note that we send verification email to admin@domain, not the email of the restaurant owner!
@@ -139,10 +138,7 @@ def send_and_verify_domain_token(func):
             require_condition(
                 claims["restaurant_id"] == restaurant_id, "Wrong restaurant ID in token"
             )
-            kwargs["verified_token"] = claims
-        else:
-            kwargs["verified_token"] = None
-        return func(*args, **kwargs)
+        return func(name, description, domain, owner)
 
     return wrapper
 
@@ -151,11 +147,13 @@ def send_and_verify_domain_token(func):
 def require_restaurant_owner(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        restaurant_id = kwargs.get("restaurant_id")
-        restaurant = find_restaurant_by_id(restaurant_id)
-        require_condition(restaurant, "Restaurant not found")
+        # New
+        g.authorized_restaurant = get_trusted_restaurant()
         require_condition(g.get("email"), "User is not logged in")
-        require_condition(restaurant.owner == g.email, "Unauthorized")
+        require_condition(g.authorized_restaurant, "Restaurant not found")
+        require_condition(g.authorized_restaurant.owner == g.email, "Unauthorized")
+        # Strip restaurant_id from kwargs - already stored in g.authorized_restaurant
+        kwargs.pop("restaurant_id", None)
         return func(*args, **kwargs)
 
     return wrapper
@@ -164,16 +162,12 @@ def require_restaurant_owner(func):
 def require_restaurant_manager(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        restaurant_id = kwargs.get("restaurant_id")
-        restaurant = find_restaurant_by_id(restaurant_id)
-        require_condition(restaurant, "Restaurant not found")
-        require_condition(restaurant_id, "Restaurant ID is required")
-        require_condition(
-            g.get("restaurant_id"), "You are not authenticated as a restaurant manager"
-        )
-        require_condition(
-            restaurant_id == g.restaurant_id, "You are not the manager of this restaurant"
-        )
+        g.authorized_restaurant = get_trusted_restaurant()
+        require_condition(g.get("restaurant_manager"), "Restaurant manager not found")
+        require_condition(g.authorized_restaurant, "Restaurant not found")
+        require_condition(g.authorized_restaurant.id == g.restaurant_manager, "Unauthorized")
+        # Strip restaurant_id from kwargs - already stored in g.authorized_restaurant
+        kwargs.pop("restaurant_id", None)
         return func(*args, **kwargs)
 
     return wrapper

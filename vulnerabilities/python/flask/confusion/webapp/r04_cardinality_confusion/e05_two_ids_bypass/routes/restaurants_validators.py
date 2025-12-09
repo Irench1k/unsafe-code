@@ -1,45 +1,30 @@
-"""Restaurant Validators - JSON-only input validation and response serialization.
+"""Restaurant Validators - Input validation and response serialization.
 
-All /restaurants endpoints require JSON bodies. No form data or query params for mutations.
+v405 Refactoring: All input access now uses the consume-once pattern from utils.py.
+This ensures parameters can only be read once, preventing bugs where the same
+parameter is accessed multiple times with potentially different values.
+
+Validators in this file use consume_* helpers from utils.py. The consume pattern:
+- For scalars: returns and removes the value
+- For arrays: pops and returns the first element (supports batch operations)
+- Returns None if already consumed or not present
+
+This is a SECURITY IMPROVEMENT - ensures validated data can't be re-read
+with different values later in the request lifecycle.
 """
 
 from decimal import Decimal
-from typing import Any
-
-from flask import request
 
 from ..database.models import Coupon, MenuItem, Order, Refund, Restaurant, User
-from ..database.repository import find_restaurant_by_id
 from ..errors import CheekyApiError
-
-
-# ============================================================
-# JSON INPUT HELPERS
-# ============================================================
-def require_json_body() -> dict:
-    """Require a JSON body in the request. Raises if not JSON or not a dict."""
-    if not request.is_json:
-        raise CheekyApiError("Content-Type must be application/json")
-    data = request.get_json(silent=True)
-    if not isinstance(data, dict):
-        raise CheekyApiError("Request body must be a JSON object")
-    return data
-
-
-def require_condition(condition: Any, message: str) -> None:
-    """Raise CheekyApiError if condition is falsy."""
-    if not condition:
-        raise CheekyApiError(message)
-
-
-# ============================================================
-# RESTAURANT RESOLUTION
-# ============================================================
-def get_trusted_restaurant(restaurant_id: int) -> Restaurant:
-    """Resolve and validate restaurant exists."""
-    restaurant = find_restaurant_by_id(restaurant_id)
-    require_condition(restaurant, f"Restaurant {restaurant_id} not found")
-    return restaurant
+from ..utils import (
+    consume_boolean,
+    consume_decimal,
+    consume_int_list,
+    consume_param,
+    consume_string,
+    require_condition,
+)
 
 
 # ============================================================
@@ -50,105 +35,68 @@ def validate_menu_item_fields(
     require_name: bool = False,
     require_price: bool = False,
     require_any: bool = False,
-) -> dict:
-    """Validate menu item fields from JSON body."""
-    data = require_json_body()
-    fields: dict = {}
+) -> tuple[str | None, Decimal | None, bool | None]:
+    """
+    Validate and consume menu item fields from JSON body.
 
-    name = data.get("name")
-    if name is not None:
-        require_condition(isinstance(name, str) and name.strip(), "name must be a non-empty string")
-        fields["name"] = name.strip()
-    elif require_name:
-        raise CheekyApiError("name is required")
+    Uses consume-once pattern: each field can only be read once.
+    This prevents bugs where fields are read multiple times with
+    potentially different values.
+    """
+    name = consume_string("name", required=require_name)
+    price = consume_decimal("price", required=require_price, positive=True)
+    available = consume_boolean("available")
 
-    price = data.get("price")
-    if price is not None:
-        require_condition(
-            isinstance(price, (int, float, str, Decimal)),
-            "price must be a number"
-        )
-        try:
-            price_decimal = Decimal(str(price))
-        except Exception:
-            raise CheekyApiError("price must be a valid decimal") from None
-        require_condition(price_decimal > 0, "price must be positive")
-        fields["price"] = price_decimal
-    elif require_price:
-        raise CheekyApiError("price is required")
+    if require_any and not any([name, price, available is not None]):
+        raise CheekyApiError("No fields provided")
 
-    available = data.get("available")
-    if available is not None:
-        require_condition(isinstance(available, bool), "available must be a boolean")
-        fields["available"] = available
-
-    if require_any:
-        require_condition(bool(fields), "No fields provided")
-
-    return fields
+    return name, price, available
 
 
 # ============================================================
 # INPUT VALIDATION - RESTAURANT REGISTRATION/UPDATE
 # ============================================================
-def validate_restaurant_registration(verified_token: dict[str, Any] | None) -> dict:
-    """Parse and validate restaurant registration from verified token."""
-    require_condition(verified_token, "Verified token is required")
+def validate_restaurant_update() -> tuple[dict | None, str | None, str | None, str | None, str | None]:
+    """
+    Parse and validate restaurant update from JSON body or verified token.
 
-    name = verified_token["name"]
-    description = verified_token["description"]
-    domain = verified_token["domain"]
-    owner = verified_token["owner"]
+    Uses consume-once pattern for all field access.
+    """
+    # Token is a special case - it's a nested object, consume it whole
+    token = consume_param("token")
 
-    require_condition(name and description, "name and description are required")
-
-    return {
-        "name": name,
-        "description": description,
-        "domain": domain,
-        "owner": owner,
-    }
-
-
-def validate_restaurant_update(verified_token: dict[str, Any] | None) -> dict:
-    """Parse and validate restaurant update from JSON body or verified token."""
-    if verified_token:
-        return {
-            "name": verified_token["name"],
-            "description": verified_token["description"],
-            "domain": verified_token["domain"],
-        }
+    if token:
+        if not isinstance(token, dict):
+            raise CheekyApiError("token must be an object")
+        name = token.get("name")
+        description = token.get("description")
+        domain = token.get("domain")
+        owner = token.get("owner")
+        require_condition(
+            name and description and domain, "name, description and domain are required"
+        )
     else:
-        # No token -> update restaurant with insecure data; DO NOT UPDATE DOMAIN THIS WAY!
-        data = require_json_body()
-        return {
-            "name": data.get("name"),
-            "description": data.get("description"),
-            "domain": None,  # Domain requires verified token
-        }
+        name = consume_string("name")
+        description = consume_string("description")
+        require_condition(name or description, "name or description is required")
+        domain = None
+        owner = None
+
+    return token, name, description, domain, owner
 
 
 # ============================================================
 # INPUT VALIDATION - BATCH REFUND
 # ============================================================
 def validate_batch_refund_request() -> tuple[list[int], str]:
-    """Validate batch refund request. Returns (order_ids, reason).
+    """
+    Validate batch refund request. Returns (order_ids, reason).
 
     Expects JSON: { "order_ids": [1, 2, 3], "reason": "Quality issue" }
+    Uses consume-once pattern for all field access.
     """
-    data = require_json_body()
-
-    order_ids = data.get("order_ids")
-    require_condition(order_ids is not None, "order_ids is required")
-    require_condition(isinstance(order_ids, list), "order_ids must be a list")
-    require_condition(len(order_ids) > 0, "order_ids cannot be empty")
-    require_condition(
-        all(isinstance(oid, int) for oid in order_ids),
-        "order_ids must be a list of integers"
-    )
-
-    reason = data.get("reason", "Batch refund initiated by restaurant")
-    require_condition(isinstance(reason, str), "reason must be a string")
+    order_ids = consume_int_list("order_ids", required=True, min_length=1)
+    reason = consume_string("reason") or "Batch refund initiated by restaurant"
 
     return order_ids, reason
 
@@ -273,7 +221,11 @@ def serialize_refunds(refunds: list[Refund]) -> list[dict]:
 def serialize_batch_refund_result(results: list[dict]) -> dict:
     """Serialize batch refund result from issue_order_refund results."""
     processed = [r["order_id"] for r in results if r["status"] == "processed"]
-    skipped = [{"order_id": r["order_id"], "reason": r["reason"]} for r in results if r["status"] == "skipped"]
+    skipped = [
+        {"order_id": r["order_id"], "reason": r["reason"]}
+        for r in results
+        if r["status"] == "skipped"
+    ]
     return {
         "processed_ids": processed,
         "skipped_ids": skipped,

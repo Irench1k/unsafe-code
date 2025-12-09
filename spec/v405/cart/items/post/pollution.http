@@ -1,0 +1,53 @@
+# @import ../_imports.http
+
+# POST /cart/{id}/items parameter pollution guardrails (v405)
+# Prevents cart_id injection via query/body params
+#
+# v405 override: Uses JSON body for restaurant_id instead of query param
+
+### Create Patrick's cart (for pollution tests)
+# @name patrick_cart
+# @tag cart, r04, v405
+POST /cart
+Authorization: {{auth.basic("patrick")}}
+Content-Type: application/json
+
+{"restaurant_id": 1}
+
+@patrick_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Create Plankton's cart (for pollution tests)
+# @name plankton_cart
+# @forceRef patrick_cart
+# @tag cart, r04, v405
+POST /cart
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{"restaurant_id": 1}
+
+@plankton_cart_id = {{$(response).field("cart_id")}}
+?? js $(response).status() == 201
+
+### Cannot inject cart_id via query + body - Basic Auth
+# @forceRef plankton_cart
+# @tag cart, r04, v405
+POST /cart/{{patrick_cart_id}}/items?cart_id={{plankton_cart_id}}
+Authorization: {{auth.basic("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.item("Krabby Patty").id}}", "cart_id": "{{plankton_cart_id}}" }
+
+?? js $(response).isError() == true
+
+### Cannot inject cart_id via query + body - Cookie Auth
+# @ref plankton_cart
+# @tag cart, r04, v405
+POST /cart/{{patrick_cart_id}}/items?cart_id={{plankton_cart_id}}
+Cookie: {{auth.login("plankton")}}
+Content-Type: application/json
+
+{ "item_id": "{{menu.item("Krabby Patty").id}}", "cart_id": "{{plankton_cart_id}}" }
+
+?? js $(response).isError() == true
