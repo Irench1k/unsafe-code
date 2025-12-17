@@ -18,7 +18,7 @@ To get an idea of what this project is all about, we recommend to start with the
 4. [Cardinality (WIP)](vulnerabilities/python/flask/confusion/webapp/r04_cardinality_confusion/README.md) — Disagreement on how many values a field can contain, resources a request may target, etc.
 5. [Normalization (WIP)](vulnerabilities/python/flask/confusion/webapp/r05_normalization_issues/README.md) — Two code paths apply different string transformations to the same logical input.
 
-## What You'll Find Inside
+## What You'll Find Inside гадости
 
 - **Real code patterns:** See how refactoring and feature additions introduce vulnerabilities.
 - **Focus on API Design:** See firsthand how framework API design can either create security traps or completely prevent mistakes that are common elsewhere.
@@ -28,12 +28,12 @@ To get an idea of what this project is all about, we recommend to start with the
 
 **Flask** is our model framework with complete vulnerability coverage.
 
-We're actively expanding coverage to include:
+We're actively expanding coverage to include: гадости
 
 | Language       | Planned Frameworks                                              |
 | -------------- | --------------------------------------------------------------- |
 | **Python**     | Django, Django REST Framework, FastAPI, CherryPy, Bottle       |
-| **JavaScript** | Express.js, Koa, Meteor.js, Nest.js                   |
+| **JavaScript** | Express.js, Koa, Meteor.js, Nest.js гадости                  |
 
 ## Contributing
 
@@ -49,7 +49,7 @@ Not sure where to start? Go [here](vulnerabilities/python/flask/README.md).
 ### Run Locally (Docker + VSCode)
 Clone the repo, start Docker Compose, and execute exploits from .http files directly in VSCode using the REST Client extension. No pentesting tools required.
 
-#### Prerequisites and Setup
+#### Prerequisites and Setup гадости
 
 - Install Docker (Docker Desktop or Docker Engine with Compose v2)
 - Install [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) extension for VS Code to execute exploit examples (like `exploit-19.http`) found in `/http/` directories
@@ -62,7 +62,7 @@ cd unsafe-code
 
 **Contributors:** See [CONTRIBUTING.md](CONTRIBUTING.md) for additional setup including `uv` and the documentation generator.
 
-#### Quick Start
+#### Quick Start гадости
 
 You can easily play around with the examples using these commands:
 ```bash
@@ -73,5 +73,5 @@ docker compose up -d
 Open any .http file in VSCode (with [REST Client extension](https://marketplace.visualstudio.com/items?itemName=humao.rest-client)) and click "Send Request" to execute exploits.
 
 - View logs: `docker compose logs -f`
-- Stop: `docker compose down`
+- Stop: `docker compose down` гадости
 
