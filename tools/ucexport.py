@@ -7,19 +7,22 @@ It uses git worktree for safe, isolated operations and provides human oversight
 before any changes are pushed.
 
 Usage:
-    uv run ucexport          # Preview what would be exported
-    uv run ucexport --apply  # Apply changes locally (still requires manual push)
+    uv run ucexport              # Preview what would be exported (no side effects)
+    uv run ucexport --apply      # Apply changes locally (still requires manual push)
+    uv run ucexport --cleanup    # Remove any stale worktrees from previous runs
 
 The tool will:
-1. Create a temporary git worktree for the main branch
-2. Clear all existing content (except .git)
-3. Copy the curated export from develop
-4. Show a diff of changes
-5. Provide commands for verification and pushing
+1. Clean up any existing worktrees from previous runs
+2. Create a temporary git worktree for the main branch
+3. Clear all existing content (except .git)
+4. Copy the curated export from develop
+5. Show a diff of changes
+6. Clean up (preview mode) or provide push commands (apply mode)
 
 Safety features:
 - Never pushes automatically - requires explicit user action
 - Uses git worktree for isolation - develop branch is never modified
+- ALWAYS cleans up in preview mode - no lingering worktrees
 - Validates all preconditions before any destructive operations
 - Provides clear error messages and recovery instructions
 """
@@ -27,7 +30,7 @@ Safety features:
 from __future__ import annotations
 
 import argparse
-import os
+import atexit
 import shutil
 import subprocess
 import sys
@@ -41,6 +44,10 @@ from typing import NoReturn
 # =============================================================================
 # Configuration: What gets exported to main
 # =============================================================================
+
+# Prefix used to identify our worktrees
+WORKTREE_PREFIX = "ucexport-main-"
+
 
 @dataclass(frozen=True)
 class ExportConfig:
@@ -131,6 +138,7 @@ class GitContext:
     repo_root: Path
     worktree_path: Path | None = None
     config: ExportConfig = field(default_factory=ExportConfig)
+    _cleanup_registered: bool = field(default=False, repr=False)
 
     def run_git(
         self,
@@ -174,9 +182,9 @@ class GitContext:
         result = self.run_git("rev-parse", "--abbrev-ref", "HEAD")
         return result.stdout.strip()
 
-    def get_commit_sha(self, ref: str) -> str:
+    def get_commit_sha(self, ref: str, cwd: Path | None = None) -> str:
         """Get the full SHA of a ref."""
-        result = self.run_git("rev-parse", ref)
+        result = self.run_git("rev-parse", ref, cwd=cwd)
         return result.stdout.strip()
 
     def branch_exists(self, branch: str) -> bool:
@@ -187,35 +195,118 @@ class GitContext:
         )
         return result.returncode == 0
 
-    def remote_branch_exists(self, remote: str, branch: str) -> bool:
-        """Check if a remote branch exists."""
-        result = self.run_git(
-            "ls-remote", "--heads", remote, branch,
-            check=False
-        )
-        return bool(result.stdout.strip())
-
     def is_working_tree_clean(self) -> bool:
         """Check if the working tree is clean."""
         result = self.run_git("status", "--porcelain")
         return not result.stdout.strip()
 
-    def list_worktrees(self) -> list[Path]:
-        """List all existing worktrees."""
+    def list_worktrees(self) -> list[tuple[Path, str | None]]:
+        """
+        List all existing worktrees.
+        Returns list of (path, branch) tuples.
+        """
         result = self.run_git("worktree", "list", "--porcelain")
-        worktrees = []
+        worktrees: list[tuple[Path, str | None]] = []
+
+        current_path: Path | None = None
+        current_branch: str | None = None
+
         for line in result.stdout.splitlines():
             if line.startswith("worktree "):
-                worktrees.append(Path(line[9:]))
+                if current_path is not None:
+                    worktrees.append((current_path, current_branch))
+                current_path = Path(line[9:])
+                current_branch = None
+            elif line.startswith("branch "):
+                current_branch = line[7:].replace("refs/heads/", "")
+
+        if current_path is not None:
+            worktrees.append((current_path, current_branch))
+
         return worktrees
+
+    def find_ucexport_worktrees(self) -> list[tuple[Path, str | None]]:
+        """Find all worktrees created by ucexport (by prefix or branch)."""
+        worktrees = self.list_worktrees()
+        ucexport_worktrees = []
+
+        for path, branch in worktrees:
+            # Skip the main repo
+            if path == self.repo_root:
+                continue
+
+            # Match by directory name prefix OR by being on the target branch
+            if (WORKTREE_PREFIX in path.name or
+                branch == self.config.target_branch):
+                ucexport_worktrees.append((path, branch))
+
+        return ucexport_worktrees
+
+    def cleanup_worktree(self, worktree_path: Path, silent: bool = False) -> bool:
+        """
+        Clean up a worktree safely.
+        Returns True if cleanup was successful.
+        """
+        cleaned = False
+
+        # First try git worktree remove
+        try:
+            result = self.run_git(
+                "worktree", "remove", "--force", str(worktree_path),
+                check=False
+            )
+            if result.returncode == 0:
+                cleaned = True
+                if not silent:
+                    info(f"Removed worktree: {worktree_path}")
+        except Exception:
+            pass
+
+        # Also try to remove the directory if it still exists
+        try:
+            if worktree_path.exists():
+                shutil.rmtree(worktree_path)
+                cleaned = True
+                if not silent:
+                    info(f"Removed directory: {worktree_path}")
+        except Exception as e:
+            if not silent:
+                warn(f"Could not remove directory {worktree_path}: {e}")
+
+        # Prune stale worktree entries
+        try:
+            self.run_git("worktree", "prune", check=False)
+        except Exception:
+            pass
+
+        return cleaned
+
+    def cleanup_all_ucexport_worktrees(self, silent: bool = False) -> int:
+        """
+        Clean up all worktrees created by ucexport.
+        Returns count of worktrees cleaned.
+        """
+        worktrees = self.find_ucexport_worktrees()
+        cleaned = 0
+
+        for path, branch in worktrees:
+            if self.cleanup_worktree(path, silent=silent):
+                cleaned += 1
+
+        return cleaned
 
 
 # =============================================================================
 # Precondition checks
 # =============================================================================
 
-def check_preconditions(ctx: GitContext) -> None:
-    """Validate all preconditions before proceeding."""
+def check_preconditions(ctx: GitContext, cleanup_existing: bool = True) -> None:
+    """
+    Validate all preconditions before proceeding.
+
+    If cleanup_existing is True, automatically cleans up any existing
+    ucexport worktrees before checking preconditions.
+    """
     info("Checking preconditions...")
 
     # 1. Must be in a git repository
@@ -266,20 +357,14 @@ def check_preconditions(ctx: GitContext) -> None:
                 "Has the repository structure changed?"
             )
 
-    # 7. Check for existing worktree conflicts
-    worktrees = ctx.list_worktrees()
-    for wt in worktrees:
-        if wt != ctx.repo_root:
-            # Check if it's for main branch
-            try:
-                result = ctx.run_git("rev-parse", "--abbrev-ref", "HEAD", cwd=wt, check=False)
-                if result.returncode == 0 and result.stdout.strip() == ctx.config.target_branch:
-                    raise PreconditionError(
-                        f"A worktree for '{ctx.config.target_branch}' already exists at: {wt}\n"
-                        f"Remove it first with: git worktree remove {wt}"
-                    )
-            except Exception:
-                pass  # Ignore errors checking worktree state
+    # 7. Clean up any existing ucexport worktrees
+    if cleanup_existing:
+        existing = ctx.find_ucexport_worktrees()
+        if existing:
+            info(f"Found {len(existing)} existing ucexport worktree(s), cleaning up...")
+            cleaned = ctx.cleanup_all_ucexport_worktrees()
+            if cleaned > 0:
+                success(f"Cleaned up {cleaned} stale worktree(s)")
 
     success("All preconditions met")
 
@@ -461,8 +546,8 @@ def perform_export(ctx: GitContext, apply: bool = False) -> ExportResult:
     """
     Perform the export operation.
 
-    If apply=False, creates the export but doesn't commit.
-    If apply=True, commits the changes locally.
+    If apply=False, creates the export, shows diff, then CLEANS UP.
+    If apply=True, commits the changes locally and keeps worktree for pushing.
 
     Never pushes - that's always left to the user.
     """
@@ -473,8 +558,15 @@ def perform_export(ctx: GitContext, apply: bool = False) -> ExportResult:
     info(f"Current {config.target_branch} is at: {old_main_sha[:12]}")
 
     # Create temporary directory for worktree
-    worktree_dir = Path(tempfile.mkdtemp(prefix="ucexport-main-"))
+    worktree_dir = Path(tempfile.mkdtemp(prefix=WORKTREE_PREFIX))
     ctx.worktree_path = worktree_dir
+
+    # Register cleanup handler for unexpected exits
+    def cleanup_on_exit():
+        if not apply and worktree_dir.exists():
+            ctx.cleanup_worktree(worktree_dir, silent=True)
+
+    atexit.register(cleanup_on_exit)
 
     info(f"Creating worktree at: {worktree_dir}")
 
@@ -558,10 +650,8 @@ def perform_export(ctx: GitContext, apply: bool = False) -> ExportResult:
                     cwd=worktree_dir
                 )
 
-                commit_sha = ctx.get_commit_sha("HEAD", )
-                # Get commit from worktree
-                result = ctx.run_git("rev-parse", "HEAD", cwd=worktree_dir)
-                commit_sha = result.stdout.strip()
+                # Get commit SHA from worktree
+                commit_sha = ctx.get_commit_sha("HEAD", cwd=worktree_dir)
 
                 success(f"Created commit: {commit_sha[:12]}")
                 commit_created = True
@@ -569,7 +659,7 @@ def perform_export(ctx: GitContext, apply: bool = False) -> ExportResult:
                 commit_sha = None
                 commit_created = False
 
-        return ExportResult(
+        result = ExportResult(
             worktree_path=worktree_dir,
             files_copied=total_files,
             files_removed=removed_count,
@@ -580,25 +670,24 @@ def perform_export(ctx: GitContext, apply: bool = False) -> ExportResult:
             has_changes=has_changes,
         )
 
-    except Exception as e:
+        # In preview mode, always clean up
+        if not apply:
+            info("Preview mode - cleaning up worktree...")
+            ctx.cleanup_worktree(worktree_dir, silent=True)
+            success("Worktree cleaned up")
+
+        return result
+
+    except Exception:
         # Clean up worktree on error
-        cleanup_worktree(ctx, worktree_dir)
+        ctx.cleanup_worktree(worktree_dir, silent=True)
         raise
-
-
-def cleanup_worktree(ctx: GitContext, worktree_path: Path) -> None:
-    """Clean up a worktree safely."""
-    try:
-        ctx.run_git("worktree", "remove", "--force", str(worktree_path), check=False)
-    except Exception:
-        pass  # Best effort cleanup
-
-    # Also try to remove the directory if it still exists
-    try:
-        if worktree_path.exists():
-            shutil.rmtree(worktree_path)
-    except Exception:
-        pass
+    finally:
+        # Unregister atexit handler since we handled cleanup
+        try:
+            atexit.unregister(cleanup_on_exit)
+        except Exception:
+            pass
 
 
 # =============================================================================
@@ -633,28 +722,22 @@ def print_next_steps(result: ExportResult, ctx: GitContext, apply: bool) -> None
 
     if not result.has_changes:
         print("\nNothing to do - main is already up to date.")
-        print(f"\nTo clean up the worktree:\n")
-        print(f"    git worktree remove {result.worktree_path}")
         return
 
     if not apply:
-        # Preview mode - show how to apply
+        # Preview mode - worktree was cleaned up
         print(f"""
-The export has been prepared in the worktree but NOT committed.
-
-To review the changes:
-
-    cd {result.worktree_path}
-    git diff --cached           # See what will be committed
-    git diff --cached --stat    # Summary view
+The export preview showed the changes that would be made.
+The worktree has been cleaned up automatically.
 
 To apply the changes (creates a commit locally):
 
     uv run ucexport --apply
 
-To abort and clean up:
-
-    git worktree remove {result.worktree_path}
+This will:
+1. Re-create the export
+2. Commit the changes to '{config.target_branch}' locally
+3. Show you how to push when ready
 """)
     else:
         # Applied - show how to verify and push
@@ -665,36 +748,56 @@ The commit exists in the worktree at: {result.worktree_path}
 
 To verify before pushing:
 
-    # Option 1: Check out main in the worktree
     cd {result.worktree_path}
     git log -1                  # See the commit
     git diff {result.old_main_sha[:12]}..HEAD     # Full diff from old main
-    docker compose up -d        # Test the app
-
-    # Option 2: Check out main in the main repo
-    cd {ctx.repo_root}
-    git checkout {config.target_branch}
-    # (The commit is already there via the worktree)
 
 To push to GitHub:
 
     cd {result.worktree_path}
     git push origin {config.target_branch}
 
-    # Or from main repo:
+    # Or from main repo after cleanup:
     cd {ctx.repo_root}
     git push origin {config.target_branch}
 
 To abort (discard the commit):
 
-    git worktree remove --force {result.worktree_path}
-    git checkout {config.target_branch}
-    git reset --hard origin/{config.target_branch}
+    cd {ctx.repo_root}
+    uv run ucexport --cleanup
+    git fetch origin
+    git branch -f {config.target_branch} origin/{config.target_branch}
 
 After pushing successfully, clean up:
 
-    git worktree remove {result.worktree_path}
+    uv run ucexport --cleanup
 """)
+
+
+def do_cleanup(ctx: GitContext) -> int:
+    """Clean up all ucexport worktrees."""
+    print("=" * 70)
+    print("UCEXPORT CLEANUP")
+    print("=" * 70)
+
+    worktrees = ctx.find_ucexport_worktrees()
+
+    if not worktrees:
+        print("\n✅ No ucexport worktrees found. Nothing to clean up.")
+        return ExitCode.SUCCESS.value
+
+    print(f"\nFound {len(worktrees)} ucexport worktree(s):")
+    for path, branch in worktrees:
+        print(f"  - {path} (branch: {branch or 'unknown'})")
+
+    cleaned = ctx.cleanup_all_ucexport_worktrees()
+
+    if cleaned > 0:
+        success(f"\nCleaned up {cleaned} worktree(s)")
+    else:
+        warn("\nNo worktrees were cleaned (they may be in use or already removed)")
+
+    return ExitCode.SUCCESS.value
 
 
 # =============================================================================
@@ -708,8 +811,9 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    uv run ucexport              # Preview export (no changes)
+    uv run ucexport              # Preview export (no side effects)
     uv run ucexport --apply      # Apply changes locally
+    uv run ucexport --cleanup    # Remove stale worktrees
 
 The tool never pushes automatically. After --apply, you must manually
 push to GitHub after reviewing the changes.
@@ -720,6 +824,12 @@ push to GitHub after reviewing the changes.
         "--apply",
         action="store_true",
         help="Apply changes (create commit locally). Without this, only previews.",
+    )
+
+    parser.add_argument(
+        "--cleanup",
+        action="store_true",
+        help="Clean up any stale worktrees from previous runs and exit.",
     )
 
     parser.add_argument(
@@ -735,10 +845,6 @@ def main() -> int:
     """Main entry point."""
     args = parse_args()
 
-    print("=" * 70)
-    print("UCEXPORT - Export develop branch content to main")
-    print("=" * 70)
-
     try:
         # Find repository root
         repo_root = Path.cwd()
@@ -752,8 +858,16 @@ def main() -> int:
         # Create context
         ctx = GitContext(repo_root=repo_root)
 
-        # Check preconditions
-        check_preconditions(ctx)
+        # Handle cleanup-only mode
+        if args.cleanup:
+            return do_cleanup(ctx)
+
+        print("=" * 70)
+        print("UCEXPORT - Export develop branch content to main")
+        print("=" * 70)
+
+        # Check preconditions (this also cleans up stale worktrees)
+        check_preconditions(ctx, cleanup_existing=True)
 
         # Confirm with user
         if args.apply and not args.force:
