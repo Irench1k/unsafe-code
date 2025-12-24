@@ -17,12 +17,13 @@ The tool will:
 3. Clear all existing content (except .git)
 4. Copy the curated export from develop
 5. Show a diff of changes
-6. Clean up (preview mode) or provide push commands (apply mode)
+6. Commit (apply mode only) and clean up the worktree
+7. Provide instructions for pushing or undoing
 
 Safety features:
 - Never pushes automatically - requires explicit user action
 - Uses git worktree for isolation - develop branch is never modified
-- ALWAYS cleans up in preview mode - no lingering worktrees
+- ALWAYS cleans up worktrees after completion - no lingering state
 - Validates all preconditions before any destructive operations
 - Provides clear error messages and recovery instructions
 """
@@ -670,11 +671,14 @@ def perform_export(ctx: GitContext, apply: bool = False) -> ExportResult:
             has_changes=has_changes,
         )
 
-        # In preview mode, always clean up
+        # Always clean up worktree - it has served its purpose
+        # The commit (if created) is already on the main branch ref
         if not apply:
             info("Preview mode - cleaning up worktree...")
-            ctx.cleanup_worktree(worktree_dir, silent=True)
-            success("Worktree cleaned up")
+        else:
+            info("Cleaning up worktree...")
+        ctx.cleanup_worktree(worktree_dir, silent=True)
+        success("Worktree cleaned up")
 
         return result
 
@@ -744,33 +748,20 @@ This will:
         print(f"""
 ✅ Changes have been committed locally on '{config.target_branch}'.
 
-The commit exists in the worktree at: {result.worktree_path}
-
 To verify before pushing:
 
-    cd {result.worktree_path}
-    git log -1                  # See the commit
-    git diff {result.old_main_sha[:12]}..HEAD     # Full diff from old main
+    git log {config.target_branch} -1              # See the commit
+    git show {config.target_branch}                # See full diff
+    git diff {result.old_main_sha[:12]}..{config.target_branch}  # Compare to old main
 
 To push to GitHub:
 
-    cd {result.worktree_path}
     git push origin {config.target_branch}
 
-    # Or from main repo after cleanup:
-    cd {ctx.repo_root}
-    git push origin {config.target_branch}
+To undo (reset to remote state):
 
-To abort (discard the commit):
-
-    cd {ctx.repo_root}
-    uv run ucexport --cleanup
     git fetch origin
     git branch -f {config.target_branch} origin/{config.target_branch}
-
-After pushing successfully, clean up:
-
-    uv run ucexport --cleanup
 """)
 
 
