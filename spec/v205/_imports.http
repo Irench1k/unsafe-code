@@ -1,3 +1,0 @@
-# Shared imports for v205 specs
-# Centralize relative paths to keep nested specs readable
-# @import ../common.http

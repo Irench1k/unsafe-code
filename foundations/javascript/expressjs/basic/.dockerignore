@@ -1,8 +1,0 @@
-# filepath: /expressjs/basic/.dockerignore
-node_modules
-npm-debug.log
-.DS_Store
-.env
-dist
-*.log
-*.tsbuildinfo
