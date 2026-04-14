@@ -25,6 +25,7 @@ focus = "tools.focus:main"
 ucsync = "tools.ucsync:main"
 uclint = "tools.uclint:main"
 ucdiff = "tools.ucdiff:main"
+ucexport = "tools.ucexport:main"
 
 
 [build-system]
