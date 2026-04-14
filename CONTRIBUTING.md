@@ -156,7 +156,15 @@ docker compose -p python-flask-confusion down -v
 npm install
 ```
 
-Run tests:
+**Generate inherited specs** (required after clone or pull):
+
+E2E specs use inheritance - child versions inherit tests from parent versions. The inherited files (prefixed with `~`) are generated and gitignored. You must regenerate them after cloning or pulling changes:
+
+```bash
+uv run ucsync
+```
+
+Run tests (Note: need to run from the repo root: `/unsafe-code`):
 
 ```bash
 # Run all tests in a version
