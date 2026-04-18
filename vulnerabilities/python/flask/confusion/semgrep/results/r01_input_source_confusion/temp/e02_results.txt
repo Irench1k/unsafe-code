@@ -1,0 +1,28 @@
+================================================================================
+CONFUSION VULNERABILITY CORRELATION REPORT
+================================================================================
+
+Total individual findings: 6
+Correlated results:  1 HIGH  |  0 MEDIUM
+Unpaired findings:   1
+
+--------------------------------------------------------------------------------
+CORRELATED FINDINGS
+--------------------------------------------------------------------------------
+
+[1] [HIGH] Input Source Confusion: The same underlying function is called with conflicting request accessors (form vs values).
+  Matched via: Correlation Key [$FUNC == 'check_price_and_availability']
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e02_delivery_fee/routes.py:line 67) [input-source-call-with-form]
+      | total_price = check_price_and_availability(request.form)
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e02_delivery_fee/utils.py:line 43) [input-source-call-with-values]
+      | price = check_price_and_availability(request.values)
+
+--------------------------------------------------------------------------------
+UNPAIRED FINDINGS (individual weaknesses, no matching counterpart)
+--------------------------------------------------------------------------------
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e02_delivery_fee/routes.py:line 79) [input-source-call-with-form]
+      | items = get_order_items(request.form)
+
+================================================================================

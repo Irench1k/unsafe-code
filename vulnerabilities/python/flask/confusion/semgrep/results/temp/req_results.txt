@@ -1,0 +1,65 @@
+================================================================================
+CONFUSION VULNERABILITY CORRELATION REPORT
+================================================================================
+
+Total individual findings: 28
+Correlated results:  0 HIGH  |  5 MEDIUM
+Unpaired findings:   0
+
+--------------------------------------------------------------------------------
+CORRELATED FINDINGS
+--------------------------------------------------------------------------------
+
+[1] [MEDIUM] Mixed access methods: component uses conflicting isolated sources (form vs args).
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e04_negative_tip/routes.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e04_negative_tip/routes.py:line 31) [primitive-request-use-args]
+      | parameter_in_args = request.args.get(parameter)
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e04_negative_tip/routes.py:line 35) [primitive-request-use-form]
+      | parameter_in_form = request.form.get(parameter)
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e04_negative_tip/routes.py:line 140) [primitive-request-use-form]
+      | user_data = request.json if request.is_json else request.form
+
+
+[2] [MEDIUM] Mixed access methods: component uses conflicting isolated sources (form vs args).
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e05_unlimited_refund/utils.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e05_unlimited_refund/utils.py:line 69) [primitive-request-use-args]
+      | parameter_in_args = request.args.get(parameter)
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e05_unlimited_refund/utils.py:line 73) [primitive-request-use-form]
+      | parameter_in_form = request.form.get(parameter)
+
+
+[3] [MEDIUM] Mixed access methods: component uses conflicting isolated sources (form vs args).
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e06_signup_token_swap/utils.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e06_signup_token_swap/utils.py:line 74) [primitive-request-use-args]
+      | parameter_in_args = request.args.get(parameter)
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e06_signup_token_swap/utils.py:line 78) [primitive-request-use-form]
+      | parameter_in_form = request.form.get(parameter)
+
+
+[4] [MEDIUM] Mixed access methods: component uses conflicting isolated sources (form vs args).
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e07_signup_bonus/utils.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e07_signup_bonus/utils.py:line 74) [primitive-request-use-args]
+      | parameter_in_args = request.args.get(parameter)
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e07_signup_bonus/utils.py:line 78) [primitive-request-use-form]
+      | parameter_in_form = request.form.get(parameter)
+
+
+[5] [MEDIUM] Mixed access methods: component uses conflicting isolated sources (form vs args).
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e08_fixed_final_version/utils.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e08_fixed_final_version/utils.py:line 74) [primitive-request-use-args]
+      | parameter_in_args = request.args.get(parameter)
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e08_fixed_final_version/utils.py:line 78) [primitive-request-use-form]
+      | parameter_in_form = request.form.get(parameter)
+
+================================================================================

@@ -1,0 +1,90 @@
+rules:
+  # Tier 1
+  # Detect the "or" fallback pattern, e.g. `getlist() or [get()]`
+  # This is a common pattern that creates precedence when both params exist
+  - id: input-source-getlist-or-get-fallback
+    patterns:
+      - pattern-either:
+        - pattern: $DATA.getlist($KEY1) or [$DATA.get($KEY2)]
+        - pattern: "[$DATA.get($KEY2)] or $DATA.getlist($KEY1)"
+        - pattern: $DATA.getlist($KEY1) if ... else [$DATA.get($KEY2)]
+        - pattern: "[$DATA.get($KEY2)] if ... else $DATA.getlist($KEY1)"
+    message: |
+      Input Source Confusion: Fallback pattern mixes single-value and list accessors with implicit precedence. 
+      If another component uses different precedence, an attacker sending both parameters could cause different 
+      code paths to see different values.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: confusion-vulnerability
+      subcategory: input-source-confusion
+
+  # Tier 1
+  # Detect conditional precedence, e.g. `if "key" in data then get() else getlist()`
+  - id: input-source-conditional-precedence
+    patterns:
+      - pattern-either:
+          # if key in data: get() else: getlist()
+          - pattern: |
+              if $KEY in $DATA:
+                  $VAR = ...
+              else:
+                  $VAR = $DATA.getlist(...)
+          # if key in data: getlist() else: get()  — opposite precedence
+          - pattern: |
+              if $KEY in $DATA:
+                  $VAR = $DATA.getlist(...)
+              else:
+                  $VAR = ...
+          # Ternary form
+          - pattern: |
+              $VAR = $DATA.get($KEY) if $KEY in $DATA else $DATA.getlist(...)
+          - pattern: |
+              $VAR = $DATA.getlist($KEY) if $KEY in $DATA else $DATA.get(...)
+    message: |
+      Input Source Confusion: Conditional creates precedence between
+      single-value and list accessors. If another component uses opposite
+      precedence, sending both parameters could cause different code
+      paths to see different values.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: confusion-vulnerability
+      subcategory: input-source-confusion
+
+  # # Tier 2
+  # - id: input-source-get-in-getlist-function
+  #   patterns:
+  #     - pattern: $DATA.get(...)
+  #     - pattern-inside: |
+  #         def $FUNC(...):
+  #             ...
+  #             $DATA.getlist(...)
+  #             ...
+  #   message: |
+  #     Function uses both .get() and .getlist() on the same parameter.
+  #     Mixed access methods are a precondition for Input Source Confusion.
+  #   languages: [python]
+  #   severity: INFO
+  #   metadata:
+  #     category: confusion-vulnerability
+  #     subcategory: input-source-confusion
+
+  # # Tier 2
+  # - id: input-source-getlist-in-get-function
+  #   patterns:
+  #     - pattern: $DATA.getlist(...)
+  #     - pattern-inside: |
+  #         def $FUNC(...):
+  #             ...
+  #             $DATA.get(...)
+  #             ...
+  #   message: |
+  #     Function uses both .get() and .getlist() on the same parameter.
+  #     Mixed access methods are a precondition for Input Source Confusion.
+  #     This is the reverse of `input-source-get-in-getlist-function` rule.
+  #   languages: [python]
+  #   severity: INFO
+  #   metadata:
+  #     category: confusion-vulnerability
+  #     subcategory: input-source-confusion

@@ -1,0 +1,85 @@
+================================================================================
+CONFUSION VULNERABILITY CORRELATION REPORT
+================================================================================
+
+Total individual findings: 42
+Correlated results:  0 HIGH  |  7 MEDIUM
+Unpaired findings:   0
+
+--------------------------------------------------------------------------------
+CORRELATED FINDINGS
+--------------------------------------------------------------------------------
+
+[1] [MEDIUM] Mass Assignment Preconditions: The context contains bulk data extraction, dictionary merging, and model validation. Verify if these mechanisms connect in a single data flow.
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e06_signup_token_swap/routes.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e06_signup_token_swap/routes.py:line 149) [primitive-bulk-extraction]
+      | user_data = request.json if request.is_json else request.form
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e06_signup_token_swap/routes.py:line 172) [primitive-model-bulk-validation, primitive-dict-unpack-merge]
+      | new_order = Order.model_validate({**user_data, **safe_order_data})
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e06_signup_token_swap/routes.py:line 252) [primitive-bulk-extraction]
+      | user_data = request.json
+
+
+[2] [MEDIUM] Mass Assignment Preconditions: The context contains bulk data extraction, dictionary merging, and model validation. Verify if these mechanisms connect in a single data flow.
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e03_order_overwrite/routes.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e03_order_overwrite/routes.py:line 181) [primitive-bulk-extraction]
+      | user_data = request.json if request.is_json else request.form
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e03_order_overwrite/routes.py:line 200) [primitive-model-bulk-validation, primitive-dict-unpack-merge]
+      | new_order = Order.model_validate({**user_data, **safe_order_data})
+
+
+[3] [MEDIUM] Mass Assignment Preconditions: The context contains bulk data extraction, dictionary merging, and model validation. Verify if these mechanisms connect in a single data flow.
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e04_negative_tip/routes.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e04_negative_tip/routes.py:line 140) [primitive-bulk-extraction]
+      | user_data = request.json if request.is_json else request.form
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e04_negative_tip/routes.py:line 161) [primitive-model-bulk-validation, primitive-dict-unpack-merge]
+      | new_order = Order.model_validate({**user_data, **safe_order_data})
+
+
+[4] [MEDIUM] Mass Assignment Preconditions: The context contains bulk data extraction, dictionary merging, and model validation. Verify if these mechanisms connect in a single data flow.
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e05_unlimited_refund/routes.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e05_unlimited_refund/routes.py:line 130) [primitive-bulk-extraction]
+      | user_data = request.json if request.is_json else request.form
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e05_unlimited_refund/routes.py:line 153) [primitive-model-bulk-validation, primitive-dict-unpack-merge]
+      | new_order = Order.model_validate({**user_data, **safe_order_data})
+
+
+[5] [MEDIUM] Mass Assignment Preconditions: The context contains bulk data extraction, dictionary merging, and model validation. Verify if these mechanisms connect in a single data flow.
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e07_signup_bonus/routes.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e07_signup_bonus/routes.py:line 135) [primitive-bulk-extraction]
+      | user_data = request.json if request.is_json else request.form
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e07_signup_bonus/routes.py:line 158) [primitive-model-bulk-validation, primitive-dict-unpack-merge]
+      | new_order = Order.model_validate({**user_data, **safe_order_data})
+
+
+[6] [MEDIUM] Mass Assignment Preconditions: The context contains bulk data extraction, dictionary merging, and model validation. Verify if these mechanisms connect in a single data flow.
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e08_fixed_final_version/routes.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e08_fixed_final_version/routes.py:line 135) [primitive-bulk-extraction]
+      | user_data = request.json if request.is_json else request.form
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e08_fixed_final_version/routes.py:line 158) [primitive-model-bulk-validation, primitive-dict-unpack-merge]
+      | new_order = Order.model_validate({**user_data, **safe_order_data})
+
+
+[7] [MEDIUM] Mass Assignment Preconditions: The context contains bulk data extraction, dictionary merging, and model validation. Verify if these mechanisms connect in a single data flow.
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r02_authentication_confusion/e01_session_hijack/routes.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r02_authentication_confusion/e01_session_hijack/routes.py:line 150) [primitive-bulk-extraction]
+      | user_data = request.json if request.is_json else request.form
+
+    (vulnerabilities/python/flask/confusion/webapp/r02_authentication_confusion/e01_session_hijack/routes.py:line 173) [primitive-model-bulk-validation, primitive-dict-unpack-merge]
+      | new_order = Order.model_validate({**user_data, **safe_order_data})
+
+================================================================================

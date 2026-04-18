@@ -1,0 +1,446 @@
+{
+    "version": "1.157.0",
+    "results": [
+        {
+            "check_id": "semgrep-rules.flask.r01_input_source_confusion.e01_dual_parameter.input-source-conditional-precedence",
+            "path": "vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/utils.py",
+            "start": {
+                "line": 24,
+                "col": 5,
+                "offset": 523
+            },
+            "end": {
+                "line": 27,
+                "col": 38,
+                "offset": 640
+            },
+            "extra": {
+                "metavars": {
+                    "$KEY": {
+                        "start": {
+                            "line": 24,
+                            "col": 8,
+                            "offset": 526
+                        },
+                        "end": {
+                            "line": 24,
+                            "col": 14,
+                            "offset": 532
+                        },
+                        "abstract_content": "\"item\""
+                    },
+                    "$DATA": {
+                        "start": {
+                            "line": 24,
+                            "col": 18,
+                            "offset": 536
+                        },
+                        "end": {
+                            "line": 24,
+                            "col": 22,
+                            "offset": 540
+                        },
+                        "abstract_content": "data"
+                    },
+                    "$VAR": {
+                        "start": {
+                            "line": 25,
+                            "col": 9,
+                            "offset": 566
+                        },
+                        "end": {
+                            "line": 25,
+                            "col": 14,
+                            "offset": 571
+                        },
+                        "abstract_content": "items"
+                    }
+                },
+                "message": "Input Source Confusion: Conditional creates precedence between\nsingle-value and list accessors. If another component uses opposite\nprecedence, sending both parameters could cause different code\npaths to see different values.\n",
+                "metadata": {
+                    "category": "confusion-vulnerability",
+                    "subcategory": "input-source-confusion"
+                },
+                "severity": "WARNING",
+                "fingerprint": "0195174f52f34c8f85efc988fc6bf0bbdde8ba34a7cc9a86d6a4f9ebedbb7db85a78c72fcaa191d65fd062ce2813b7041909374cd95d7d145f17a06ae0f46e32_0",
+                "lines": "    if \"item\" in data:  # noqa: SIM108\n        items = [data.get(\"item\")]\n    else:\n        items = data.getlist(\"items\")",
+                "is_ignored": false,
+                "validation_state": "NO_VALIDATOR",
+                "engine_kind": "OSS"
+            }
+        },
+        {
+            "check_id": "semgrep-rules.flask.r01_input_source_confusion.e01_dual_parameter.input-source-get-in-getlist-function",
+            "path": "vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/utils.py",
+            "start": {
+                "line": 25,
+                "col": 18,
+                "offset": 575
+            },
+            "end": {
+                "line": 25,
+                "col": 34,
+                "offset": 591
+            },
+            "extra": {
+                "metavars": {
+                    "$FUNC": {
+                        "start": {
+                            "line": 22,
+                            "col": 5,
+                            "offset": 411
+                        },
+                        "end": {
+                            "line": 22,
+                            "col": 33,
+                            "offset": 439
+                        },
+                        "abstract_content": "check_price_and_availability"
+                    },
+                    "$DATA": {
+                        "start": {
+                            "line": 25,
+                            "col": 18,
+                            "offset": 575
+                        },
+                        "end": {
+                            "line": 25,
+                            "col": 22,
+                            "offset": 579
+                        },
+                        "abstract_content": "data"
+                    }
+                },
+                "message": "Function uses both .get() and .getlist() on the same parameter.\nMixed access methods are a precondition for Input Source Confusion.\n",
+                "metadata": {
+                    "category": "confusion-vulnerability",
+                    "subcategory": "input-source-confusion"
+                },
+                "severity": "INFO",
+                "fingerprint": "8e78412a8cde6b00ef32fd60031ac1570806787651bdd65dae04c39654440af74ab67a9451a5cda71515f146cb94c275222a7a8e55c5a4e09fdf09aef5f7ea4f_0",
+                "lines": "        items = [data.get(\"item\")]",
+                "is_ignored": false,
+                "validation_state": "NO_VALIDATOR",
+                "engine_kind": "OSS"
+            }
+        },
+        {
+            "check_id": "semgrep-rules.flask.r01_input_source_confusion.e01_dual_parameter.input-source-getlist-in-get-function",
+            "path": "vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/utils.py",
+            "start": {
+                "line": 27,
+                "col": 17,
+                "offset": 619
+            },
+            "end": {
+                "line": 27,
+                "col": 38,
+                "offset": 640
+            },
+            "extra": {
+                "metavars": {
+                    "$FUNC": {
+                        "start": {
+                            "line": 22,
+                            "col": 5,
+                            "offset": 411
+                        },
+                        "end": {
+                            "line": 22,
+                            "col": 33,
+                            "offset": 439
+                        },
+                        "abstract_content": "check_price_and_availability"
+                    },
+                    "$DATA": {
+                        "start": {
+                            "line": 27,
+                            "col": 17,
+                            "offset": 619
+                        },
+                        "end": {
+                            "line": 27,
+                            "col": 21,
+                            "offset": 623
+                        },
+                        "abstract_content": "data"
+                    }
+                },
+                "message": "Function uses both .get() and .getlist() on the same parameter.\nMixed access methods are a precondition for Input Source Confusion.\nThis is the reverse of `input-source-get-in-getlist-function` rule.\n",
+                "metadata": {
+                    "category": "confusion-vulnerability",
+                    "subcategory": "input-source-confusion"
+                },
+                "severity": "INFO",
+                "fingerprint": "398a0973bc6c84e66813d8c029c15581e69e7b3a8ec0a3840251740525421f6e93cf25dbe654d8a2a9a3d4729f399df6f355e374ff1752413a15e1c00350f074_0",
+                "lines": "        items = data.getlist(\"items\")",
+                "is_ignored": false,
+                "validation_state": "NO_VALIDATOR",
+                "engine_kind": "OSS"
+            }
+        },
+        {
+            "check_id": "semgrep-rules.flask.r01_input_source_confusion.e01_dual_parameter.input-source-getlist-in-get-function",
+            "path": "vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/utils.py",
+            "start": {
+                "line": 55,
+                "col": 16,
+                "offset": 1361
+            },
+            "end": {
+                "line": 55,
+                "col": 37,
+                "offset": 1382
+            },
+            "extra": {
+                "metavars": {
+                    "$FUNC": {
+                        "start": {
+                            "line": 53,
+                            "col": 5,
+                            "offset": 1264
+                        },
+                        "end": {
+                            "line": 53,
+                            "col": 20,
+                            "offset": 1279
+                        },
+                        "abstract_content": "get_order_items"
+                    },
+                    "$DATA": {
+                        "start": {
+                            "line": 55,
+                            "col": 16,
+                            "offset": 1361
+                        },
+                        "end": {
+                            "line": 55,
+                            "col": 20,
+                            "offset": 1365
+                        },
+                        "abstract_content": "data"
+                    }
+                },
+                "message": "Function uses both .get() and .getlist() on the same parameter.\nMixed access methods are a precondition for Input Source Confusion.\nThis is the reverse of `input-source-get-in-getlist-function` rule.\n",
+                "metadata": {
+                    "category": "confusion-vulnerability",
+                    "subcategory": "input-source-confusion"
+                },
+                "severity": "INFO",
+                "fingerprint": "8121c7d5f84dd2e258655c99d14445fed6de5e4a9306b5c5f169c461383200b1513052b2a86775afb3b7050805fff2a3aa3cd6fc51b3868ccff90c6b7e8aacda_0",
+                "lines": "    item_ids = data.getlist(\"items\") or [data.get(\"item\")]",
+                "is_ignored": false,
+                "validation_state": "NO_VALIDATOR",
+                "engine_kind": "OSS"
+            }
+        },
+        {
+            "check_id": "semgrep-rules.flask.r01_input_source_confusion.e01_dual_parameter.input-source-getlist-or-get-fallback",
+            "path": "vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/utils.py",
+            "start": {
+                "line": 55,
+                "col": 16,
+                "offset": 1361
+            },
+            "end": {
+                "line": 55,
+                "col": 59,
+                "offset": 1404
+            },
+            "extra": {
+                "metavars": {
+                    "$DATA": {
+                        "start": {
+                            "line": 55,
+                            "col": 16,
+                            "offset": 1361
+                        },
+                        "end": {
+                            "line": 55,
+                            "col": 20,
+                            "offset": 1365
+                        },
+                        "abstract_content": "data"
+                    },
+                    "$KEY1": {
+                        "start": {
+                            "line": 55,
+                            "col": 29,
+                            "offset": 1374
+                        },
+                        "end": {
+                            "line": 55,
+                            "col": 36,
+                            "offset": 1381
+                        },
+                        "abstract_content": "\"items\""
+                    },
+                    "$KEY2": {
+                        "start": {
+                            "line": 55,
+                            "col": 51,
+                            "offset": 1396
+                        },
+                        "end": {
+                            "line": 55,
+                            "col": 57,
+                            "offset": 1402
+                        },
+                        "abstract_content": "\"item\""
+                    }
+                },
+                "message": "Input Source Confusion: Fallback pattern mixes single-value and list accessors with implicit precedence. \nIf another component uses different precedence, an attacker sending both parameters could cause different \ncode paths to see different values.\n",
+                "metadata": {
+                    "category": "confusion-vulnerability",
+                    "subcategory": "input-source-confusion"
+                },
+                "severity": "WARNING",
+                "fingerprint": "63fbfd9bdd2a1a55f345259bb6533eedd61472a593e0e98e894770d5de22751d662a16ab9d70971543c9700b0b1dd11170dd5f905208293a7165bcb78e1c514f_0",
+                "lines": "    item_ids = data.getlist(\"items\") or [data.get(\"item\")]",
+                "is_ignored": false,
+                "validation_state": "NO_VALIDATOR",
+                "engine_kind": "OSS"
+            }
+        },
+        {
+            "check_id": "semgrep-rules.flask.r01_input_source_confusion.e01_dual_parameter.input-source-get-in-getlist-function",
+            "path": "vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/utils.py",
+            "start": {
+                "line": 55,
+                "col": 42,
+                "offset": 1387
+            },
+            "end": {
+                "line": 55,
+                "col": 58,
+                "offset": 1403
+            },
+            "extra": {
+                "metavars": {
+                    "$FUNC": {
+                        "start": {
+                            "line": 53,
+                            "col": 5,
+                            "offset": 1264
+                        },
+                        "end": {
+                            "line": 53,
+                            "col": 20,
+                            "offset": 1279
+                        },
+                        "abstract_content": "get_order_items"
+                    },
+                    "$DATA": {
+                        "start": {
+                            "line": 55,
+                            "col": 42,
+                            "offset": 1387
+                        },
+                        "end": {
+                            "line": 55,
+                            "col": 46,
+                            "offset": 1391
+                        },
+                        "abstract_content": "data"
+                    }
+                },
+                "message": "Function uses both .get() and .getlist() on the same parameter.\nMixed access methods are a precondition for Input Source Confusion.\n",
+                "metadata": {
+                    "category": "confusion-vulnerability",
+                    "subcategory": "input-source-confusion"
+                },
+                "severity": "INFO",
+                "fingerprint": "ffcaed10adbfcd815cb3b405a76e8464a44f111f75f401ac0d009e3ab9193b8199063315179fd51c8f003520a5acda6b85fbec3940bc1878bc12ddab32cf115e_0",
+                "lines": "    item_ids = data.getlist(\"items\") or [data.get(\"item\")]",
+                "is_ignored": false,
+                "validation_state": "NO_VALIDATOR",
+                "engine_kind": "OSS"
+            }
+        }
+    ],
+    "errors": [],
+    "paths": {
+        "scanned": [
+            "vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/auth.py",
+            "vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/database.py",
+            "vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/e2e_helpers.py",
+            "vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/models.py",
+            "vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/routes.py",
+            "vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/utils.py"
+        ]
+    },
+    "time": {
+        "rules": [],
+        "rules_parse_time": 0.0012998580932617188,
+        "profiling_times": {
+            "config_time": 0.11630105972290039,
+            "core_time": 0.2410421371459961,
+            "ignores_time": 6.699562072753906e-05,
+            "total_time": 0.363631010055542
+        },
+        "parsing_time": {
+            "total_time": 0.0,
+            "per_file_time": {
+                "mean": 0.0,
+                "std_dev": 0.0
+            },
+            "very_slow_stats": {
+                "time_ratio": 0.0,
+                "count_ratio": 0.0
+            },
+            "very_slow_files": []
+        },
+        "scanning_time": {
+            "total_time": 0.01657390594482422,
+            "per_file_time": {
+                "mean": 0.002762317657470703,
+                "std_dev": 7.112511904476075e-06
+            },
+            "very_slow_stats": {
+                "time_ratio": 0.0,
+                "count_ratio": 0.0
+            },
+            "very_slow_files": []
+        },
+        "matching_time": {
+            "total_time": 0.0,
+            "per_file_and_rule_time": {
+                "mean": 0.0,
+                "std_dev": 0.0
+            },
+            "very_slow_stats": {
+                "time_ratio": 0.0,
+                "count_ratio": 0.0
+            },
+            "very_slow_rules_on_files": []
+        },
+        "tainting_time": {
+            "total_time": 0.0,
+            "per_def_and_rule_time": {
+                "mean": 0.0,
+                "std_dev": 0.0
+            },
+            "very_slow_stats": {
+                "time_ratio": 0.0,
+                "count_ratio": 0.0
+            },
+            "very_slow_rules_on_defs": []
+        },
+        "fixpoint_timeouts": [],
+        "prefiltering": {
+            "project_level_time": 0.0,
+            "file_level_time": 0.0,
+            "rules_with_project_prefilters_ratio": 0.0,
+            "rules_with_file_prefilters_ratio": 1.0,
+            "rules_selected_ratio": 0.16666666666666666,
+            "rules_matched_ratio": 0.16666666666666666
+        },
+        "targets": [],
+        "total_bytes": 0,
+        "max_memory_bytes": 117227840
+    },
+    "engine_requested": "OSS",
+    "interfile_languages_used": [],
+    "skipped_rules": [],
+    "profiling_results": []
+}

@@ -1,0 +1,43 @@
+================================================================================
+CONFUSION VULNERABILITY CORRELATION REPORT
+================================================================================
+
+Total individual findings: 14
+Correlated results:  1 HIGH  |  0 MEDIUM
+Unpaired findings:   0
+
+--------------------------------------------------------------------------------
+CORRELATED FINDINGS
+--------------------------------------------------------------------------------
+
+[1] [HIGH] Input Source Confusion: content-type polymorphism feeds a mass-assignment overlay merge. User-chosen input shape is spread before a 'safe' overlay, so fields the overlay does not name pass through to the model validator.
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e03_order_overwrite/routes.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e03_order_overwrite/routes.py:line 92) [input-source-bulk-request-data-extraction]
+      | delivery_address = request.form.get("delivery_address")
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e03_order_overwrite/routes.py:line 96) [input-source-bulk-request-data-extraction]
+      | total_price = check_price_and_availability(request.form)
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e03_order_overwrite/routes.py:line 100) [input-source-bulk-request-data-extraction]
+      | delivery_fee = calculate_delivery_fee(request.form)
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e03_order_overwrite/routes.py:line 105) [input-source-bulk-request-data-extraction]
+      | items = get_order_items(request.form)
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e03_order_overwrite/routes.py:line 154) [input-source-bulk-request-data-extraction]
+      | if not request.json:
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e03_order_overwrite/routes.py:line 157) [input-source-bulk-request-data-extraction]
+      | item_id = request.json.get("item_id")
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e03_order_overwrite/routes.py:line 181) [input-source-content-type-branch, input-source-bulk-request-data-extraction]
+      | user_data = request.json if request.is_json else request.form
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e03_order_overwrite/routes.py:line 200) [input-source-user-data-overlay-merge, model-validation-from-variable, dict-merge-unpacking-operator]
+      | new_order = Order.model_validate({**user_data, **safe_order_data})
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e03_order_overwrite/routes.py:line 219) [input-source-bulk-request-data-extraction]
+      | payload = request.get_json(silent=True) or {}
+
+================================================================================

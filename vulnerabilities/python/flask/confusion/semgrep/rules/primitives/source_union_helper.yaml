@@ -1,0 +1,173 @@
+rules:
+  # ----------------------------------------------------------------
+  # Helper-definition primitive: a function whose body reads from
+  # multiple request sources. Used to identify "source-union helpers"
+  # that can then be cross-referenced with call sites passing literal
+  # keys.
+  # ----------------------------------------------------------------
+
+  - id: primitive-source-union-helper
+    patterns:
+      - pattern: |
+          def $HELPER(...):
+            ...
+      - pattern-either:
+          # Helper touches args and form
+          - patterns:
+              - pattern-either:
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.args.get(...)
+                        ...
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.args[$K]
+                        ...
+              - pattern-either:
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.form.get(...)
+                        ...
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.form[$K]
+                        ...
+          # Helper touches args and json
+          - patterns:
+              - pattern-either:
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.args.get(...)
+                        ...
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.args[$K]
+                        ...
+              - pattern-either:
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.json.get(...)
+                        ...
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.get_json(...).get(...)
+                        ...
+          # Helper touches form and json
+          - patterns:
+              - pattern-either:
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.form.get(...)
+                        ...
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.form[$K]
+                        ...
+              - pattern-either:
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.json.get(...)
+                        ...
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.get_json(...).get(...)
+                        ...
+          # Helper touches form and values
+          - patterns:
+              - pattern-either:
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.form.get(...)
+                        ...
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.form[$K]
+                        ...
+              - pattern-either:
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.values.get(...)
+                        ...
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.values[$K]
+                        ...
+          # Helper touches json and values
+          - patterns:
+              - pattern-either:
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.json.get(...)
+                        ...
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.get_json(...).get(...)
+                        ...
+              - pattern-either:
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.values.get(...)
+                        ...
+                  - pattern-inside: |
+                      def $HELPER(...):
+                        ...
+                        request.values[$K]
+                        ...
+    message: |
+      Function body reads from two or more distinct Flask request
+      sources. This is a source-union helper. Callers delegate source
+      selection to this function, which may disagree with other
+      components that read from a single source.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      subcategory: primitives
+      correlation_key: $HELPER
+      two_hop_role: definition
+      two_hop_helper_metavar: $HELPER
+
+  # ----------------------------------------------------------------
+  # Call-site primitive: a call to any function with a literal string
+  # argument. Paired with primitive-source-union-helper to recover the
+  # literal key being requested from the helper.
+  # ----------------------------------------------------------------
+  - id: primitive-helper-call-with-literal
+    patterns:
+      # Capture the argument explicitly into $ARG
+      - pattern: $HELPER($ARG)
+      # Constrain $ARG to strictly be a string literal
+      - metavariable-pattern:
+          metavariable: $ARG
+          pattern: "..."
+    message: |
+      Function called with a literal string argument.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      subcategory: primitives
+      correlation_key: $HELPER
+      # NEW: Metadata-driven two-hop correlation
+      two_hop_role: call_site
+      two_hop_helper_metavar: $HELPER
+      two_hop_literal_metavar: $ARG

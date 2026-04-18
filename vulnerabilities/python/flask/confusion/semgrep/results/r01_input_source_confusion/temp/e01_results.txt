@@ -1,0 +1,31 @@
+================================================================================
+CONFUSION VULNERABILITY CORRELATION REPORT
+================================================================================
+
+Total individual findings: 6
+Correlated results:  1 HIGH  |  0 MEDIUM
+Unpaired findings:   0
+
+--------------------------------------------------------------------------------
+CORRELATED FINDINGS
+--------------------------------------------------------------------------------
+
+[1] [HIGH] Input Source Confusion: two components use opposite precedence for single-value vs list extraction.
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/utils.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/utils.py:lines 24-27) [input-source-conditional-precedence]
+      | if "item" in data:  # noqa: SIM108
+      |         items = [data.get("item")]
+      |     else:
+      |         items = data.getlist("items")
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/utils.py:line 25) [input-source-get-in-getlist-function]
+      | items = [data.get("item")]
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/utils.py:line 27) [input-source-getlist-in-get-function]
+      | items = data.getlist("items")
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/utils.py:line 55) [input-source-getlist-or-get-fallback, input-source-getlist-in-get-function, input-source-get-in-getlist-function]
+      | item_ids = data.getlist("items") or [data.get("item")]
+
+================================================================================

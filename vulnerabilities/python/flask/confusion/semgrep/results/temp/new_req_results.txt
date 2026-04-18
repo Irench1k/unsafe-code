@@ -1,0 +1,28 @@
+================================================================================
+CONFUSION VULNERABILITY CORRELATION REPORT
+================================================================================
+
+Total individual findings: 58
+Correlated results:  0 HIGH  |  1 MEDIUM
+Unpaired findings:   0
+
+--------------------------------------------------------------------------------
+CORRELATED FINDINGS
+--------------------------------------------------------------------------------
+
+[1] [MEDIUM] Mixed access methods: component uses both isolated (form) and merged (values) sources.
+  Matched via: Correlation Key [$FUNC == 'check_price_and_availability']
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/routes.py:line 67) [generic-func-called-with-form]
+      | total_price = check_price_and_availability(request.form)
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e02_delivery_fee/routes.py:line 67) [generic-func-called-with-form]
+      | total_price = check_price_and_availability(request.form)
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e02_delivery_fee/utils.py:line 43) [generic-func-called-with-values]
+      | price = check_price_and_availability(request.values)
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e03_order_overwrite/routes.py:line 96) [generic-func-called-with-form]
+      | total_price = check_price_and_availability(request.form)
+
+================================================================================

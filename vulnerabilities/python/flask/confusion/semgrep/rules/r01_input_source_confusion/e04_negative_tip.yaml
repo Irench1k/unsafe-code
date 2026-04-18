@@ -1,0 +1,49 @@
+rules:
+  # ----------------------------------------------------------------
+  # Tier 1: three-source OR fallback chain.
+  # High-precision signal that the component is deliberately
+  # consulting multiple sources with implicit precedence.
+  # ----------------------------------------------------------------
+
+  - id: input-source-or-fallback-chain
+    patterns:
+      - pattern: $EXPR1 or $EXPR2 or $EXPR3
+      - metavariable-pattern:
+          metavariable: $EXPR1
+          patterns:
+            - pattern-either:
+                - pattern: request.args.get(...)
+                - pattern: request.form.get(...)
+                - pattern: request.json.get(...)
+                - pattern: request.values.get(...)
+      - metavariable-pattern:
+          metavariable: $EXPR2
+          patterns:
+            - pattern-either:
+                - pattern: request.args.get(...)
+                - pattern: request.form.get(...)
+                - pattern: request.json.get(...)
+                - pattern: request.values.get(...)
+      - metavariable-pattern:
+          metavariable: $EXPR3
+          patterns:
+            - pattern-either:
+                - pattern: request.args.get(...)
+                - pattern: request.form.get(...)
+                - pattern: request.json.get(...)
+                - pattern: request.values.get(...)
+    message: |
+      Input Source Confusion: component reads the same logical key from
+      three Flask request sources via OR-fallback, establishing implicit
+      precedence (e.g. args > json > form). If another component in this
+      codebase reads the key from a single source, or via a content-type
+      branch, or with different precedence, an attacker populating
+      multiple channels can cause the two components to observe different
+      values. This is the classic shape behind middleware-validation
+      bypass.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: confusion-vulnerability
+      subcategory: input-source-confusion
+      scope: codebase

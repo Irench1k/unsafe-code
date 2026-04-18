@@ -1,0 +1,20 @@
+rules:
+  - id: primitive-dict-get-access
+    pattern: $DATA.get(...)
+    message: |
+      Component accesses data using a single-value extractor `.get()`.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      subcategory: primitives
+
+  - id: primitive-dict-getlist-access
+    pattern: $DATA.getlist(...)
+    message: |
+      Component accesses data using a multi-value extractor `.getlist()`.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      subcategory: primitives

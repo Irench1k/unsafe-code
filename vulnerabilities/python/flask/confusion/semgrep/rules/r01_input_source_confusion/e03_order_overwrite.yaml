@@ -1,0 +1,146 @@
+rules:
+  # ----------------------------------------------------------------
+  # Tier 1: specific pattern rules (WARNING)
+  # ----------------------------------------------------------------
+
+  # Half A: the source-side polymorphism
+  - id: input-source-content-type-branch
+    patterns:
+      - pattern-either:
+          - pattern: $VAR = request.json if request.is_json else request.form
+          - pattern: $VAR = request.get_json() if request.is_json else request.form
+          - pattern: $VAR = request.json if request.is_json else request.values
+          - pattern: $VAR = request.get_json() if request.is_json else request.values
+          - pattern: $VAR = request.form if not request.is_json else request.json
+          - pattern: $VAR = request.form if not request.is_json else request.get_json()
+          - pattern: $VAR = request.values if not request.is_json else request.json
+          - pattern: $VAR = request.values if not request.is_json else request.get_json()
+          - pattern: |
+              if request.is_json:
+                  $VAR = request.json
+              else:
+                  $VAR = request.form
+          - pattern: |
+              if request.is_json:
+                  $VAR = request.get_json()
+              else:
+                  $VAR = request.form
+          - pattern: |
+              if request.is_json:
+                  $VAR = request.json
+              else:
+                  $VAR = request.values
+          - pattern: |
+              if request.is_json:
+                  $VAR = request.get_json()
+              else:
+                  $VAR = request.values
+          - pattern: |
+              if not request.is_json:
+                  $VAR = request.form
+              else:
+                  $VAR = request.json
+          - pattern: |
+              if not request.is_json:
+                  $VAR = request.form
+              else:
+                  $VAR = request.get_json()
+          - pattern: |
+              if not request.is_json:
+                  $VAR = request.values
+              else:
+                  $VAR = request.json
+          - pattern: |
+              if not request.is_json:
+                  $VAR = request.values
+              else:
+                  $VAR = request.get_json()
+    message: |
+      Input Source Confusion: the same local variable is bound to different
+      request sources depending on content type. request.json produces a plain
+      dict with preserved types and arbitrary nesting; request.form produces a
+      flat MultiDict of strings. Downstream components that consume $VAR cannot
+      rely on either the key-set or the value types being stable across
+      requests. If $VAR later reaches a mass-assignment sink (spread into a
+      model constructor or validator), an attacker chooses the shape.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: confusion-vulnerability
+      subcategory: input-source-confusion
+
+  # Half B: the sink-side overlay merge
+  - id: input-source-user-data-overlay-merge
+    patterns:
+      - pattern-either:
+          - pattern: $MODEL.model_validate({**$USER, **$SAFE})
+          - pattern: $MODEL.parse_obj({**$USER, **$SAFE})
+          - pattern: $MODEL.model_validate_json({**$USER, **$SAFE})
+          - pattern: $MODEL(**{**$USER, **$SAFE})
+    message: |
+      Input Source Confusion (mass assignment): a user-controlled dict is
+      spread before a "safe overlay" and handed to a model validator. Python's
+      dict merge only overwrites keys present in BOTH operands — any key in
+      $USER that is not explicitly enumerated in $SAFE passes through
+      unchanged. Models typically accept more fields than the developer
+      mentally tracks (e.g. order_id, role, is_admin), so the overlay gives a
+      false sense of sanitisation. The developer reads this as "safe fields
+      win"; the semantics are "shared fields win, the rest leak".
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: confusion-vulnerability
+      subcategory: input-source-confusion
+
+  # ----------------------------------------------------------------
+  # Tier 2: structural precondition rules (INFO)
+  # ----------------------------------------------------------------
+
+  # - id: input-source-bulk-request-data-extraction
+  #   pattern-either:
+  #     - pattern: request.json
+  #     - pattern: request.get_json(...)
+  #     - pattern: request.form
+  #   message: |
+  #     Component extracts the entire request payload as a dictionary rather than 
+  #     accessing specific fields safely (e.g., request.json.get("field")). 
+  #     This is a structural precondition for Mass Assignment if this data is 
+  #     later merged or passed to a database model.
+  #   languages: [python]
+  #   severity: INFO
+  #   metadata:
+  #     category: confusion-vulnerability
+  #     subcategory: input-source-confusion
+
+  # # Precondition B: dict-merge unpacking
+  # - id: dict-merge-unpacking-operator
+  #   pattern: "{..., **$A, ..., **$B, ...}"
+  #   message: |
+  #     Dictionary unpacking merge. This is a transparent pass-through for keys
+  #     present in only one operand: only colliding keys are overwritten. If
+  #     either operand is user-controlled and the result flows into a model
+  #     validator, any field not explicitly named by the "safe" side reaches
+  #     the model unchanged.
+  #   languages: [python]
+  #   severity: INFO
+  #   metadata:
+  #     category: confusion-vulnerability
+  #     subcategory: input-source-confusion
+
+  # # Precondition C: bulk model validation
+  # - id: model-validation-from-variable
+  #   patterns:
+  #     - pattern-either:
+  #         - pattern: $MODEL.model_validate($VAR)
+  #         - pattern: $MODEL.parse_obj($VAR)
+  #         - pattern: $MODEL(**$VAR)
+  #   message: |
+  #     Model is instantiated or validated from an entire dict/variable rather
+  #     than from explicitly enumerated fields. Combined with a user-data
+  #     source and a dict-merge in the same file, this is the standard
+  #     mass-assignment confusion shape.
+  #   languages: [python]
+  #   severity: INFO
+  #   metadata:
+  #     category: confusion-vulnerability
+  #     subcategory: input-source-confusion

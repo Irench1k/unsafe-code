@@ -1,0 +1,95 @@
+rules:
+  # ----------------------------------------------------------------
+  # Tier 1: specific pattern rules (WARNING)
+  # ----------------------------------------------------------------
+
+  # Half A: function called with request.form (POST body only)
+  - id: input-source-call-with-form
+    patterns:
+      - pattern-either:
+          - pattern: $FUNC(..., request.form, ...)
+    message: |
+      Input Source Confusion: '$FUNC' is called with request.form (POST body
+      only). If the same function is also called with request.values or
+      request.args elsewhere, an attacker sending data via both channels can
+      cause the two call sites to operate on different values.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: confusion-vulnerability
+      subcategory: input-source-confusion
+      correlation_key: $FUNC
+
+  # Half B: function called with request.values (merged args + form)
+  - id: input-source-call-with-values
+    patterns:
+      - pattern-either:
+          - pattern: $FUNC(..., request.values, ...)
+    message: |
+      Input Source Confusion: '$FUNC' is called with request.values (merged
+      args + form). If the same function is also called with request.form
+      elsewhere, an attacker sending data via both channels can cause the
+      two call sites to operate on different values.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: confusion-vulnerability
+      subcategory: input-source-confusion
+      correlation_key: $FUNC
+
+  # Half C: function called with request.args (query string only)
+  - id: input-source-call-with-args
+    patterns:
+      - pattern-either:
+          - pattern: $FUNC(..., request.args, ...)
+    message: |
+      Input Source Confusion: '$FUNC' is called with request.args (query
+      string only). If the same function is also called with request.form
+      elsewhere, an attacker sending data via both channels can cause the 
+      two call sites to operate on different values.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: confusion-vulnerability
+      subcategory: input-source-confusion
+      correlation_key: $FUNC
+
+  # ----------------------------------------------------------------
+  # Tier 2: structural precondition rules (INFO)
+  # ----------------------------------------------------------------
+  
+  # - id: input-source-use-form
+  #   pattern: request.form
+  #   message: |
+  #     Component uses request.form (POST body only). If the same file also 
+  #     uses request.values or request.args, it creates a mixed-access 
+  #     precondition for Input Source Confusion.
+  #   languages: [python]
+  #   severity: INFO
+  #   metadata:
+  #     category: confusion-vulnerability
+  #     subcategory: input-source-confusion
+
+  # - id: input-source-use-values
+  #   pattern: request.values
+  #   message: |
+  #     Component uses request.values (merged args + form). If the same file also 
+  #     uses request.form or request.args, it creates a mixed-access 
+  #     precondition for Input Source Confusion.
+  #   languages: [python]
+  #   severity: INFO
+  #   metadata:
+  #     category: confusion-vulnerability
+  #     subcategory: input-source-confusion
+
+  # - id: input-source-use-args
+  #   pattern: request.args
+  #   message: |
+  #     Component uses request.args (query string only). If the same file also 
+  #     uses request.form or request.values, it creates a mixed-access 
+  #     precondition for Input Source Confusion.
+  #   languages: [python]
+  #   severity: INFO
+  #   metadata:
+  #     category: confusion-vulnerability
+  #     subcategory: input-source-confusion

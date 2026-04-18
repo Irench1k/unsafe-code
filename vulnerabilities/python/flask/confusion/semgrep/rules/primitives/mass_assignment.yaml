@@ -1,0 +1,131 @@
+rules:
+  # - id: primitive-bulk-extraction
+  #   patterns:
+  #     - pattern-either:
+  #         # Variable assignment
+  #         - pattern: $VAR = request.json
+  #         - pattern: $VAR = request.get_json(...)
+  #         - pattern: $VAR = request.form
+  #         # Passing as a bulk argument
+  #         - pattern: $FUNC(..., request.json, ...)
+  #         - pattern: $FUNC(..., request.get_json(...), ...)
+  #         - pattern: $FUNC(..., request.form, ...)
+  #         # Inline dictionary unpacking
+  #         - pattern: "{..., **request.json, ...}"
+  #         - pattern: "{..., **request.form, ...}"
+  #   message: |
+  #     Component extracts an entire payload dictionary rather than accessing specific keys.
+  #   languages: [python]
+  #   severity: INFO
+  #   metadata:
+  #     category: confusion-vulnerability
+  #     subcategory: primitives
+
+  # - id: primitive-dict-unpack-merge
+  #   pattern: "{..., **$VAR, ..., **$B, ...}"
+  #   message: |
+  #     Component uses dictionary unpacking overlay, which acts as a pass-through for unshared keys.
+  #   languages: [python]
+  #   severity: INFO
+  #   metadata:
+  #     category: confusion-vulnerability
+  #     subcategory: primitives
+
+  # - id: primitive-model-bulk-validation
+  #   patterns:
+  #     - pattern-either:
+  #         - pattern: $MODEL.model_validate($VAR)
+  #         - pattern: $MODEL.parse_obj($VAR)
+  #         - pattern: $MODEL(**$VAR)
+  #   message: |
+  #     Component instantiates or validates a data model using a bulk dictionary variable.
+  #   languages: [python]
+  #   severity: INFO
+  #   metadata:
+  #     category: confusion-vulnerability
+  #     subcategory: primitives
+
+  # # 1. The Bulk Source (ignores safe lookups!)
+  # - id: generic-bulk-request-extraction
+  #   patterns:
+  #     - pattern-either:
+  #         - pattern: request.form
+  #         - pattern: request.json
+  #         - pattern: request.get_json(...)
+  #         # Catch the ternary from Example 3 line 181
+  #         - pattern: request.json if ... else request.form
+  #         - pattern: request.form if ... else request.json
+  #     # CRITICAL NOISE REDUCTION: Ignore safe specific key lookups!
+  #     - pattern-not-inside: request.$W.get(...)
+  #     - pattern-not-inside: request.get_json(...).get(...)
+  #     - pattern-not-inside: request.$W[...]
+  #     # Ignore if passed to a function (handled by the cross_file rules)
+  #     - pattern-not-inside: $FUNC(..., request.$W, ...)
+  #   message: Bulk payload extracted dynamically.
+  #   languages: [python]
+  #   severity: INFO
+  #   metadata:
+  #     category: confusion-vulnerability
+
+  # # 2. The Unsafe Sink (Model validation + unpack in one step)
+  # - id: generic-model-dict-unpack
+  #   patterns:
+  #     - pattern-either:
+  #         - pattern: $MODEL.model_validate({..., **$VAR, ...})
+  #         - pattern: $MODEL.parse_obj({..., **$VAR, ...})
+  #         - pattern: $MODEL(**{..., **$VAR, ...})
+  #   message: Model validation utilizes dictionary unpacking.
+  #   languages: [python]
+  #   severity: INFO
+  #   metadata:
+  #     category: confusion-vulnerability
+
+  - id: primitive-bulk-extraction
+    patterns:
+      - pattern-either:
+          - pattern: $VAR = request.json
+          - pattern: $VAR = request.get_json(...)
+          - pattern: $VAR = request.form
+          - pattern: $VAR = request.values
+          - pattern: $VAR = request.json if ... else ...
+          - pattern: $VAR = ... if ... else request.json
+          - pattern: $VAR = ... if ... else request.form
+    message: |
+      Entire request payload bound to a variable. If this variable
+      later reaches a dict-merge or model validator, all attacker-chosen
+      keys propagate.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      subcategory: primitives
+      correlation_key: $VAR
+
+  - id: primitive-dict-unpack-merge
+    patterns:
+      - pattern-either:
+          - pattern: "{..., **$VAR, ..., **$Y, ...}"
+    message: |
+      Component extracts an entire payload dictionary rather than accessing specific keys.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      subcategory: primitives
+      correlation_key: $VAR
+
+  - id: primitive-model-bulk-validation
+    patterns:
+      - pattern-either:
+          - pattern: $MODEL.model_validate($VAR)
+          - pattern: $MODEL.model_validate({..., **$VAR, ...})
+          - pattern: $MODEL.parse_obj($VAR)
+          - pattern: $MODEL(**$VAR)
+    message: |
+      Component instantiates or validates a data model using a bulk dictionary variable.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      subcategory: primitives
+      correlation_key: $VAR

@@ -1,0 +1,99 @@
+rules:
+  - id: primitive-source-bulk-pass-form
+    patterns:
+      - pattern: $FUNC(..., request.form, ...)
+    message: Function called with isolated POST body.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      correlation_key: $FUNC
+
+  - id: primitive-source-bulk-pass-args
+    patterns:
+      - pattern: $FUNC(..., request.args, ...)
+    message: Function called with query args.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      correlation_key: $FUNC
+
+  - id: primitive-source-bulk-pass-values
+    patterns:
+      - pattern: $FUNC(..., request.values, ...)
+    message: Function called with merged values.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      correlation_key: $FUNC
+      
+  - id: primitive-source-bulk-pass-json
+    patterns:
+      - pattern-either:
+          - pattern: $FUNC(..., request.json, ...)
+          - pattern: $FUNC(..., request.get_json(...), ...)
+    message: Function called with JSON body.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      correlation_key: $FUNC
+
+  # ----------------------------------------------------------------
+  # Per-source access primitives.
+  # Each fires on any single use of a given Flask request source.
+  # These are deliberately broad; the post-processor combines them
+  # to detect "component reads multiple sources".
+  # ----------------------------------------------------------------
+
+  - id: primitive-source-key-extract-form
+    patterns:
+      - pattern-either:
+          - pattern: request.form.get(...)
+          - pattern: request.form[$K]
+    message: Component accesses a form-body parameter.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      subcategory: primitives
+
+  - id: primitive-source-key-extract-args
+    patterns:
+      - pattern-either:
+          - pattern: request.args.get(...)
+          - pattern: request.args[$K]
+    message: Component accesses a query-string parameter.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      subcategory: primitives
+
+  - id: primitive-source-key-extract-values
+    patterns:
+      - pattern-either:
+          - pattern: request.values.get(...)
+          - pattern: request.values[$K]
+    message: Component accesses a merged args+form parameter.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      subcategory: primitives
+
+  - id: primitive-source-key-extract-json
+    patterns:
+      - pattern-either:
+          - pattern: request.json.get(...)
+          - pattern: request.json[$K]
+          - pattern: request.get_json(...).get(...)
+          - pattern: request.get_json(...)[$K]
+    message: Component accesses a JSON-body parameter.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      subcategory: primitives

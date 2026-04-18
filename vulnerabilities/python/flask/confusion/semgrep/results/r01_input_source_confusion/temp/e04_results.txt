@@ -1,0 +1,35 @@
+================================================================================
+CONFUSION VULNERABILITY CORRELATION REPORT
+================================================================================
+
+Total individual findings: 128
+Correlated results:  0 HIGH  |  2 MEDIUM  |  0 LOW
+Unpaired findings:   0
+
+--------------------------------------------------------------------------------
+CORRELATED FINDINGS
+--------------------------------------------------------------------------------
+
+[1] [MEDIUM] Mass Assignment Preconditions: The context contains bulk data extraction, dictionary merging, and model validation. Verify if these mechanisms connect in a single data flow.
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e04_negative_tip/routes.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e04_negative_tip/routes.py:line 140) [primitive-bulk-extraction]
+      | user_data = request.json if request.is_json else request.form
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e04_negative_tip/routes.py:line 161) [primitive-model-bulk-validation, primitive-dict-unpack-merge]
+      | new_order = Order.model_validate({**user_data, **safe_order_data})
+
+
+[2] [MEDIUM] Mixed request sources: component accesses both args and json.
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e04_negative_tip/routes.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e04_negative_tip/routes.py:line 31) [primitive-source-key-extract-args]
+      | parameter_in_args = request.args.get(parameter)
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e04_negative_tip/routes.py:line 33) [primitive-source-key-extract-json]
+      | request.is_json and isinstance(request.json, dict) and request.json.get(parameter)
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e04_negative_tip/routes.py:line 119) [primitive-source-key-extract-json]
+      | item_id = request.json.get("item_id")
+
+================================================================================

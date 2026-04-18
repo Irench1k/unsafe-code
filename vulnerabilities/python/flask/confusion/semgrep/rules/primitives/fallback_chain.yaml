@@ -1,0 +1,95 @@
+rules:
+  # ----------------------------------------------------------------
+  # Inline OR-chain fallback across request sources.
+  # Captures the pattern outside helper bodies (e.g. inline in a
+  # route handler).
+  # ----------------------------------------------------------------
+
+  - id: primitive-request-source-or-chain
+    patterns:
+      - pattern-either:
+          # Two-source OR chains (any ordered pair)
+          - pattern: request.args.get(...) or request.form.get(...)
+          - pattern: request.args.get(...) or request.json.get(...)
+          - pattern: request.args.get(...) or request.values.get(...)
+          - pattern: request.form.get(...) or request.args.get(...)
+          - pattern: request.form.get(...) or request.json.get(...)
+          - pattern: request.form.get(...) or request.values.get(...)
+          - pattern: request.json.get(...) or request.args.get(...)
+          - pattern: request.json.get(...) or request.form.get(...)
+          - pattern: request.json.get(...) or request.values.get(...)
+          - pattern: request.values.get(...) or request.args.get(...)
+          - pattern: request.values.get(...) or request.form.get(...)
+          - pattern: request.values.get(...) or request.json.get(...)
+          # Variable-mediated OR chain (isinstance/is_json guard idiom)
+          - pattern: |
+              $A = request.args.get(...)
+              ...
+              $B = request.form.get(...)
+              ...
+              return $A or $B
+          - pattern: |
+              $A = request.args.get(...)
+              ...
+              $B = request.json.get(...)
+              ...
+              return $A or $B
+          - pattern: |
+              $A = request.form.get(...)
+              ...
+              $B = request.args.get(...)
+              ...
+              return $A or $B
+          - pattern: |
+              $A = request.form.get(...)
+              ...
+              $B = request.json.get(...)
+              ...
+              return $A or $B
+          - pattern: |
+              $A = request.form.get(...)
+              ...
+              $B = request.values.get(...)
+              ...
+              return $A or $B
+          - pattern: |
+              $A = request.json.get(...)
+              ...
+              $B = request.args.get(...)
+              ...
+              return $A or $B
+          - pattern: |
+              $A = request.json.get(...)
+              ...
+              $B = request.form.get(...)
+              ...
+              return $A or $B
+          - pattern: |
+              $A = request.json.get(...)
+              ...
+              $B = request.values.get(...)
+              ...
+              return $A or $B
+          - pattern: |
+              $A = request.values.get(...)
+              ...
+              $B = request.form.get(...)
+              ...
+              return $A or $B
+          - pattern: |
+              $A = request.values.get(...)
+              ...
+              $B = request.json.get(...)
+              ...
+              return $A or $B
+    message: |
+      Component reads the same logical key from multiple Flask request
+      sources combined with `or`. This expresses "try sources in
+      precedence order" semantics. If another component reads from only
+      a subset of these sources, the two components may observe
+      different values when multiple channels are populated.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      subcategory: primitives

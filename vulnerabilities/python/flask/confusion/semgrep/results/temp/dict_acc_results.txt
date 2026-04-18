@@ -1,0 +1,25 @@
+================================================================================
+CONFUSION VULNERABILITY CORRELATION REPORT
+================================================================================
+
+Total individual findings: 149
+Correlated results:  0 HIGH  |  1 MEDIUM
+Unpaired findings:   0
+
+--------------------------------------------------------------------------------
+CORRELATED FINDINGS
+--------------------------------------------------------------------------------
+
+[1] [MEDIUM] Mixed access methods: component uses both single-value and list-value accessors. This is a structural precondition for Input Source Confusion.
+  Matched via: File: vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/utils.py
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/utils.py:line 25) [primitive-dict-get-access]
+      | items = [data.get("item")]
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/utils.py:line 27) [primitive-dict-getlist-access]
+      | items = data.getlist("items")
+
+    (vulnerabilities/python/flask/confusion/webapp/r01_input_source_confusion/e01_dual_parameter/utils.py:line 55) [primitive-dict-getlist-access, primitive-dict-get-access]
+      | item_ids = data.getlist("items") or [data.get("item")]
+
+================================================================================
