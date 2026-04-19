@@ -1,0 +1,11 @@
+rules:
+  - id: function-call-get
+    pattern-either:
+      - pattern: request.$DATA.get(...)
+      - pattern: request.get_json().get(...)
+    message: access dictionary values
+    languages: [ python ]
+    severity: INFO
+    metadata:
+      category: confusion-vulnerability
+      subcategory: input-source-confusion
