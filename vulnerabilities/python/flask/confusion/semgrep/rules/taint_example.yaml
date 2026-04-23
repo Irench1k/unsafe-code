@@ -1,0 +1,21 @@
+rules:
+  - id: taint-example
+    languages:
+      - python
+    message: Found dangerous HTML output
+    mode: taint
+    options:
+      interfile: true
+    pattern-sources:
+      - patterns:
+          - pattern: request.form
+          # - focus-metavariable: $X
+          # by-side-effect: true
+    pattern-propagators:
+      - pattern: $X = $DATA.get(...)
+        from: $DATA
+        to: $X
+    pattern-sinks:
+      #- pattern: $DATA.get("qwe")
+      - pattern: print(...)
+    severity: WARNING

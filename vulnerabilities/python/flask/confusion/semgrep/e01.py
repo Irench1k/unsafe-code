@@ -69,7 +69,7 @@ def ex9():
 
 def get_item(data):
     # ruleid: function-call-get
-    return data.get("item")
+    return data.get("qwe")
 
 
 @bp.route("/test-10", methods=["POST"])

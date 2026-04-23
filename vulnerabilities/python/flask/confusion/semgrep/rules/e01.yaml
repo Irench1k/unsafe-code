@@ -3,6 +3,8 @@ rules:
     pattern-either:
       - pattern: request.$DATA.get(...)
       - pattern: request.get_json().get(...)
+      - pattern: |
+          $FUNC(request.$DATA)
     message: access dictionary values
     languages: [ python ]
     severity: INFO
