@@ -102,7 +102,9 @@ def _show_finding_sources(finding: Finding, context: int) -> None:
         _display_html(_finding_html(finding, context))
     else:
         print(f"[{finding.severity.value.upper()}] {finding.rule_id}: {finding.title}")
-        print(f"  {finding.location}")
+        print(f"  {finding.location_1}")
+        if finding.location_2 is not None:
+            print(f"  Related: {finding.location_2}")
         print()
         for ev in finding.evidence:
             if hasattr(ev, "location"):

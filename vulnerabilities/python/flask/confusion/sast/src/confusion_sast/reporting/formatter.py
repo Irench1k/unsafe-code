@@ -10,11 +10,15 @@ def format_finding(finding: Finding, verbose: bool = False) -> str:
     lines = []
     sev = finding.severity.value.upper()
     lines.append(f"[{sev}] {finding.rule_id}: {finding.title}")
-    lines.append(f"  Location: {finding.location}")
+    lines.append(f"  Location: {finding.location_1}")
+    if (finding.location_2 is not None) and (finding.location_1 != finding.location_2):
+        lines.append(f"  Related location: {finding.location_2}")
 
     if finding.endpoint:
         methods = ", ".join(finding.endpoint.methods)
-        lines.append(f"  Endpoint: {methods} {finding.endpoint.rule or '?'} ({finding.endpoint.handler_qualname})")
+        lines.append(
+            f"  Endpoint: {methods} {finding.endpoint.rule or '?'} ({finding.endpoint.handler_qualname})"
+        )
 
     lines.append(f"  {finding.description}")
 

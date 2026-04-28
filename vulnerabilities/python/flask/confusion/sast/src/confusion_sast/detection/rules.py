@@ -19,6 +19,13 @@ from ..models import (
     InputSource,
     Severity,
 )
+from .rules_support import (
+    _build_parameter_site_pairs,
+    _build_parameter_sites_for_family,
+    _build_source_site_pairs,
+    _build_source_sites_for_key,
+    _find_parameter_families,
+)
 
 # ---------------------------------------------------------------------------
 # Rule Registry
@@ -76,15 +83,15 @@ def _group_accesses_by_endpoint(graph: AnalysisGraph) -> dict[str, list[InputAcc
 
 
 # ---------------------------------------------------------------------------
-# CONF-001: Dual-Source Confusion
+# CONF-001-OLD: Dual-Source Confusion
 # Same key accessed from different input sources in the same endpoint's
 # reachable call tree. E.g. request.args.get("item") in one place and
 # request.form.get("item") in another.
 # ---------------------------------------------------------------------------
 
 
-@rule("CONF-001")
-def dual_source_confusion(graph: AnalysisGraph) -> list[Finding]:
+@rule("CONF-001-OLD")
+def dual_source_confusion_old(graph: AnalysisGraph) -> list[Finding]:
     """Detect same key accessed from different sources within an endpoint."""
     findings: list[Finding] = []
     by_endpoint = _group_accesses_by_endpoint(graph)
@@ -105,7 +112,7 @@ def dual_source_confusion(graph: AnalysisGraph) -> list[Finding]:
             routes = graph.routes_for_handler(handler)
             findings.append(
                 Finding(
-                    rule_id="CONF-001",
+                    rule_id="CONF-001-OLD",
                     title=f"Key '{key}' accessed from multiple sources: {_fmt_sources(sources)}",
                     description=(
                         f"Within endpoint {handler}, the key '{key}' is read from "
@@ -114,10 +121,135 @@ def dual_source_confusion(graph: AnalysisGraph) -> list[Finding]:
                         f"from another source."
                     ),
                     severity=Severity.HIGH,
-                    location=key_accesses[0].location,
+                    location_1=key_accesses[0].location,
                     evidence=list(key_accesses),
+                    location_2=key_accesses[0].location if len(key_accesses) > 1 else None,
                     endpoint=routes[0] if routes else None,
                     details={"key": key, "sources": [s.value for s in sources]},
+                )
+            )
+
+    return findings
+
+
+# ---------------------------------------------------------------------------
+# CONF-001: Dual-Source Confusion (Policy-Paired)
+# Same key interpreted through different source-selection policies in the same
+# endpoint. A single fallback site is not enough; the rule first builds
+# reviewer-visible policy sites and then reports only disagreeing site pairs.
+#
+# Notes:
+#
+# CONF-001 currently detects:
+# same-key, multi-policy, multi-site disagreement
+# including fallback-policy and precedence-policy disagreement
+#
+# It does not yet prove:
+# that the sites are simultaneously relevant on one effective code path
+# that the sites play conflicting roles
+# that one site is security-relevant and the other is business-relevant
+# that the reads are not defensive/logging/normalization logic
+# ---------------------------------------------------------------------------
+
+
+@rule("CONF-001")
+def dual_source_confusion(graph: AnalysisGraph) -> list[Finding]:
+    """Detect source-policy disagreement only when two sites can be paired."""
+    findings: list[Finding] = []
+    by_endpoint = _group_accesses_by_endpoint(graph)
+
+    for handler, accesses in by_endpoint.items():
+        by_key: dict[str, list[InputAccessFact]] = defaultdict(list)
+        for access in accesses:
+            if access.key_literal:
+                by_key[access.key_literal].append(access)
+
+        for key, key_accesses in sorted(by_key.items()):
+            sites = _build_source_sites_for_key(graph, handler, key, key_accesses)
+            if len(sites) < 2:
+                continue
+
+            pairs = _build_source_site_pairs(sites, handler)
+            if not pairs:
+                continue
+
+            ordered_pairs = sorted(pairs, key=lambda pair: pair.sort_key(handler))
+            primary_pair = ordered_pairs[0]
+            primary_left, primary_right = primary_pair.sites(handler)
+
+            paired_sites_by_key = {}
+            for pair in ordered_pairs:
+                for site in pair.sites(handler):
+                    site_key = (
+                        site.owner_function,
+                        site.site_kind,
+                        site.report_location.file,
+                        site.report_location.line,
+                        site.report_location.col,
+                        site.policy.identity(),
+                    )
+                    paired_sites_by_key[site_key] = site
+
+            ordered = sorted(
+                paired_sites_by_key.values(),
+                key=lambda site: site.sort_key(handler),
+            )
+            sources = {
+                source
+                for site in ordered
+                for source in site.policy.sources
+            }
+
+            evidence: list[InputAccessFact] = []
+            seen_evidence: set[tuple] = set()
+            for site in ordered:
+                for fact in site.evidence:
+                    evidence_key = (
+                        fact.function_qualname,
+                        fact.location.file,
+                        fact.location.line,
+                        fact.location.col,
+                        fact.source.value,
+                        fact.accessor.value,
+                        fact.key_literal,
+                        fact.raw_code,
+                    )
+                    if evidence_key in seen_evidence:
+                        continue
+                    seen_evidence.add(evidence_key)
+                    evidence.append(fact)
+
+            routes = graph.routes_for_handler(handler)
+            findings.append(
+                Finding(
+                    rule_id="CONF-001",
+                    title=(
+                        f"Key '{key}' interpreted with conflicting source policies: "
+                        f"{primary_left.policy.display()} vs {primary_right.policy.display()}"
+                    ),
+                    description=(
+                        f"Within endpoint {handler}, the key '{key}' is interpreted through "
+                        f"different source-selection policies at distinct code sites. "
+                        f"A single local fallback expression is kept as one site and is only "
+                        f"reported when it can be paired with another site that uses a "
+                        f"different policy."
+                    ),
+                    severity=Severity.HIGH,
+                    location_1=primary_left.report_location,
+                    evidence=evidence,
+                    location_2=primary_right.report_location,
+                    endpoint=routes[0] if routes else None,
+                    details={
+                        "key": key,
+                        "sources": [
+                            source.value for source in sorted(sources, key=lambda s: s.value)
+                        ],
+                        "confidence": primary_pair.confidence.value,
+                        "pair_count": len(ordered_pairs),
+                        "site_count": len(ordered),
+                        "sites": [site.as_details() for site in ordered],
+                        "pairs": [pair.as_details(handler) for pair in ordered_pairs],
+                    },
                 )
             )
 
@@ -172,10 +304,143 @@ def dual_parameter_confusion(graph: AnalysisGraph) -> list[Finding]:
                         f"check reads the other."
                     ),
                     severity=Severity.HIGH,
-                    location=key_accesses[0].location,
+                    location_1=key_accesses[0].location,
                     evidence=key_accesses + partner_accesses,
+                    location_2=key_accesses[0].location if len(key_accesses) > 1 else None,
                     endpoint=routes[0] if routes else None,
                     details={"key_a": key, "key_b": partner},
+                )
+            )
+
+    return findings
+
+
+# ---------------------------------------------------------------------------
+# CONF-002-NEW: Dual-Parameter Confusion (Policy-Paired)
+# Same logical parameter family interpreted through different parameter-name
+# policies in the same endpoint. Unlike CONF-002, this rule does not report
+# every endpoint that merely mentions both singular and plural names. It first
+# builds reviewer-visible sites, then reports only disagreeing site pairs.
+#
+# Notes:
+#
+# CONF-002-NEW currently detects:
+# singular/plural policy disagreement, including opposite fallback precedence
+# helper-call sites lifted from propagated parameter accesses
+# singleton item/items pairs when there is a validation/check signal
+#
+# It does not yet prove:
+# that the sites are simultaneously relevant on one effective path
+# that a defensive consistency check cannot reject the ambiguity
+# semantic aliases that are not simple singular/plural pairs
+# dynamic key flow through helper parameters
+# ---------------------------------------------------------------------------
+
+
+@rule("CONF-002-NEW")
+def dual_parameter_confusion_policy_paired(graph: AnalysisGraph) -> list[Finding]:
+    """Detect singular/plural parameter-policy disagreement between sites."""
+    findings: list[Finding] = []
+    by_endpoint = _group_accesses_by_endpoint(graph)
+
+    for handler, accesses in by_endpoint.items():
+        keyed = [access for access in accesses if access.key_literal]
+        keys = {access.key_literal for access in keyed if access.key_literal}
+        families = _find_parameter_families(keys)
+
+        for family in families:
+            family_accesses = [
+                access
+                for access in keyed
+                if access.key_literal in {family.singular, family.plural}
+            ]
+            sites = _build_parameter_sites_for_family(
+                graph,
+                handler,
+                family,
+                family_accesses,
+            )
+            if len(sites) < 2:
+                continue
+
+            pairs = _build_parameter_site_pairs(graph, sites, handler)
+            if not pairs:
+                continue
+
+            ordered_pairs = sorted(pairs, key=lambda pair: pair.sort_key(handler))
+            primary_pair = ordered_pairs[0]
+            primary_left, primary_right = primary_pair.sites(handler)
+
+            paired_sites_by_key = {}
+            for pair in ordered_pairs:
+                for site in pair.sites(handler):
+                    site_key = (
+                        site.owner_function,
+                        site.component_function,
+                        site.site_kind,
+                        site.report_location.file,
+                        site.report_location.line,
+                        site.report_location.col,
+                        site.policy.identity(),
+                    )
+                    paired_sites_by_key[site_key] = site
+
+            ordered_sites = sorted(
+                paired_sites_by_key.values(),
+                key=lambda site: site.sort_key(handler),
+            )
+
+            evidence: list[InputAccessFact] = []
+            seen_evidence: set[tuple] = set()
+            for site in ordered_sites:
+                for fact in site.evidence:
+                    evidence_key = (
+                        fact.function_qualname,
+                        fact.location.file,
+                        fact.location.line,
+                        fact.location.col,
+                        fact.source.value,
+                        fact.accessor.value,
+                        fact.key_literal,
+                        fact.raw_code,
+                    )
+                    if evidence_key in seen_evidence:
+                        continue
+                    seen_evidence.add(evidence_key)
+                    evidence.append(fact)
+
+            routes = graph.routes_for_handler(handler)
+            findings.append(
+                Finding(
+                    rule_id="CONF-002-NEW",
+                    title=(
+                        f"Parameter family '{family.display()}' interpreted with "
+                        f"conflicting policies: {primary_left.policy.display()} vs "
+                        f"{primary_right.policy.display()}"
+                    ),
+                    description=(
+                        f"Within endpoint {handler}, the parameter family "
+                        f"'{family.display()}' is interpreted through different "
+                        f"singular/plural policies at distinct code sites. "
+                        f"A single local compatibility fallback is kept as one site "
+                        f"and is only reported when paired with another site that "
+                        f"uses a different policy."
+                    ),
+                    severity=Severity.HIGH,
+                    location_1=primary_left.report_location,
+                    evidence=evidence,
+                    location_2=primary_right.report_location,
+                    endpoint=routes[0] if routes else None,
+                    details={
+                        "family": family.display(),
+                        "singular": family.singular,
+                        "plural": family.plural,
+                        "confidence": primary_pair.confidence.value,
+                        "pair_count": len(ordered_pairs),
+                        "site_count": len(ordered_sites),
+                        "sites": [site.as_details() for site in ordered_sites],
+                        "pairs": [pair.as_details(handler) for pair in ordered_pairs],
+                    },
                 )
             )
 
@@ -224,8 +489,9 @@ def cardinality_confusion(graph: AnalysisGraph) -> list[Finding]:
                             f"logic using .getlist() processes all values."
                         ),
                         severity=Severity.HIGH,
-                        location=key_accesses[0].location,
+                        location_1=key_accesses[0].location,
                         evidence=list(key_accesses),
+                        location_2=key_accesses[0].location if len(key_accesses) > 1 else None,
                         endpoint=routes[0] if routes else None,
                         details={"key": key, "accessors": [a.value for a in accessors]},
                     )
@@ -272,76 +538,13 @@ def values_merge_confusion(graph: AnalysisGraph) -> list[Finding]:
                         f"string that the form-specific code path doesn't see."
                     ),
                     severity=Severity.MEDIUM,
-                    location=values_accesses[0].location,
+                    location_1=values_accesses[0].location,
                     evidence=values_accesses + specific_accesses,
+                    location_2=values_accesses[0].location if len(values_accesses) > 1 else None,
                     endpoint=routes[0] if routes else None,
                     details={"mixed_sources": [s.value for s in sources]},
                 )
             )
-
-    return findings
-
-
-# ---------------------------------------------------------------------------
-# CONF-005: Dict Merge Overwrite
-# Patterns like {**user_data, **safe_data} where user-controlled data
-# is merged with computed/safe data. If the user data dict is unpacked
-# first, its keys can be overwritten. If it's unpacked second, it can
-# overwrite safe computed values.
-# ---------------------------------------------------------------------------
-
-
-@rule("CONF-005")
-def dict_merge_overwrite(graph: AnalysisGraph) -> list[Finding]:
-    """Detect dict merge patterns that may allow user data to overwrite safe values."""
-    findings: list[Finding] = []
-
-    for route in graph.routes:
-        handler = route.handler_qualname
-        merges = graph.merges_reachable_from(handler)
-
-        for merge in merges:
-            # Heuristic: look for a merge where one source is user-controlled
-            user_controlled_idx = None
-            safe_idx = None
-
-            for i, src in enumerate(merge.sources):
-                src_lower = src.lower()
-                if any(
-                    kw in src_lower
-                    for kw in ["user_data", "request", "form", "json", "input", "payload"]
-                ):
-                    user_controlled_idx = i
-                elif any(kw in src_lower for kw in ["safe", "computed", "order", "result"]):
-                    safe_idx = i
-
-            if user_controlled_idx is not None:
-                severity = Severity.HIGH
-                if safe_idx is not None and user_controlled_idx < safe_idx:
-                    severity = Severity.MEDIUM
-                    note = "User data is unpacked before safe data (safe values win on collision)"
-                else:
-                    note = "User data is unpacked AFTER safe data (user values can overwrite!)"
-
-                findings.append(
-                    Finding(
-                        rule_id="CONF-005",
-                        title=f"Dict merge with user-controlled data: {merge.raw_code[:80]}",
-                        description=(
-                            f"In {merge.function_qualname}, a dict merge unpacks user-controlled "
-                            f"data alongside other values. {note}. Fields like 'total', 'user_id', "
-                            f"or 'order_id' in the user data could overwrite computed values."
-                        ),
-                        severity=severity,
-                        location=merge.location,
-                        evidence=[merge],
-                        endpoint=route,
-                        details={
-                            "sources": list(merge.sources),
-                            "user_controlled_position": user_controlled_idx,
-                        },
-                    )
-                )
 
     return findings
 
@@ -399,8 +602,9 @@ def middleware_handler_divergence(graph: AnalysisGraph) -> list[Finding]:
                                     f"source the middleware doesn't check to bypass validation."
                                 ),
                                 severity=Severity.HIGH,
-                                location=ma.location,
+                                location_1=ma.location,
                                 evidence=[ma, ha],
+                                location_2=None,
                                 endpoint=route,
                                 details={
                                     "key": ma.key_literal,
@@ -409,51 +613,6 @@ def middleware_handler_divergence(graph: AnalysisGraph) -> list[Finding]:
                                 },
                             )
                         )
-
-    return findings
-
-
-# ---------------------------------------------------------------------------
-# CONF-007: Conditional Source Selection
-# Patterns like: data = request.json if request.is_json else request.form
-# followed by a get() call. This means the effective source depends on
-# Content-Type, which is attacker-controlled.
-# ---------------------------------------------------------------------------
-
-
-@rule("CONF-007")
-def conditional_source_selection(graph: AnalysisGraph) -> list[Finding]:
-    """Detect conditional source selection patterns."""
-    findings: list[Finding] = []
-    by_endpoint = _group_accesses_by_endpoint(graph)
-
-    for handler, accesses in by_endpoint.items():
-        # Look for the pattern: both JSON and FORM sources accessed in same endpoint
-        # where one of them is via a conditional (ternary) expression
-        json_accesses = [a for a in accesses if a.source == InputSource.JSON]
-        form_accesses = [a for a in accesses if a.source == InputSource.FORM]
-
-        if json_accesses and form_accesses:
-            # Check if any dict merges in this handler use the conditionally-selected data
-            merges = graph.merges_reachable_from(handler)
-            if merges:
-                routes = graph.routes_for_handler(handler)
-                findings.append(
-                    Finding(
-                        rule_id="CONF-007",
-                        title="Conditional source selection with dict merge",
-                        description=(
-                            f"Endpoint {handler} reads from both request.json and request.form "
-                            f"(likely via a conditional like `request.json if request.is_json else request.form`), "
-                            f"then merges user-controlled data into a dict. The effective source "
-                            f"depends on Content-Type, which is attacker-controlled."
-                        ),
-                        severity=Severity.MEDIUM,
-                        location=json_accesses[0].location,
-                        evidence=json_accesses + form_accesses,
-                        endpoint=routes[0] if routes else None,
-                    )
-                )
 
     return findings
 

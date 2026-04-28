@@ -393,9 +393,13 @@ class CodeViewer(anywidget.AnyWidget):
 
     def show_finding(self, finding: Finding, *, title: str | None = None, context: int = 5) -> None:
         """Show the primary file for a finding and annotate related evidence."""
-        file_path = finding.location.file
-        highlight_lines = [finding.location.line]
-        annotations: dict[int, list[str]] = {finding.location.line: [finding.rule_id]}
+        file_path = finding.location_1.file
+        highlight_lines = [finding.location_1.line]
+        annotations: dict[int, list[str]] = {finding.location_1.line: [finding.rule_id]}
+
+        if finding.location_2 is not None and finding.location_2.file == file_path:
+            highlight_lines.append(finding.location_2.line)
+            annotations.setdefault(finding.location_2.line, []).append("related location")
 
         for ev in finding.evidence:
             loc = getattr(ev, "location", None)
@@ -408,10 +412,10 @@ class CodeViewer(anywidget.AnyWidget):
         self.show_file(
             file_path,
             highlight_lines=sorted(set(highlight_lines)),
-            focus_line=finding.location.line,
+            focus_line=finding.location_1.line,
             title=title or f"{finding.rule_id} · {finding.title}",
             annotations=annotations,
-            start_line=max(1, finding.location.line - context),
+            start_line=max(1, finding.location_1.line - context),
         )
 
     def clear(self) -> None:

@@ -350,7 +350,7 @@ class TestFindingPaths:
             title="test",
             description="test",
             severity=Severity.HIGH,
-            location=Location("test.py", 1),
+            location_1=Location("test.py", 1),
             evidence=[],
             endpoint=None,
         )
@@ -372,7 +372,7 @@ class TestFindingPaths:
             title="test",
             description="test",
             severity=Severity.HIGH,
-            location=Location("test.py", 1),
+            location_1=Location("test.py", 1),
             evidence=some_evidence,
             endpoint=None,
         )

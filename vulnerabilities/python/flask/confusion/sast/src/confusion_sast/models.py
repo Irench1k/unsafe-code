@@ -172,13 +172,24 @@ class Finding:
     title: str
     description: str
     severity: Severity
-    location: Location
+    location_1: Location
     evidence: list[InputAccessFact | RouteFact | DictMergeFact]
+    location_2: Location | None = None
     endpoint: RouteFact | None = None
     details: dict = field(default_factory=dict)
 
+    @property
+    def location(self) -> Location:
+        """Backward-compatible alias for the primary finding location."""
+        return self.location_1
+
     def __str__(self) -> str:
-        return f"[{self.severity.value.upper()}] {self.rule_id}: {self.title} at {self.location}"
+        location = (
+            f"{self.location_1} (related: {self.location_2})"
+            if self.location_2 is not None
+            else f"{self.location_1}"
+        )
+        return f"[{self.severity.value.upper()}] {self.rule_id}: {self.title} at {location}"
 
     def _repr_html_(self) -> str:
         """Rich notebook rendering for bare Finding expressions."""

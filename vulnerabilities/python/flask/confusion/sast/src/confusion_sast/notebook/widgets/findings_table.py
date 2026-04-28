@@ -32,7 +32,7 @@ def _finding_row(finding, target_path: Path | None) -> dict:
         if getattr(ev, "key_literal", None)
     })
     endpoint = finding.endpoint
-    location = finding.location
+    location = finding.location_1
     return {
         "severity": finding.severity.value.upper(),
         "rule_id": finding.rule_id,

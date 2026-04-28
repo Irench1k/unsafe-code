@@ -31,21 +31,25 @@ class ExtractionResult:
     dict_merges: list[DictMergeFact]
 
     def __post_init__(self) -> None:
-        seen_by_qualname: set[tuple] = set()
-        seen_by_location: set[tuple] = set()
+        seen: set[tuple] = set()
         unique: list[InputAccessFact] = []
         for a in self.input_accesses:
-            qn_key = (a.function_qualname, a.key_literal, a.source.value, a.accessor.value)
-            loc_key = (
+            # Keep distinct sites even when the same function reads the same
+            # key/source more than once. CONF-001 needs those repeated sites to
+            # compare source-selection policies such as args->form vs form->args.
+            key = (
+                a.function_qualname,
                 a.location.file,
                 a.location.line,
+                a.location.col,
                 a.key_literal,
                 a.source.value,
                 a.accessor.value,
+                a.raw_code,
+                tuple(a.notes),
             )
-            if qn_key not in seen_by_qualname and loc_key not in seen_by_location:
-                seen_by_qualname.add(qn_key)
-                seen_by_location.add(loc_key)
+            if key not in seen:
+                seen.add(key)
                 unique.append(a)
         self.input_accesses = unique
 
