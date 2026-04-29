@@ -502,49 +502,112 @@ def cardinality_confusion(graph: AnalysisGraph) -> list[Finding]:
 
 # ---------------------------------------------------------------------------
 # CONF-004: Values Merge Confusion
-# request.values is used alongside request.args or request.form.
-# Since values = args + form (with args taking precedence), using both
-# can lead to the same parameter being read from different effective sources.
+# request.values reads Flask's merged args+form view. This is only a strong
+# confusion candidate when the same key is also read from request.args or
+# request.form in the endpoint context. Mixed-key use remains a low-confidence
+# review signal because it often marks action code accepting query overrides,
+# but it does not by itself prove semantic disagreement.
 # ---------------------------------------------------------------------------
 
 
 @rule("CONF-004")
 def values_merge_confusion(graph: AnalysisGraph) -> list[Finding]:
-    """Detect request.values used alongside request.args or request.form."""
+    """Detect request.values paired with args/form, prioritizing same-key pairs."""
     findings: list[Finding] = []
     by_endpoint = _group_accesses_by_endpoint(graph)
 
     for handler, accesses in by_endpoint.items():
-        sources = {a.source for a in accesses}
-        has_values = InputSource.VALUES in sources
-        has_specific = sources & {InputSource.ARGS, InputSource.FORM}
+        by_key: dict[str, list[InputAccessFact]] = defaultdict(list)
+        for access in accesses:
+            if access.key_literal:
+                by_key[access.key_literal].append(access)
 
-        if has_values and has_specific:
-            values_accesses = [a for a in accesses if a.source == InputSource.VALUES]
-            specific_accesses = [
-                a for a in accesses if a.source in {InputSource.ARGS, InputSource.FORM}
+        routes = graph.routes_for_handler(handler)
+        emitted_same_key = False
+        for key, key_accesses in sorted(by_key.items()):
+            values_accesses = [
+                access for access in key_accesses if access.source == InputSource.VALUES
             ]
-            specific_names = _fmt_sources(sources & {InputSource.ARGS, InputSource.FORM})
+            specific_accesses = [
+                access
+                for access in key_accesses
+                if access.source in {InputSource.ARGS, InputSource.FORM}
+            ]
+            if not values_accesses or not specific_accesses:
+                continue
 
-            routes = graph.routes_for_handler(handler)
+            emitted_same_key = True
+            specific_sources = {
+                access.source for access in specific_accesses
+            }
+            specific_names = _fmt_sources(specific_sources)
             findings.append(
                 Finding(
                     rule_id="CONF-004",
-                    title=f"request.values used alongside {specific_names}",
+                    title=f"Key '{key}' read through request.values and {specific_names}",
                     description=(
-                        f"Within endpoint {handler}, request.values (merged args+form) is used "
-                        f"alongside {specific_names}. Since request.values combines both sources "
-                        f"with args taking precedence, an attacker can inject values via query "
-                        f"string that the form-specific code path doesn't see."
+                        f"Within endpoint {handler}, the key '{key}' is read from "
+                        f"request.values (Flask's merged args+form view) and from "
+                        f"{specific_names}. This is a same-key source-policy disagreement: "
+                        f"the values site can observe query-string input that the "
+                        f"specific-source site does not intend to read."
                     ),
                     severity=Severity.MEDIUM,
                     location_1=values_accesses[0].location,
                     evidence=values_accesses + specific_accesses,
-                    location_2=values_accesses[0].location if len(values_accesses) > 1 else None,
+                    location_2=specific_accesses[0].location,
                     endpoint=routes[0] if routes else None,
-                    details={"mixed_sources": [s.value for s in sources]},
+                    details={
+                        "key": key,
+                        "specific_sources": [
+                            source.value
+                            for source in sorted(specific_sources, key=lambda s: s.value)
+                        ],
+                        "signal": "same_key_values_pair",
+                    },
                 )
             )
+
+        if emitted_same_key:
+            continue
+
+        values_accesses = [access for access in accesses if access.source == InputSource.VALUES]
+        specific_accesses = [
+            access for access in accesses if access.source in {InputSource.ARGS, InputSource.FORM}
+        ]
+        if not values_accesses or not specific_accesses:
+            continue
+
+        sources = {access.source for access in specific_accesses}
+        specific_names = _fmt_sources(sources)
+        findings.append(
+            Finding(
+                rule_id="CONF-004",
+                title=f"request.values mixed with {specific_names} on different keys",
+                description=(
+                    f"Within endpoint {handler}, request.values is used alongside "
+                    f"{specific_names}, but no same-key values/args-or-form pair was found. "
+                    f"This is a low-confidence review signal rather than a confirmed "
+                    f"confusion candidate, because the accesses may intentionally read "
+                    f"different parameters."
+                ),
+                severity=Severity.INFO,
+                location_1=values_accesses[0].location,
+                evidence=values_accesses + specific_accesses,
+                location_2=specific_accesses[0].location,
+                endpoint=routes[0] if routes else None,
+                details={
+                    "mixed_sources": [
+                        source.value
+                        for source in sorted(
+                            sources | {InputSource.VALUES},
+                            key=lambda s: s.value,
+                        )
+                    ],
+                    "signal": "mixed_key_values_usage",
+                },
+            )
+        )
 
     return findings
 

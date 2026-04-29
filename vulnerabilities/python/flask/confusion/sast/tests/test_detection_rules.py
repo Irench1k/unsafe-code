@@ -128,6 +128,25 @@ class TestCONF001DualSourceConfusion:
         assert len(findings) == 1
         assert "coupon" in findings[0].title
 
+    def test_restx_resource_sibling_methods_are_isolated(self, scan_and_detect):
+        findings = scan_and_detect('''
+            from flask import request
+            from flask_restx import Namespace, Resource
+
+            ns = Namespace("orders")
+
+            @ns.route("/orders")
+            class Orders(Resource):
+                def get(self):
+                    item = request.args.get("item")
+                    return item
+
+                def post(self):
+                    item = request.form.get("item")
+                    return item
+        ''', ["CONF-001"])
+        assert len(findings) == 0
+
 
 class TestCONF002DualParameterConfusion:
     def test_singular_plural_keys(self, scan_and_detect):
@@ -184,7 +203,7 @@ class TestCONF003CardinalityConfusion:
 
 
 class TestCONF004ValuesMergeConfusion:
-    def test_values_with_form(self, scan_and_detect):
+    def test_values_with_form_different_keys_is_info_signal(self, scan_and_detect):
         findings = scan_and_detect('''
             from flask import Blueprint, request
             bp = Blueprint("test", __name__)
@@ -195,6 +214,8 @@ class TestCONF004ValuesMergeConfusion:
                 b = request.values.get("y")
         ''', ["CONF-004"])
         assert len(findings) == 1
+        assert findings[0].severity == Severity.INFO
+        assert findings[0].details["signal"] == "mixed_key_values_usage"
 
     def test_values_with_args(self, scan_and_detect):
         findings = scan_and_detect('''
@@ -207,6 +228,19 @@ class TestCONF004ValuesMergeConfusion:
                 b = request.values.get("q")
         ''', ["CONF-004"])
         assert len(findings) == 1
+        assert findings[0].severity == Severity.MEDIUM
+        assert findings[0].details["signal"] == "same_key_values_pair"
+
+    def test_values_without_specific_source_is_clean(self, scan_and_detect):
+        findings = scan_and_detect('''
+            from flask import Blueprint, request
+            bp = Blueprint("test", __name__)
+
+            @bp.get("/search")
+            def search():
+                q = request.values.get("q")
+        ''', ["CONF-004"])
+        assert len(findings) == 0
 
 
 class TestWebappIntegration:

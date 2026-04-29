@@ -11,6 +11,7 @@ confusion vulnerabilities).
 from __future__ import annotations
 
 import ast
+from dataclasses import dataclass
 from pathlib import Path
 
 from ..models import (
@@ -32,7 +33,8 @@ from .interface import ExtractionResult
 
 _ROUTE_DECORATORS = {"route", "get", "post", "put", "patch", "delete"}
 
-_HTTP_VERBS = {"get", "post", "put", "patch", "delete", "head", "options"}
+_HTTP_VERB_METHODS = ("get", "post", "put", "patch", "delete", "head", "options")
+_HTTP_VERBS = set(_HTTP_VERB_METHODS)
 
 # Maps request attribute -> InputSource. The request object name is resolved
 # dynamically via _flask_request_names (to support import aliases).
@@ -46,6 +48,59 @@ _REQUEST_ATTR_SOURCE_MAP: dict[str, InputSource] = {
     "cookies": InputSource.COOKIES,
     "files": InputSource.FILES,
 }
+
+_DATA_ACCESSOR_METHODS = {
+    "get",
+    "getlist",
+    "items",
+    "keys",
+    "values",
+    "lists",
+    "to_dict",
+    "get_json",
+}
+
+_COMMON_NON_PROJECT_CALLS = {
+    "abort",
+    "dict",
+    "flash",
+    "int",
+    "jsonify",
+    "len",
+    "list",
+    "print",
+    "redirect",
+    "render_template",
+    "set",
+    "sorted",
+    "str",
+    "tuple",
+}
+
+_CLASS_HANDLER_LIFECYCLE_METHODS = (
+    "process",
+    "_check_csrf",
+    "_do_process",
+    "_process_args",
+    "_check_access",
+    "_process",
+    "_process_GET",
+    "_process_POST",
+    "_process_PATCH",
+    "_process_PUT",
+    "_process_DELETE",
+)
+
+
+@dataclass(frozen=True)
+class _ResourceRouteRegistration:
+    class_name: str
+    class_qualname: str
+    rule: str | None
+    blueprint: str | None
+    location: Location
+    raw_code: str
+    notes: tuple[str, ...]
 
 
 # ---------------------------------------------------------------------------
@@ -111,6 +166,14 @@ class _FileVisitor(ast.NodeVisitor):
         self._flask_module_aliases: set[str] = {"flask"}
         # MethodView classes: class_name -> list of (verb, method_qualname)
         self._method_view_classes: dict[str, list[tuple[str, str]]] = {}
+        # Local imported names: RHMoveThing -> app.controllers.RHMoveThing
+        self._import_aliases: dict[str, str] = {}
+        # Class metadata used by the backend to add conservative framework edges.
+        self._class_qualnames: dict[str, str] = {}
+        self._class_methods: dict[str, set[str]] = {}
+        self._class_bases: dict[str, tuple[str, ...]] = {}
+        self._resource_class_names: set[str] = {"Resource"}
+        self._pending_resource_routes: list[_ResourceRouteRegistration] = []
 
     def _qualname(self, name: str) -> str:
         if self._current_class:
@@ -132,6 +195,8 @@ class _FileVisitor(ast.NodeVisitor):
             if alias.name in ("flask", "flask_restful"):
                 name = alias.asname or alias.name
                 self._flask_module_aliases.add(name)
+            local_name = alias.asname or alias.name.split(".", 1)[0]
+            self._import_aliases[local_name] = alias.name if alias.asname else local_name
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
@@ -141,6 +206,15 @@ class _FileVisitor(ast.NodeVisitor):
                 if alias.name == "request":
                     name = alias.asname or alias.name
                     self._flask_request_names.add(name)
+        if node.module in ("flask_restx", "flask_restful"):
+            for alias in node.names:
+                if alias.name == "Resource":
+                    self._resource_class_names.add(alias.asname or alias.name)
+        if node.module:
+            for alias in node.names:
+                if alias.name == "*":
+                    continue
+                self._import_aliases[alias.asname or alias.name] = f"{node.module}.{alias.name}"
         self.generic_visit(node)
 
     # --- Top-level assignments (blueprint detection, aliases) ---
@@ -234,6 +308,18 @@ class _FileVisitor(ast.NodeVisitor):
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         old_class = self._current_class
         self._current_class = node.name
+        class_qualname = f"{self.module}.{node.name}"
+        self._class_qualnames[node.name] = class_qualname
+        self._class_methods.setdefault(class_qualname, set())
+        self._class_bases[class_qualname] = tuple(
+            base_qualname
+            for base in node.bases
+            if (base_qualname := self._resolve_class_reference(base)) is not None
+        )
+
+        for item in node.body:
+            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                self._class_methods[class_qualname].add(f"{class_qualname}.{item.name}")
 
         # Detect MethodView / View subclasses
         is_method_view = any(
@@ -251,8 +337,109 @@ class _FileVisitor(ast.NodeVisitor):
             if verb_methods:
                 self._method_view_classes[node.name] = verb_methods
 
+        self._analyze_resource_class_routes(node, class_qualname)
+
         self.generic_visit(node)
         self._current_class = old_class
+
+    def _class_http_methods(
+        self,
+        class_qualname: str,
+        body: list[ast.stmt],
+    ) -> list[tuple[str, str]]:
+        methods: list[tuple[str, str]] = []
+        for item in body:
+            if (
+                isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and item.name in _HTTP_VERBS
+            ):
+                methods.append((item.name.upper(), f"{class_qualname}.{item.name}"))
+        return methods
+
+    def _is_rest_resource_class(self, node: ast.ClassDef) -> bool:
+        for base in node.bases:
+            if isinstance(base, ast.Name) and base.id in self._resource_class_names:
+                return True
+            if (
+                isinstance(base, ast.Attribute)
+                and base.attr == "Resource"
+                and isinstance(base.value, ast.Name)
+            ):
+                resolved = self._import_aliases.get(base.value.id, base.value.id)
+                if resolved in {"flask_restx", "flask_restful"} or resolved.endswith(
+                    (".flask_restx", ".flask_restful")
+                ):
+                    return True
+        return False
+
+    def _analyze_resource_class_routes(
+        self,
+        node: ast.ClassDef,
+        class_qualname: str,
+    ) -> None:
+        """Detect Flask-RESTX/RESTful ``@namespace.route`` class resources."""
+        http_methods = self._class_http_methods(class_qualname, node.body)
+        if not http_methods:
+            return
+
+        is_resource = self._is_rest_resource_class(node)
+        for dec in node.decorator_list:
+            if (
+                not isinstance(dec, ast.Call)
+                or not isinstance(dec.func, ast.Attribute)
+                or dec.func.attr != "route"
+            ):
+                continue
+
+            # Class-level route decorators are the Flask-RESTX/RESTful shape.
+            # Requiring HTTP verb methods keeps ordinary decorated classes from
+            # becoming broad pseudo-endpoints.
+            blueprint_name = (
+                dec.func.value.id if isinstance(dec.func.value, ast.Name) else None
+            )
+            rule = _str_literal(dec.args[0]) if dec.args else None
+            base_notes = [
+                "framework:flask-restx-resource",
+                f"resource_class:{node.name}",
+            ]
+            if not is_resource:
+                base_notes.append("resource_base:unresolved")
+
+            for verb, method_qualname in http_methods:
+                self.routes.append(
+                    RouteFact(
+                        handler_name=method_qualname.rsplit(".", 1)[-1],
+                        handler_qualname=method_qualname,
+                        route_kind=RouteKind.ENDPOINT,
+                        rule=rule,
+                        methods=(verb,),
+                        blueprint=blueprint_name,
+                        location=self._loc(dec),
+                        raw_code=_unparse_safe(dec),
+                        notes=tuple(base_notes),
+                    )
+                )
+
+    def _resolve_class_reference(self, node: ast.AST) -> str | None:
+        """Resolve a class-like AST expression to a best-effort qualname."""
+        if isinstance(node, ast.Name):
+            return self._resolve_local_name(node.id)
+        if isinstance(node, ast.Attribute):
+            parts: list[str] = []
+            current: ast.AST = node
+            while isinstance(current, ast.Attribute):
+                parts.append(current.attr)
+                current = current.value
+            if isinstance(current, ast.Name):
+                root = self._import_aliases.get(current.id, current.id)
+                return ".".join([root, *reversed(parts)])
+        return None
+
+    def _resolve_local_name(self, name: str) -> str:
+        """Resolve an imported/local top-level symbol name to a project qualname."""
+        if name in self._import_aliases:
+            return self._import_aliases[name]
+        return self._qualname(name)
 
     # --- Decorator analysis ---
 
@@ -367,16 +554,21 @@ class _FileVisitor(ast.NodeVisitor):
         # Case 1: Plain function reference — app.add_url_rule("/path", view_func=handler)
         if isinstance(view_func_node, ast.Name):
             handler_name = view_func_node.id
+            handler_qualname = self._resolve_local_name(handler_name)
+            notes: tuple[str, ...] = ()
+            if handler_name in self._class_qualnames or handler_name[:1].isupper():
+                notes = ("class_handler", "framework:add_url_rule")
             self.routes.append(
                 RouteFact(
                     handler_name=handler_name,
-                    handler_qualname=self._qualname(handler_name),
+                    handler_qualname=handler_qualname,
                     route_kind=RouteKind.ADD_URL_RULE,
                     rule=rule,
                     methods=methods,
                     blueprint=None,
                     location=self._loc(node),
                     raw_code=_unparse_safe(node),
+                    notes=notes,
                 )
             )
             return
@@ -415,7 +607,7 @@ class _FileVisitor(ast.NodeVisitor):
                 self.routes.append(
                     RouteFact(
                         handler_name=class_name,
-                        handler_qualname=self._qualname(class_name),
+                        handler_qualname=self._resolve_local_name(class_name),
                         route_kind=RouteKind.METHOD_VIEW,
                         rule=rule,
                         methods=methods,
@@ -426,11 +618,50 @@ class _FileVisitor(ast.NodeVisitor):
                     )
                 )
 
+    def _check_add_resource(self, node: ast.Call) -> None:
+        """Detect Flask-RESTX/RESTful ``api.add_resource(Resource, "/path")``."""
+        if not isinstance(node.func, ast.Attribute) or node.func.attr != "add_resource":
+            return
+        if not node.args:
+            return
+
+        class_node = node.args[0]
+        class_qualname = self._resolve_class_reference(class_node)
+        if class_qualname is None:
+            return
+
+        class_name = class_qualname.rsplit(".", 1)[-1]
+        blueprint_name = (
+            node.func.value.id if isinstance(node.func.value, ast.Name) else None
+        )
+        rules = [_str_literal(arg) for arg in node.args[1:]]
+        rules = [rule for rule in rules if rule is not None]
+        if not rules:
+            rules = [None]
+
+        for rule in rules:
+            self._pending_resource_routes.append(
+                _ResourceRouteRegistration(
+                    class_name=class_name,
+                    class_qualname=class_qualname,
+                    rule=rule,
+                    blueprint=blueprint_name,
+                    location=self._loc(node),
+                    raw_code=_unparse_safe(node),
+                    notes=(
+                        "framework:flask-restx-resource",
+                        f"resource_class:{class_name}",
+                        "registration:add_resource",
+                    ),
+                )
+            )
+
     # --- Input access detection ---
 
     def visit_Call(self, node: ast.Call) -> None:
         # add_url_rule can appear at module scope or inside a function
         self._check_add_url_rule(node)
+        self._check_add_resource(node)
 
         if self._current_function:
             self._check_input_access_call(node)
@@ -647,8 +878,12 @@ class _FileVisitor(ast.NodeVisitor):
 
         if isinstance(node.func, ast.Name):
             callee_name = node.func.id
+            if callee_name in _COMMON_NON_PROJECT_CALLS:
+                return
         elif isinstance(node.func, ast.Attribute):
-            callee_name = node.func.attr
+            if node.func.attr in _DATA_ACCESSOR_METHODS:
+                return
+            callee_name = self._resolve_attribute_callee(node.func)
 
         if callee_name is None:
             return
@@ -681,6 +916,24 @@ class _FileVisitor(ast.NodeVisitor):
                 argument_map=arg_map if arg_map else None,
             )
         )
+
+    def _resolve_attribute_callee(self, func: ast.Attribute) -> str | None:
+        """Resolve method calls that are local enough to model safely.
+
+        Attribute calls such as ``data.get(...)`` and ``client.get(...)`` are
+        not reliable project call edges without type information.  For class
+        methods, however, ``self._process_args()`` and ``Base._process_args(self)``
+        carry enough local structure to emit class-qualified edges.
+        """
+        receiver = func.value
+        if isinstance(receiver, ast.Name):
+            if receiver.id in {"self", "cls"} and self._current_class:
+                return f"{self.module}.{self._current_class}.{func.attr}"
+            if receiver.id in self._class_qualnames:
+                return f"{self._class_qualnames[receiver.id]}.{func.attr}"
+            if receiver.id in self._import_aliases:
+                return f"{self._import_aliases[receiver.id]}.{func.attr}"
+        return None
 
     def _is_request_related(self, code: str) -> bool:
         suffixes = [
@@ -768,6 +1021,9 @@ class ASTBackend:
         all_param_forwarding: list[tuple[str, int, str, int]] = []
         all_request_names: set[str] = {"request"}
         all_flask_module_aliases: set[str] = {"flask"}
+        all_class_methods: dict[str, set[str]] = {}
+        all_class_bases: dict[str, tuple[str, ...]] = {}
+        all_pending_resource_routes: list[_ResourceRouteRegistration] = []
 
         for f in files:
             try:
@@ -790,10 +1046,25 @@ class ASTBackend:
             all_param_forwarding.extend(visitor._param_forwarding)
             all_request_names.update(visitor._flask_request_names)
             all_flask_module_aliases.update(visitor._flask_module_aliases)
+            all_pending_resource_routes.extend(visitor._pending_resource_routes)
+            for class_qualname, methods in visitor._class_methods.items():
+                all_class_methods.setdefault(class_qualname, set()).update(methods)
+            all_class_bases.update(visitor._class_bases)
+
+        all_routes.extend(
+            self._resource_route_facts(all_pending_resource_routes, all_class_methods)
+        )
 
         # Resolve call edge qualnames
         all_edges = self._resolve_call_edges(
             all_edges, all_routes, all_accesses, all_function_params
+        )
+        all_edges.extend(
+            self._class_handler_lifecycle_edges(
+                all_routes,
+                all_class_methods,
+                all_class_bases,
+            )
         )
 
         # Propagate sources through function parameters (iterative for multi-level)
@@ -814,6 +1085,130 @@ class ASTBackend:
             before_requests=all_before,
             dict_merges=all_merges,
         )
+
+    def _resource_route_facts(
+        self,
+        registrations: list[_ResourceRouteRegistration],
+        class_methods: dict[str, set[str]],
+    ) -> list[RouteFact]:
+        """Resolve deferred ``add_resource`` registrations to method endpoints."""
+        routes: list[RouteFact] = []
+        seen: set[tuple[str, str | None, str, str]] = set()
+
+        for registration in registrations:
+            methods = class_methods.get(registration.class_qualname, set())
+            if not methods:
+                continue
+
+            for method_name in _HTTP_VERB_METHODS:
+                method_qualname = f"{registration.class_qualname}.{method_name}"
+                if method_qualname not in methods:
+                    continue
+
+                verb = method_name.upper()
+                key = (
+                    registration.class_qualname,
+                    registration.rule,
+                    method_qualname,
+                    verb,
+                )
+                if key in seen:
+                    continue
+                seen.add(key)
+
+                routes.append(
+                    RouteFact(
+                        handler_name=method_name,
+                        handler_qualname=method_qualname,
+                        route_kind=RouteKind.ENDPOINT,
+                        rule=registration.rule,
+                        methods=(verb,),
+                        blueprint=registration.blueprint,
+                        location=registration.location,
+                        raw_code=registration.raw_code,
+                        notes=registration.notes,
+                    )
+                )
+
+        return routes
+
+    def _class_handler_lifecycle_edges(
+        self,
+        routes: list[RouteFact],
+        class_methods: dict[str, set[str]],
+        class_bases: dict[str, tuple[str, ...]],
+    ) -> list[CallEdge]:
+        """Add conservative endpoint-context edges for Flask class handlers.
+
+        Frameworks such as Indico register handler classes instead of plain
+        functions.  The request-relevant work then lives in lifecycle methods
+        like ``_process_args`` and ``_process``.  We connect the route class
+        pseudo-node directly to the resolved implementation for each known
+        lifecycle method.  This keeps endpoint reachability class-scoped and
+        avoids making shared base methods reach every subclass override.
+        """
+        edges: list[CallEdge] = []
+        seen: set[tuple[str, str, str, int]] = set()
+
+        for route in routes:
+            class_qualname = route.handler_qualname
+            if class_qualname not in class_methods and class_qualname not in class_bases:
+                continue
+
+            for method_name in _CLASS_HANDLER_LIFECYCLE_METHODS:
+                implementation = self._resolve_class_method(
+                    class_qualname,
+                    method_name,
+                    class_methods,
+                    class_bases,
+                )
+                if implementation is None:
+                    continue
+                key = (class_qualname, implementation, route.location.file, route.location.line)
+                if key in seen:
+                    continue
+                seen.add(key)
+                edges.append(
+                    CallEdge(
+                        caller_qualname=class_qualname,
+                        callee_qualname=implementation,
+                        location=route.location,
+                        argument_map=None,
+                    )
+                )
+
+        return edges
+
+    def _resolve_class_method(
+        self,
+        class_qualname: str,
+        method_name: str,
+        class_methods: dict[str, set[str]],
+        class_bases: dict[str, tuple[str, ...]],
+        seen: set[str] | None = None,
+    ) -> str | None:
+        """Resolve ``method_name`` on ``class_qualname`` using local class metadata."""
+        seen = seen or set()
+        if class_qualname in seen:
+            return None
+        seen.add(class_qualname)
+
+        candidate = f"{class_qualname}.{method_name}"
+        if candidate in class_methods.get(class_qualname, set()):
+            return candidate
+
+        for base_qualname in class_bases.get(class_qualname, ()):
+            resolved = self._resolve_class_method(
+                base_qualname,
+                method_name,
+                class_methods,
+                class_bases,
+                seen,
+            )
+            if resolved is not None:
+                return resolved
+
+        return None
 
     def _resolve_call_edges(
         self,
