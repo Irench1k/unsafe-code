@@ -730,6 +730,376 @@ def generate_rule_development() -> nbformat.NotebookNode:
 
 
 # ---------------------------------------------------------------------------
+# Notebook 4: Graph Construction Demo
+# ---------------------------------------------------------------------------
+
+
+def generate_graph_construction_demo() -> nbformat.NotebookNode:
+    nb = new_notebook()
+    c = nb.cells
+
+    c.append(md("""
+        # Graph Construction Demo
+
+        This notebook is a compact presentation demo for the custom graph-based
+        SAST engine. It uses a deliberately tiny Flask snippet so the extracted
+        facts and graph edges are easy to explain.
+    """))
+
+    c.append(md("""
+        ## Demo Goal
+
+        We want to show how source code becomes:
+
+        1. backend-specific extraction output,
+        2. normalized facts,
+        3. an endpoint-centered `AnalysisGraph`,
+        4. queryable evidence for later detection rules.
+
+        The detection rules themselves are only shown briefly at the end.
+    """))
+
+    c.append(code("""\
+        %load_ext autoreload
+        %autoreload 2
+
+        from __future__ import annotations
+
+        import html
+        import sys
+        import tempfile
+        import textwrap
+        from pathlib import Path
+        from IPython.display import HTML, Markdown, display
+
+        # Make the notebook runnable from a fresh repo checkout even if the
+        # package has not been installed with `pip install -e .`.
+        for candidate in [Path.cwd(), *Path.cwd().parents]:
+            if (candidate / "src" / "confusion_sast").exists():
+                sys.path.insert(0, str(candidate / "src"))
+                break
+
+        from confusion_sast.analysis.graph import build_analysis_graph
+        from confusion_sast.backends.ast_backend import ASTBackend
+        from confusion_sast.detection.rules import run_rules
+        from confusion_sast.reporting.display import show_graph
+
+
+        def show_table(rows: list[dict], *, title: str | None = None) -> None:
+            \"\"\"Small dependency-free table renderer for presentation notebooks.\"\"\"
+            if title:
+                display(Markdown(f\"**{title}**\"))
+            if not rows:
+                display(Markdown(\"_No rows._\"))
+                return
+
+            columns = list(rows[0].keys())
+            header = \"\".join(f\"<th>{html.escape(str(col))}</th>\" for col in columns)
+            body_rows = []
+            for row in rows:
+                cells = \"\".join(
+                    f\"<td><code>{html.escape(str(row.get(col, '')))}</code></td>\"
+                    for col in columns
+                )
+                body_rows.append(f\"<tr>{cells}</tr>\")
+            display(HTML(f\"\"\"
+            <style>
+              table.demo-table {{
+                border-collapse: collapse;
+                font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+                font-size: 13px;
+              }}
+              .demo-table th, .demo-table td {{
+                border: 1px solid #ddd;
+                padding: 6px 8px;
+                vertical-align: top;
+              }}
+              .demo-table th {{
+                background: #f6f6f6;
+                text-align: left;
+              }}
+            </style>
+            <table class=\"demo-table\">
+              <thead><tr>{header}</tr></thead>
+              <tbody>{''.join(body_rows)}</tbody>
+            </table>
+            \"\"\"))"""))
+
+    c.append(md("""
+        ## 1. Tiny Flask Program
+
+        This toy endpoint contains the same structural idea as the delivery-fee
+        benchmark: the order path uses `request.form`, while the delivery-fee
+        path uses `request.values`. Both paths call the same helper.
+    """))
+
+    c.append(code("""\
+        demo_source = '''
+        from flask import Blueprint, jsonify, request
+
+        bp = Blueprint("demo", __name__)
+
+
+        def check_items(data):
+            return data.getlist("items")
+
+
+        def calculate_delivery_fee():
+            items_for_fee = check_items(request.values)
+            return 0 if len(items_for_fee) > 2 else 5
+
+
+        @bp.before_request
+        def reject_negative_tip():
+            tip = request.args.get("tip")
+            if tip and tip.startswith("-"):
+                return jsonify({"error": "negative tip"}), 400
+
+
+        @bp.post("/orders")
+        def create_order():
+            checked_items = check_items(request.form)
+            if not checked_items:
+                return jsonify({"error": "empty order"}), 400
+
+            delivery_fee = calculate_delivery_fee()
+            ordered_items = check_items(request.form)
+            return jsonify({"items": ordered_items, "delivery_fee": delivery_fee})
+        '''
+
+        demo_dir = Path(tempfile.mkdtemp(prefix="confusion_graph_demo_"))
+        demo_file = demo_dir / "app.py"
+        demo_file.write_text(textwrap.dedent(demo_source).strip() + "\\n", encoding="utf-8")
+
+        print(f"Demo source written to: {demo_file}\\n")
+        for i, line in enumerate(demo_file.read_text().splitlines(), start=1):
+            print(f"{i:>2}: {line}")"""))
+
+    c.append(md("""
+        ## 2. Extraction Backend
+
+        The AST backend walks Python syntax and extracts framework-aware facts:
+        routes, request input accesses, call edges, and middleware registrations.
+
+        At this stage we still do not have the final analysis graph. We only
+        have normalized facts produced by one backend.
+    """))
+
+    c.append(code("""\
+        backend = ASTBackend()
+        extraction = backend.extract(demo_dir)
+
+        print("Extraction counts")
+        print(f"  routes:          {len(extraction.routes)}")
+        print(f"  input accesses:  {len(extraction.input_accesses)}")
+        print(f"  call edges:      {len(extraction.call_edges)}")
+        print(f"  before_request:  {len(extraction.before_requests)}")
+        print(f"  dict merges:     {len(extraction.dict_merges)}")"""))
+
+    c.append(md("""
+        ## 3. Normalized Facts
+
+        These fact objects are the contract between backends and rules. A rule
+        does not need to know whether a fact came from AST, CodeQL, Joern, or a
+        combined backend.
+    """))
+
+    c.append(code("""\
+        show_table(
+            [
+                {
+                    "handler": r.handler_qualname,
+                    "methods": ",".join(r.methods),
+                    "rule": r.rule,
+                    "blueprint": r.blueprint,
+                    "line": r.location.line,
+                }
+                for r in extraction.routes
+            ],
+            title="RouteFact",
+        )
+
+        show_table(
+            [
+                {
+                    "function": a.function_qualname,
+                    "source": f"request.{a.source.value}",
+                    "accessor": a.accessor.value,
+                    "key": a.key_literal,
+                    "line": a.location.line,
+                    "notes": "; ".join(a.notes),
+                }
+                for a in extraction.input_accesses
+            ],
+            title="InputAccessFact",
+        )"""))
+
+    c.append(code("""\
+        show_table(
+            [
+                {
+                    "caller": e.caller_qualname,
+                    "callee": e.callee_qualname,
+                    "line": e.location.line,
+                    "argument_map": e.argument_map,
+                }
+                for e in extraction.call_edges
+            ],
+            title="CallEdge",
+        )
+
+        show_table(
+            [
+                {
+                    "function": b.function_qualname,
+                    "blueprint": b.blueprint,
+                    "line": b.location.line,
+                }
+                for b in extraction.before_requests
+            ],
+            title="BeforeRequestFact",
+        )"""))
+
+    c.append(md("""
+        Notice the `argument_map` on call edges. It records facts such as:
+
+        ```text
+        create_order -> check_items       {0: "request.form"}
+        calculate_delivery_fee -> check_items {0: "request.values"}
+        ```
+
+        That is the information a syntax-only rule cannot reliably preserve
+        once request data is passed into helper functions.
+    """))
+
+    c.append(md("""
+        ## 4. Build the AnalysisGraph
+
+        The `AnalysisGraph` adds a NetworkX call graph on top of the facts and
+        builds indexes for common rule queries.
+
+        - nodes are function qualified names,
+        - edges are caller/callee relationships,
+        - fact lists remain attached as queryable metadata.
+    """))
+
+    c.append(code("""\
+        graph = build_analysis_graph(extraction, target_root=demo_dir)
+        graph.stats()"""))
+
+    c.append(code("""\
+        # Visual graph view.
+        #
+        # In JupyterLab this renders the call graph as an HTML/SVG view.
+        # For this demo:
+        #   - green endpoint node: create_order
+        #   - middleware node: reject_negative_tip
+        #   - ordinary function nodes: helpers
+        #   - directed edges: caller -> callee
+        show_graph(graph)"""))
+
+    c.append(code("""\
+        show_table(
+            [
+                {
+                    "node": node,
+                    "kind": data.get("kind", "function"),
+                }
+                for node, data in sorted(graph.g.nodes(data=True))
+            ],
+            title="NetworkX nodes",
+        )
+
+        show_table(
+            [
+                {
+                    "caller": caller,
+                    "callee": callee,
+                    "call_count": data.get("call_count"),
+                }
+                for caller, callee, data in sorted(graph.g.edges(data=True))
+            ],
+            title="NetworkX edges",
+        )"""))
+
+    c.append(md("""
+        ## 5. Endpoint-Centered Queries
+
+        Detection rules usually start from a route handler and ask:
+
+        > Which functions and request accesses are reachable from this endpoint?
+
+        This is why the graph is endpoint-centered rather than just a list of
+        local source-code matches.
+    """))
+
+    c.append(code("""\
+        route = extraction.routes[0]
+        handler = route.handler_qualname
+
+        print("Endpoint:", route.methods, route.rule)
+        print("Handler: ", handler)
+        print("\\nReachable functions:")
+        for function_name in sorted(graph.reachable_from(handler)):
+            print("  -", function_name)
+
+        show_table(
+            [
+                {
+                    "function": a.function_qualname,
+                    "source": f"request.{a.source.value}",
+                    "accessor": a.accessor.value,
+                    "key": a.key_literal,
+                    "line": a.location.line,
+                    "notes": "; ".join(a.notes),
+                }
+                for a in graph.accesses_reachable_from(handler)
+            ],
+            title="Input accesses reachable from the /orders endpoint",
+        )"""))
+
+    c.append(md("""
+        ## 6. Bridge to Detection Rules
+
+        The detection rule can now compare endpoint-visible source policies:
+
+        - `check_items(request.form)` for order validation/execution,
+        - `check_items(request.values)` for delivery-fee calculation.
+
+        This cell is only a bridge to the later detection-rules slide.
+    """))
+
+    c.append(code("""\
+        findings = run_rules(graph, ["CONF-001"])
+        print(f"CONF-001 findings: {len(findings)}\\n")
+
+        for finding in findings:
+            print(finding.title)
+            print("primary location:", finding.location_1)
+            print("related location:", finding.location_2)
+            print("evidence:")
+            for ev in finding.evidence:
+                print(f"  - {ev.source.value}.{ev.accessor.value}({ev.key_literal!r}) at line {ev.location.line}")"""))
+
+    c.append(md("""
+        ## Presentation Summary
+
+        The important point is not the specific rule result. The important
+        point is the representation:
+
+        ```text
+        source code -> normalized facts -> call graph + indexes -> endpoint query
+        ```
+
+        Once this representation exists, detection rules can reason about
+        semantic disagreement between code paths instead of matching only local
+        syntax.
+    """))
+
+    return nb
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -739,6 +1109,7 @@ def main():
         ("01_quickstart.ipynb", generate_quickstart),
         ("02_graph_exploration.ipynb", generate_graph_exploration),
         ("03_rule_development.ipynb", generate_rule_development),
+        ("04_graph_construction_demo.ipynb", generate_graph_construction_demo),
     ]
 
     for filename, generator in notebooks:
